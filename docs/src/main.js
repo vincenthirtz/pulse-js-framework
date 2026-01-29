@@ -1773,7 +1773,7 @@ function Footer() {
     <div class="footer-content">
       <p>Built with ⚡ Pulse Framework</p>
       <p class="footer-links">
-        <a href="https://github.com/vincenthirtz/pulse-framework" target="_blank">GitHub</a>
+        <a href="https://github.com/vincenthirtz/pulse-js-framework" target="_blank">GitHub</a>
         <span>•</span>
         <a href="#" onclick="window.docs.navigate('getting-started')">Documentation</a>
         <span>•</span>

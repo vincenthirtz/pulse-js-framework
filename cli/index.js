@@ -71,7 +71,7 @@ Examples:
   pulse mobile run ios
   pulse compile src/App.pulse
 
-Documentation: https://github.com/vincenthirtz/pulse-framework
+Documentation: https://github.com/vincenthirtz/pulse-js-framework
   `);
 }
 
