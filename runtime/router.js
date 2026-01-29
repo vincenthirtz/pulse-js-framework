@@ -9,10 +9,19 @@ import { el, mount } from './dom.js';
 
 /**
  * Parse a route pattern into a regex and extract param names
- * Supports: /users/:id, /posts/:id/comments, /files/*path
+ * Supports: /users/:id, /posts/:id/comments, /files/*path, * (catch-all)
  */
 function parsePattern(pattern) {
   const paramNames = [];
+
+  // Handle standalone * as catch-all
+  if (pattern === '*') {
+    return {
+      regex: /^.*$/,
+      paramNames: []
+    };
+  }
+
   let regexStr = pattern
     // Escape special regex chars except : and *
     .replace(/[.+?^${}()|[\]\\]/g, '\\$&')
