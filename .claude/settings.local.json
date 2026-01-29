@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node scripts/build-netlify.js:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nAdd production build, preview command, and Netlify examples deployment\n\n- Add minification for production builds \\(JS files and runtime bundle\\)\n- Add `pulse preview` command to serve production builds locally\n- Add Netlify configuration with examples deployment\n- Add build script that compiles docs + all 4 examples\n- Add examples index page with links to todo, chat, ecommerce, meteo\n- Add CLAUDE.md for project documentation\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git push:*)",
+      "Bash(git commit:*)",
+      "Bash(npm test)",
+      "Bash(node -e:*)"
+    ]
+  }
+}

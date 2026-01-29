@@ -5,6 +5,7 @@
 import {
   pulse,
   effect,
+  onCleanup,
   el,
   mount,
 } from '/runtime/index.js';
@@ -349,15 +350,46 @@ function Footer() {
 }
 
 function App() {
-  return el('section.todoapp',
+  const app = el('section.todoapp',
     Header(),
     TodoList(),
     Footer(),
     el('footer.info',
-      el('p', 'Double-click to edit a task'),
+      el('p', 'Double-click to edit a task • Press "n" to add new'),
       el('p', 'Built with ✨ Pulse Framework')
     )
   );
+
+  // Global keyboard shortcuts (demonstrates onCleanup)
+  const handleKeyboard = (e) => {
+    // 'n' to focus new todo input (when not in an input field)
+    if (e.key === 'n' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+      e.preventDefault();
+      const input = document.querySelector('.new-todo');
+      if (input) input.focus();
+    }
+    // Escape to cancel editing or clear input
+    if (e.key === 'Escape') {
+      if (editingId.peek()) {
+        editingId.set(null);
+        editText.set('');
+      } else {
+        newTodoText.set('');
+        document.activeElement?.blur();
+      }
+    }
+  };
+
+  document.addEventListener('keydown', handleKeyboard);
+
+  // Cleanup keyboard listener when app unmounts
+  effect(() => {
+    onCleanup(() => {
+      document.removeEventListener('keydown', handleKeyboard);
+    });
+  });
+
+  return app;
 }
 
 // =============================================================================

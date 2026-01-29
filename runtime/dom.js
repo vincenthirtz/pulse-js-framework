@@ -5,7 +5,35 @@
  * and provides reactive bindings
  */
 
-import { effect, pulse, batch } from './pulse.js';
+import { effect, pulse, batch, onCleanup } from './pulse.js';
+
+// Lifecycle tracking
+let mountCallbacks = [];
+let unmountCallbacks = [];
+let currentMountContext = null;
+
+/**
+ * Register a callback to run when component mounts
+ */
+export function onMount(fn) {
+  if (currentMountContext) {
+    currentMountContext.mountCallbacks.push(fn);
+  } else {
+    // Defer to next microtask if no context
+    queueMicrotask(fn);
+  }
+}
+
+/**
+ * Register a callback to run when component unmounts
+ */
+export function onUnmount(fn) {
+  if (currentMountContext) {
+    currentMountContext.unmountCallbacks.push(fn);
+  }
+  // Also register with effect cleanup if in an effect
+  onCleanup(fn);
+}
 
 /**
  * Parse a CSS selector-like string into element configuration
@@ -238,7 +266,7 @@ export function on(element, event, handler, options) {
 }
 
 /**
- * Create a reactive list
+ * Create a reactive list with efficient keyed diffing
  */
 export function list(getItems, template, keyFn = (item, i) => i) {
   const container = document.createDocumentFragment();
@@ -248,41 +276,36 @@ export function list(getItems, template, keyFn = (item, i) => i) {
   container.appendChild(startMarker);
   container.appendChild(endMarker);
 
-  let itemNodes = new Map(); // key -> { nodes: Node[], cleanup: Function }
+  // Map: key -> { nodes: Node[], cleanup: Function, item: any }
+  let itemNodes = new Map();
+  let keyOrder = []; // Track order of keys for diffing
 
   effect(() => {
     const items = typeof getItems === 'function' ? getItems() : getItems.get();
-    const newKeys = new Set();
+    const itemsArray = Array.isArray(items) ? items : Array.from(items);
 
-    // Build new list
-    const fragment = document.createDocumentFragment();
+    const newKeys = [];
     const newItemNodes = new Map();
 
-    items.forEach((item, index) => {
+    // Build map of new items by key
+    itemsArray.forEach((item, index) => {
       const key = keyFn(item, index);
-      newKeys.add(key);
+      newKeys.push(key);
 
       if (itemNodes.has(key)) {
-        // Reuse existing nodes
-        const existing = itemNodes.get(key);
-        for (const node of existing.nodes) {
-          fragment.appendChild(node);
-        }
-        newItemNodes.set(key, existing);
+        // Reuse existing entry
+        newItemNodes.set(key, itemNodes.get(key));
       } else {
         // Create new nodes
         const result = template(item, index);
         const nodes = Array.isArray(result) ? result : [result];
-        for (const node of nodes) {
-          fragment.appendChild(node);
-        }
-        newItemNodes.set(key, { nodes, cleanup: null });
+        newItemNodes.set(key, { nodes, cleanup: null, item });
       }
     });
 
-    // Remove old items
+    // Remove items that are no longer present
     for (const [key, entry] of itemNodes) {
-      if (!newKeys.has(key)) {
+      if (!newItemNodes.has(key)) {
         for (const node of entry.nodes) {
           node.remove();
         }
@@ -290,17 +313,30 @@ export function list(getItems, template, keyFn = (item, i) => i) {
       }
     }
 
-    // Clear between markers
-    let current = startMarker.nextSibling;
-    while (current && current !== endMarker) {
-      const next = current.nextSibling;
-      current.remove();
-      current = next;
+    // Efficient reordering using minimal DOM operations
+    // Use a simple diff algorithm: iterate through new order and move/insert as needed
+    let prevNode = startMarker;
+
+    for (let i = 0; i < newKeys.length; i++) {
+      const key = newKeys[i];
+      const entry = newItemNodes.get(key);
+      const firstNode = entry.nodes[0];
+
+      // Check if node is already in correct position
+      if (prevNode.nextSibling !== firstNode) {
+        // Need to move/insert
+        for (const node of entry.nodes) {
+          prevNode.parentNode?.insertBefore(node, prevNode.nextSibling);
+          prevNode = node;
+        }
+      } else {
+        // Already in position, just advance prevNode
+        prevNode = entry.nodes[entry.nodes.length - 1];
+      }
     }
 
-    // Insert new fragment
-    endMarker.parentNode?.insertBefore(fragment, endMarker);
     itemNodes = newItemNodes;
+    keyOrder = newKeys;
   });
 
   return container;
@@ -441,12 +477,21 @@ export function mount(target, element) {
 }
 
 /**
- * Create a component factory
+ * Create a component factory with lifecycle support
  */
 export function component(setup) {
   return (props = {}) => {
     const state = {};
     const methods = {};
+
+    // Create mount context for lifecycle hooks
+    const mountContext = {
+      mountCallbacks: [],
+      unmountCallbacks: []
+    };
+
+    const prevContext = currentMountContext;
+    currentMountContext = mountContext;
 
     const ctx = {
       state,
@@ -459,11 +504,288 @@ export function component(setup) {
       when,
       on,
       bind,
-      model
+      model,
+      onMount,
+      onUnmount
     };
 
-    return setup(ctx);
+    let result;
+    try {
+      result = setup(ctx);
+    } finally {
+      currentMountContext = prevContext;
+    }
+
+    // Schedule mount callbacks after DOM insertion
+    if (mountContext.mountCallbacks.length > 0) {
+      queueMicrotask(() => {
+        for (const cb of mountContext.mountCallbacks) {
+          try {
+            cb();
+          } catch (e) {
+            console.error('Mount callback error:', e);
+          }
+        }
+      });
+    }
+
+    // Store unmount callbacks on the element for later cleanup
+    if (result instanceof Node && mountContext.unmountCallbacks.length > 0) {
+      result._pulseUnmount = mountContext.unmountCallbacks;
+    }
+
+    return result;
   };
+}
+
+/**
+ * Toggle element visibility without removing from DOM
+ * Unlike when(), this keeps the element in the DOM but hides it
+ */
+export function show(condition, element) {
+  effect(() => {
+    const shouldShow = typeof condition === 'function' ? condition() : condition.get();
+    element.style.display = shouldShow ? '' : 'none';
+  });
+  return element;
+}
+
+/**
+ * Portal - render children into a different DOM location
+ */
+export function portal(children, target) {
+  const resolvedTarget = typeof target === 'string'
+    ? document.querySelector(target)
+    : target;
+
+  if (!resolvedTarget) {
+    console.warn('Portal target not found:', target);
+    return document.createComment('portal-target-not-found');
+  }
+
+  const marker = document.createComment('portal');
+  let mountedNodes = [];
+
+  // Handle reactive children
+  if (typeof children === 'function') {
+    effect(() => {
+      // Cleanup previous nodes
+      for (const node of mountedNodes) {
+        node.remove();
+        if (node._pulseUnmount) {
+          for (const cb of node._pulseUnmount) cb();
+        }
+      }
+      mountedNodes = [];
+
+      const result = children();
+      if (result) {
+        const nodes = Array.isArray(result) ? result : [result];
+        for (const node of nodes) {
+          if (node instanceof Node) {
+            resolvedTarget.appendChild(node);
+            mountedNodes.push(node);
+          }
+        }
+      }
+    });
+  } else {
+    // Static children
+    const nodes = Array.isArray(children) ? children : [children];
+    for (const node of nodes) {
+      if (node instanceof Node) {
+        resolvedTarget.appendChild(node);
+        mountedNodes.push(node);
+      }
+    }
+  }
+
+  // Return marker for position tracking, attach cleanup
+  marker._pulseUnmount = [() => {
+    for (const node of mountedNodes) {
+      node.remove();
+      if (node._pulseUnmount) {
+        for (const cb of node._pulseUnmount) cb();
+      }
+    }
+  }];
+
+  return marker;
+}
+
+/**
+ * Error boundary - catch errors in child components
+ */
+export function errorBoundary(children, fallback) {
+  const container = document.createDocumentFragment();
+  const marker = document.createComment('error-boundary');
+  container.appendChild(marker);
+
+  const error = pulse(null);
+  let currentNodes = [];
+
+  const renderContent = () => {
+    // Cleanup previous
+    for (const node of currentNodes) {
+      node.remove();
+    }
+    currentNodes = [];
+
+    const hasError = error.peek();
+
+    try {
+      let result;
+      if (hasError && fallback) {
+        result = typeof fallback === 'function' ? fallback(hasError) : fallback;
+      } else {
+        result = typeof children === 'function' ? children() : children;
+      }
+
+      if (result) {
+        const nodes = Array.isArray(result) ? result : [result];
+        const fragment = document.createDocumentFragment();
+        for (const node of nodes) {
+          if (node instanceof Node) {
+            fragment.appendChild(node);
+            currentNodes.push(node);
+          }
+        }
+        marker.parentNode?.insertBefore(fragment, marker.nextSibling);
+      }
+    } catch (e) {
+      console.error('Error in component:', e);
+      error.set(e);
+      // Re-render with error
+      if (!hasError) {
+        queueMicrotask(renderContent);
+      }
+    }
+  };
+
+  effect(renderContent);
+
+  // Expose reset method on marker
+  marker.resetError = () => error.set(null);
+
+  return container;
+}
+
+/**
+ * Transition helper - animate element enter/exit
+ */
+export function transition(element, options = {}) {
+  const {
+    enter = 'fade-in',
+    exit = 'fade-out',
+    duration = 300,
+    onEnter,
+    onExit
+  } = options;
+
+  // Apply enter animation
+  const applyEnter = () => {
+    element.classList.add(enter);
+    if (onEnter) onEnter(element);
+    setTimeout(() => {
+      element.classList.remove(enter);
+    }, duration);
+  };
+
+  // Apply exit animation and return promise
+  const applyExit = () => {
+    return new Promise(resolve => {
+      element.classList.add(exit);
+      if (onExit) onExit(element);
+      setTimeout(() => {
+        element.classList.remove(exit);
+        resolve();
+      }, duration);
+    });
+  };
+
+  // Apply enter on mount
+  queueMicrotask(applyEnter);
+
+  // Attach exit method
+  element._pulseTransitionExit = applyExit;
+
+  return element;
+}
+
+/**
+ * Conditional rendering with transitions
+ */
+export function whenTransition(condition, thenTemplate, elseTemplate = null, options = {}) {
+  const container = document.createDocumentFragment();
+  const marker = document.createComment('when-transition');
+  container.appendChild(marker);
+
+  const { duration = 300, enterClass = 'fade-in', exitClass = 'fade-out' } = options;
+
+  let currentNodes = [];
+  let isTransitioning = false;
+
+  effect(() => {
+    const show = typeof condition === 'function' ? condition() : condition.get();
+
+    if (isTransitioning) return;
+
+    const template = show ? thenTemplate : elseTemplate;
+
+    // Exit animation for current nodes
+    if (currentNodes.length > 0) {
+      isTransitioning = true;
+      const nodesToRemove = [...currentNodes];
+      currentNodes = [];
+
+      for (const node of nodesToRemove) {
+        node.classList.add(exitClass);
+      }
+
+      setTimeout(() => {
+        for (const node of nodesToRemove) {
+          node.remove();
+        }
+        isTransitioning = false;
+
+        // Render new content
+        if (template) {
+          const result = typeof template === 'function' ? template() : template;
+          if (result) {
+            const nodes = Array.isArray(result) ? result : [result];
+            const fragment = document.createDocumentFragment();
+            for (const node of nodes) {
+              if (node instanceof Node) {
+                node.classList.add(enterClass);
+                fragment.appendChild(node);
+                currentNodes.push(node);
+                setTimeout(() => node.classList.remove(enterClass), duration);
+              }
+            }
+            marker.parentNode?.insertBefore(fragment, marker.nextSibling);
+          }
+        }
+      }, duration);
+    } else if (template) {
+      // No previous content, just render with enter animation
+      const result = typeof template === 'function' ? template() : template;
+      if (result) {
+        const nodes = Array.isArray(result) ? result : [result];
+        const fragment = document.createDocumentFragment();
+        for (const node of nodes) {
+          if (node instanceof Node) {
+            node.classList.add(enterClass);
+            fragment.appendChild(node);
+            currentNodes.push(node);
+            setTimeout(() => node.classList.remove(enterClass), duration);
+          }
+        }
+        marker.parentNode?.insertBefore(fragment, marker.nextSibling);
+      }
+    }
+  });
+
+  return container;
 }
 
 export default {
@@ -480,5 +802,13 @@ export default {
   model,
   mount,
   component,
-  parseSelector
+  parseSelector,
+  // New features
+  onMount,
+  onUnmount,
+  show,
+  portal,
+  errorBoundary,
+  transition,
+  whenTransition
 };

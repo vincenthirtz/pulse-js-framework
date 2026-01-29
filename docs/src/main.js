@@ -40,6 +40,10 @@ const sections = {
   playground: {
     title: 'Playground',
     subtitle: 'Write and test Pulse code in real-time'
+  },
+  changelog: {
+    title: 'Changelog',
+    subtitle: 'Recent updates and improvements'
   }
 };
 
@@ -49,7 +53,8 @@ const navigation = [
   { id: 'core-concepts', label: '💡 Core Concepts' },
   { id: 'api-reference', label: '📖 API Reference' },
   { id: 'examples', label: '✨ Examples' },
-  { id: 'playground', label: '🎮 Playground' }
+  { id: 'playground', label: '🎮 Playground' },
+  { id: 'changelog', label: '📋 Changelog' }
 ];
 
 // =============================================================================
@@ -633,6 +638,48 @@ const fullName = computed(() =>
         <h3><code>untrack(fn)</code></h3>
         <p>Reads pulses without creating dependencies.</p>
       </div>
+
+      <div class="api-item">
+        <h3><code>onCleanup(fn)</code></h3>
+        <p>Registers a cleanup function within an effect. Runs when the effect re-executes or is disposed.</p>
+        <div class="code-block">
+          <pre><code>effect(() => {
+  const interval = setInterval(() => tick(), 1000);
+  onCleanup(() => clearInterval(interval));
+});</code></pre>
+        </div>
+      </div>
+
+      <div class="api-item">
+        <h3><code>memo(fn, options?)</code></h3>
+        <p>Memoizes a function - caches results based on arguments.</p>
+        <div class="code-block">
+          <pre><code>const expensive = memo((a, b) => {
+  // Only computed when args change
+  return heavyCalculation(a, b);
+});
+
+expensive(1, 2); // Computes
+expensive(1, 2); // Returns cached</code></pre>
+        </div>
+      </div>
+
+      <div class="api-item">
+        <h3><code>createState(obj)</code></h3>
+        <p>Creates a reactive state object. Arrays get special helper methods.</p>
+        <div class="code-block">
+          <pre><code>const state = createState({
+  count: 0,
+  items: ['a', 'b', 'c']
+});
+
+state.count++;          // Reactive
+state.items$push('d');  // ['a', 'b', 'c', 'd']
+state.items$pop();      // Returns 'd'
+state.items$filter(x => x !== 'b');</code></pre>
+        </div>
+        <p><strong>Array helpers:</strong> <code>$push</code>, <code>$pop</code>, <code>$shift</code>, <code>$unshift</code>, <code>$splice</code>, <code>$filter</code>, <code>$map</code>, <code>$sort</code></p>
+      </div>
     </section>
 
     <section class="doc-section">
@@ -687,6 +734,75 @@ mount(document.body, App());</code></pre>
   () => el('.dashboard', 'Welcome!'),
   () => el('.login', 'Please log in')
 )</code></pre>
+        </div>
+      </div>
+
+      <div class="api-item">
+        <h3><code>show(condition, element)</code></h3>
+        <p>Toggle element visibility without removing from DOM (preserves state).</p>
+        <div class="code-block">
+          <pre><code>const panel = el('.panel', 'Content');
+show(() => isVisible.get(), panel);</code></pre>
+        </div>
+      </div>
+
+      <div class="api-item">
+        <h3><code>portal(children, target)</code></h3>
+        <p>Renders children into a different DOM location (useful for modals).</p>
+        <div class="code-block">
+          <pre><code>// Render modal at document body
+portal(
+  () => el('.modal', 'Modal content'),
+  document.body
+);</code></pre>
+        </div>
+      </div>
+
+      <div class="api-item">
+        <h3><code>errorBoundary(children, fallback)</code></h3>
+        <p>Catches errors in child components and displays fallback.</p>
+        <div class="code-block">
+          <pre><code>errorBoundary(
+  () => RiskyComponent(),
+  (error) => el('.error', \`Error: \${error.message}\`)
+);</code></pre>
+        </div>
+      </div>
+
+      <div class="api-item">
+        <h3><code>onMount(fn)</code> / <code>onUnmount(fn)</code></h3>
+        <p>Lifecycle hooks for component setup and cleanup.</p>
+        <div class="code-block">
+          <pre><code>const MyComponent = component(({ onMount, onUnmount }) => {
+  onMount(() => console.log('Mounted!'));
+  onUnmount(() => console.log('Unmounted!'));
+  return el('.my-component');
+});</code></pre>
+        </div>
+      </div>
+
+      <div class="api-item">
+        <h3><code>transition(element, options)</code></h3>
+        <p>Apply enter/exit animations to elements.</p>
+        <div class="code-block">
+          <pre><code>transition(el('.card'), {
+  enter: 'fade-in',
+  exit: 'fade-out',
+  duration: 300
+});</code></pre>
+        </div>
+      </div>
+
+      <div class="api-item">
+        <h3><code>whenTransition(condition, then, else, options)</code></h3>
+        <p>Conditional rendering with animations.</p>
+        <div class="code-block">
+          <pre><code>whenTransition(
+  () => showModal.get(),
+  () => el('.modal', 'Content'),
+  null,
+  { duration: 200, enterClass: 'slide-in', exitClass: 'slide-out' }
+);</code></pre>
         </div>
       </div>
     </section>
@@ -1384,6 +1500,8 @@ function Footer() {
         <a href="#" onclick="window.docs.navigate('getting-started')">Documentation</a>
         <span>•</span>
         <a href="#" onclick="window.docs.navigate('examples')">Examples</a>
+        <span>•</span>
+        <a href="#" onclick="window.docs.navigate('changelog')">Changelog</a>
       </p>
       <div class="footer-social">
         <a href="https://discord.gg/Zjh7s5GSZU" target="_blank" class="social-link discord" title="Join our Discord">
@@ -1396,6 +1514,140 @@ function Footer() {
     </div>
   `;
   return footer;
+}
+
+function ChangelogPage() {
+  const page = el('.page.docs-page');
+
+  page.innerHTML = `
+    <h1>📋 Changelog</h1>
+    <p class="intro">Recent updates and improvements to Pulse Framework</p>
+
+    <section class="doc-section changelog-section">
+      <h2>v1.1.0 - Core Improvements</h2>
+      <p class="release-date">January 2026</p>
+
+      <h3>🎯 Reactivity Enhancements</h3>
+      <div class="changelog-group">
+        <div class="changelog-item">
+          <h4><code>onCleanup(fn)</code></h4>
+          <p>Register cleanup functions within effects that run when the effect re-executes or is disposed. Perfect for clearing timers, removing event listeners, or canceling subscriptions.</p>
+          <div class="code-block">
+            <pre><code>effect(() => {
+  const interval = setInterval(tick, 1000);
+  onCleanup(() => clearInterval(interval));
+});</code></pre>
+          </div>
+        </div>
+
+        <div class="changelog-item">
+          <h4><code>memo(fn, options?)</code></h4>
+          <p>Memoize function results based on arguments. Only recomputes when arguments change.</p>
+        </div>
+
+        <div class="changelog-item">
+          <h4><code>memoComputed(fn, options?)</code></h4>
+          <p>Combines memoization with computed values for expensive derivations.</p>
+        </div>
+
+        <div class="changelog-item">
+          <h4>Fixed <code>computed()</code> propagation</h4>
+          <p>Computed values now properly propagate changes to downstream subscribers using the new <code>_setFromComputed()</code> method.</p>
+        </div>
+
+        <div class="changelog-item">
+          <h4>Lazy computed option</h4>
+          <p>Use <code>computed(fn, { lazy: true })</code> to defer evaluation until the value is actually read.</p>
+        </div>
+      </div>
+
+      <h3>📦 Array Helpers in createState</h3>
+      <div class="changelog-group">
+        <p>Arrays in <code>createState()</code> now get reactive helper methods:</p>
+        <ul class="feature-list">
+          <li><code>$push(...items)</code> - Add items to end</li>
+          <li><code>$pop()</code> - Remove and return last item</li>
+          <li><code>$shift()</code> - Remove and return first item</li>
+          <li><code>$unshift(...items)</code> - Add items to beginning</li>
+          <li><code>$splice(start, count, ...items)</code> - Splice array</li>
+          <li><code>$filter(fn)</code> - Filter in place</li>
+          <li><code>$map(fn)</code> - Map in place</li>
+          <li><code>$sort(fn)</code> - Sort in place</li>
+        </ul>
+        <div class="code-block">
+          <pre><code>const state = createState({ items: [1, 2, 3] });
+state.items$push(4);      // [1, 2, 3, 4]
+state.items$filter(x => x > 2);  // [3, 4]</code></pre>
+        </div>
+      </div>
+
+      <h3>🖥️ DOM Improvements</h3>
+      <div class="changelog-group">
+        <div class="changelog-item">
+          <h4><code>show(condition, element)</code></h4>
+          <p>Toggle element visibility without removing from DOM. Unlike <code>when()</code>, this preserves element state and is more performant for frequent toggles.</p>
+        </div>
+
+        <div class="changelog-item">
+          <h4><code>portal(children, target)</code></h4>
+          <p>Render children into a different DOM location. Useful for modals, tooltips, and dropdowns that need to escape their parent's overflow or stacking context.</p>
+        </div>
+
+        <div class="changelog-item">
+          <h4><code>errorBoundary(children, fallback)</code></h4>
+          <p>Catch errors in child components and display a fallback UI. Includes a <code>resetError()</code> method to retry rendering.</p>
+        </div>
+
+        <div class="changelog-item">
+          <h4><code>onMount(fn)</code> / <code>onUnmount(fn)</code></h4>
+          <p>Lifecycle hooks for component setup and cleanup when using the <code>component()</code> factory.</p>
+        </div>
+
+        <div class="changelog-item">
+          <h4><code>transition(element, options)</code></h4>
+          <p>Apply enter/exit CSS animations to elements with configurable duration and class names.</p>
+        </div>
+
+        <div class="changelog-item">
+          <h4><code>whenTransition(condition, then, else, options)</code></h4>
+          <p>Conditional rendering with automatic enter/exit animations.</p>
+        </div>
+
+        <div class="changelog-item">
+          <h4>Optimized <code>list()</code> diffing</h4>
+          <p>List rendering now uses efficient keyed diffing - only moves nodes that actually changed position instead of rebuilding the entire list.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="doc-section changelog-section">
+      <h2>v1.0.0 - Initial Release</h2>
+      <p class="release-date">January 2026</p>
+
+      <div class="changelog-group">
+        <ul class="feature-list">
+          <li>Core reactivity system with <code>pulse()</code>, <code>effect()</code>, <code>computed()</code>, <code>batch()</code></li>
+          <li>CSS selector-based DOM creation with <code>el()</code></li>
+          <li>Reactive bindings: <code>text()</code>, <code>bind()</code>, <code>cls()</code>, <code>style()</code>, <code>model()</code></li>
+          <li>Conditional rendering with <code>when()</code> and <code>match()</code></li>
+          <li>List rendering with <code>list()</code></li>
+          <li>SPA Router with params, query strings, guards, and navigation</li>
+          <li>Global state management with Store, actions, getters, and plugins</li>
+          <li><code>.pulse</code> DSL compiler</li>
+          <li>CLI tools: create, dev, build, preview, compile</li>
+          <li>Example apps: Todo, Chat, E-commerce, Weather, Router Demo, Store Demo</li>
+        </ul>
+      </div>
+    </section>
+
+    <div class="next-section">
+      <button class="btn btn-primary" onclick="window.docs.navigate('home')">
+        ← Back to Home
+      </button>
+    </div>
+  `;
+
+  return page;
 }
 
 function App() {
@@ -1426,6 +1678,9 @@ function App() {
         break;
       case 'playground':
         main.appendChild(PlaygroundPage());
+        break;
+      case 'changelog':
+        main.appendChild(ChangelogPage());
         break;
       default:
         main.appendChild(HomePage());
@@ -1818,6 +2073,73 @@ body {
   padding-top: 24px;
   border-top: 1px solid var(--border);
   text-align: center;
+}
+
+/* Changelog page */
+.changelog-section {
+  margin-bottom: 48px;
+}
+
+.changelog-section h2 {
+  color: var(--primary);
+  font-size: 1.8em;
+}
+
+.release-date {
+  font-size: 0.9em;
+  color: var(--text-dim);
+  margin-bottom: 24px;
+  font-style: italic;
+}
+
+.changelog-group {
+  background: var(--bg-light);
+  padding: 24px;
+  border-radius: var(--radius);
+  margin-bottom: 24px;
+}
+
+.changelog-item {
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.changelog-item:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.changelog-item h4 {
+  margin: 0 0 8px 0;
+  font-size: 1.1em;
+}
+
+.changelog-item h4 code {
+  background: rgba(100, 108, 255, 0.1);
+  color: var(--primary);
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 0.95em;
+}
+
+.changelog-item p {
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.changelog-group > p {
+  margin-bottom: 16px;
+}
+
+.changelog-group .feature-list {
+  margin-bottom: 16px;
+}
+
+.changelog-group .code-block {
+  margin-top: 12px;
 }
 
 /* Examples page */

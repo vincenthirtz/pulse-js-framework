@@ -9,8 +9,8 @@
  * - createModuleStore for namespaced state
  */
 
-import { pulse, effect, computed, batch } from '../../runtime/index.js';
-import { el, mount } from '../../runtime/dom.js';
+import { pulse, effect, computed, batch, onCleanup } from '../../runtime/index.js';
+import { el, mount, onMount, onUnmount } from '../../runtime/dom.js';
 import {
   createStore,
   createActions,
@@ -520,21 +520,43 @@ function NoteEditor() {
     });
     editor.appendChild(titleInput);
 
-    // Content textarea
+    // Content textarea with auto-save indicator
     const contentArea = el('textarea.note-content-area[placeholder="Start writing..."]');
     contentArea.value = note.content;
     contentArea.style.fontSize = `${settingsModule.ui.editorFontSize.get()}px`;
+
+    // Auto-save status
+    const saveStatus = el('span.save-status', '✓ Saved');
+    let saveTimeout = null;
+
     contentArea.addEventListener('input', (e) => {
-      noteActions.updateNote(note.id, { content: e.target.value });
+      saveStatus.textContent = '● Saving...';
+      saveStatus.className = 'save-status saving';
+
+      // Clear previous timeout
+      if (saveTimeout) clearTimeout(saveTimeout);
+
+      // Debounced save
+      saveTimeout = setTimeout(() => {
+        noteActions.updateNote(note.id, { content: e.target.value });
+        saveStatus.textContent = '✓ Saved';
+        saveStatus.className = 'save-status saved';
+      }, 500);
     });
+
+    // Cleanup timeout when effect re-runs (demonstrates onCleanup)
+    onCleanup(() => {
+      if (saveTimeout) clearTimeout(saveTimeout);
+    });
+
     editor.appendChild(contentArea);
 
-    // Footer with metadata
+    // Footer with metadata and save status
     const footer = el('.editor-footer');
-    footer.innerHTML = `
-      <span>Created: ${new Date(note.created).toLocaleString()}</span>
-      <span>Updated: ${new Date(note.updated).toLocaleString()}</span>
-    `;
+    const timestamps = el('span');
+    timestamps.innerHTML = `Created: ${new Date(note.created).toLocaleString()} • Updated: ${new Date(note.updated).toLocaleString()}`;
+    footer.appendChild(timestamps);
+    footer.appendChild(saveStatus);
     editor.appendChild(footer);
   });
 
@@ -1093,9 +1115,31 @@ body {
 .editor-footer {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   margin-top: 16px;
   font-size: 0.8em;
   color: var(--text-muted);
+}
+
+.save-status {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.85em;
+  transition: all 0.2s;
+}
+
+.save-status.saved {
+  color: var(--success);
+}
+
+.save-status.saving {
+  color: var(--warning);
+  animation: pulse-saving 1s infinite;
+}
+
+@keyframes pulse-saving {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 
 /* Responsive */

@@ -10,6 +10,17 @@ let currentEffect = null;
 let batchDepth = 0;
 let pendingEffects = new Set();
 let isRunningEffects = false;
+let cleanupQueue = [];
+
+/**
+ * Register a cleanup function for the current effect
+ * Called when the effect re-runs or is disposed
+ */
+export function onCleanup(fn) {
+  if (currentEffect) {
+    currentEffect.cleanups.push(fn);
+  }
+}
 
 /**
  * Pulse - A reactive value container
@@ -104,6 +115,29 @@ export class Pulse {
   _init(value) {
     this.#value = value;
   }
+
+  /**
+   * Set from computed - propagates to subscribers (internal use)
+   */
+  _setFromComputed(newValue) {
+    if (this.#equals(this.#value, newValue)) return;
+    this.#value = newValue;
+    this.#notify();
+  }
+
+  /**
+   * Add a subscriber directly (internal use)
+   */
+  _addSubscriber(subscriber) {
+    this.#subscribers.add(subscriber);
+  }
+
+  /**
+   * Trigger notification to all subscribers (internal use)
+   */
+  _triggerNotify() {
+    this.#notify();
+  }
 }
 
 /**
@@ -160,23 +194,93 @@ export function pulse(value, options) {
  * Create a computed pulse that automatically updates
  * when its dependencies change
  */
-export function computed(fn) {
+export function computed(fn, options = {}) {
+  const { lazy = false } = options;
   const p = new Pulse(undefined);
   let initialized = false;
+  let dirty = true;
+  let cachedValue;
+  let cleanup = null;
 
-  effect(() => {
-    const newValue = fn();
-    if (initialized) {
-      p._init(newValue); // Use _init to avoid triggering notifications during compute
-    } else {
-      p._init(newValue);
-      initialized = true;
-    }
-  });
+  if (lazy) {
+    // Lazy computed - only evaluates when read
+    const originalGet = p.get.bind(p);
+
+    // Track which pulses this depends on
+    let trackedDeps = new Set();
+
+    p.get = function() {
+      if (dirty) {
+        // Run computation
+        const prevEffect = currentEffect;
+        const tempEffect = {
+          run: () => {},
+          dependencies: new Set(),
+          cleanups: []
+        };
+        currentEffect = tempEffect;
+
+        try {
+          cachedValue = fn();
+          dirty = false;
+
+          // Cleanup old subscriptions
+          for (const dep of trackedDeps) {
+            dep._unsubscribe(markDirty);
+          }
+
+          // Set up new subscriptions
+          trackedDeps = tempEffect.dependencies;
+          for (const dep of trackedDeps) {
+            dep.subscribe(() => {
+              dirty = true;
+              // Notify our own subscribers
+              p._triggerNotify();
+            });
+          }
+
+          p._init(cachedValue);
+        } finally {
+          currentEffect = prevEffect;
+        }
+      }
+
+      // Track dependency on this computed
+      if (currentEffect) {
+        p._addSubscriber(currentEffect);
+        currentEffect.dependencies.add(p);
+      }
+
+      return cachedValue;
+    };
+
+    const markDirty = { run: () => { dirty = true; }, dependencies: new Set(), cleanups: [] };
+  } else {
+    // Eager computed - updates immediately when dependencies change
+    cleanup = effect(() => {
+      const newValue = fn();
+      if (!initialized) {
+        p._init(newValue);
+        initialized = true;
+      } else {
+        // Use set() to properly propagate to downstream subscribers
+        p._setFromComputed(newValue);
+      }
+    });
+  }
 
   // Override set to make it read-only
   p.set = () => {
     throw new Error('Cannot set a computed pulse directly');
+  };
+
+  p.update = () => {
+    throw new Error('Cannot update a computed pulse directly');
+  };
+
+  // Add dispose method
+  p.dispose = () => {
+    if (cleanup) cleanup();
   };
 
   return p;
@@ -188,6 +292,16 @@ export function computed(fn) {
 export function effect(fn) {
   const effectFn = {
     run: () => {
+      // Run cleanup functions from previous run
+      for (const cleanup of effectFn.cleanups) {
+        try {
+          cleanup();
+        } catch (e) {
+          console.error('Cleanup error:', e);
+        }
+      }
+      effectFn.cleanups = [];
+
       // Clean up old dependencies
       for (const dep of effectFn.dependencies) {
         dep._unsubscribe(effectFn);
@@ -206,7 +320,8 @@ export function effect(fn) {
         currentEffect = prevEffect;
       }
     },
-    dependencies: new Set()
+    dependencies: new Set(),
+    cleanups: []
   };
 
   // Run immediately to collect dependencies
@@ -214,6 +329,16 @@ export function effect(fn) {
 
   // Return cleanup function
   return () => {
+    // Run any pending cleanups
+    for (const cleanup of effectFn.cleanups) {
+      try {
+        cleanup();
+      } catch (e) {
+        console.error('Cleanup error:', e);
+      }
+    }
+    effectFn.cleanups = [];
+
     for (const dep of effectFn.dependencies) {
       dep._unsubscribe(effectFn);
     }
@@ -246,7 +371,62 @@ export function createState(obj) {
   const pulses = {};
 
   for (const [key, value] of Object.entries(obj)) {
-    if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+    if (Array.isArray(value)) {
+      // Arrays get special handling with reactive methods
+      pulses[key] = new Pulse(value);
+
+      Object.defineProperty(state, key, {
+        get() {
+          return pulses[key].get();
+        },
+        set(newValue) {
+          pulses[key].set(newValue);
+        },
+        enumerable: true
+      });
+
+      // Add array helper methods
+      state[`${key}$push`] = (...items) => {
+        pulses[key].update(arr => [...arr, ...items]);
+      };
+      state[`${key}$pop`] = () => {
+        let popped;
+        pulses[key].update(arr => {
+          popped = arr[arr.length - 1];
+          return arr.slice(0, -1);
+        });
+        return popped;
+      };
+      state[`${key}$shift`] = () => {
+        let shifted;
+        pulses[key].update(arr => {
+          shifted = arr[0];
+          return arr.slice(1);
+        });
+        return shifted;
+      };
+      state[`${key}$unshift`] = (...items) => {
+        pulses[key].update(arr => [...items, ...arr]);
+      };
+      state[`${key}$splice`] = (start, deleteCount, ...items) => {
+        let removed;
+        pulses[key].update(arr => {
+          const copy = [...arr];
+          removed = copy.splice(start, deleteCount, ...items);
+          return copy;
+        });
+        return removed;
+      };
+      state[`${key}$filter`] = (fn) => {
+        pulses[key].update(arr => arr.filter(fn));
+      };
+      state[`${key}$map`] = (fn) => {
+        pulses[key].update(arr => arr.map(fn));
+      };
+      state[`${key}$sort`] = (fn) => {
+        pulses[key].update(arr => [...arr].sort(fn));
+      };
+    } else if (typeof value === 'object' && value !== null) {
       // Recursively create state for nested objects
       state[key] = createState(value);
     } else {
@@ -271,6 +451,57 @@ export function createState(obj) {
   state.$pulse = (key) => pulses[key];
 
   return state;
+}
+
+/**
+ * Memoize a function based on reactive dependencies
+ * Only recomputes when dependencies change
+ */
+export function memo(fn, options = {}) {
+  const { equals = Object.is } = options;
+  let cachedResult;
+  let cachedDeps = null;
+  let initialized = false;
+
+  return (...args) => {
+    // Check if args have changed
+    const depsChanged = !cachedDeps ||
+      args.length !== cachedDeps.length ||
+      args.some((arg, i) => !equals(arg, cachedDeps[i]));
+
+    if (!initialized || depsChanged) {
+      cachedResult = fn(...args);
+      cachedDeps = args;
+      initialized = true;
+    }
+
+    return cachedResult;
+  };
+}
+
+/**
+ * Create a memoized computed value
+ * Combines memo with computed for expensive derivations
+ */
+export function memoComputed(fn, options = {}) {
+  const { deps = [], equals = Object.is } = options;
+  let lastDeps = null;
+  let lastResult;
+
+  return computed(() => {
+    const currentDeps = deps.map(d => typeof d === 'function' ? d() : d.get());
+
+    const depsChanged = !lastDeps ||
+      currentDeps.length !== lastDeps.length ||
+      currentDeps.some((d, i) => !equals(d, lastDeps[i]));
+
+    if (depsChanged) {
+      lastResult = fn();
+      lastDeps = currentDeps;
+    }
+
+    return lastResult;
+  });
 }
 
 /**
@@ -335,5 +566,8 @@ export default {
   createState,
   watch,
   fromPromise,
-  untrack
+  untrack,
+  onCleanup,
+  memo,
+  memoComputed
 };

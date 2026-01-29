@@ -6,6 +6,7 @@
 import {
   pulse,
   effect,
+  onCleanup,
   el,
   mount,
 } from '/runtime/index.js';
@@ -149,6 +150,9 @@ function addSystemMessage(room, text) {
   saveMessages();
 }
 
+// Track pending bot response timers for cleanup
+let pendingBotTimers = [];
+
 function simulateBotResponse(room, userMessage) {
   // Random chance of bot response
   if (Math.random() > 0.7) return;
@@ -159,13 +163,14 @@ function simulateBotResponse(room, userMessage) {
   const bot = activeBots[Math.floor(Math.random() * activeBots.length)];
 
   // Show typing indicator
-  setTimeout(() => {
+  const typingTimer = setTimeout(() => {
     typingUsers.set([bot]);
   }, 500);
+  pendingBotTimers.push(typingTimer);
 
   // Send response after delay
   const delay = 1500 + Math.random() * 2000;
-  setTimeout(() => {
+  const responseTimer = setTimeout(() => {
     typingUsers.set([]);
 
     const response = BOT_RESPONSES[Math.floor(Math.random() * BOT_RESPONSES.length)];
@@ -186,7 +191,18 @@ function simulateBotResponse(room, userMessage) {
       [room]: [...roomMessages, msg]
     });
     saveMessages();
+
+    // Remove from pending timers
+    pendingBotTimers = pendingBotTimers.filter(t => t !== responseTimer);
   }, delay);
+  pendingBotTimers.push(responseTimer);
+}
+
+// Cleanup function for bot timers
+function clearPendingBotTimers() {
+  pendingBotTimers.forEach(t => clearTimeout(t));
+  pendingBotTimers = [];
+  typingUsers.set([]);
 }
 
 function addEmoji(emoji) {
@@ -510,6 +526,9 @@ function MessageList() {
   const container = el('.message-list');
 
   effect(() => {
+    // Clear pending bot timers when room changes (demonstrates onCleanup)
+    onCleanup(() => clearPendingBotTimers());
+
     container.innerHTML = '';
     const room = currentRoom.get();
     const allMessages = messages.get();
