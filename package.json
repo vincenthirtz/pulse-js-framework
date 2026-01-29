@@ -24,8 +24,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "test": "npm run test:pulse && npm run test:dom",
-    "test:all": "node test/compiler.test.js && node test/pulse.test.js && node test/dom.test.js",
+    "test": "npm run test:compiler && npm run test:pulse && npm run test:dom",
     "test:compiler": "node test/compiler.test.js",
     "test:pulse": "node test/pulse.test.js",
     "test:dom": "node test/dom.test.js",

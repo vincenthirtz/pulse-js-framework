@@ -28,29 +28,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Run compiler tests
+        run: npm run test:compiler
+
       - name: Run pulse core tests
         run: npm run test:pulse
 
       - name: Run DOM tests
         run: npm run test:dom
-
-  compiler-test:
-    name: Compiler Tests
-    runs-on: ubuntu-latest
-    # Compiler tests have known failures, don't block CI
-    continue-on-error: true
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Run compiler tests
-        run: npm run test:compiler
 
   lint:
     name: Syntax Check

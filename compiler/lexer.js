@@ -198,6 +198,19 @@ export class Lexer {
   }
 
   /**
+   * Peek at the current word without advancing position
+   */
+  peekWord() {
+    let word = '';
+    let i = this.pos;
+    while (i < this.source.length && /[a-zA-Z0-9_$]/.test(this.source[i])) {
+      word += this.source[i];
+      i++;
+    }
+    return word;
+  }
+
+  /**
    * Read a string literal
    */
   readString() {
@@ -507,8 +520,12 @@ export class Lexer {
 
       // Identifiers, keywords, and selectors
       if (/[a-zA-Z_$]/.test(char)) {
-        // Check if we're in view context and this could be a selector
-        if (this.isViewContext() && this.couldBeSelector()) {
+        // First check if this is a keyword - keywords take precedence
+        const word = this.peekWord();
+        if (KEYWORDS[word]) {
+          this.tokens.push(this.readIdentifier());
+        } else if (this.isViewContext() && this.couldBeSelector()) {
+          // Only treat as selector if not a keyword
           this.tokens.push(this.readSelector());
         } else {
           this.tokens.push(this.readIdentifier());
