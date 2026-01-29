@@ -27,7 +27,8 @@ import { createStore, createActions, createGetters, historyPlugin, loggerPlugin 
 // Store - Global State Management
 // =============================================================================
 
-const store = createStore({
+// Create base store with persistence
+let store = createStore({
   // Auth
   user: null,
   isAuthenticated: false,
@@ -45,9 +46,12 @@ const store = createStore({
   notifications: []
 }, {
   persist: true,
-  storageKey: 'pulse-dashboard',
-  plugins: [historyPlugin(), loggerPlugin()]
+  storageKey: 'pulse-dashboard'
 });
+
+// Apply plugins (historyPlugin for undo/redo, loggerPlugin for debugging)
+store = historyPlugin(store);
+// Uncomment for debug logging: store = loggerPlugin(store);
 
 const actions = createActions(store, {
   // Auth actions
