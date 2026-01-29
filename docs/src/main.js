@@ -833,6 +833,22 @@ function ExamplesPage() {
           View Demo →
         </a>
       </div>
+
+      <div class="example-card">
+        <div class="example-icon">📝</div>
+        <h3>Store Demo</h3>
+        <p>Global state management with the Pulse Store system.</p>
+        <ul class="example-features">
+          <li>✓ createStore with persistence</li>
+          <li>✓ Actions & getters</li>
+          <li>✓ Undo/Redo (historyPlugin)</li>
+          <li>✓ Module stores</li>
+          <li>✓ Logger plugin</li>
+        </ul>
+        <a href="/examples/store/" class="btn btn-primary">
+          View Demo →
+        </a>
+      </div>
     </div>
 
     <section class="doc-section">
@@ -858,6 +874,10 @@ npm run dev -- 3004
 # Router Demo (port 3005)
 cd pulse/examples/router
 npm run dev -- 3005
+
+# Store Demo (port 3006)
+cd pulse/examples/store
+npm run dev -- 3006
 
 # Documentation (port 3000)
 cd pulse/docs

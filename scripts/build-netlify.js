@@ -13,7 +13,7 @@ import { minifyJS } from '../cli/build.js';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..');
 
-const EXAMPLES = ['todo', 'chat', 'ecommerce', 'meteo', 'router'];
+const EXAMPLES = ['todo', 'chat', 'ecommerce', 'meteo', 'router', 'store'];
 
 console.log('🚀 Building Pulse for Netlify...\n');
 
@@ -213,6 +213,12 @@ const examplesIndexHtml = `<!DOCTYPE html>
         <span class="arrow">→</span>
         <h2>🧭 Router Demo</h2>
         <p>SPA routing with params, query strings, guards, and navigation.</p>
+      </a>
+
+      <a href="/examples/store/" class="example">
+        <span class="arrow">→</span>
+        <h2>📝 Store Demo</h2>
+        <p>Global state management with actions, getters, persistence, and undo/redo.</p>
       </a>
     </div>
 
