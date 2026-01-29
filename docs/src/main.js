@@ -149,7 +149,7 @@ function HomePage() {
             <td>Hooks</td>
             <td>Proxy</td>
             <td>Compiler</td>
-            <td><strong>Pulsations</strong></td>
+            <td><strong>Signals</strong></td>
           </tr>
           <tr>
             <td>Build Step</td>
@@ -159,11 +159,39 @@ function HomePage() {
             <td><strong>Optional</strong></td>
           </tr>
           <tr>
+            <td>Bundle Size</td>
+            <td>~45kb</td>
+            <td>~35kb</td>
+            <td>~2kb</td>
+            <td><strong>~8kb</strong></td>
+          </tr>
+          <tr>
+            <td>Dependencies</td>
+            <td>Many</td>
+            <td>Some</td>
+            <td>Few</td>
+            <td><strong>Zero</strong></td>
+          </tr>
+          <tr>
+            <td>Build Speed</td>
+            <td>Slow</td>
+            <td>Medium</td>
+            <td>Fast</td>
+            <td><strong>Instant</strong></td>
+          </tr>
+          <tr>
+            <td>Learning Curve</td>
+            <td>Steep</td>
+            <td>Moderate</td>
+            <td>Easy</td>
+            <td><strong>Minimal</strong></td>
+          </tr>
+          <tr>
             <td>File Extension</td>
             <td>.jsx/.tsx</td>
             <td>.vue</td>
             <td>.svelte</td>
-            <td><strong>.pulse</strong></td>
+            <td><strong>.pulse / .js</strong></td>
           </tr>
         </tbody>
       </table>
