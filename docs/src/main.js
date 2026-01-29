@@ -1221,97 +1221,40 @@ function mount(selector, component) {
     const status = page.querySelector('#previewStatus');
 
     // Strip import statements (runtime is inlined)
-    const processedCode = code.replace(/import\s*{[^}]*}\s*from\s*['"][^'"]*['"];?\n?/g, '');
+    const processedCode = code.replace(/import\s*\{[^}]*\}\s*from\s*['"][^'"]*['"];?\n?/g, '');
 
-    const html = \`<!DOCTYPE html>
-<html>
-<head>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: system-ui, -apple-system, sans-serif;
-      background: #1e293b;
-      color: #e2e8f0;
-      padding: 20px;
-      min-height: 100vh;
-    }
-    h2 { margin-bottom: 16px; }
-    .btn {
-      padding: 10px 20px;
-      border: none;
-      border-radius: 8px;
-      background: #334155;
-      color: #e2e8f0;
-      cursor: pointer;
-      font-size: 14px;
-      transition: background 0.2s;
-    }
-    .btn:hover { background: #475569; }
-    .btn.primary { background: #6366f1; }
-    .btn.primary:hover { background: #4f46e5; }
-    .buttons { display: flex; gap: 10px; margin-top: 16px; }
-    .count-display {
-      font-size: 4em;
-      font-weight: bold;
-      text-align: center;
-      padding: 20px;
-      background: #334155;
-      border-radius: 12px;
-      margin: 16px 0;
-    }
-    .counter-app, .todo-app, .timer-app, .form-app {
-      max-width: 400px;
-      margin: 0 auto;
-    }
-    .todo-form { display: flex; gap: 10px; margin-bottom: 16px; }
-    .todo-form input { flex: 1; padding: 10px; border-radius: 8px; border: none; background: #334155; color: #e2e8f0; }
-    .todo-list { display: flex; flex-direction: column; gap: 8px; }
-    .todo-item {
-      display: flex; align-items: center; gap: 10px;
-      padding: 12px; background: #334155; border-radius: 8px;
-    }
-    .todo-item span { flex: 1; }
-    .todo-item.done span { text-decoration: line-through; opacity: 0.5; }
-    .todo-item button { padding: 6px 12px; border-radius: 6px; border: none; cursor: pointer; }
-    .todo-item .toggle { background: #10b981; color: white; }
-    .todo-item .delete { background: #ef4444; color: white; }
-    .timer-display {
-      font-size: 5em;
-      font-weight: bold;
-      text-align: center;
-      padding: 30px;
-      background: #334155;
-      border-radius: 12px;
-      margin: 16px 0;
-      font-family: monospace;
-    }
-    .field { margin-bottom: 16px; }
-    .field label { display: block; margin-bottom: 6px; font-size: 14px; color: #94a3b8; }
-    .field input, .field textarea {
-      width: 100%; padding: 12px; border-radius: 8px; border: none;
-      background: #334155; color: #e2e8f0; font-size: 14px;
-    }
-    .field textarea { min-height: 100px; resize: vertical; }
-    .success-message {
-      background: #334155; padding: 20px; border-radius: 12px; margin-bottom: 16px;
-    }
-    .success-message h3 { color: #10b981; margin-bottom: 12px; }
-    .success-message p { margin: 8px 0; }
-  </style>
-</head>
-<body>
-  <div id="app"></div>
-  <script>
-    \${pulseRuntime}
-    try {
-      \${processedCode}
-      parent.postMessage({ type: 'success' }, '*');
-    } catch (e) {
-      parent.postMessage({ type: 'error', message: e.message }, '*');
-    }
-  <\\/script>
-</body>
-</html>\`;
+    const html = '<!DOCTYPE html><html><head><style>' +
+      '* { box-sizing: border-box; margin: 0; padding: 0; }' +
+      'body { font-family: system-ui, -apple-system, sans-serif; background: #1e293b; color: #e2e8f0; padding: 20px; min-height: 100vh; }' +
+      'h2 { margin-bottom: 16px; }' +
+      '.btn { padding: 10px 20px; border: none; border-radius: 8px; background: #334155; color: #e2e8f0; cursor: pointer; font-size: 14px; transition: background 0.2s; }' +
+      '.btn:hover { background: #475569; }' +
+      '.btn.primary { background: #6366f1; }' +
+      '.btn.primary:hover { background: #4f46e5; }' +
+      '.buttons { display: flex; gap: 10px; margin-top: 16px; }' +
+      '.count-display { font-size: 4em; font-weight: bold; text-align: center; padding: 20px; background: #334155; border-radius: 12px; margin: 16px 0; }' +
+      '.counter-app, .todo-app, .timer-app, .form-app { max-width: 400px; margin: 0 auto; }' +
+      '.todo-form { display: flex; gap: 10px; margin-bottom: 16px; }' +
+      '.todo-form input { flex: 1; padding: 10px; border-radius: 8px; border: none; background: #334155; color: #e2e8f0; }' +
+      '.todo-list { display: flex; flex-direction: column; gap: 8px; }' +
+      '.todo-item { display: flex; align-items: center; gap: 10px; padding: 12px; background: #334155; border-radius: 8px; }' +
+      '.todo-item span { flex: 1; }' +
+      '.todo-item.done span { text-decoration: line-through; opacity: 0.5; }' +
+      '.todo-item button { padding: 6px 12px; border-radius: 6px; border: none; cursor: pointer; }' +
+      '.todo-item .toggle { background: #10b981; color: white; }' +
+      '.todo-item .delete { background: #ef4444; color: white; }' +
+      '.timer-display { font-size: 5em; font-weight: bold; text-align: center; padding: 30px; background: #334155; border-radius: 12px; margin: 16px 0; font-family: monospace; }' +
+      '.field { margin-bottom: 16px; }' +
+      '.field label { display: block; margin-bottom: 6px; font-size: 14px; color: #94a3b8; }' +
+      '.field input, .field textarea { width: 100%; padding: 12px; border-radius: 8px; border: none; background: #334155; color: #e2e8f0; font-size: 14px; }' +
+      '.field textarea { min-height: 100px; resize: vertical; }' +
+      '.success-message { background: #334155; padding: 20px; border-radius: 12px; margin-bottom: 16px; }' +
+      '.success-message h3 { color: #10b981; margin-bottom: 12px; }' +
+      '.success-message p { margin: 8px 0; }' +
+      '</style></head><body><div id="app"></div>' +
+      '<script>' + pulseRuntime +
+      'try {' + processedCode + ' parent.postMessage({ type: "success" }, "*"); } catch (e) { parent.postMessage({ type: "error", message: e.message }, "*"); }' +
+      '</' + 'script></body></html>';
 
     iframe.srcdoc = html;
     status.textContent = 'Running...';
