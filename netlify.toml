@@ -38,6 +38,11 @@
   to = "/examples/meteo/index.html"
   status = 200
 
+[[redirects]]
+  from = "/examples/router/*"
+  to = "/examples/router/index.html"
+  status = 200
+
 # Main SPA fallback (must be last - only applies if file doesn't exist)
 [[redirects]]
   from = "/*"
