@@ -1949,7 +1949,9 @@ body {
 }
 
 .code-block code {
+  display: block;
   color: #e2e8f0;
+  white-space: pre;
 }
 
 /* Syntax highlighting */
