@@ -12,6 +12,23 @@ import { pulse, effect, el, mount } from '/runtime/index.js';
 const currentSection = pulse('home');
 const mobileMenuOpen = pulse(false);
 
+// Theme state with localStorage persistence
+const savedTheme = typeof localStorage !== 'undefined' ? localStorage.getItem('pulse-docs-theme') : null;
+const theme = pulse(savedTheme || 'dark');
+
+// Persist theme changes
+effect(() => {
+  const currentTheme = theme.get();
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('pulse-docs-theme', currentTheme);
+  }
+  document.documentElement.setAttribute('data-theme', currentTheme);
+});
+
+function toggleTheme() {
+  theme.update(t => t === 'dark' ? 'light' : 'dark');
+}
+
 // =============================================================================
 // Content Data
 // =============================================================================
@@ -94,6 +111,15 @@ function Header() {
     nav.appendChild(link);
   }
   header.appendChild(nav);
+
+  // Theme toggle button
+  const themeBtn = el('button.theme-btn');
+  effect(() => {
+    themeBtn.textContent = theme.get() === 'dark' ? '☀️' : '🌙';
+    themeBtn.title = theme.get() === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
+  });
+  themeBtn.addEventListener('click', toggleTheme);
+  header.appendChild(themeBtn);
 
   // Mobile menu button
   const menuBtn = el('button.menu-btn', '☰');
@@ -2037,6 +2063,28 @@ const styles = `
   --radius: 12px;
 }
 
+/* Light theme */
+[data-theme="light"] {
+  --primary: #4f46e5;
+  --primary-dark: #4338ca;
+  --bg: #f8fafc;
+  --bg-light: #ffffff;
+  --card: #ffffff;
+  --text: #1e293b;
+  --text-muted: #64748b;
+  --border: #e2e8f0;
+  --code-bg: #f1f5f9;
+}
+
+/* Theme transition */
+html {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+html, body, .app, .header, .nav-link, .btn, .code-block, .feature, .example-card {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -2117,6 +2165,22 @@ body {
   cursor: pointer;
 }
 
+.theme-btn {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 1.2em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-left: 8px;
+}
+
+.theme-btn:hover {
+  background: var(--border);
+  transform: scale(1.05);
+}
+
 .mobile-nav {
   display: none;
   position: absolute;
@@ -2136,6 +2200,7 @@ body {
 @media (max-width: 768px) {
   .nav { display: none; }
   .menu-btn { display: block; }
+  .theme-btn { padding: 6px 10px; font-size: 1em; }
 }
 
 /* Main */
@@ -2167,6 +2232,12 @@ body {
   font-size: 3.5em;
   margin-bottom: 16px;
   background: linear-gradient(135deg, #fff, var(--primary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+[data-theme="light"] .hero h1 {
+  background: linear-gradient(135deg, var(--primary), #7c3aed);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -2279,7 +2350,7 @@ body {
   white-space: pre;
 }
 
-/* Syntax highlighting */
+/* Syntax highlighting - Dark theme */
 .hljs-keyword { color: #ff79c6; }
 .hljs-string { color: #f1fa8c; }
 .hljs-number { color: #bd93f9; }
@@ -2294,6 +2365,26 @@ body {
 .hljs-selector { color: #8be9fd; }
 .hljs-directive { color: #ffb86c; }
 .hljs-variable { color: #f8f8f2; }
+
+/* Syntax highlighting - Light theme */
+[data-theme="light"] .hljs-keyword { color: #d73a49; }
+[data-theme="light"] .hljs-string { color: #22863a; }
+[data-theme="light"] .hljs-number { color: #6f42c1; }
+[data-theme="light"] .hljs-comment { color: #6a737d; }
+[data-theme="light"] .hljs-function { color: #005cc5; }
+[data-theme="light"] .hljs-class { color: #e36209; }
+[data-theme="light"] .hljs-property { color: #005cc5; }
+[data-theme="light"] .hljs-operator { color: #d73a49; }
+[data-theme="light"] .hljs-punctuation { color: #24292e; }
+[data-theme="light"] .hljs-tag { color: #22863a; }
+[data-theme="light"] .hljs-attr { color: #6f42c1; }
+[data-theme="light"] .hljs-selector { color: #6f42c1; }
+[data-theme="light"] .hljs-directive { color: #e36209; }
+[data-theme="light"] .hljs-variable { color: #24292e; }
+
+[data-theme="light"] .code-block code {
+  color: #24292e;
+}
 
 .code-example {
   display: grid;
@@ -2717,7 +2808,7 @@ body {
   flex: 1;
   width: 100%;
   border: none;
-  background: #1e293b;
+  background: var(--bg-light);
 }
 
 .playground-templates {
