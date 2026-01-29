@@ -944,7 +944,7 @@ mount('#app', App());
           <span class="preview-title">👁️ Preview</span>
           <span class="preview-status" id="previewStatus">Ready</span>
         </div>
-        <iframe id="previewFrame" sandbox="allow-scripts allow-same-origin"></iframe>
+        <iframe id="previewFrame" sandbox="allow-scripts"></iframe>
       </div>
     </div>
 
@@ -1158,12 +1158,72 @@ mount('#app', App());
 `
   };
 
+  // Inline Pulse runtime for iframe (can't use ES modules in srcdoc)
+  const pulseRuntime = `
+// Pulse Runtime (inline version)
+const context = { currentEffect: null };
+function pulse(initialValue) {
+  let value = initialValue;
+  const subscribers = new Set();
+  return {
+    get() {
+      if (context.currentEffect) subscribers.add(context.currentEffect);
+      return value;
+    },
+    set(newValue) {
+      if (newValue !== value) {
+        value = newValue;
+        subscribers.forEach(fn => fn());
+      }
+    },
+    update(fn) { this.set(fn(value)); },
+    peek() { return value; }
+  };
+}
+function effect(fn) {
+  const run = () => { context.currentEffect = run; fn(); context.currentEffect = null; };
+  run();
+  return () => {};
+}
+function computed(fn) {
+  const sig = pulse(fn());
+  effect(() => sig.set(fn()));
+  return { get: () => sig.get() };
+}
+function el(selector, content) {
+  const match = selector.match(/^([a-z0-9-]*)((?:[.#][a-zA-Z0-9_-]+)*)(?:\\[([^\\]]+)\\])?$/i);
+  const tag = match[1] || 'div';
+  const elem = document.createElement(tag);
+  if (match[2]) {
+    match[2].split(/(?=[.#])/).forEach(part => {
+      if (part.startsWith('.')) elem.classList.add(part.slice(1));
+      else if (part.startsWith('#')) elem.id = part.slice(1);
+    });
+  }
+  if (match[3]) {
+    match[3].split('][').forEach(attr => {
+      const [key, val] = attr.split('=');
+      elem.setAttribute(key, val ? val.replace(/^["']|["']$/g, '') : '');
+    });
+  }
+  if (content) elem.textContent = content;
+  return elem;
+}
+function mount(selector, component) {
+  const target = document.querySelector(selector);
+  if (target) { target.innerHTML = ''; target.appendChild(component); }
+}
+`;
+
   // Run code in iframe
   function runCode(code) {
     const iframe = page.querySelector('#previewFrame');
     const status = page.querySelector('#previewStatus');
 
-    const html = `<!DOCTYPE html>
+    // Strip import statements (runtime is inlined)
+    const processedCode = code.replace(/import\s*{[^}]*}\s*from\s*['"][^'"]*['"];?\n?/g, '');
+
+    const html = \`<!DOCTYPE html>
 <html>
 <head>
   <style>
@@ -1241,16 +1301,17 @@ mount('#app', App());
 </head>
 <body>
   <div id="app"></div>
-  <script type="module">
+  <script>
+    \${pulseRuntime}
     try {
-      ${code}
+      \${processedCode}
       parent.postMessage({ type: 'success' }, '*');
     } catch (e) {
       parent.postMessage({ type: 'error', message: e.message }, '*');
     }
-  </script>
+  <\\/script>
 </body>
-</html>`;
+</html>\`;
 
     iframe.srcdoc = html;
     status.textContent = 'Running...';
