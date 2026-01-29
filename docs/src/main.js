@@ -732,7 +732,7 @@ function ExamplesPage() {
           <li>✓ LocalStorage persistence</li>
           <li>✓ Progress tracking</li>
         </ul>
-        <a href="http://localhost:3001" target="_blank" class="btn btn-primary">
+        <a href="/examples/todo/" class="btn btn-primary">
           View Demo →
         </a>
       </div>
@@ -748,7 +748,7 @@ function ExamplesPage() {
           <li>✓ Favorite cities</li>
           <li>✓ °C/°F toggle</li>
         </ul>
-        <a href="http://localhost:3002" target="_blank" class="btn btn-primary">
+        <a href="/examples/meteo/" class="btn btn-primary">
           View Demo →
         </a>
       </div>
@@ -764,7 +764,7 @@ function ExamplesPage() {
           <li>✓ Checkout flow</li>
           <li>✓ LocalStorage persistence</li>
         </ul>
-        <a href="http://localhost:3003" target="_blank" class="btn btn-primary">
+        <a href="/examples/ecommerce/" class="btn btn-primary">
           View Demo →
         </a>
       </div>
@@ -780,7 +780,7 @@ function ExamplesPage() {
           <li>✓ Emoji picker</li>
           <li>✓ Message persistence</li>
         </ul>
-        <a href="http://localhost:3004" target="_blank" class="btn btn-primary">
+        <a href="/examples/chat/" class="btn btn-primary">
           View Demo →
         </a>
       </div>
