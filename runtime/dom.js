@@ -46,7 +46,7 @@ export function onUnmount(fn) {
  *   "button.primary.large" -> { tag: "button", classes: ["primary", "large"] }
  *   "input[type=text][placeholder=Name]" -> { tag: "input", attrs: { type: "text", placeholder: "Name" } }
  */
-function parseSelector(selector) {
+export function parseSelector(selector) {
   const config = {
     tag: 'div',
     id: null,
