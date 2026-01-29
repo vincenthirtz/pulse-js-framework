@@ -21,7 +21,8 @@ const commands = {
   dev: runDev,
   build: runBuild,
   preview: runPreview,
-  compile: compileFile
+  compile: compileFile,
+  mobile: runMobile
 };
 
 /**
@@ -55,6 +56,7 @@ Commands:
   build            Build for production (minified)
   preview [port]   Preview production build (default: 4173)
   compile <file>   Compile a .pulse file to JavaScript
+  mobile <cmd>     Mobile app commands (init, build, run)
   version          Show version number
   help             Show this help message
 
@@ -64,7 +66,9 @@ Examples:
   pulse dev 8080
   pulse build
   pulse preview
-  pulse preview 5000
+  pulse mobile init
+  pulse mobile build android
+  pulse mobile run ios
   pulse compile src/App.pulse
 
 Documentation: https://github.com/vincenthirtz/pulse-framework
@@ -295,6 +299,14 @@ async function runPreview(args) {
 
   const { previewBuild } = await import('./build.js');
   await previewBuild(args);
+}
+
+/**
+ * Run mobile commands
+ */
+async function runMobile(args) {
+  const { handleMobileCommand } = await import('./mobile.js');
+  await handleMobileCommand(args);
 }
 
 /**

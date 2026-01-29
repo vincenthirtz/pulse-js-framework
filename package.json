@@ -20,6 +20,7 @@
     "runtime/",
     "compiler/",
     "loader/",
+    "mobile/",
     "README.md",
     "LICENSE"
   ],
