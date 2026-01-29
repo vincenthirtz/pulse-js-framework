@@ -5,10 +5,10 @@
  * Builds docs and all examples for deployment
  */
 
-import { execSync } from 'child_process';
 import { cpSync, mkdirSync, existsSync, readFileSync, writeFileSync, readdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { minifyJS } from '../cli/build.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..');
@@ -32,7 +32,13 @@ cpSync(docsDir, distDir, { recursive: true });
 const runtimeDir = join(root, 'runtime');
 cpSync(runtimeDir, join(distDir, 'runtime'), { recursive: true });
 
-console.log('   ✓ Docs copied\n');
+// Minify docs JS files
+processJSFiles(join(distDir, 'src'));
+
+// Minify runtime files
+processJSFiles(join(distDir, 'runtime'));
+
+console.log('   ✓ Docs built & minified\n');
 
 // 2. Build examples
 console.log('📦 Building examples...\n');
@@ -68,16 +74,16 @@ for (const example of EXAMPLES) {
     cpSync(srcDir, join(exampleDist, 'src'), { recursive: true });
   }
 
-  // Update runtime imports in JS files
-  updateRuntimeImports(join(exampleDist, 'src'));
+  // Process and minify JS files
+  processJSFiles(join(exampleDist, 'src'));
 
-  console.log(`   ✓ ${example} built`);
+  console.log(`   ✓ ${example} built & minified`);
 }
 
 /**
- * Update runtime imports to use absolute path
+ * Update runtime imports and minify JS files
  */
-function updateRuntimeImports(dir) {
+function processJSFiles(dir) {
   if (!existsSync(dir)) return;
 
   const files = readdirSync(dir, { withFileTypes: true });
@@ -86,7 +92,7 @@ function updateRuntimeImports(dir) {
     const filePath = join(dir, file.name);
 
     if (file.isDirectory()) {
-      updateRuntimeImports(filePath);
+      processJSFiles(filePath);
     } else if (file.name.endsWith('.js')) {
       let content = readFileSync(filePath, 'utf-8');
 
@@ -107,6 +113,9 @@ function updateRuntimeImports(dir) {
         /from\s+['"]pulse-framework\/runtime\/([^'"]+)['"]/g,
         "from '/runtime/$1'"
       );
+
+      // Minify the JS content
+      content = minifyJS(content);
 
       writeFileSync(filePath, content);
     }
