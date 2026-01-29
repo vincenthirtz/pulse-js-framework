@@ -32,13 +32,10 @@ cpSync(docsDir, distDir, { recursive: true });
 const runtimeDir = join(root, 'runtime');
 cpSync(runtimeDir, join(distDir, 'runtime'), { recursive: true });
 
-// Minify docs JS files
-processJSFiles(join(distDir, 'src'));
+// Minify runtime files only (docs contains code examples that break with minification)
+processJSFiles(join(distDir, 'runtime'), true);
 
-// Minify runtime files
-processJSFiles(join(distDir, 'runtime'));
-
-console.log('   ✓ Docs built & minified\n');
+console.log('   ✓ Docs built, runtime minified\n');
 
 // 2. Build examples
 console.log('📦 Building examples...\n');
@@ -81,9 +78,9 @@ for (const example of EXAMPLES) {
 }
 
 /**
- * Update runtime imports and minify JS files
+ * Update runtime imports and optionally minify JS files
  */
-function processJSFiles(dir) {
+function processJSFiles(dir, shouldMinify = true) {
   if (!existsSync(dir)) return;
 
   const files = readdirSync(dir, { withFileTypes: true });
@@ -92,7 +89,7 @@ function processJSFiles(dir) {
     const filePath = join(dir, file.name);
 
     if (file.isDirectory()) {
-      processJSFiles(filePath);
+      processJSFiles(filePath, shouldMinify);
     } else if (file.name.endsWith('.js')) {
       let content = readFileSync(filePath, 'utf-8');
 
@@ -114,8 +111,10 @@ function processJSFiles(dir) {
         "from '/runtime/$1'"
       );
 
-      // Minify the JS content
-      content = minifyJS(content);
+      // Minify the JS content if requested
+      if (shouldMinify) {
+        content = minifyJS(content);
+      }
 
       writeFileSync(filePath, content);
     }
