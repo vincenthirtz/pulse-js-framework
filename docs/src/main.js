@@ -1140,6 +1140,22 @@ body {
   color: #e2e8f0;
 }
 
+/* Syntax highlighting */
+.hljs-keyword { color: #ff79c6; }
+.hljs-string { color: #f1fa8c; }
+.hljs-number { color: #bd93f9; }
+.hljs-comment { color: #6272a4; font-style: italic; }
+.hljs-function { color: #50fa7b; }
+.hljs-class { color: #8be9fd; }
+.hljs-property { color: #66d9ef; }
+.hljs-operator { color: #ff79c6; }
+.hljs-punctuation { color: #f8f8f2; }
+.hljs-tag { color: #ff79c6; }
+.hljs-attr { color: #50fa7b; }
+.hljs-selector { color: #8be9fd; }
+.hljs-directive { color: #ffb86c; }
+.hljs-variable { color: #f8f8f2; }
+
 .code-example {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -1349,6 +1365,139 @@ styleEl.textContent = styles;
 document.head.appendChild(styleEl);
 
 // =============================================================================
+// Syntax Highlighter (no dependencies)
+// =============================================================================
+
+function highlightCode(code, lang = 'js') {
+  // Escape HTML first
+  let escaped = code
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+
+  if (lang === 'pulse' || lang === 'js' || lang === 'javascript') {
+    // Strings (single, double, template)
+    escaped = escaped.replace(
+      /(['"`])(?:(?!\1)[^\\]|\\.)*?\1/g,
+      '<span class="hljs-string">$&</span>'
+    );
+
+    // Comments
+    escaped = escaped.replace(
+      /(\/\/.*$)/gm,
+      '<span class="hljs-comment">$1</span>'
+    );
+    escaped = escaped.replace(
+      /(\/\*[\s\S]*?\*\/)/g,
+      '<span class="hljs-comment">$1</span>'
+    );
+
+    // Pulse directives (@page, @click, etc)
+    escaped = escaped.replace(
+      /(@\w+)/g,
+      '<span class="hljs-directive">$1</span>'
+    );
+
+    // Keywords
+    const keywords = 'const|let|var|function|return|if|else|for|while|import|export|from|class|extends|new|this|async|await|try|catch|throw|default|switch|case|break|continue|typeof|instanceof';
+    escaped = escaped.replace(
+      new RegExp(`\\b(${keywords})\\b`, 'g'),
+      '<span class="hljs-keyword">$1</span>'
+    );
+
+    // Pulse blocks
+    escaped = escaped.replace(
+      /\b(state|view|style|actions)\s*\{/g,
+      '<span class="hljs-keyword">$1</span> {'
+    );
+
+    // Numbers
+    escaped = escaped.replace(
+      /\b(\d+\.?\d*)\b/g,
+      '<span class="hljs-number">$1</span>'
+    );
+
+    // Functions
+    escaped = escaped.replace(
+      /\b([a-zA-Z_]\w*)\s*\(/g,
+      '<span class="hljs-function">$1</span>('
+    );
+
+    // Properties after dot
+    escaped = escaped.replace(
+      /\.([a-zA-Z_]\w*)(?!\s*\()/g,
+      '.<span class="hljs-property">$1</span>'
+    );
+
+  } else if (lang === 'css') {
+    // Selectors
+    escaped = escaped.replace(
+      /^([.#]?[\w-]+)\s*\{/gm,
+      '<span class="hljs-selector">$1</span> {'
+    );
+
+    // Properties
+    escaped = escaped.replace(
+      /\b([\w-]+)\s*:/g,
+      '<span class="hljs-property">$1</span>:'
+    );
+
+    // Values with units
+    escaped = escaped.replace(
+      /:\s*([^;{]+)/g,
+      ': <span class="hljs-string">$1</span>'
+    );
+  } else if (lang === 'bash' || lang === 'shell') {
+    // Commands
+    escaped = escaped.replace(
+      /^(\w+)/gm,
+      '<span class="hljs-function">$1</span>'
+    );
+
+    // Flags
+    escaped = escaped.replace(
+      /(\s--?\w+)/g,
+      '<span class="hljs-keyword">$1</span>'
+    );
+
+    // Comments
+    escaped = escaped.replace(
+      /(#.*$)/gm,
+      '<span class="hljs-comment">$1</span>'
+    );
+  }
+
+  return escaped;
+}
+
+function highlightAllCode() {
+  document.querySelectorAll('pre code').forEach(block => {
+    const parent = block.closest('.code-block');
+    const header = parent?.querySelector('.code-header');
+    let lang = 'js';
+
+    // Detect language from header or content
+    if (header) {
+      const headerText = header.textContent.toLowerCase();
+      if (headerText.includes('pulse') || headerText.includes('.pulse')) lang = 'pulse';
+      else if (headerText.includes('css')) lang = 'css';
+      else if (headerText.includes('bash') || headerText.includes('terminal')) lang = 'bash';
+      else if (headerText.includes('vite')) lang = 'js';
+    }
+
+    // Also detect from content
+    const content = block.textContent;
+    if (content.includes('@page') || content.includes('state {') || content.includes('view {')) {
+      lang = 'pulse';
+    } else if (content.startsWith('npm ') || content.startsWith('cd ') || content.startsWith('npx ')) {
+      lang = 'bash';
+    }
+
+    block.innerHTML = highlightCode(block.textContent, lang);
+  });
+}
+
+// =============================================================================
 // Global API for onclick handlers
 // =============================================================================
 
@@ -1359,5 +1508,14 @@ window.docs = { navigate };
 // =============================================================================
 
 mount('#app', App());
+
+// Apply syntax highlighting after mount
+setTimeout(highlightAllCode, 0);
+
+// Re-highlight when section changes
+effect(() => {
+  currentSection.get();
+  setTimeout(highlightAllCode, 50);
+});
 
 console.log('📖 Pulse Documentation loaded!');
