@@ -687,7 +687,7 @@ function DashboardPage() {
 
   statsGrid.appendChild(StatCard({
     title: 'Total Users',
-    value: () => getters.totalUsers().toLocaleString(),
+    value: () => getters.totalUsers.get().toLocaleString(),
     icon: '👥',
     trend: 12,
     color: 'primary'
@@ -695,7 +695,7 @@ function DashboardPage() {
 
   statsGrid.appendChild(StatCard({
     title: 'Products',
-    value: () => getters.totalProducts().toLocaleString(),
+    value: () => getters.totalProducts.get().toLocaleString(),
     icon: '📦',
     trend: 5,
     color: 'success'
@@ -703,7 +703,7 @@ function DashboardPage() {
 
   statsGrid.appendChild(StatCard({
     title: 'Orders',
-    value: () => getters.totalOrders().toLocaleString(),
+    value: () => getters.totalOrders.get().toLocaleString(),
     icon: '🛒',
     trend: -3,
     color: 'warning'
@@ -711,7 +711,7 @@ function DashboardPage() {
 
   statsGrid.appendChild(StatCard({
     title: 'Revenue',
-    value: () => '$' + getters.totalRevenue().toLocaleString(),
+    value: () => '$' + getters.totalRevenue.get().toLocaleString(),
     icon: '💰',
     trend: 8,
     color: 'info'
@@ -765,7 +765,7 @@ function DashboardPage() {
       { key: 'total', label: 'Total', render: (v) => `$${v}` },
       { key: 'status', label: 'Status', render: (v) => `<span class="badge badge-${v}">${v}</span>` }
     ],
-    data: () => getters.recentOrders()
+    data: () => getters.recentOrders.get()
   });
 
   ordersSection.appendChild(ordersTable);
