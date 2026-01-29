@@ -13,6 +13,7 @@ A declarative DOM framework with CSS selector-based structure and reactive pulsa
 - **No Build Required** - Works directly in the browser
 - **Lightweight** - Minimal footprint, maximum performance
 - **Router & Store** - Built-in SPA routing and state management
+- **Mobile Apps** - Build native Android & iOS apps (zero dependencies)
 
 ## Installation
 
@@ -178,7 +179,66 @@ pulse create <name>    # Create new project
 pulse dev [port]       # Start dev server
 pulse build            # Build for production
 pulse compile <file>   # Compile .pulse file
+pulse mobile init      # Initialize mobile platforms
+pulse mobile build android|ios  # Build native app
+pulse mobile run android|ios    # Run on device/emulator
 ```
+
+## Mobile Apps
+
+Build native Android and iOS apps from your Pulse project with zero external dependencies:
+
+```bash
+# Initialize mobile platforms
+pulse mobile init
+
+# Build your web app first
+pulse build
+
+# Build for Android (requires Android SDK)
+pulse mobile build android
+
+# Build for iOS (requires macOS + Xcode)
+pulse mobile build ios
+
+# Run on device/emulator
+pulse mobile run android
+```
+
+### Native APIs
+
+Access native features in your Pulse app:
+
+```javascript
+import { createNativeStorage, NativeUI, onNativeReady } from 'pulse-js-framework/runtime/native';
+
+onNativeReady(({ platform }) => {
+  console.log(`Running on ${platform}`); // 'android', 'ios', or 'web'
+
+  // Persistent native storage with Pulse reactivity
+  const storage = createNativeStorage();
+  const count = storage.get('count', 0);
+  count.set(42); // Auto-persisted to native storage
+
+  // Native toast notification
+  NativeUI.toast('Hello from Pulse!');
+
+  // Haptic feedback
+  NativeUI.vibrate(100);
+});
+```
+
+**Available APIs:** Storage, Device Info, Network Status, Toast, Vibration, Clipboard, App Lifecycle
+
+## Examples
+
+- [Todo App](examples/todo) - Task management with filters and persistence
+- [Chat App](examples/chat) - Real-time messaging interface
+- [E-commerce](examples/ecommerce) - Shopping cart with product catalog
+- [Weather App](examples/meteo) - Weather dashboard with forecasts
+- [Router Demo](examples/router) - SPA routing with guards
+- [Store Demo](examples/store) - State management with undo/redo
+- [Admin Dashboard](examples/dashboard) - Complete admin UI with all features
 
 ## License
 
