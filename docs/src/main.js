@@ -965,6 +965,22 @@ function ExamplesPage() {
           View Demo →
         </a>
       </div>
+
+      <div class="example-card">
+        <div class="example-icon">📊</div>
+        <h3>Admin Dashboard</h3>
+        <p>Complete admin interface demonstrating ALL Pulse features.</p>
+        <ul class="example-features">
+          <li>✓ Authentication & guards</li>
+          <li>✓ Charts, tables, modals</li>
+          <li>✓ CRUD operations</li>
+          <li>✓ Themes & settings</li>
+          <li>✓ All reactivity features</li>
+        </ul>
+        <a href="/examples/dashboard/" class="btn btn-primary">
+          View Demo →
+        </a>
+      </div>
     </div>
 
     <section class="doc-section">
@@ -994,6 +1010,10 @@ npm run dev -- 3005
 # Store Demo (port 3006)
 cd pulse/examples/store
 npm run dev -- 3006
+
+# Admin Dashboard (port 3007)
+cd pulse/examples/dashboard
+npm run dev -- 3007
 
 # Documentation (port 3000)
 cd pulse/docs

@@ -48,6 +48,11 @@
   to = "/examples/store/index.html"
   status = 200
 
+[[redirects]]
+  from = "/examples/dashboard/*"
+  to = "/examples/dashboard/index.html"
+  status = 200
+
 # Main SPA fallback (must be last - only applies if file doesn't exist)
 [[redirects]]
   from = "/*"
