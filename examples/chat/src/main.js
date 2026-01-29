@@ -61,6 +61,10 @@ const typingUsers = pulse([]);
 const showUserSetup = pulse(!localStorage.getItem('chat-user'));
 const showEmojiPicker = pulse(false);
 const sidebarOpen = pulse(true);
+const editingMessage = pulse(null);
+const contextMenu = pulse(null);
+
+const REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🎉'];
 
 // =============================================================================
 // Persistence
@@ -188,6 +192,95 @@ function simulateBotResponse(room, userMessage) {
 function addEmoji(emoji) {
   inputText.update(text => text + emoji);
   showEmojiPicker.set(false);
+}
+
+function addReaction(msgId, emoji) {
+  const room = currentRoom.peek();
+  const allMessages = messages.peek();
+  const roomMessages = allMessages[room] || [];
+
+  const updatedMessages = roomMessages.map(msg => {
+    if (msg.id === msgId) {
+      const reactions = msg.reactions || {};
+      const userId = user.peek()?.id;
+      const users = reactions[emoji] || [];
+
+      if (users.includes(userId)) {
+        // Remove reaction
+        reactions[emoji] = users.filter(id => id !== userId);
+        if (reactions[emoji].length === 0) delete reactions[emoji];
+      } else {
+        // Add reaction
+        reactions[emoji] = [...users, userId];
+      }
+
+      return { ...msg, reactions };
+    }
+    return msg;
+  });
+
+  messages.set({ ...allMessages, [room]: updatedMessages });
+  saveMessages();
+  contextMenu.set(null);
+}
+
+function deleteMessage(msgId) {
+  const room = currentRoom.peek();
+  const allMessages = messages.peek();
+  const roomMessages = allMessages[room] || [];
+
+  messages.set({
+    ...allMessages,
+    [room]: roomMessages.filter(msg => msg.id !== msgId)
+  });
+  saveMessages();
+  contextMenu.set(null);
+}
+
+function startEditMessage(msg) {
+  editingMessage.set(msg);
+  inputText.set(msg.text);
+  contextMenu.set(null);
+}
+
+function saveEditMessage() {
+  const editing = editingMessage.peek();
+  if (!editing) return;
+
+  const room = currentRoom.peek();
+  const allMessages = messages.peek();
+  const roomMessages = allMessages[room] || [];
+  const newText = inputText.peek().trim();
+
+  if (!newText) return;
+
+  const updatedMessages = roomMessages.map(msg => {
+    if (msg.id === editing.id) {
+      return { ...msg, text: newText, edited: true };
+    }
+    return msg;
+  });
+
+  messages.set({ ...allMessages, [room]: updatedMessages });
+  saveMessages();
+  editingMessage.set(null);
+  inputText.set('');
+}
+
+function cancelEdit() {
+  editingMessage.set(null);
+  inputText.set('');
+}
+
+function showContextMenu(e, msg) {
+  e.preventDefault();
+  const isOwn = msg.userId === user.peek()?.id;
+  contextMenu.set({
+    x: e.clientX,
+    y: e.clientY,
+    msg,
+    isOwn
+  });
 }
 
 function formatTime(timestamp) {
@@ -451,6 +544,8 @@ function MessageList() {
           const isOwn = msg.userId === user.peek()?.id;
           const msgEl = el(`.message${isOwn ? '.own' : ''}`);
 
+          msgEl.addEventListener('contextmenu', (e) => showContextMenu(e, msg));
+
           if (!isOwn) {
             msgEl.appendChild(el('.message-avatar', msg.userAvatar));
           }
@@ -460,9 +555,28 @@ function MessageList() {
             content.appendChild(el('.message-author', msg.userName));
           }
           content.appendChild(el('.message-text', msg.text));
-          content.appendChild(el('.message-time', formatTime(msg.timestamp)));
-          msgEl.appendChild(content);
 
+          const timeRow = el('.message-meta');
+          timeRow.appendChild(el('.message-time', formatTime(msg.timestamp)));
+          if (msg.edited) {
+            timeRow.appendChild(el('.message-edited', '(edited)'));
+          }
+          content.appendChild(timeRow);
+
+          // Reactions
+          if (msg.reactions && Object.keys(msg.reactions).length > 0) {
+            const reactionsEl = el('.message-reactions');
+            for (const [emoji, users] of Object.entries(msg.reactions)) {
+              const hasReacted = users.includes(user.peek()?.id);
+              const reactionBtn = el(`.reaction-badge${hasReacted ? '.active' : ''}`);
+              reactionBtn.innerHTML = `${emoji} <span>${users.length}</span>`;
+              reactionBtn.addEventListener('click', () => addReaction(msg.id, emoji));
+              reactionsEl.appendChild(reactionBtn);
+            }
+            content.appendChild(reactionsEl);
+          }
+
+          msgEl.appendChild(content);
           container.appendChild(msgEl);
         }
       }
@@ -517,10 +631,69 @@ function EmojiPicker() {
   return picker;
 }
 
+function ContextMenu() {
+  const menu = el('.context-menu');
+
+  effect(() => {
+    const ctx = contextMenu.get();
+    if (!ctx) {
+      menu.style.display = 'none';
+      return;
+    }
+
+    menu.style.display = 'block';
+    menu.style.left = `${ctx.x}px`;
+    menu.style.top = `${ctx.y}px`;
+    menu.innerHTML = '';
+
+    // Quick reactions
+    const reactionsRow = el('.context-reactions');
+    for (const emoji of REACTIONS) {
+      const btn = el('button.context-reaction-btn', emoji);
+      btn.addEventListener('click', () => addReaction(ctx.msg.id, emoji));
+      reactionsRow.appendChild(btn);
+    }
+    menu.appendChild(reactionsRow);
+
+    // Actions
+    if (ctx.isOwn) {
+      const editBtn = el('button.context-action', '✏️ Edit');
+      editBtn.addEventListener('click', () => startEditMessage(ctx.msg));
+      menu.appendChild(editBtn);
+
+      const deleteBtn = el('button.context-action.danger', '🗑️ Delete');
+      deleteBtn.addEventListener('click', () => deleteMessage(ctx.msg.id));
+      menu.appendChild(deleteBtn);
+    }
+  });
+
+  // Close on outside click
+  document.addEventListener('click', () => contextMenu.set(null));
+
+  return menu;
+}
+
 function MessageInput() {
   const container = el('.message-input-container');
 
   container.appendChild(EmojiPicker());
+
+  // Editing indicator
+  const editIndicator = el('.edit-indicator');
+  effect(() => {
+    const editing = editingMessage.get();
+    if (editing) {
+      editIndicator.style.display = 'flex';
+      editIndicator.innerHTML = `
+        <span>✏️ Editing message</span>
+        <button class="cancel-edit-btn">Cancel</button>
+      `;
+      editIndicator.querySelector('.cancel-edit-btn').addEventListener('click', cancelEdit);
+    } else {
+      editIndicator.style.display = 'none';
+    }
+  });
+  container.appendChild(editIndicator);
 
   const inputRow = el('.input-row');
 
@@ -541,14 +714,30 @@ function MessageInput() {
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      sendMessage();
+      if (editingMessage.peek()) {
+        saveEditMessage();
+      } else {
+        sendMessage();
+      }
+    }
+    if (e.key === 'Escape' && editingMessage.peek()) {
+      cancelEdit();
     }
   });
   inputRow.appendChild(input);
 
   // Send button
-  const sendBtn = el('button.send-btn', '📤');
-  sendBtn.addEventListener('click', sendMessage);
+  const sendBtn = el('button.send-btn');
+  effect(() => {
+    sendBtn.textContent = editingMessage.get() ? '✓' : '📤';
+  });
+  sendBtn.addEventListener('click', () => {
+    if (editingMessage.peek()) {
+      saveEditMessage();
+    } else {
+      sendMessage();
+    }
+  });
   inputRow.appendChild(sendBtn);
 
   container.appendChild(inputRow);
@@ -572,6 +761,7 @@ function App() {
   app.appendChild(Sidebar());
   app.appendChild(ChatArea());
   app.appendChild(UserSetupModal());
+  app.appendChild(ContextMenu());
 
   return app;
 }
@@ -921,6 +1111,13 @@ body {
   gap: 12px;
   max-width: 80%;
   animation: fadeIn 0.2s ease;
+  padding: 4px;
+  border-radius: var(--radius);
+  transition: background 0.2s;
+}
+
+.message:hover {
+  background: rgba(255, 255, 255, 0.02);
 }
 
 @keyframes fadeIn {
@@ -972,14 +1169,150 @@ body {
   line-height: 1.4;
 }
 
+.message-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
 .message-time {
   font-size: 0.7em;
   color: var(--text-dim);
-  margin-top: 4px;
 }
 
 .message.own .message-time {
   color: rgba(255,255,255,0.6);
+}
+
+.message-edited {
+  font-size: 0.65em;
+  color: var(--text-dim);
+  font-style: italic;
+}
+
+.message.own .message-edited {
+  color: rgba(255,255,255,0.5);
+}
+
+.message-reactions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.reaction-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: var(--bg-lighter);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  font-size: 0.85em;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.reaction-badge:hover {
+  background: var(--bg-light);
+}
+
+.reaction-badge.active {
+  background: rgba(88, 101, 242, 0.3);
+  border-color: var(--primary);
+}
+
+.reaction-badge span {
+  font-size: 0.8em;
+  color: var(--text-muted);
+}
+
+/* Context Menu */
+.context-menu {
+  position: fixed;
+  background: var(--bg-medium);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  z-index: 300;
+  min-width: 180px;
+  overflow: hidden;
+}
+
+.context-reactions {
+  display: flex;
+  padding: 8px;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.context-reaction-btn {
+  background: none;
+  border: none;
+  font-size: 1.2em;
+  padding: 6px 8px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.context-reaction-btn:hover {
+  background: var(--bg-lighter);
+}
+
+.context-action {
+  display: block;
+  width: 100%;
+  padding: 10px 14px;
+  background: none;
+  border: none;
+  color: var(--text);
+  font-size: 0.9em;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.context-action:hover {
+  background: var(--bg-lighter);
+}
+
+.context-action.danger {
+  color: #ed4245;
+}
+
+.context-action.danger:hover {
+  background: rgba(237, 66, 69, 0.1);
+}
+
+/* Edit Indicator */
+.edit-indicator {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(88, 101, 242, 0.1);
+  border-left: 3px solid var(--primary);
+  margin-bottom: 8px;
+  border-radius: 0 var(--radius) var(--radius) 0;
+  font-size: 0.9em;
+  color: var(--text-muted);
+}
+
+.cancel-edit-btn {
+  background: none;
+  border: none;
+  color: var(--primary);
+  cursor: pointer;
+  font-size: 0.85em;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.cancel-edit-btn:hover {
+  background: rgba(88, 101, 242, 0.2);
 }
 
 /* Typing Indicator */
@@ -1113,6 +1446,8 @@ body {
   padding: 32px;
   max-width: 450px;
   width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
   animation: scaleIn 0.2s ease;
 }
 
@@ -1145,18 +1480,25 @@ body {
 
 .avatar-grid {
   display: grid;
-  grid-template-columns: repeat(8, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
   gap: 8px;
+  max-width: 100%;
 }
 
 .avatar-option {
-  font-size: 1.5em;
-  padding: 10px;
+  width: 44px;
+  height: 44px;
+  font-size: 1.4em;
+  padding: 0;
   background: var(--bg-lighter);
   border: 2px solid transparent;
   border-radius: var(--radius);
   cursor: pointer;
   transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
 }
 
 .avatar-option:hover {
