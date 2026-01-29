@@ -1369,105 +1369,77 @@ document.head.appendChild(styleEl);
 // =============================================================================
 
 function highlightCode(code, lang = 'js') {
-  // Escape HTML first
-  let escaped = code
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
+  const tokens = [];
+  let tokenId = 0;
 
-  if (lang === 'pulse' || lang === 'js' || lang === 'javascript') {
-    // Strings (single, double, template)
-    escaped = escaped.replace(
-      /(['"`])(?:(?!\1)[^\\]|\\.)*?\1/g,
-      '<span class="hljs-string">$&</span>'
-    );
-
-    // Comments
-    escaped = escaped.replace(
-      /(\/\/.*$)/gm,
-      '<span class="hljs-comment">$1</span>'
-    );
-    escaped = escaped.replace(
-      /(\/\*[\s\S]*?\*\/)/g,
-      '<span class="hljs-comment">$1</span>'
-    );
-
-    // Pulse directives (@page, @click, etc)
-    escaped = escaped.replace(
-      /(@\w+)/g,
-      '<span class="hljs-directive">$1</span>'
-    );
-
-    // Keywords
-    const keywords = 'const|let|var|function|return|if|else|for|while|import|export|from|class|extends|new|this|async|await|try|catch|throw|default|switch|case|break|continue|typeof|instanceof';
-    escaped = escaped.replace(
-      new RegExp(`\\b(${keywords})\\b`, 'g'),
-      '<span class="hljs-keyword">$1</span>'
-    );
-
-    // Pulse blocks
-    escaped = escaped.replace(
-      /\b(state|view|style|actions)\s*\{/g,
-      '<span class="hljs-keyword">$1</span> {'
-    );
-
-    // Numbers
-    escaped = escaped.replace(
-      /\b(\d+\.?\d*)\b/g,
-      '<span class="hljs-number">$1</span>'
-    );
-
-    // Functions
-    escaped = escaped.replace(
-      /\b([a-zA-Z_]\w*)\s*\(/g,
-      '<span class="hljs-function">$1</span>('
-    );
-
-    // Properties after dot
-    escaped = escaped.replace(
-      /\.([a-zA-Z_]\w*)(?!\s*\()/g,
-      '.<span class="hljs-property">$1</span>'
-    );
-
-  } else if (lang === 'css') {
-    // Selectors
-    escaped = escaped.replace(
-      /^([.#]?[\w-]+)\s*\{/gm,
-      '<span class="hljs-selector">$1</span> {'
-    );
-
-    // Properties
-    escaped = escaped.replace(
-      /\b([\w-]+)\s*:/g,
-      '<span class="hljs-property">$1</span>:'
-    );
-
-    // Values with units
-    escaped = escaped.replace(
-      /:\s*([^;{]+)/g,
-      ': <span class="hljs-string">$1</span>'
-    );
-  } else if (lang === 'bash' || lang === 'shell') {
-    // Commands
-    escaped = escaped.replace(
-      /^(\w+)/gm,
-      '<span class="hljs-function">$1</span>'
-    );
-
-    // Flags
-    escaped = escaped.replace(
-      /(\s--?\w+)/g,
-      '<span class="hljs-keyword">$1</span>'
-    );
-
-    // Comments
-    escaped = escaped.replace(
-      /(#.*$)/gm,
-      '<span class="hljs-comment">$1</span>'
-    );
+  // Helper to replace with token placeholder
+  function tokenize(match, className) {
+    const id = `__TOKEN_${tokenId++}__`;
+    tokens.push({ id, html: `<span class="${className}">${escapeHtml(match)}</span>` });
+    return id;
   }
 
-  return escaped;
+  function escapeHtml(str) {
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  let result = code;
+
+  if (lang === 'pulse' || lang === 'js' || lang === 'javascript') {
+    // 1. Strings first (to protect their content)
+    result = result.replace(/(['"`])(?:(?!\1)[^\\]|\\.)*?\1/g, m => tokenize(m, 'hljs-string'));
+
+    // 2. Comments
+    result = result.replace(/\/\/.*$/gm, m => tokenize(m, 'hljs-comment'));
+    result = result.replace(/\/\*[\s\S]*?\*\//g, m => tokenize(m, 'hljs-comment'));
+
+    // 3. Pulse directives (@page, @click, etc) - but not @media
+    result = result.replace(/@(page|click|submit|change|input|focus|blur|keydown|keyup|route)\b/g, m => tokenize(m, 'hljs-directive'));
+
+    // 4. Pulse blocks
+    result = result.replace(/\b(state|view|style|actions)\s*\{/g, (m, kw) => tokenize(kw, 'hljs-keyword') + ' {');
+
+    // 5. Keywords
+    const keywords = 'const|let|var|function|return|if|else|for|while|import|export|from|class|extends|new|this|async|await|try|catch|throw|default|switch|case|break|continue|typeof|instanceof';
+    result = result.replace(new RegExp(`\\b(${keywords})\\b`, 'g'), m => tokenize(m, 'hljs-keyword'));
+
+    // 6. Numbers
+    result = result.replace(/\b(\d+\.?\d*)\b/g, m => tokenize(m, 'hljs-number'));
+
+    // 7. Function calls
+    result = result.replace(/\b([a-zA-Z_]\w*)\s*\(/g, (m, fn) => tokenize(fn, 'hljs-function') + '(');
+
+    // Escape remaining HTML
+    result = result.replace(/[<>&]/g, m => {
+      if (m === '<') return '&lt;';
+      if (m === '>') return '&gt;';
+      if (m === '&') return '&amp;';
+      return m;
+    });
+
+  } else if (lang === 'bash' || lang === 'shell') {
+    // Comments first
+    result = result.replace(/#.*$/gm, m => tokenize(m, 'hljs-comment'));
+
+    // Commands at start of line
+    result = result.replace(/^(\w+)/gm, m => tokenize(m, 'hljs-function'));
+
+    // Flags
+    result = result.replace(/\s(--?\w+)/g, (m, flag) => ' ' + tokenize(flag, 'hljs-keyword'));
+
+    // Escape remaining
+    result = escapeHtml(result);
+
+  } else {
+    result = escapeHtml(result);
+  }
+
+  // Restore tokens
+  for (const { id, html } of tokens) {
+    result = result.replace(id, html);
+  }
+
+  return result;
 }
 
 function highlightAllCode() {
