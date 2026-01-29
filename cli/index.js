@@ -20,6 +20,7 @@ const commands = {
   create: createProject,
   dev: runDev,
   build: runBuild,
+  preview: runPreview,
   compile: compileFile
 };
 
@@ -50,8 +51,9 @@ Usage: pulse <command> [options]
 
 Commands:
   create <name>    Create a new Pulse project
-  dev              Start development server
-  build            Build for production
+  dev [port]       Start development server (default: 3000)
+  build            Build for production (minified)
+  preview [port]   Preview production build (default: 4173)
   compile <file>   Compile a .pulse file to JavaScript
   version          Show version number
   help             Show this help message
@@ -59,10 +61,13 @@ Commands:
 Examples:
   pulse create my-app
   pulse dev
+  pulse dev 8080
   pulse build
+  pulse preview
+  pulse preview 5000
   pulse compile src/App.pulse
 
-Documentation: https://github.com/pulse-framework/pulse
+Documentation: https://github.com/vincenthirtz/pulse-framework
   `);
 }
 
@@ -280,6 +285,16 @@ async function runBuild(args) {
 
   const { buildProject } = await import('./build.js');
   await buildProject(args);
+}
+
+/**
+ * Preview production build
+ */
+async function runPreview(args) {
+  console.log('Starting Pulse preview server...');
+
+  const { previewBuild } = await import('./build.js');
+  await previewBuild(args);
 }
 
 /**

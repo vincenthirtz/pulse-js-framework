@@ -24,7 +24,8 @@
     "LICENSE"
   ],
   "scripts": {
-    "test": "node --test test/*.js"
+    "test": "node --test test/*.js",
+    "build:netlify": "node scripts/build-netlify.js"
   },
   "keywords": [
     "framework",

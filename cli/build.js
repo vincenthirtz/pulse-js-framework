@@ -124,9 +124,12 @@ function processDirectory(srcDir, outDir) {
         "from './runtime.js'"
       );
 
+      // Minify
+      content = minifyJS(content);
+
       const outPath = join(outDir, file);
       writeFileSync(outPath, content);
-      console.log(`  Processed: ${file}`);
+      console.log(`  Processed & minified: ${file}`);
     } else {
       // Copy other files
       const outPath = join(outDir, file);
@@ -138,11 +141,11 @@ function processDirectory(srcDir, outDir) {
 /**
  * Bundle the runtime into a single file
  */
-function bundleRuntime(outDir) {
+function bundleRuntime(outDir, shouldMinify = true) {
   // For simplicity, we'll create a minimal runtime bundle
   // In production, you'd want to use a proper bundler
 
-  const runtimeCode = `
+  let runtimeCode = `
 // Pulse Runtime (bundled)
 ${readRuntimeFile('pulse.js')}
 ${readRuntimeFile('dom.js')}
@@ -150,8 +153,14 @@ ${readRuntimeFile('router.js')}
 ${readRuntimeFile('store.js')}
 `;
 
+  if (shouldMinify) {
+    runtimeCode = minifyJS(runtimeCode);
+    console.log('  Bundled & minified: runtime.js');
+  } else {
+    console.log('  Bundled: runtime.js');
+  }
+
   writeFileSync(join(outDir, 'assets', 'runtime.js'), runtimeCode);
-  console.log('  Bundled: runtime.js');
 }
 
 /**
@@ -171,6 +180,32 @@ function readRuntimeFile(filename) {
 
   console.warn(`  Warning: Could not find runtime file: ${filename}`);
   return '';
+}
+
+/**
+ * Minify JavaScript code (simple minification)
+ */
+export function minifyJS(code) {
+  return code
+    // Remove single-line comments (but not URLs with //)
+    .replace(/(?<!:)\/\/.*$/gm, '')
+    // Remove multi-line comments
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    // Remove leading/trailing whitespace per line
+    .split('\n')
+    .map(line => line.trim())
+    .filter(line => line.length > 0)
+    .join('\n')
+    // Collapse multiple newlines
+    .replace(/\n{2,}/g, '\n')
+    // Remove spaces around operators (simple)
+    .replace(/\s*([{};,:])\s*/g, '$1')
+    .replace(/\s*=\s*/g, '=')
+    .replace(/\s*\(\s*/g, '(')
+    .replace(/\s*\)\s*/g, ')')
+    // Collapse remaining whitespace
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 /**
@@ -196,4 +231,88 @@ function copyDir(src, dest) {
   }
 }
 
-export default { buildProject };
+/**
+ * Preview production build
+ */
+export async function previewBuild(args) {
+  const port = parseInt(args[0]) || 4173;
+  const root = process.cwd();
+  const distDir = join(root, 'dist');
+
+  if (!existsSync(distDir)) {
+    console.error('No dist folder found. Run "pulse build" first.');
+    process.exit(1);
+  }
+
+  // Check if vite is available for preview
+  try {
+    const viteConfig = join(root, 'vite.config.js');
+    if (existsSync(viteConfig)) {
+      console.log('Using Vite preview...');
+      const { preview } = await import('vite');
+      const server = await preview({
+        root,
+        preview: { port }
+      });
+      server.printUrls();
+      return;
+    }
+  } catch (e) {
+    // Vite not available, use built-in server
+  }
+
+  // Built-in static server for dist
+  const { createServer } = await import('http');
+
+  const MIME_TYPES = {
+    '.html': 'text/html',
+    '.js': 'application/javascript',
+    '.css': 'text/css',
+    '.json': 'application/json',
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.gif': 'image/gif',
+    '.svg': 'image/svg+xml',
+    '.ico': 'image/x-icon',
+    '.woff': 'font/woff',
+    '.woff2': 'font/woff2'
+  };
+
+  const server = createServer((req, res) => {
+    let pathname = new URL(req.url, `http://localhost:${port}`).pathname;
+
+    // SPA fallback - serve index.html for routes
+    if (pathname === '/' || !pathname.includes('.')) {
+      pathname = '/index.html';
+    }
+
+    const filePath = join(distDir, pathname);
+
+    if (existsSync(filePath) && statSync(filePath).isFile()) {
+      const ext = filePath.substring(filePath.lastIndexOf('.'));
+      const mimeType = MIME_TYPES[ext] || 'application/octet-stream';
+
+      res.writeHead(200, {
+        'Content-Type': mimeType,
+        'Cache-Control': 'public, max-age=31536000'
+      });
+      res.end(readFileSync(filePath));
+    } else {
+      res.writeHead(404, { 'Content-Type': 'text/plain' });
+      res.end('Not Found');
+    }
+  });
+
+  server.listen(port, () => {
+    console.log(`
+  Pulse Preview Server running at:
+
+    Local:   http://localhost:${port}/
+
+  Serving production build from: dist/
+  Press Ctrl+C to stop.
+    `);
+  });
+}
+
+export default { buildProject, previewBuild, minifyJS };
