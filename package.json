@@ -44,11 +44,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/your-username/pulse-framework.git"
+    "url": "git+https://github.com/vincenthirtz/pulse-framework.git"
   },
-  "homepage": "https://github.com/your-username/pulse-framework#readme",
+  "homepage": "https://github.com/vincenthirtz/pulse-framework#readme",
   "bugs": {
-    "url": "https://github.com/your-username/pulse-framework/issues"
+    "url": "https://github.com/vincenthirtz/pulse-framework/issues"
   },
   "engines": {
     "node": ">=18.0.0"
