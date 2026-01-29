@@ -812,6 +812,22 @@ function ExamplesPage() {
           View Demo →
         </a>
       </div>
+
+      <div class="example-card">
+        <div class="example-icon">🧭</div>
+        <h3>Router Demo</h3>
+        <p>SPA routing with navigation, guards, and dynamic routes.</p>
+        <ul class="example-features">
+          <li>✓ Route parameters</li>
+          <li>✓ Query strings</li>
+          <li>✓ Route guards</li>
+          <li>✓ Active link styling</li>
+          <li>✓ Protected routes</li>
+        </ul>
+        <a href="/examples/router/" class="btn btn-primary">
+          View Demo →
+        </a>
+      </div>
     </div>
 
     <section class="doc-section">
@@ -833,6 +849,10 @@ npm run dev -- 3003
 # Chat App (port 3004)
 cd pulse/examples/chat
 npm run dev -- 3004
+
+# Router Demo (port 3005)
+cd pulse/examples/router
+npm run dev -- 3005
 
 # Documentation (port 3000)
 cd pulse/docs
