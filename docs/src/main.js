@@ -1191,21 +1191,56 @@ function computed(fn) {
   return { get: () => sig.get() };
 }
 function el(selector, content) {
-  const match = selector.match(/^([a-z0-9-]*)((?:[.#][a-zA-Z0-9_-]+)*)(?:\\[([^\\]]+)\\])?$/i);
-  const tag = match[1] || 'div';
+  let tag = 'div';
+  let id = null;
+  const classes = [];
+  const attrs = {};
+  let i = 0;
+  const len = selector.length;
+  // Parse tag
+  if (i < len && /[a-zA-Z]/.test(selector[i])) {
+    let t = '';
+    while (i < len && /[a-zA-Z0-9-]/.test(selector[i])) t += selector[i++];
+    if (t) tag = t;
+  }
+  // Parse rest
+  while (i < len) {
+    const c = selector[i];
+    if (c === '.') {
+      i++;
+      let cls = '';
+      while (i < len && /[a-zA-Z0-9_-]/.test(selector[i])) cls += selector[i++];
+      if (cls) classes.push(cls);
+    } else if (c === '#') {
+      i++;
+      let idVal = '';
+      while (i < len && /[a-zA-Z0-9_-]/.test(selector[i])) idVal += selector[i++];
+      if (idVal) id = idVal;
+    } else if (c === '[') {
+      i++;
+      let attrName = '';
+      while (i < len && /[a-zA-Z0-9_-]/.test(selector[i])) attrName += selector[i++];
+      let attrVal = '';
+      if (i < len && selector[i] === '=') {
+        i++;
+        if (i < len && (selector[i] === '"' || selector[i] === "'")) {
+          const q = selector[i++];
+          while (i < len && selector[i] !== q) attrVal += selector[i++];
+          i++;
+        } else {
+          while (i < len && selector[i] !== ']') attrVal += selector[i++];
+        }
+      }
+      if (i < len && selector[i] === ']') i++;
+      if (attrName) attrs[attrName] = attrVal;
+    } else {
+      i++;
+    }
+  }
   const elem = document.createElement(tag);
-  if (match[2]) {
-    match[2].split(/(?=[.#])/).forEach(part => {
-      if (part.startsWith('.')) elem.classList.add(part.slice(1));
-      else if (part.startsWith('#')) elem.id = part.slice(1);
-    });
-  }
-  if (match[3]) {
-    match[3].split('][').forEach(attr => {
-      const [key, val] = attr.split('=');
-      elem.setAttribute(key, val ? val.replace(/^["']|["']$/g, '') : '');
-    });
-  }
+  if (id) elem.id = id;
+  for (const cls of classes) elem.classList.add(cls);
+  for (const k in attrs) elem.setAttribute(k, attrs[k]);
   if (content) elem.textContent = content;
   return elem;
 }
