@@ -1,0 +1,58 @@
+{
+  "name": "pulse-js-framework",
+  "version": "1.0.0",
+  "description": "A declarative DOM framework with CSS selector-based structure and reactive pulsations",
+  "type": "module",
+  "main": "index.js",
+  "bin": {
+    "pulse": "cli/index.js"
+  },
+  "exports": {
+    ".": "./index.js",
+    "./runtime": "./runtime/index.js",
+    "./runtime/*": "./runtime/*.js",
+    "./compiler": "./compiler/index.js",
+    "./vite": "./loader/vite-plugin.js"
+  },
+  "files": [
+    "index.js",
+    "cli/",
+    "runtime/",
+    "compiler/",
+    "loader/",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node --test test/*.js"
+  },
+  "keywords": [
+    "framework",
+    "frontend",
+    "reactive",
+    "declarative",
+    "dom",
+    "pulse",
+    "css-selectors",
+    "dsl",
+    "ui",
+    "javascript",
+    "spa",
+    "signals"
+  ],
+  "author": "Your Name <your.email@example.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/your-username/pulse-framework.git"
+  },
+  "homepage": "https://github.com/your-username/pulse-framework#readme",
+  "bugs": {
+    "url": "https://github.com/your-username/pulse-framework/issues"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

@@ -1,0 +1,8 @@
+{
+  "name": "pulse-meteo",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node ../../cli/index.js dev"
+  }
+}
