@@ -1400,9 +1400,9 @@ function highlightCode(code, lang = 'js') {
   const tokens = [];
   let tokenId = 0;
 
-  // Helper to replace with token placeholder
+  // Helper to replace with token placeholder (using letters to avoid number matching)
   function tokenize(match, className) {
-    const id = `__TOKEN_${tokenId++}__`;
+    const id = `\x00TK${tokenId++}\x00`;
     tokens.push({ id, html: `<span class="${className}">${escapeHtml(match)}</span>` });
     return id;
   }
@@ -1431,13 +1431,13 @@ function highlightCode(code, lang = 'js') {
     const keywords = 'const|let|var|function|return|if|else|for|while|import|export|from|class|extends|new|this|async|await|try|catch|throw|default|switch|case|break|continue|typeof|instanceof';
     result = result.replace(new RegExp(`\\b(${keywords})\\b`, 'g'), m => tokenize(m, 'hljs-keyword'));
 
-    // 6. Numbers
-    result = result.replace(/\b(\d+\.?\d*)\b/g, m => tokenize(m, 'hljs-number'));
+    // 6. Numbers (but not inside token placeholders)
+    result = result.replace(/(?<!\x00TK)\b(\d+\.?\d*)\b/g, m => tokenize(m, 'hljs-number'));
 
     // 7. Function calls
     result = result.replace(/\b([a-zA-Z_]\w*)\s*\(/g, (m, fn) => tokenize(fn, 'hljs-function') + '(');
 
-    // Escape remaining HTML
+    // Escape remaining HTML (but not our token markers)
     result = result.replace(/[<>&]/g, m => {
       if (m === '<') return '&lt;';
       if (m === '>') return '&gt;';
