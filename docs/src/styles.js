@@ -86,6 +86,28 @@ body {
   -webkit-text-fill-color: transparent;
 }
 
+.logo-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.version-badge {
+  font-size: 0.75em;
+  padding: 4px 10px;
+  background: rgba(99, 102, 241, 0.15);
+  color: var(--primary);
+  border-radius: 20px;
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.version-badge:hover {
+  background: rgba(99, 102, 241, 0.25);
+  transform: translateY(-1px);
+}
+
 .nav {
   display: flex;
   gap: 8px;

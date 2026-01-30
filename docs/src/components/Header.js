@@ -3,10 +3,12 @@
  */
 
 import { effect, el } from '/runtime/index.js';
-import { mobileMenuOpen, theme, toggleTheme, navigation, router } from '../state.js';
+import { mobileMenuOpen, theme, toggleTheme, navigation, router, version } from '../state.js';
 
 export function Header() {
   const header = el('header.header');
+
+  const logoContainer = el('.logo-container');
 
   const logo = el('.logo');
   logo.innerHTML = '⚡ <span>Pulse</span>';
@@ -15,7 +17,17 @@ export function Header() {
     router.navigate('/');
   });
   logo.style.cursor = 'pointer';
-  header.appendChild(logo);
+  logoContainer.appendChild(logo);
+
+  const versionBadge = el('a.version-badge');
+  versionBadge.textContent = `v${version}`;
+  versionBadge.href = `https://github.com/vincenthirtz/pulse-js-framework/releases/tag/v${version}`;
+  versionBadge.target = '_blank';
+  versionBadge.rel = 'noopener noreferrer';
+  versionBadge.title = `View release v${version} on GitHub`;
+  logoContainer.appendChild(versionBadge);
+
+  header.appendChild(logoContainer);
 
   const nav = el('nav.nav');
   for (const item of navigation) {

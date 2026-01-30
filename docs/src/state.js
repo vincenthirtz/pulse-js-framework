@@ -42,9 +42,11 @@ export const navigation = [
   { path: '/api-reference', label: '📖 API Reference' },
   { path: '/mobile', label: '📱 Mobile' },
   { path: '/examples', label: '✨ Examples' },
-  { path: '/playground', label: '🎮 Playground' },
-  { path: '/changelog', label: '📋 Changelog' }
+  { path: '/playground', label: '🎮 Playground' }
 ];
+
+// Current version
+export const version = '1.3.0';
 
 // =============================================================================
 // Router
