@@ -737,11 +737,15 @@ export class Transformer {
 
       case NodeType.MemberExpression: {
         const obj = this.transformExpression(node.object);
+        // Use optional chaining when accessing properties on function call results
+        // This prevents "Cannot read property X of null" when the function returns null
+        const isCallResult = node.object.type === NodeType.CallExpression;
+        const accessor = isCallResult ? '?.' : '.';
         if (node.computed) {
           const prop = this.transformExpression(node.property);
-          return `${obj}[${prop}]`;
+          return isCallResult ? `${obj}?.[${prop}]` : `${obj}[${prop}]`;
         }
-        return `${obj}.${node.property}`;
+        return `${obj}${accessor}${node.property}`;
       }
 
       case NodeType.CallExpression: {
@@ -848,6 +852,10 @@ export class Transformer {
         `${stateVar}.get()`
       );
     }
+    // Add optional chaining after function calls followed by property access
+    // This prevents "Cannot read property X of null" errors
+    // Pattern: functionName(...).property -> functionName(...)?.property
+    result = result.replace(/(\w+\([^)]*\))\.(\w)/g, '$1?.$2');
     return result;
   }
 
