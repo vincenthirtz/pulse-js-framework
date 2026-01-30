@@ -24,7 +24,9 @@ export const TokenType = {
   IF: 'IF',
   ELSE: 'ELSE',
   EACH: 'EACH',
+  FOR: 'FOR',
   IN: 'IN',
+  OF: 'OF',
 
   // Punctuation
   LBRACE: 'LBRACE',   // {
@@ -46,7 +48,9 @@ export const TokenType = {
   SLASH: 'SLASH',
   EQ: 'EQ',           // =
   EQEQ: 'EQEQ',       // ==
+  EQEQEQ: 'EQEQEQ',   // ===
   NEQ: 'NEQ',         // !=
+  NEQEQ: 'NEQEQ',     // !==
   LT: 'LT',           // <
   GT: 'GT',           // >
   LTE: 'LTE',         // <=
@@ -93,7 +97,9 @@ const KEYWORDS = {
   'if': TokenType.IF,
   'else': TokenType.ELSE,
   'each': TokenType.EACH,
+  'for': TokenType.FOR,
   'in': TokenType.IN,
+  'of': TokenType.OF,
   'page': TokenType.PAGE,
   'route': TokenType.ROUTE,
   'true': TokenType.TRUE,
@@ -460,7 +466,12 @@ export class Lexer {
           this.advance();
           if (this.current() === '=') {
             this.advance();
-            this.tokens.push(new Token(TokenType.EQEQ, '==', startLine, startColumn));
+            if (this.current() === '=') {
+              this.advance();
+              this.tokens.push(new Token(TokenType.EQEQEQ, '===', startLine, startColumn));
+            } else {
+              this.tokens.push(new Token(TokenType.EQEQ, '==', startLine, startColumn));
+            }
           } else {
             this.tokens.push(new Token(TokenType.EQ, '=', startLine, startColumn));
           }
@@ -469,7 +480,12 @@ export class Lexer {
           this.advance();
           if (this.current() === '=') {
             this.advance();
-            this.tokens.push(new Token(TokenType.NEQ, '!=', startLine, startColumn));
+            if (this.current() === '=') {
+              this.advance();
+              this.tokens.push(new Token(TokenType.NEQEQ, '!==', startLine, startColumn));
+            } else {
+              this.tokens.push(new Token(TokenType.NEQ, '!=', startLine, startColumn));
+            }
           } else {
             this.tokens.push(new Token(TokenType.NOT, '!', startLine, startColumn));
           }

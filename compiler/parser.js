@@ -564,16 +564,29 @@ export class Parser {
   }
 
   /**
-   * Parse a directive (@if, @each, @click, etc.)
+   * Parse a directive (@if, @for, @each, @click, etc.)
    */
   parseDirective() {
     this.expect(TokenType.AT);
+
+    // Handle @if - IF is a keyword token, not IDENT
+    if (this.is(TokenType.IF)) {
+      this.advance();
+      return this.parseIfDirective();
+    }
+
+    // Handle @for - FOR is a keyword token, not IDENT
+    if (this.is(TokenType.FOR)) {
+      this.advance();
+      return this.parseEachDirective();
+    }
+
     const name = this.expect(TokenType.IDENT).value;
 
     if (name === 'if') {
       return this.parseIfDirective();
     }
-    if (name === 'each') {
+    if (name === 'each' || name === 'for') {
       return this.parseEachDirective();
     }
 
@@ -627,12 +640,19 @@ export class Parser {
   }
 
   /**
-   * Parse @each directive
+   * Parse @each/@for directive
    */
   parseEachDirective() {
     this.expect(TokenType.LPAREN);
     const itemName = this.expect(TokenType.IDENT).value;
-    this.expect(TokenType.IN);
+    // Accept both 'in' and 'of' keywords
+    if (this.is(TokenType.IN)) {
+      this.advance();
+    } else if (this.is(TokenType.OF)) {
+      this.advance();
+    } else {
+      throw this.createError('Expected "in" or "of" in loop directive');
+    }
     const iterable = this.parseExpression();
     this.expect(TokenType.RPAREN);
 
@@ -709,8 +729,8 @@ export class Parser {
   parseComparisonExpression() {
     let left = this.parseAdditiveExpression();
 
-    while (this.isAny(TokenType.EQEQ, TokenType.NEQ, TokenType.LT, TokenType.GT,
-                       TokenType.LTE, TokenType.GTE)) {
+    while (this.isAny(TokenType.EQEQ, TokenType.EQEQEQ, TokenType.NEQ, TokenType.NEQEQ,
+                       TokenType.LT, TokenType.GT, TokenType.LTE, TokenType.GTE)) {
       const operator = this.advance().value;
       const right = this.parseAdditiveExpression();
       left = new ASTNode(NodeType.BinaryExpression, { operator, left, right });
@@ -821,7 +841,9 @@ export class Parser {
       return new ASTNode(NodeType.Literal, { value: null });
     }
 
-    if (this.is(TokenType.IDENT)) {
+    // In expressions, SELECTOR tokens should be treated as IDENT
+    // This happens when identifiers like 'selectedCategory' are followed by space in view context
+    if (this.is(TokenType.IDENT) || this.is(TokenType.SELECTOR)) {
       return this.parseIdentifierOrExpression();
     }
 
@@ -834,7 +856,9 @@ export class Parser {
    * Parse identifier with possible member access and calls
    */
   parseIdentifierOrExpression() {
-    let expr = new ASTNode(NodeType.Identifier, { name: this.advance().value });
+    // Accept both IDENT and SELECTOR (selector tokens can be identifiers in expression context)
+    const token = this.advance();
+    let expr = new ASTNode(NodeType.Identifier, { name: token.value });
 
     while (true) {
       if (this.is(TokenType.DOT)) {

@@ -335,7 +335,7 @@ onNativeReady(({ platform }) => {
 
 ## Examples
 
-- [Blog](examples/blog) - Full blog with .pulse components (CRUD, categories, search)
+- [Blog](examples/blog) - Full blog app with CRUD, categories, search, dark mode
 - [Todo App](examples/todo) - Task management with filters and persistence
 - [Chat App](examples/chat) - Real-time messaging interface
 - [E-commerce](examples/ecommerce) - Shopping cart with product catalog

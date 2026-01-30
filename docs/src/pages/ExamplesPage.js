@@ -15,13 +15,13 @@ export function ExamplesPage() {
       <div class="example-card featured">
         <div class="example-icon">📰</div>
         <h3>Blog</h3>
-        <p>Full blog built entirely with .pulse components showcasing the DSL syntax.</p>
+        <p>Full-featured blog application with CRUD, categories, search, and dark mode.</p>
         <ul class="example-features">
-          <li>✓ .pulse file components</li>
           <li>✓ CRUD operations</li>
           <li>✓ Category filtering</li>
           <li>✓ Search functionality</li>
           <li>✓ Dark/light mode</li>
+          <li>✓ Responsive design</li>
         </ul>
         <a href="/examples/blog/" class="btn btn-primary">
           View Demo →
@@ -145,7 +145,7 @@ export function ExamplesPage() {
       <h2>Run Examples Locally</h2>
       <p>To run the example projects on your machine:</p>
       <div class="code-block">
-        <pre><code># Blog (port 3001) - .pulse components
+        <pre><code># Blog (port 3001)
 cd pulse/examples/blog
 npm run dev -- 3001
 

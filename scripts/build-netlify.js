@@ -5,15 +5,16 @@
  * Builds docs and all examples for deployment
  */
 
-import { cpSync, mkdirSync, existsSync, readFileSync, writeFileSync, readdirSync } from 'fs';
+import { cpSync, mkdirSync, existsSync, readFileSync, writeFileSync, readdirSync, unlinkSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { minifyJS } from '../cli/build.js';
+import { compile } from '../compiler/index.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..');
 
-const EXAMPLES = ['todo', 'chat', 'ecommerce', 'meteo', 'router', 'store', 'dashboard'];
+const EXAMPLES = ['blog', 'todo', 'chat', 'ecommerce', 'meteo', 'router', 'store', 'dashboard'];
 
 console.log('🚀 Building Pulse for Netlify...\n');
 
@@ -78,7 +79,7 @@ for (const example of EXAMPLES) {
 }
 
 /**
- * Update runtime imports and optionally minify JS files
+ * Update runtime imports, compile .pulse files, and optionally minify
  */
 function processJSFiles(dir, shouldMinify = true) {
   if (!existsSync(dir)) return;
@@ -90,6 +91,31 @@ function processJSFiles(dir, shouldMinify = true) {
 
     if (file.isDirectory()) {
       processJSFiles(filePath, shouldMinify);
+    } else if (file.name.endsWith('.pulse')) {
+      // Compile .pulse files to .js
+      const source = readFileSync(filePath, 'utf-8');
+      try {
+        const result = compile(source, { runtime: '/runtime/index.js' });
+
+        if (!result.success) {
+          console.error(`   ✗ Failed to compile ${file.name}: ${result.errors[0]?.message || 'Unknown error'}`);
+          continue;
+        }
+
+        let compiled = result.code;
+
+        // Update .pulse imports to .js
+        compiled = compiled.replace(/from\s+['"]([^'"]+)\.pulse['"]/g, "from '$1.js'");
+
+        // Write compiled JS file
+        const jsPath = filePath.replace(/\.pulse$/, '.js');
+        writeFileSync(jsPath, shouldMinify ? minifyJS(compiled) : compiled);
+
+        // Remove original .pulse file
+        unlinkSync(filePath);
+      } catch (e) {
+        console.error(`   ✗ Failed to compile ${file.name}: ${e.message}`);
+      }
     } else if (file.name.endsWith('.js')) {
       let content = readFileSync(filePath, 'utf-8');
 
@@ -110,6 +136,9 @@ function processJSFiles(dir, shouldMinify = true) {
         /from\s+['"]pulse-framework\/runtime\/([^'"]+)['"]/g,
         "from '/runtime/$1'"
       );
+
+      // Update .pulse imports to .js
+      content = content.replace(/from\s+['"]([^'"]+)\.pulse['"]/g, "from '$1.js'");
 
       // Minify the JS content if requested
       if (shouldMinify) {
@@ -185,6 +214,12 @@ const examplesIndexHtml = `<!DOCTYPE html>
     <p class="subtitle">Interactive demos built with Pulse Framework</p>
 
     <div class="examples">
+      <a href="/examples/blog/" class="example">
+        <span class="arrow">→</span>
+        <h2>📰 Blog</h2>
+        <p>Full blog with .pulse components showcasing DSL syntax, CRUD, and categories.</p>
+      </a>
+
       <a href="/examples/todo/" class="example">
         <span class="arrow">→</span>
         <h2>✅ Todo App</h2>
