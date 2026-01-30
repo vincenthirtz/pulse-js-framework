@@ -377,6 +377,86 @@ store.$reset();</code></pre>
       </div>
     </section>
 
+    <section class="doc-section">
+      <h2>HMR (Hot Module Replacement)</h2>
+
+      <div class="api-item">
+        <h3><code>createHMRContext(moduleId)</code></h3>
+        <p>Creates an HMR context for state preservation and effect cleanup during development.</p>
+        <div class="code-block">
+          <pre><code>import { createHMRContext } from 'pulse-js-framework/runtime/hmr';
+
+const hmr = createHMRContext(import.meta.url);</code></pre>
+        </div>
+      </div>
+
+      <div class="api-item">
+        <h3><code>hmr.preservePulse(key, initialValue, options?)</code></h3>
+        <p>Creates a pulse that preserves its value across HMR updates.</p>
+        <div class="code-block">
+          <pre><code>// State survives module replacement
+const count = hmr.preservePulse('count', 0);
+const items = hmr.preservePulse('items', []);
+
+count.set(5);
+// After HMR update, count is still 5</code></pre>
+        </div>
+      </div>
+
+      <div class="api-item">
+        <h3><code>hmr.setup(callback)</code></h3>
+        <p>Executes code with effect tracking. Effects created inside are automatically cleaned up during HMR.</p>
+        <div class="code-block">
+          <pre><code>hmr.setup(() => {
+  // Effects registered here are tracked
+  effect(() => {
+    document.title = \`Count: \${count.get()}\`;
+  });
+
+  // Event listeners are also cleaned up
+  on(button, 'click', handler);
+});</code></pre>
+        </div>
+      </div>
+
+      <div class="api-item">
+        <h3><code>hmr.accept(callback?)</code></h3>
+        <p>Accept HMR updates for this module.</p>
+        <div class="code-block">
+          <pre><code>// Simple accept
+hmr.accept();
+
+// With custom handler
+hmr.accept((newModule) => {
+  // Custom update logic
+});</code></pre>
+        </div>
+      </div>
+
+      <div class="api-item">
+        <h3><code>hmr.dispose(callback)</code></h3>
+        <p>Register cleanup to run before module is replaced.</p>
+        <div class="code-block">
+          <pre><code>hmr.dispose(() => {
+  // Custom cleanup before HMR
+  socket.close();
+});</code></pre>
+        </div>
+      </div>
+
+      <div class="api-item">
+        <h3><code>hmr.data</code></h3>
+        <p>Persistent data object that survives HMR updates. Use for custom state preservation.</p>
+        <div class="code-block">
+          <pre><code>// Save arbitrary data
+hmr.data.myCustomState = { x: 1, y: 2 };
+
+// After HMR, data is still available
+console.log(hmr.data.myCustomState); // { x: 1, y: 2 }</code></pre>
+        </div>
+      </div>
+    </section>
+
     <div class="next-section">
       <button class="btn btn-primary" onclick="window.docs.navigate('/mobile')">
         Next: Mobile Apps →

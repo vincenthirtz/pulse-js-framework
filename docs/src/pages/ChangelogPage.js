@@ -12,6 +12,69 @@ export function ChangelogPage() {
     <p class="intro">Recent updates and improvements to Pulse Framework</p>
 
     <section class="doc-section changelog-section">
+      <h2>v1.4.6 - Hot Module Replacement</h2>
+      <p class="release-date">January 2026</p>
+
+      <h3>🔥 Complete HMR with State Preservation</h3>
+      <div class="changelog-group">
+        <p>Full Hot Module Replacement support for seamless development experience:</p>
+
+        <div class="changelog-item">
+          <h4>HMR Context API</h4>
+          <p>Create HMR contexts to preserve state across module updates:</p>
+          <div class="code-block">
+            <pre><code>import { createHMRContext } from 'pulse-js-framework/runtime/hmr';
+
+const hmr = createHMRContext(import.meta.url);
+
+// State preserved across HMR updates
+const count = hmr.preservePulse('count', 0);
+const items = hmr.preservePulse('items', []);</code></pre>
+          </div>
+        </div>
+
+        <div class="changelog-item">
+          <h4>Effect Tracking & Cleanup</h4>
+          <p>Effects are automatically cleaned up during HMR to prevent memory leaks:</p>
+          <div class="code-block">
+            <pre><code>hmr.setup(() => {
+  effect(() => {
+    document.title = \`Count: \${count.get()}\`;
+  });
+});
+
+hmr.accept();</code></pre>
+          </div>
+        </div>
+
+        <div class="changelog-item">
+          <h4>Automatic Event Listener Cleanup</h4>
+          <p>Event listeners registered with <code>on()</code> are automatically removed during HMR - no more listener accumulation.</p>
+        </div>
+
+        <div class="changelog-item">
+          <h4>Vite Integration</h4>
+          <p>The Vite plugin now sends <code>js-update</code> instead of <code>full-reload</code> for <code>.pulse</code> files, enabling true hot updates.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="doc-section changelog-section">
+      <h2>v1.4.5 - VSCode Extension Icons</h2>
+      <p class="release-date">January 2026</p>
+
+      <h3>⚡ File Icons</h3>
+      <div class="changelog-group">
+        <p>Lightning bolt icons for <code>.pulse</code> files in VSCode:</p>
+        <ul class="feature-list">
+          <li>Light theme icon</li>
+          <li>Dark theme icon</li>
+          <li>Extension marketplace icon</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="doc-section changelog-section">
       <h2>v1.4.0 - Native Router & Store DSL</h2>
       <p class="release-date">January 2026</p>
 
