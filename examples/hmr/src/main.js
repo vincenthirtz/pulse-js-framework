@@ -127,18 +127,20 @@ hmr.setup(() => {
   document.body.style.setProperty('--card', currentTheme.card);
 
   // Mount the App component with all state and actions
-  mount('#app', App({
-    // State (as pulses for reactivity)
-    count,
-    notes,
-    theme,
-    inputValue,
-    hmrCount,
-    notPreserved,
-    // Config
-    themes,
-    // Actions
-    ...actions
+  mount('#app', App.render({
+    props: {
+      // State (as pulses for reactivity)
+      count,
+      notes,
+      theme,
+      inputValue,
+      hmrCount,
+      notPreserved,
+      // Config
+      themes,
+      // Actions
+      ...actions
+    }
   }));
 
   console.log('Pulse HMR Demo loaded!');
