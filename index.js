@@ -11,7 +11,7 @@ export * from './runtime/index.js';
 export { compile, parse, tokenize } from './compiler/index.js';
 
 // Version
-export const VERSION = '1.4.1';
+export const VERSION = '1.4.2';
 
 // Default export
 export default {
