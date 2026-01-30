@@ -12,26 +12,16 @@ props {
   notPreserved: null
 }
 
-state {
-  debugText: ""
-}
-
-actions {
-  getDebugText() {
-    return JSON.stringify({
-      count: count.get(),
-      notes: notes.get().length,
-      theme: theme.get(),
-      hmrUpdates: hmrCount.get(),
-      notPreserved: notPreserved.get()
-    }, null, 2)
-  }
-}
-
 view {
   .card.debug {
     h2 "State Debug"
-    pre.state-dump "{getDebugText()}"
+    .state-dump {
+      .debug-line "count: {count.get()}"
+      .debug-line "notes: {notes.get().length}"
+      .debug-line "theme: {theme.get()}"
+      .debug-line "hmrUpdates: {hmrCount.get()}"
+      .debug-line "notPreserved: {notPreserved.get()}"
+    }
   }
 }
 

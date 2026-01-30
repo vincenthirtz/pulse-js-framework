@@ -17,7 +17,7 @@ view {
     h2 "Notes (Preserved)"
 
     .input-row {
-      input[type=text][placeholder="Add a note..."][value="{inputValue.get()}"]
+      input[type=text][placeholder="Add a note..."]
         @input(onInputChange && onInputChange(event.target.value))
         @keydown(event.key === 'Enter' && onAdd && onAdd())
       button.btn.primary @click(onAdd && onAdd()) "Add"
