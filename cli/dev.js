@@ -107,7 +107,7 @@ export async function startDevServer(args) {
       }
 
       // Check if there's a .pulse file that should be compiled to .js
-      const pulseFilePath = filePath.replace(/\.js$/, '.pulse');
+      const pulseFilePath = filePath.replace(/\.(js|mjs)$/, '.pulse');
       if (existsSync(pulseFilePath)) {
         try {
           const source = readFileSync(pulseFilePath, 'utf-8');

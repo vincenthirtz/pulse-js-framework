@@ -10,10 +10,17 @@ props {
   onCycle: null
 }
 
+actions {
+  getThemeColor() {
+    const t = theme.get();
+    return themes && themes[t] ? themes[t].primary : '#8b5cf6';
+  }
+}
+
 view {
   .card {
     h2 "Theme (Preserved)"
-    .theme-preview[style="background: {themes[theme.get()].primary}"] "{theme.get()}"
+    .theme-preview[data-theme="{theme.get()}"] "{theme.get()}"
     button.btn @click(onCycle && onCycle()) "Cycle Theme"
   }
 }
@@ -44,6 +51,7 @@ style {
     text-transform: capitalize;
     margin-bottom: 16px;
     transition: background 0.3s;
+    background: var(--primary);
   }
 
   .btn {
