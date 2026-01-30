@@ -184,11 +184,26 @@ function readRuntimeFile(filename) {
 
 /**
  * Minify JavaScript code (simple minification)
+ * String-aware: preserves content inside string literals
  */
 export function minifyJS(code) {
-  return code
-    // Remove single-line comments (but not URLs with //)
-    .replace(/(?<!:)\/\/.*$/gm, '')
+  // Extract strings to protect them from minification
+  const strings = [];
+  const placeholder = '\x00STR';
+
+  // Replace strings with placeholders (handles ", ', and ` with escape sequences)
+  const withPlaceholders = code.replace(
+    /(["'`])(?:\\.|(?!\1)[^\\])*\1/g,
+    (match) => {
+      strings.push(match);
+      return placeholder + (strings.length - 1) + '\x00';
+    }
+  );
+
+  // Apply minification to non-string parts
+  let minified = withPlaceholders
+    // Remove single-line comments
+    .replace(/\/\/.*$/gm, '')
     // Remove multi-line comments
     .replace(/\/\*[\s\S]*?\*\//g, '')
     // Remove leading/trailing whitespace per line
@@ -206,6 +221,14 @@ export function minifyJS(code) {
     // Collapse remaining whitespace
     .replace(/\s+/g, ' ')
     .trim();
+
+  // Restore strings
+  minified = minified.replace(
+    new RegExp(placeholder.replace('\x00', '\\x00') + '(\\d+)\\x00', 'g'),
+    (_, index) => strings[parseInt(index)]
+  );
+
+  return minified;
 }
 
 /**
