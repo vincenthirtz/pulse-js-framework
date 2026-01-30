@@ -295,7 +295,7 @@ const router = createRouter({
 
 // Route guard for protected routes
 router.beforeEach((to, from) => {
-  if (to.startsWith('/dashboard') && !isAuthenticated.get()) {
+  if (to.path.startsWith('/dashboard') && !isAuthenticated.get()) {
     alert('Please login to access the dashboard');
     return '/'; // Redirect to home
   }
