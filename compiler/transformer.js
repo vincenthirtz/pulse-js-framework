@@ -426,11 +426,13 @@ export class Transformer {
     code = code.replace(/;+/g, ';');
     code = code.replace(/; ;/g, ';');
 
-    // Then, replace state var reads (not followed by . or single = or ( or already .set/.get)
-    // Use (?!=) to ensure we don't skip === or == comparisons
+    // Then, replace state var reads:
+    // - Not preceded by . (avoid transforming obj.stateVar property access)
+    // - Not followed by = (assignment), ( (function call), .get/.set (already transformed)
+    // - Allow method calls like stateVar.toLowerCase() -> stateVar.get().toLowerCase()
     for (const stateVar of this.stateVars) {
       code = code.replace(
-        new RegExp(`\\b${stateVar}\\b(?!\\s*\\.|\\s*=(?!=)|\\s*\\(|\\s*\\.(?:get|set))`, 'g'),
+        new RegExp(`(?<!\\.\\s*)\\b${stateVar}\\b(?!\\s*=(?!=)|\\s*\\(|\\s*\\.(?:get|set))`, 'g'),
         `${stateVar}.get()`
       );
     }
