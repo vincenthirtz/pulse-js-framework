@@ -441,7 +441,7 @@ test('batch returns function result', () => {
     return 42;
   });
 
-  assertEqual(result, undefined); // batch doesn't return values in current impl
+  assertEqual(result, 42); // batch now returns the function result
 });
 
 // =============================================================================

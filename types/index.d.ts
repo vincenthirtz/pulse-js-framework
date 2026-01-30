@@ -118,3 +118,18 @@ export {
   loggerPlugin,
   historyPlugin
 } from './store';
+
+// Logger
+export {
+  LogLevel,
+  LogLevelValue,
+  LogFormatter,
+  LoggerOptions,
+  Logger,
+  setLogLevel,
+  getLogLevel,
+  setFormatter,
+  createLogger,
+  logger,
+  loggers
+} from './logger';

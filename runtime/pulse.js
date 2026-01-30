@@ -1,20 +1,91 @@
 /**
  * Pulse - Reactive Primitives
+ * @module pulse-js-framework/runtime/pulse
  *
  * The core reactivity system based on "pulsations" -
  * reactive values that propagate changes through the system.
+ *
+ * @example
+ * import { pulse, effect, computed } from './pulse.js';
+ *
+ * const count = pulse(0);
+ * const doubled = computed(() => count.get() * 2);
+ *
+ * effect(() => {
+ *   console.log('Count:', count.get(), 'Doubled:', doubled.get());
+ * });
+ *
+ * count.set(5); // Logs: Count: 5 Doubled: 10
  */
 
+import { loggers } from './logger.js';
+
+const log = loggers.pulse;
+
 // Current tracking context for automatic dependency collection
+/** @type {EffectFn|null} */
 let currentEffect = null;
+/** @type {number} */
 let batchDepth = 0;
+/** @type {Set<EffectFn>} */
 let pendingEffects = new Set();
+/** @type {boolean} */
 let isRunningEffects = false;
+/** @type {Array<Function>} */
 let cleanupQueue = [];
 
 /**
- * Register a cleanup function for the current effect
- * Called when the effect re-runs or is disposed
+ * @typedef {Object} EffectFn
+ * @property {Function} run - The effect function to execute
+ * @property {Set<Pulse>} dependencies - Set of pulse dependencies
+ * @property {Array<Function>} cleanups - Cleanup functions to run
+ */
+
+/**
+ * @typedef {Object} PulseOptions
+ * @property {function(*, *): boolean} [equals] - Custom equality function (default: Object.is)
+ */
+
+/**
+ * @typedef {Object} ComputedOptions
+ * @property {boolean} [lazy=false] - If true, only compute when value is read
+ */
+
+/**
+ * @typedef {Object} MemoOptions
+ * @property {function(*, *): boolean} [equals] - Custom equality function for args comparison
+ */
+
+/**
+ * @typedef {Object} MemoComputedOptions
+ * @property {Array<Pulse|Function>} [deps] - Dependencies to watch for changes
+ * @property {function(*, *): boolean} [equals] - Custom equality function
+ */
+
+/**
+ * @typedef {Object} ReactiveState
+ * @property {Object.<string, Pulse>} $pulses - Access to underlying pulse objects
+ * @property {function(string): Pulse} $pulse - Get pulse by key
+ */
+
+/**
+ * @typedef {Object} PromiseState
+ * @property {Pulse<T>} value - The resolved value
+ * @property {Pulse<boolean>} loading - Loading state
+ * @property {Pulse<Error|null>} error - Error state
+ * @template T
+ */
+
+/**
+ * Register a cleanup function for the current effect.
+ * Called when the effect re-runs or is disposed.
+ * @param {Function} fn - Cleanup function to register
+ * @returns {void}
+ * @example
+ * effect(() => {
+ *   const timer = setInterval(() => console.log('tick'), 1000);
+ *   onCleanup(() => clearInterval(timer));
+ * });
  */
 export function onCleanup(fn) {
   if (currentEffect) {
@@ -23,14 +94,23 @@ export function onCleanup(fn) {
 }
 
 /**
- * Pulse - A reactive value container
- * When the value changes, it "pulses" to all its dependents
+ * Pulse - A reactive value container.
+ * When the value changes, it "pulses" to all its dependents.
+ * @template T
  */
 export class Pulse {
+  /** @type {T} */
   #value;
+  /** @type {Set<EffectFn>} */
   #subscribers = new Set();
+  /** @type {function(T, T): boolean} */
   #equals;
 
+  /**
+   * Create a new Pulse with an initial value
+   * @param {T} value - The initial value
+   * @param {PulseOptions} [options={}] - Configuration options
+   */
   constructor(value, options = {}) {
     this.#value = value;
     this.#equals = options.equals ?? Object.is;
@@ -38,6 +118,12 @@ export class Pulse {
 
   /**
    * Get the current value and track dependency if in an effect context
+   * @returns {T} The current value
+   * @example
+   * const name = pulse('Alice');
+   * effect(() => {
+   *   console.log(name.get()); // Tracks dependency automatically
+   * });
    */
   get() {
     if (currentEffect) {
@@ -49,6 +135,11 @@ export class Pulse {
 
   /**
    * Set a new value and notify all subscribers
+   * @param {T} newValue - The new value to set
+   * @returns {void}
+   * @example
+   * const count = pulse(0);
+   * count.set(5);
    */
   set(newValue) {
     if (this.#equals(this.#value, newValue)) return;
@@ -58,13 +149,25 @@ export class Pulse {
 
   /**
    * Update value using a function
+   * @param {function(T): T} fn - Update function receiving current value
+   * @returns {void}
+   * @example
+   * const count = pulse(0);
+   * count.update(n => n + 1); // Increment
    */
   update(fn) {
     this.set(fn(this.#value));
   }
 
   /**
-   * Subscribe to changes
+   * Subscribe to value changes
+   * @param {function(T): void} fn - Callback invoked on each change
+   * @returns {function(): void} Unsubscribe function
+   * @example
+   * const count = pulse(0);
+   * const unsub = count.subscribe(value => console.log(value));
+   * count.set(1); // Logs: 1
+   * unsub(); // Stop listening
    */
   subscribe(fn) {
     const subscriber = { run: fn, dependencies: new Set() };
@@ -74,6 +177,13 @@ export class Pulse {
 
   /**
    * Create a derived pulse that recomputes when this changes
+   * @template U
+   * @param {function(T): U} fn - Derivation function
+   * @returns {Pulse<U>} A new computed pulse
+   * @example
+   * const count = pulse(5);
+   * const doubled = count.derive(n => n * 2);
+   * doubled.get(); // 10
    */
   derive(fn) {
     return computed(() => fn(this.get()));
@@ -81,6 +191,8 @@ export class Pulse {
 
   /**
    * Notify all subscribers of a change
+   * @private
+   * @returns {void}
    */
   #notify() {
     // Copy subscribers to avoid mutation during iteration
@@ -96,7 +208,10 @@ export class Pulse {
   }
 
   /**
-   * Unsubscribe a specific subscriber
+   * Unsubscribe a specific subscriber (internal use)
+   * @param {EffectFn} subscriber - The subscriber to remove
+   * @returns {void}
+   * @internal
    */
   _unsubscribe(subscriber) {
     this.#subscribers.delete(subscriber);
@@ -104,6 +219,10 @@ export class Pulse {
 
   /**
    * Get value without tracking (for debugging/inspection)
+   * @returns {T} The current value without tracking dependency
+   * @example
+   * const count = pulse(5);
+   * count.peek(); // 5, no dependency tracked
    */
   peek() {
     return this.#value;
@@ -111,6 +230,9 @@ export class Pulse {
 
   /**
    * Initialize value without triggering notifications (internal use)
+   * @param {T} value - The value to set
+   * @returns {void}
+   * @internal
    */
   _init(value) {
     this.#value = value;
@@ -118,6 +240,9 @@ export class Pulse {
 
   /**
    * Set from computed - propagates to subscribers (internal use)
+   * @param {T} newValue - The new value
+   * @returns {void}
+   * @internal
    */
   _setFromComputed(newValue) {
     if (this.#equals(this.#value, newValue)) return;
@@ -127,6 +252,9 @@ export class Pulse {
 
   /**
    * Add a subscriber directly (internal use)
+   * @param {EffectFn} subscriber - The subscriber to add
+   * @returns {void}
+   * @internal
    */
   _addSubscriber(subscriber) {
     this.#subscribers.add(subscriber);
@@ -134,6 +262,8 @@ export class Pulse {
 
   /**
    * Trigger notification to all subscribers (internal use)
+   * @returns {void}
+   * @internal
    */
   _triggerNotify() {
     this.#notify();
@@ -142,6 +272,9 @@ export class Pulse {
 
 /**
  * Run a single effect safely
+ * @private
+ * @param {EffectFn} effectFn - The effect to run
+ * @returns {void}
  */
 function runEffect(effectFn) {
   if (!effectFn || !effectFn.run) return;
@@ -149,12 +282,14 @@ function runEffect(effectFn) {
   try {
     effectFn.run();
   } catch (error) {
-    console.error('Effect error:', error);
+    log.error('Effect error:', error);
   }
 }
 
 /**
  * Flush all pending effects
+ * @private
+ * @returns {void}
  */
 function flushEffects() {
   if (isRunningEffects) return;
@@ -175,7 +310,7 @@ function flushEffects() {
     }
 
     if (iterations >= maxIterations) {
-      console.warn('Pulse: Maximum effect iterations reached. Possible infinite loop.');
+      log.warn('Maximum effect iterations reached. Possible infinite loop.');
       pendingEffects.clear();
     }
   } finally {
@@ -184,15 +319,39 @@ function flushEffects() {
 }
 
 /**
- * Create a simple pulse with an initial value
+ * Create a reactive pulse with an initial value
+ * @template T
+ * @param {T} value - The initial value
+ * @param {PulseOptions} [options] - Configuration options
+ * @returns {Pulse<T>} A new Pulse instance
+ * @example
+ * const count = pulse(0);
+ * const user = pulse({ name: 'Alice' });
+ *
+ * // With custom equality
+ * const data = pulse(obj, { equals: (a, b) => a.id === b.id });
  */
 export function pulse(value, options) {
   return new Pulse(value, options);
 }
 
 /**
- * Create a computed pulse that automatically updates
- * when its dependencies change
+ * Create a computed pulse that automatically updates when its dependencies change
+ * @template T
+ * @param {function(): T} fn - Computation function
+ * @param {ComputedOptions} [options={}] - Configuration options
+ * @returns {Pulse<T>} A read-only Pulse that updates automatically
+ * @example
+ * const firstName = pulse('John');
+ * const lastName = pulse('Doe');
+ * const fullName = computed(() => `${firstName.get()} ${lastName.get()}`);
+ *
+ * fullName.get(); // 'John Doe'
+ * firstName.set('Jane');
+ * fullName.get(); // 'Jane Doe'
+ *
+ * // Lazy computation (only runs when read)
+ * const expensive = computed(() => heavyCalculation(), { lazy: true });
  */
 export function computed(fn, options = {}) {
   const { lazy = false } = options;
@@ -288,6 +447,24 @@ export function computed(fn, options = {}) {
 
 /**
  * Create an effect that runs when its dependencies change
+ * @param {function(): void|function(): void} fn - Effect function, may return a cleanup function
+ * @returns {function(): void} Dispose function to stop the effect
+ * @example
+ * const count = pulse(0);
+ *
+ * // Basic effect
+ * const dispose = effect(() => {
+ *   console.log('Count is:', count.get());
+ * });
+ *
+ * count.set(1); // Logs: Count is: 1
+ * dispose(); // Stop listening
+ *
+ * // With cleanup
+ * effect(() => {
+ *   const timer = setInterval(() => tick(), 1000);
+ *   return () => clearInterval(timer); // Cleanup on re-run or dispose
+ * });
  */
 export function effect(fn) {
   const effectFn = {
@@ -297,7 +474,7 @@ export function effect(fn) {
         try {
           cleanup();
         } catch (e) {
-          console.error('Cleanup error:', e);
+          log.error('Cleanup error:', e);
         }
       }
       effectFn.cleanups = [];
@@ -315,7 +492,7 @@ export function effect(fn) {
       try {
         fn();
       } catch (error) {
-        console.error('Effect execution error:', error);
+        log.error('Effect execution error:', error);
       } finally {
         currentEffect = prevEffect;
       }
@@ -347,13 +524,30 @@ export function effect(fn) {
 }
 
 /**
- * Batch multiple updates into one
- * Effects only run after all updates complete
+ * Batch multiple updates into one. Effects only run after all updates complete.
+ * @template T
+ * @param {function(): T} fn - Function containing multiple updates
+ * @returns {T} The return value of fn
+ * @example
+ * const x = pulse(0);
+ * const y = pulse(0);
+ *
+ * effect(() => console.log(x.get(), y.get()));
+ *
+ * // Without batch: logs twice
+ * x.set(1);
+ * y.set(1);
+ *
+ * // With batch: logs once
+ * batch(() => {
+ *   x.set(2);
+ *   y.set(2);
+ * });
  */
 export function batch(fn) {
   batchDepth++;
   try {
-    fn();
+    return fn();
   } finally {
     batchDepth--;
     if (batchDepth === 0) {
@@ -363,8 +557,27 @@ export function batch(fn) {
 }
 
 /**
- * Create a reactive state object from a plain object
- * Each property becomes a pulse
+ * Create a reactive state object from a plain object.
+ * Each property becomes a pulse with getters/setters.
+ * @template T
+ * @param {T} obj - Plain object with initial values
+ * @returns {T & ReactiveState} Reactive state object
+ * @example
+ * const state = createState({
+ *   count: 0,
+ *   items: ['a', 'b']
+ * });
+ *
+ * // Use as regular properties
+ * state.count = 5;
+ * console.log(state.count); // 5
+ *
+ * // Array helpers
+ * state.items$push('c');
+ * state.items$filter(item => item !== 'a');
+ *
+ * // Access underlying pulses
+ * state.$pulse('count').subscribe(v => console.log(v));
  */
 export function createState(obj) {
   const state = {};
@@ -454,8 +667,21 @@ export function createState(obj) {
 }
 
 /**
- * Memoize a function based on reactive dependencies
- * Only recomputes when dependencies change
+ * Memoize a function based on its arguments.
+ * Only recomputes when arguments change.
+ * @template {function} T
+ * @param {T} fn - Function to memoize
+ * @param {MemoOptions} [options={}] - Configuration options
+ * @returns {T} Memoized function
+ * @example
+ * const expensiveCalc = memo((x, y) => {
+ *   console.log('Computing...');
+ *   return x * y;
+ * });
+ *
+ * expensiveCalc(2, 3); // Logs: Computing... Returns: 6
+ * expensiveCalc(2, 3); // Returns: 6 (cached, no log)
+ * expensiveCalc(3, 4); // Logs: Computing... Returns: 12
  */
 export function memo(fn, options = {}) {
   const { equals = Object.is } = options;
@@ -480,8 +706,20 @@ export function memo(fn, options = {}) {
 }
 
 /**
- * Create a memoized computed value
- * Combines memo with computed for expensive derivations
+ * Create a memoized computed value.
+ * Combines memo with computed for expensive derivations.
+ * @template T
+ * @param {function(): T} fn - Computation function
+ * @param {MemoComputedOptions} [options={}] - Configuration options
+ * @returns {Pulse<T>} A computed pulse that only recalculates when deps change
+ * @example
+ * const items = pulse([1, 2, 3, 4, 5]);
+ * const filter = pulse('');
+ *
+ * const filtered = memoComputed(
+ *   () => items.get().filter(i => String(i).includes(filter.get())),
+ *   { deps: [items, filter] }
+ * );
  */
 export function memoComputed(fn, options = {}) {
   const { deps = [], equals = Object.is } = options;
@@ -505,7 +743,26 @@ export function memoComputed(fn, options = {}) {
 }
 
 /**
- * Watch specific pulses and run a callback when they change
+ * Watch specific pulses and run a callback when they change.
+ * Unlike effect, provides both new and old values.
+ * @template T
+ * @param {Pulse<T>|Array<Pulse<T>>} sources - Pulse(s) to watch
+ * @param {function(Array<T>, Array<T>): void} callback - Called with (newValues, oldValues)
+ * @returns {function(): void} Dispose function to stop watching
+ * @example
+ * const count = pulse(0);
+ *
+ * const stop = watch(count, ([newVal], [oldVal]) => {
+ *   console.log(`Changed from ${oldVal} to ${newVal}`);
+ * });
+ *
+ * count.set(1); // Logs: Changed from 0 to 1
+ * stop();
+ *
+ * // Watch multiple
+ * watch([a, b], ([newA, newB], [oldA, oldB]) => {
+ *   console.log('Values changed');
+ * });
  */
 export function watch(sources, callback) {
   const sourcesArray = Array.isArray(sources) ? sources : [sources];
@@ -520,7 +777,22 @@ export function watch(sources, callback) {
 }
 
 /**
- * Create a pulse from a promise
+ * Create pulses from a promise, tracking loading and error states.
+ * @template T
+ * @param {Promise<T>} promise - The promise to track
+ * @param {T} [initialValue=undefined] - Initial value while loading
+ * @returns {PromiseState<T>} Object with value, loading, and error pulses
+ * @example
+ * const { value, loading, error } = fromPromise(
+ *   fetch('/api/data').then(r => r.json()),
+ *   [] // Initial value
+ * );
+ *
+ * effect(() => {
+ *   if (loading.get()) return console.log('Loading...');
+ *   if (error.get()) return console.log('Error:', error.get());
+ *   console.log('Data:', value.get());
+ * });
  */
 export function fromPromise(promise, initialValue = undefined) {
   const p = pulse(initialValue);
@@ -545,7 +817,18 @@ export function fromPromise(promise, initialValue = undefined) {
 }
 
 /**
- * Untrack - read pulses without creating dependencies
+ * Execute a function without tracking any pulse dependencies.
+ * Useful for reading values without creating subscriptions.
+ * @template T
+ * @param {function(): T} fn - Function to execute untracked
+ * @returns {T} The return value of fn
+ * @example
+ * effect(() => {
+ *   const a = aSignal.get(); // Tracked
+ *   const b = untrack(() => bSignal.get()); // Not tracked
+ *   console.log(a, b);
+ * });
+ * // Effect only re-runs when aSignal changes, not bSignal
  */
 export function untrack(fn) {
   const prevEffect = currentEffect;

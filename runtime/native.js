@@ -5,6 +5,9 @@
  */
 
 import { pulse, effect, batch } from './pulse.js';
+import { loggers } from './logger.js';
+
+const log = loggers.native;
 
 /**
  * Check if PulseMobile bridge is available
@@ -223,8 +226,8 @@ export const NativeUI = {
     if (isNativeAvailable()) {
       return getNative().UI.showToast(message, isLong);
     }
-    // Fallback: simple console log
-    console.log('[Toast]', message);
+    // Fallback: log toast message
+    log.info('Toast:', message);
     return Promise.resolve();
   },
 
@@ -335,7 +338,7 @@ export function exitApp() {
   if (isNativeAvailable() && getNative().isAndroid) {
     return getNative().App.exit();
   }
-  console.warn('exitApp is only available on Android');
+  log.warn('exitApp is only available on Android');
   return Promise.resolve();
 }
 
@@ -346,7 +349,7 @@ export function minimizeApp() {
   if (isNativeAvailable()) {
     return getNative().App.minimize();
   }
-  console.warn('minimizeApp is only available in native apps');
+  log.warn('minimizeApp is only available in native apps');
   return Promise.resolve();
 }
 

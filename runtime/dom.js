@@ -6,6 +6,9 @@
  */
 
 import { effect, pulse, batch, onCleanup } from './pulse.js';
+import { loggers } from './logger.js';
+
+const log = loggers.dom;
 
 // Lifecycle tracking
 let mountCallbacks = [];
@@ -523,7 +526,7 @@ export function component(setup) {
           try {
             cb();
           } catch (e) {
-            console.error('Mount callback error:', e);
+            log.error('Mount callback error:', e);
           }
         }
       });
@@ -559,7 +562,7 @@ export function portal(children, target) {
     : target;
 
   if (!resolvedTarget) {
-    console.warn('Portal target not found:', target);
+    log.warn('Portal target not found:', target);
     return document.createComment('portal-target-not-found');
   }
 
@@ -653,7 +656,7 @@ export function errorBoundary(children, fallback) {
         marker.parentNode?.insertBefore(fragment, marker.nextSibling);
       }
     } catch (e) {
-      console.error('Error in component:', e);
+      log.error('Error in component:', e);
       error.set(e);
       // Re-render with error
       if (!hasError) {

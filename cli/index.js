@@ -7,6 +7,7 @@
 import { fileURLToPath } from 'url';
 import { dirname, join, resolve } from 'path';
 import { existsSync, mkdirSync, writeFileSync, readFileSync, cpSync } from 'fs';
+import { log } from './logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -40,8 +41,8 @@ async function main() {
   if (command in commands) {
     await commands[command](args.slice(1));
   } else {
-    console.error(`Unknown command: ${command}`);
-    console.log('Run "pulse help" for usage information.');
+    log.error(`Unknown command: ${command}`);
+    log.info('Run "pulse help" for usage information.');
     process.exit(1);
   }
 }
@@ -50,7 +51,7 @@ async function main() {
  * Show help message
  */
 function showHelp() {
-  console.log(`
+  log.info(`
 Pulse Framework CLI v${VERSION}
 
 Usage: pulse <command> [options]
@@ -104,7 +105,7 @@ Documentation: https://github.com/vincenthirtz/pulse-js-framework
  * Show version
  */
 function showVersion() {
-  console.log(`Pulse Framework v${VERSION}`);
+  log.info(`Pulse Framework v${VERSION}`);
 }
 
 /**
@@ -114,19 +115,19 @@ async function createProject(args) {
   const projectName = args[0];
 
   if (!projectName) {
-    console.error('Please provide a project name.');
-    console.log('Usage: pulse create <project-name>');
+    log.error('Please provide a project name.');
+    log.info('Usage: pulse create <project-name>');
     process.exit(1);
   }
 
   const projectPath = resolve(process.cwd(), projectName);
 
   if (existsSync(projectPath)) {
-    console.error(`Directory "${projectName}" already exists.`);
+    log.error(`Directory "${projectName}" already exists.`);
     process.exit(1);
   }
 
-  console.log(`Creating new Pulse project: ${projectName}`);
+  log.info(`Creating new Pulse project: ${projectName}`);
 
   // Create project structure
   mkdirSync(projectPath);
@@ -283,7 +284,7 @@ dist
 
   writeFileSync(join(projectPath, '.gitignore'), gitignore);
 
-  console.log(`
+  log.info(`
 Project created successfully!
 
 Next steps:
@@ -299,7 +300,7 @@ Happy coding with Pulse!
  * Run development server
  */
 async function runDev(args) {
-  console.log('Starting Pulse development server...');
+  log.info('Starting Pulse development server...');
 
   // Use dynamic import for the dev server module
   const { startDevServer } = await import('./dev.js');
@@ -310,7 +311,7 @@ async function runDev(args) {
  * Build for production
  */
 async function runBuild(args) {
-  console.log('Building Pulse project for production...');
+  log.info('Building Pulse project for production...');
 
   const { buildProject } = await import('./build.js');
   await buildProject(args);
@@ -320,7 +321,7 @@ async function runBuild(args) {
  * Preview production build
  */
 async function runPreview(args) {
-  console.log('Starting Pulse preview server...');
+  log.info('Starting Pulse preview server...');
 
   const { previewBuild } = await import('./build.js');
   await previewBuild(args);
@@ -365,13 +366,13 @@ async function compileFile(args) {
   const inputFile = args[0];
 
   if (!inputFile) {
-    console.error('Please provide a file to compile.');
-    console.log('Usage: pulse compile <file.pulse>');
+    log.error('Please provide a file to compile.');
+    log.info('Usage: pulse compile <file.pulse>');
     process.exit(1);
   }
 
   if (!existsSync(inputFile)) {
-    console.error(`File not found: ${inputFile}`);
+    log.error(`File not found: ${inputFile}`);
     process.exit(1);
   }
 
@@ -383,11 +384,11 @@ async function compileFile(args) {
   if (result.success) {
     const outputFile = inputFile.replace(/\.pulse$/, '.js');
     writeFileSync(outputFile, result.code);
-    console.log(`Compiled: ${inputFile} -> ${outputFile}`);
+    log.info(`Compiled: ${inputFile} -> ${outputFile}`);
   } else {
-    console.error('Compilation failed:');
+    log.error('Compilation failed:');
     for (const error of result.errors) {
-      console.error(`  ${error.message}`);
+      log.error(`  ${error.message}`);
     }
     process.exit(1);
   }
@@ -395,6 +396,6 @@ async function compileFile(args) {
 
 // Run main
 main().catch(error => {
-  console.error('Error:', error.message);
+  log.error('Error:', error.message);
   process.exit(1);
 });

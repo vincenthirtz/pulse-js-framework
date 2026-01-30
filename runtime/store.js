@@ -1,13 +1,71 @@
 /**
  * Pulse Store - Global state management
+ * @module pulse-js-framework/runtime/store
  *
- * A simple but powerful store that integrates with Pulse reactivity
+ * A simple but powerful store that integrates with Pulse reactivity.
+ *
+ * @example
+ * import { createStore, createActions, createGetters } from './store.js';
+ *
+ * const store = createStore({ count: 0, name: 'App' });
+ * const actions = createActions(store, {
+ *   increment: (store) => store.count.update(n => n + 1)
+ * });
+ *
+ * actions.increment();
  */
 
 import { pulse, computed, effect, batch } from './pulse.js';
+import { loggers, createLogger } from './logger.js';
+
+const log = loggers.store;
 
 /**
- * Create a global store
+ * @typedef {Object} StoreOptions
+ * @property {boolean} [persist=false] - Persist state to localStorage
+ * @property {string} [storageKey='pulse-store'] - Key for localStorage persistence
+ */
+
+/**
+ * @typedef {Object} Store
+ * @property {function(): Object} $getState - Get current state snapshot
+ * @property {function(Object): void} $setState - Update multiple values at once
+ * @property {function(): void} $reset - Reset to initial state
+ * @property {function(function): function} $subscribe - Subscribe to state changes
+ * @property {Object.<string, Pulse>} $pulses - Access underlying pulse objects
+ */
+
+/**
+ * @typedef {Object} ModuleDef
+ * @property {Object} [state] - Initial module state
+ * @property {Object.<string, function>} [actions] - Module actions
+ * @property {Object.<string, function>} [getters] - Module getters
+ */
+
+/**
+ * @typedef {function(Store): Store} StorePlugin
+ */
+
+/**
+ * Create a global store with reactive state properties.
+ * @template T
+ * @param {T} [initialState={}] - Initial state object
+ * @param {StoreOptions} [options={}] - Store configuration
+ * @returns {T & Store} Store with reactive properties and helper methods
+ * @example
+ * // Basic store
+ * const store = createStore({ count: 0, user: null });
+ * store.count.get(); // 0
+ * store.count.set(5);
+ *
+ * // With persistence
+ * const store = createStore(
+ *   { theme: 'dark', lang: 'en' },
+ *   { persist: true, storageKey: 'app-settings' }
+ * );
+ *
+ * // Batch updates
+ * store.$setState({ theme: 'light', lang: 'fr' });
  */
 export function createStore(initialState = {}, options = {}) {
   const { persist = false, storageKey = 'pulse-store' } = options;
@@ -21,14 +79,22 @@ export function createStore(initialState = {}, options = {}) {
         state = { ...initialState, ...JSON.parse(saved) };
       }
     } catch (e) {
-      console.warn('Failed to load persisted state:', e);
+      log.warn('Failed to load persisted state:', e);
     }
   }
 
   // Create pulses for each state property
+  /** @type {Object.<string, Pulse>} */
   const pulses = {};
   const store = {};
 
+  /**
+   * Create a pulse for a state value, handling nested objects
+   * @private
+   * @param {string} key - State key
+   * @param {*} value - Initial value
+   * @returns {Pulse|Object} Pulse or nested object of pulses
+   */
   function createPulse(key, value) {
     if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
       // Nested object - create nested store
@@ -59,13 +125,14 @@ export function createStore(initialState = {}, options = {}) {
       try {
         localStorage.setItem(storageKey, JSON.stringify(snapshot));
       } catch (e) {
-        console.warn('Failed to persist state:', e);
+        log.warn('Failed to persist state:', e);
       }
     });
   }
 
   /**
-   * Get a snapshot of the current state
+   * Get a snapshot of the current state (without tracking)
+   * @returns {Object} Plain object with current values
    */
   function getState() {
     const snapshot = {};
@@ -76,7 +143,9 @@ export function createStore(initialState = {}, options = {}) {
   }
 
   /**
-   * Set multiple values at once
+   * Set multiple values at once (batched)
+   * @param {Object} updates - Key-value pairs to update
+   * @returns {void}
    */
   function setState(updates) {
     batch(() => {
@@ -90,6 +159,7 @@ export function createStore(initialState = {}, options = {}) {
 
   /**
    * Reset state to initial values
+   * @returns {void}
    */
   function reset() {
     batch(() => {
@@ -103,6 +173,8 @@ export function createStore(initialState = {}, options = {}) {
 
   /**
    * Subscribe to all state changes
+   * @param {function(Object): void} callback - Called with current state on each change
+   * @returns {function(): void} Unsubscribe function
    */
   function subscribe(callback) {
     return effect(() => {
@@ -122,7 +194,23 @@ export function createStore(initialState = {}, options = {}) {
 }
 
 /**
- * Create actions that can modify the store
+ * Create bound actions that can modify the store.
+ * Actions receive the store as their first argument.
+ * @template T
+ * @param {Store} store - The store to bind actions to
+ * @param {Object.<string, function(Store, ...any): any>} actions - Action definitions
+ * @returns {Object.<string, function(...any): any>} Bound action functions
+ * @example
+ * const store = createStore({ count: 0 });
+ *
+ * const actions = createActions(store, {
+ *   increment: (store) => store.count.update(n => n + 1),
+ *   decrement: (store) => store.count.update(n => n - 1),
+ *   add: (store, amount) => store.count.update(n => n + amount)
+ * });
+ *
+ * actions.increment();
+ * actions.add(10);
  */
 export function createActions(store, actions) {
   const boundActions = {};
@@ -137,7 +225,24 @@ export function createActions(store, actions) {
 }
 
 /**
- * Create getters (computed values) for the store
+ * Create computed getters for the store.
+ * Getters are memoized and update automatically when dependencies change.
+ * @param {Store} store - The store to create getters for
+ * @param {Object.<string, function(Store): any>} getters - Getter definitions
+ * @returns {Object.<string, Pulse>} Object of computed pulses
+ * @example
+ * const store = createStore({ items: [], filter: '' });
+ *
+ * const getters = createGetters(store, {
+ *   filteredItems: (store) => {
+ *     const items = store.items.get();
+ *     const filter = store.filter.get();
+ *     return items.filter(i => i.includes(filter));
+ *   },
+ *   itemCount: (store) => store.items.get().length
+ * });
+ *
+ * getters.filteredItems.get(); // Computed value
  */
 export function createGetters(store, getters) {
   const boundGetters = {};
@@ -150,7 +255,21 @@ export function createGetters(store, getters) {
 }
 
 /**
- * Combine multiple stores
+ * Combine multiple stores into a single object.
+ * Each store is namespaced under its key.
+ * @param {Object.<string, Store>} stores - Stores to combine
+ * @returns {Object.<string, Store>} Combined stores object
+ * @example
+ * const userStore = createStore({ name: '', email: '' });
+ * const settingsStore = createStore({ theme: 'dark' });
+ *
+ * const rootStore = combineStores({
+ *   user: userStore,
+ *   settings: settingsStore
+ * });
+ *
+ * rootStore.user.name.get();
+ * rootStore.settings.theme.set('light');
  */
 export function combineStores(stores) {
   const combined = {};
@@ -163,7 +282,35 @@ export function combineStores(stores) {
 }
 
 /**
- * Create a module-based store (like Vuex modules)
+ * Create a module-based store similar to Vuex modules.
+ * Each module has its own state, actions, and getters.
+ * @param {Object.<string, ModuleDef>} modules - Module definitions
+ * @returns {Object} Root store with namespaced modules
+ * @example
+ * const store = createModuleStore({
+ *   user: {
+ *     state: { name: '', loggedIn: false },
+ *     actions: {
+ *       login: (store, name) => {
+ *         store.name.set(name);
+ *         store.loggedIn.set(true);
+ *       }
+ *     },
+ *     getters: {
+ *       displayName: (store) => store.loggedIn.get() ? store.name.get() : 'Guest'
+ *     }
+ *   },
+ *   cart: {
+ *     state: { items: [] },
+ *     actions: {
+ *       addItem: (store, item) => store.items.update(arr => [...arr, item])
+ *     }
+ *   }
+ * });
+ *
+ * store.user.login('John');
+ * store.cart.addItem({ id: 1, name: 'Product' });
+ * store.$getState(); // { user: {...}, cart: {...} }
  */
 export function createModuleStore(modules) {
   const stores = {};
@@ -186,7 +333,10 @@ export function createModuleStore(modules) {
     rootStore[name] = stores[name];
   }
 
-  // Root methods
+  /**
+   * Get combined state from all modules
+   * @returns {Object} State from all modules
+   */
   rootStore.$getState = () => {
     const state = {};
     for (const [name, store] of Object.entries(stores)) {
@@ -195,6 +345,10 @@ export function createModuleStore(modules) {
     return state;
   };
 
+  /**
+   * Reset all modules to initial state
+   * @returns {void}
+   */
   rootStore.$reset = () => {
     for (const store of Object.values(stores)) {
       store.$reset();
@@ -205,35 +359,72 @@ export function createModuleStore(modules) {
 }
 
 /**
- * Plugin system for store
+ * Apply a plugin to a store.
+ * Plugins can extend store functionality.
+ * @param {Store} store - The store to enhance
+ * @param {StorePlugin} plugin - Plugin function
+ * @returns {Store} Enhanced store
+ * @example
+ * const store = createStore({ count: 0 });
+ * usePlugin(store, loggerPlugin);
+ * usePlugin(store, historyPlugin);
  */
 export function usePlugin(store, plugin) {
   return plugin(store);
 }
 
 /**
- * Logger plugin - logs all state changes
+ * Logger plugin - logs all state changes to console.
+ * Useful for debugging store updates.
+ * @param {Store} store - The store to add logging to
+ * @returns {Store} Store with logging enabled
+ * @example
+ * const store = createStore({ count: 0 });
+ * usePlugin(store, loggerPlugin);
+ *
+ * store.$setState({ count: 5 });
+ * // Console: [Store:Update] State Change
+ * //   Previous: { count: 0 }
+ * //   Updates: { count: 5 }
+ * //   Next: { count: 5 }
  */
 export function loggerPlugin(store) {
   const originalSetState = store.$setState;
+  const pluginLog = createLogger('Store:Update');
 
   store.$setState = (updates) => {
-    console.group('Store Update');
-    console.log('Previous:', store.$getState());
-    console.log('Updates:', updates);
+    pluginLog.group('State Change');
+    pluginLog.debug('Previous:', store.$getState());
+    pluginLog.debug('Updates:', updates);
     originalSetState(updates);
-    console.log('Next:', store.$getState());
-    console.groupEnd();
+    pluginLog.debug('Next:', store.$getState());
+    pluginLog.groupEnd();
   };
 
   return store;
 }
 
 /**
- * History plugin - enables undo/redo
+ * History plugin - enables undo/redo functionality.
+ * Tracks state changes and allows reverting to previous states.
+ * @param {Store} store - The store to add history to
+ * @param {number} [maxHistory=50] - Maximum number of history states to keep
+ * @returns {Store & {$undo: function, $redo: function, $canUndo: function, $canRedo: function}} Store with history methods
+ * @example
+ * const store = createStore({ count: 0 });
+ * usePlugin(store, (s) => historyPlugin(s, 100));
+ *
+ * store.$setState({ count: 1 });
+ * store.$setState({ count: 2 });
+ *
+ * store.$canUndo(); // true
+ * store.$undo();    // count = 1
+ * store.$redo();    // count = 2
  */
 export function historyPlugin(store, maxHistory = 50) {
+  /** @type {Array<Object>} */
   const history = [store.$getState()];
+  /** @type {number} */
   let currentIndex = 0;
 
   const originalSetState = store.$setState;
@@ -255,6 +446,10 @@ export function historyPlugin(store, maxHistory = 50) {
     }
   };
 
+  /**
+   * Undo the last state change
+   * @returns {void}
+   */
   store.$undo = () => {
     if (currentIndex > 0) {
       currentIndex--;
@@ -269,6 +464,10 @@ export function historyPlugin(store, maxHistory = 50) {
     }
   };
 
+  /**
+   * Redo a previously undone state change
+   * @returns {void}
+   */
   store.$redo = () => {
     if (currentIndex < history.length - 1) {
       currentIndex++;
@@ -283,7 +482,16 @@ export function historyPlugin(store, maxHistory = 50) {
     }
   };
 
+  /**
+   * Check if undo is available
+   * @returns {boolean} True if there are states to undo
+   */
   store.$canUndo = () => currentIndex > 0;
+
+  /**
+   * Check if redo is available
+   * @returns {boolean} True if there are states to redo
+   */
   store.$canRedo = () => currentIndex < history.length - 1;
 
   return store;

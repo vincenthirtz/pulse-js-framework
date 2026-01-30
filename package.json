@@ -17,6 +17,14 @@
       "types": "./types/index.d.ts",
       "default": "./runtime/index.js"
     },
+    "./runtime/pulse": {
+      "types": "./types/pulse.d.ts",
+      "default": "./runtime/pulse.js"
+    },
+    "./runtime/dom": {
+      "types": "./types/dom.d.ts",
+      "default": "./runtime/dom.js"
+    },
     "./runtime/router": {
       "types": "./types/router.d.ts",
       "default": "./runtime/router.js"
@@ -25,9 +33,27 @@
       "types": "./types/store.d.ts",
       "default": "./runtime/store.js"
     },
-    "./runtime/*": "./runtime/*.js",
-    "./compiler": "./compiler/index.js",
-    "./vite": "./loader/vite-plugin.js"
+    "./runtime/native": {
+      "types": "./types/index.d.ts",
+      "default": "./runtime/native.js"
+    },
+    "./runtime/logger": {
+      "types": "./types/logger.d.ts",
+      "default": "./runtime/logger.js"
+    },
+    "./compiler": {
+      "types": "./types/index.d.ts",
+      "default": "./compiler/index.js"
+    },
+    "./compiler/lexer": "./compiler/lexer.js",
+    "./compiler/parser": "./compiler/parser.js",
+    "./compiler/transformer": "./compiler/transformer.js",
+    "./vite": {
+      "types": "./types/index.d.ts",
+      "default": "./loader/vite-plugin.js"
+    },
+    "./mobile": "./mobile/bridge/pulse-native.js",
+    "./package.json": "./package.json"
   },
   "files": [
     "index.js",
