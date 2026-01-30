@@ -496,6 +496,7 @@ Types are automatically detected by IDEs (VS Code, WebStorm) without additional 
 
 ## Examples
 
+- [HMR Demo](examples/hmr) - Hot Module Replacement with state preservation
 - [Blog](examples/blog) - Full blog app with CRUD, categories, search, dark mode
 - [Todo App](examples/todo) - Task management with filters and persistence
 - [Chat App](examples/chat) - Real-time messaging interface

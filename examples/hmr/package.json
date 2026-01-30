@@ -1,0 +1,10 @@
+{
+  "name": "pulse-hmr-demo",
+  "version": "1.0.0",
+  "description": "Demonstrates Hot Module Replacement with state preservation",
+  "type": "module",
+  "scripts": {
+    "dev": "node ../../cli/index.js dev",
+    "build": "node ../../cli/index.js build"
+  }
+}
