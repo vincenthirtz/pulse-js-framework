@@ -1250,7 +1250,7 @@ export class Parser {
     // Tokens that should not have space after them in CSS values
     const noSpaceAfter = new Set(['#', '(', '.', '/', 'rgba', 'rgb', 'hsl', 'hsla', 'var', 'calc', 'url', 'linear-gradient', 'radial-gradient']);
     // Tokens that should not have space before them
-    const noSpaceBefore = new Set([')', ',', '%', 'px', 'em', 'rem', 'vh', 'vw', 's', 'ms']);
+    const noSpaceBefore = new Set([')', ',', '%', 'px', 'em', 'rem', 'vh', 'vw', 'fr', 's', 'ms', '(']);
 
     let value = '';
     let lastTokenValue = '';

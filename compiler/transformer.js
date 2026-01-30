@@ -924,9 +924,15 @@ export class Transformer {
    * .container -> .container.p123abc
    * div -> div.p123abc
    * .a .b -> .a.p123abc .b.p123abc
+   * @media (max-width: 900px) -> @media (max-width: 900px) (unchanged)
    */
   scopeStyleSelector(selector) {
     if (!this.scopeId) return selector;
+
+    // Don't scope at-rules (media queries, keyframes, etc.)
+    if (selector.startsWith('@')) {
+      return selector;
+    }
 
     // Split by comma for multiple selectors
     return selector.split(',').map(part => {
