@@ -12,6 +12,112 @@ export function ChangelogPage() {
     <p class="intro">Recent updates and improvements to Pulse Framework</p>
 
     <section class="doc-section changelog-section">
+      <h2>v1.3.0 - Router & Compiler Improvements</h2>
+      <p class="release-date">January 2026</p>
+
+      <h3>🚀 Advanced Router</h3>
+      <div class="changelog-group">
+        <p>Major router enhancements for building complex SPAs:</p>
+
+        <div class="changelog-item">
+          <h4>Nested Routes</h4>
+          <p>Define child routes for hierarchical navigation:</p>
+          <div class="code-block">
+            <pre><code>'/admin': {
+  handler: AdminLayout,
+  children: {
+    '/users': UsersPage,
+    '/settings': SettingsPage
+  }
+}</code></pre>
+          </div>
+        </div>
+
+        <div class="changelog-item">
+          <h4>Route Meta Fields</h4>
+          <p>Attach custom metadata to routes for guards and breadcrumbs:</p>
+          <div class="code-block">
+            <pre><code>'/dashboard': {
+  handler: DashboardPage,
+  meta: { requiresAuth: true, title: 'Dashboard' }
+}</code></pre>
+          </div>
+        </div>
+
+        <div class="changelog-item">
+          <h4>Per-Route Guards</h4>
+          <p><code>beforeEnter</code> guard for individual routes:</p>
+          <div class="code-block">
+            <pre><code>'/admin': {
+  handler: AdminPage,
+  beforeEnter: (to, from) => {
+    if (!isAdmin()) return '/forbidden';
+  }
+}</code></pre>
+          </div>
+        </div>
+
+        <div class="changelog-item">
+          <h4>New Hooks</h4>
+          <ul class="feature-list">
+            <li><code>beforeResolve()</code> - Runs after per-route guards</li>
+            <li><code>router.meta</code> - Reactive access to current route meta</li>
+            <li><code>router.isActive(path)</code> - Check if path is active</li>
+          </ul>
+        </div>
+
+        <div class="changelog-item">
+          <h4>Scroll Restoration</h4>
+          <p>Automatic scroll position save/restore with customizable behavior:</p>
+          <div class="code-block">
+            <pre><code>scrollBehavior: (to, from, savedPosition) => {
+  if (to.hash) return { selector: to.hash };
+  return savedPosition || { x: 0, y: 0 };
+}</code></pre>
+          </div>
+        </div>
+      </div>
+
+      <h3>📦 Compiler Enhancements</h3>
+      <div class="changelog-group">
+        <div class="changelog-item">
+          <h4>Import Statements</h4>
+          <p>Import components from other <code>.pulse</code> files:</p>
+          <div class="code-block">
+            <pre><code>import Button from './Button.pulse'
+import { Header, Footer } from './components.pulse'
+import * as Icons from './icons.pulse'</code></pre>
+          </div>
+        </div>
+
+        <div class="changelog-item">
+          <h4>Slots for Composition</h4>
+          <p>Content projection with named and default slots:</p>
+          <div class="code-block">
+            <pre><code>// Define slot in component
+slot "header"
+slot { "Default fallback" }
+
+// Use component with content
+Card {
+  "This goes in default slot"
+}</code></pre>
+          </div>
+        </div>
+
+        <div class="changelog-item">
+          <h4>CSS Scoping</h4>
+          <p>Styles are automatically scoped to prevent leaks between components. Each component gets a unique class prefix.</p>
+        </div>
+
+        <div class="changelog-item">
+          <h4>Better Error Messages</h4>
+          <p>Compilation errors now include precise line and column numbers with helpful suggestions.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="doc-section changelog-section">
       <h2>v1.2.0 - Mobile Apps</h2>
       <p class="release-date">January 2026</p>
 

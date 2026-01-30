@@ -110,13 +110,33 @@ const router = createRouter({
   routes: {
     '/': HomePage,
     '/users/:id': UserPage,
-    '/files/*path': FilePage
+    '/files/*path': FilePage,
+    '/admin': {
+      handler: AdminPage,
+      meta: { requiresAuth: true },
+      beforeEnter: (to, from) => {
+        if (!isAuth()) return '/login';
+      },
+      children: {
+        '/users': AdminUsersPage,
+        '/settings': SettingsPage
+      }
+    }
   },
-  mode: 'history'
+  mode: 'history',
+  scrollBehavior: (to, from, saved) => saved || { x: 0, y: 0 }
 });
 
+// Guards
+router.beforeEach((to, from) => { /* global guard */ });
+router.beforeResolve((to, from) => { /* after per-route guards */ });
+router.afterEach((to) => { /* after navigation */ });
+
+// Navigation
 router.navigate('/users/123');
 router.params.get();  // { id: '123' }
+router.meta.get();    // { requiresAuth: true }
+router.isActive('/admin'); // true/false
 router.outlet('#app');
 ```
 
@@ -137,6 +157,10 @@ const actions = createActions(store, {
 ```pulse
 @page Counter
 
+// Import components
+import Button from './Button.pulse'
+import { Icon } from './icons.pulse'
+
 state {
   count: 0
 }
@@ -144,14 +168,27 @@ state {
 view {
   .counter {
     h1 "Count: {count}"
-    button @click(count++) "+"
+    Button @click(count++) {
+      Icon "plus"
+      "Increment"
+    }
+    // Slot for component composition
+    slot "actions"
+    slot { "Default content" }
   }
 }
 
 style {
+  // Styles are automatically scoped
   .counter { padding: 20px }
 }
 ```
+
+**Compiler features:**
+- `import` statements (default, named, namespace)
+- `slot` / `slot "name"` for content projection
+- CSS scoping with unique class prefixes
+- Error messages include line:column
 
 ## Key Files
 

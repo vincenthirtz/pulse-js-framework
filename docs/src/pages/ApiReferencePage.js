@@ -262,20 +262,82 @@ portal(
 
       <div class="api-item">
         <h3><code>createRouter(options)</code></h3>
-        <p>Creates a SPA router.</p>
+        <p>Creates a SPA router with support for nested routes, meta fields, guards, and scroll restoration.</p>
         <div class="code-block">
           <pre><code>const router = createRouter({
   routes: {
     '/': HomePage,
     '/about': AboutPage,
-    '/users/:id': UserPage
+    '/users/:id': UserPage,
+    '/admin': {
+      handler: AdminPage,
+      meta: { requiresAuth: true },
+      beforeEnter: (to, from) => {
+        if (!isAuthenticated()) return '/login';
+      },
+      children: {
+        '/users': AdminUsersPage,
+        '/settings': SettingsPage
+      }
+    }
   },
-  mode: 'history' // or 'hash'
+  mode: 'history', // or 'hash'
+  scrollBehavior: (to, from, savedPosition) => {
+    return savedPosition || { x: 0, y: 0 };
+  }
 });
 
 router.start();
-router.navigate('/about');
 router.outlet('#app');</code></pre>
+        </div>
+      </div>
+
+      <div class="api-item">
+        <h3><code>router.beforeEach(guard)</code></h3>
+        <p>Global navigation guard that runs before every navigation.</p>
+        <div class="code-block">
+          <pre><code>router.beforeEach((to, from) => {
+  if (to.meta.requiresAuth && !isAuthenticated()) {
+    return '/login'; // Redirect
+  }
+  // return false to cancel navigation
+});</code></pre>
+        </div>
+      </div>
+
+      <div class="api-item">
+        <h3><code>router.beforeResolve(guard)</code></h3>
+        <p>Guard that runs after per-route guards but before navigation is confirmed.</p>
+      </div>
+
+      <div class="api-item">
+        <h3><code>router.afterEach(hook)</code></h3>
+        <p>Hook that runs after navigation is complete.</p>
+        <div class="code-block">
+          <pre><code>router.afterEach((to) => {
+  document.title = to.meta.title || 'My App';
+});</code></pre>
+        </div>
+      </div>
+
+      <div class="api-item">
+        <h3>Reactive State</h3>
+        <p>Access current route information reactively:</p>
+        <div class="code-block">
+          <pre><code>router.path.get()    // Current path: '/users/123'
+router.params.get()  // Route params: { id: '123' }
+router.query.get()   // Query string: { page: '1' }
+router.meta.get()    // Route meta: { requiresAuth: true }
+router.loading.get() // Loading state for async routes</code></pre>
+        </div>
+      </div>
+
+      <div class="api-item">
+        <h3><code>router.isActive(path, exact?)</code></h3>
+        <p>Check if a path matches the current route.</p>
+        <div class="code-block">
+          <pre><code>router.isActive('/admin')       // true if path starts with /admin
+router.isActive('/admin', true) // true only if exact match</code></pre>
         </div>
       </div>
     </section>

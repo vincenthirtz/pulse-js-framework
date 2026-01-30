@@ -102,15 +102,21 @@ firstName.set('Jane'); // Logs: "Hello, Jane Doe!"
 ```pulse
 @page Counter
 
+// Import other components
+import Button from './Button.pulse'
+import { Header, Footer } from './components.pulse'
+
 state {
   count: 0
 }
 
 view {
   .counter {
+    Header
     h1 "Count: {count}"
-    button @click(count++) "+"
-    button @click(count--) "-"
+    Button @click(count++) "+"
+    Button @click(count--) "-"
+    Footer
   }
 }
 
@@ -121,6 +127,12 @@ style {
   }
 }
 ```
+
+**Compiler Features:**
+- Import statements for component composition
+- Slots for content projection (`slot`, `slot "name"`)
+- CSS scoping (styles are automatically scoped to component)
+- Detailed error messages with line/column info
 
 ## API Reference
 
@@ -152,12 +164,42 @@ const router = createRouter({
   routes: {
     '/': HomePage,
     '/about': AboutPage,
-    '/users/:id': UserPage
+    '/users/:id': UserPage,
+    '/admin': {
+      handler: AdminPage,
+      meta: { requiresAuth: true },
+      beforeEnter: (to, from) => {
+        if (!isAuthenticated()) return '/login';
+      },
+      children: {
+        '/users': AdminUsersPage,
+        '/settings': AdminSettingsPage
+      }
+    }
+  },
+  scrollBehavior: (to, from, savedPosition) => {
+    return savedPosition || { x: 0, y: 0 };
+  }
+});
+
+// Navigation guards
+router.beforeEach((to, from) => {
+  if (to.meta.requiresAuth && !isAuthenticated()) {
+    return '/login';
   }
 });
 
 router.start();
 ```
+
+**Router Features:**
+- Route params (`:id`) and wildcards (`*path`)
+- Nested routes with `children`
+- Route meta fields
+- Per-route guards (`beforeEnter`)
+- Global guards (`beforeEach`, `beforeResolve`, `afterEach`)
+- Scroll restoration
+- Lazy-loaded routes (async handlers)
 
 ### Store
 

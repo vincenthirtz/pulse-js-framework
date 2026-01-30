@@ -9,12 +9,15 @@ import { TokenType, tokenize } from './lexer.js';
 // AST Node types
 export const NodeType = {
   Program: 'Program',
+  ImportDeclaration: 'ImportDeclaration',
+  ImportSpecifier: 'ImportSpecifier',
   PageDeclaration: 'PageDeclaration',
   RouteDeclaration: 'RouteDeclaration',
   StateBlock: 'StateBlock',
   ViewBlock: 'ViewBlock',
   ActionsBlock: 'ActionsBlock',
   StyleBlock: 'StyleBlock',
+  SlotElement: 'SlotElement',
   Element: 'Element',
   TextNode: 'TextNode',
   Interpolation: 'Interpolation',
@@ -106,10 +109,23 @@ export class Parser {
   }
 
   /**
+   * Create a parse error with detailed information
+   */
+  createError(message, token = null) {
+    const t = token || this.current();
+    const error = new Error(message);
+    error.line = t?.line || 1;
+    error.column = t?.column || 1;
+    error.token = t;
+    return error;
+  }
+
+  /**
    * Parse the entire program
    */
   parse() {
     const program = new ASTNode(NodeType.Program, {
+      imports: [],
       page: null,
       route: null,
       state: null,
@@ -119,29 +135,133 @@ export class Parser {
     });
 
     while (!this.is(TokenType.EOF)) {
-      if (this.is(TokenType.AT)) {
+      // Import declarations (must come first)
+      if (this.is(TokenType.IMPORT)) {
+        program.imports.push(this.parseImportDeclaration());
+      }
+      // Page/Route declarations
+      else if (this.is(TokenType.AT)) {
         this.advance();
         if (this.is(TokenType.PAGE)) {
           program.page = this.parsePageDeclaration();
         } else if (this.is(TokenType.ROUTE)) {
           program.route = this.parseRouteDeclaration();
+        } else {
+          throw this.createError(
+            `Expected 'page' or 'route' after '@', got '${this.current()?.value}'`
+          );
         }
-      } else if (this.is(TokenType.STATE)) {
+      }
+      // State block
+      else if (this.is(TokenType.STATE)) {
+        if (program.state) {
+          throw this.createError('Duplicate state block - only one state block allowed per file');
+        }
         program.state = this.parseStateBlock();
-      } else if (this.is(TokenType.VIEW)) {
+      }
+      // View block
+      else if (this.is(TokenType.VIEW)) {
+        if (program.view) {
+          throw this.createError('Duplicate view block - only one view block allowed per file');
+        }
         program.view = this.parseViewBlock();
-      } else if (this.is(TokenType.ACTIONS)) {
+      }
+      // Actions block
+      else if (this.is(TokenType.ACTIONS)) {
+        if (program.actions) {
+          throw this.createError('Duplicate actions block - only one actions block allowed per file');
+        }
         program.actions = this.parseActionsBlock();
-      } else if (this.is(TokenType.STYLE)) {
+      }
+      // Style block
+      else if (this.is(TokenType.STYLE)) {
+        if (program.style) {
+          throw this.createError('Duplicate style block - only one style block allowed per file');
+        }
         program.style = this.parseStyleBlock();
-      } else {
-        throw new Error(
-          `Unexpected token ${this.current()?.type} at line ${this.current()?.line}`
+      }
+      else {
+        const token = this.current();
+        throw this.createError(
+          `Unexpected token '${token?.value || token?.type}' at line ${token?.line}:${token?.column}. ` +
+          `Expected: import, @page, @route, state, view, actions, or style`
         );
       }
     }
 
     return program;
+  }
+
+  /**
+   * Parse import declaration
+   * Supports:
+   *   import Component from './Component.pulse'
+   *   import { helper, util } from './utils.pulse'
+   *   import { helper as h } from './utils.pulse'
+   *   import * as Utils from './utils.pulse'
+   */
+  parseImportDeclaration() {
+    const startToken = this.expect(TokenType.IMPORT);
+    const specifiers = [];
+    let source = null;
+
+    // import * as Name from '...'
+    if (this.is(TokenType.STAR)) {
+      this.advance();
+      this.expect(TokenType.AS);
+      const local = this.expect(TokenType.IDENT);
+      specifiers.push(new ASTNode(NodeType.ImportSpecifier, {
+        type: 'namespace',
+        local: local.value,
+        imported: '*'
+      }));
+    }
+    // import { a, b } from '...'
+    else if (this.is(TokenType.LBRACE)) {
+      this.advance();
+      while (!this.is(TokenType.RBRACE) && !this.is(TokenType.EOF)) {
+        const imported = this.expect(TokenType.IDENT);
+        let local = imported.value;
+
+        // Handle 'as' alias
+        if (this.is(TokenType.AS)) {
+          this.advance();
+          local = this.expect(TokenType.IDENT).value;
+        }
+
+        specifiers.push(new ASTNode(NodeType.ImportSpecifier, {
+          type: 'named',
+          local,
+          imported: imported.value
+        }));
+
+        if (this.is(TokenType.COMMA)) {
+          this.advance();
+        }
+      }
+      this.expect(TokenType.RBRACE);
+    }
+    // import DefaultExport from '...'
+    else if (this.is(TokenType.IDENT)) {
+      const name = this.advance();
+      specifiers.push(new ASTNode(NodeType.ImportSpecifier, {
+        type: 'default',
+        local: name.value,
+        imported: 'default'
+      }));
+    }
+
+    // from '...'
+    this.expect(TokenType.FROM);
+    const sourceToken = this.expect(TokenType.STRING);
+    source = sourceToken.value;
+
+    return new ASTNode(NodeType.ImportDeclaration, {
+      specifiers,
+      source,
+      line: startToken.line,
+      column: startToken.column
+    });
   }
 
   /**
@@ -285,11 +405,15 @@ export class Parser {
   }
 
   /**
-   * Parse a view child (element, directive, or text)
+   * Parse a view child (element, directive, slot, or text)
    */
   parseViewChild() {
     if (this.is(TokenType.AT)) {
       return this.parseDirective();
+    }
+    // Slot element
+    if (this.is(TokenType.SLOT)) {
+      return this.parseSlotElement();
     }
     if (this.is(TokenType.SELECTOR) || this.is(TokenType.IDENT)) {
       return this.parseElement();
@@ -298,9 +422,45 @@ export class Parser {
       return this.parseTextNode();
     }
 
-    throw new Error(
-      `Unexpected token ${this.current()?.type} in view at line ${this.current()?.line}`
+    const token = this.current();
+    throw this.createError(
+      `Unexpected token '${token?.value || token?.type}' in view block. ` +
+      `Expected: element selector, @directive, slot, or "text"`
     );
+  }
+
+  /**
+   * Parse slot element for component composition
+   * Supports:
+   *   slot                    - default slot
+   *   slot "name"             - named slot
+   *   slot { default content }
+   */
+  parseSlotElement() {
+    const startToken = this.expect(TokenType.SLOT);
+    let name = 'default';
+    const fallback = [];
+
+    // Named slot: slot "header"
+    if (this.is(TokenType.STRING)) {
+      name = this.advance().value;
+    }
+
+    // Fallback content: slot { ... }
+    if (this.is(TokenType.LBRACE)) {
+      this.advance();
+      while (!this.is(TokenType.RBRACE) && !this.is(TokenType.EOF)) {
+        fallback.push(this.parseViewChild());
+      }
+      this.expect(TokenType.RBRACE);
+    }
+
+    return new ASTNode(NodeType.SlotElement, {
+      name,
+      fallback,
+      line: startToken.line,
+      column: startToken.column
+    });
   }
 
   /**

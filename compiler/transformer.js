@@ -2,9 +2,21 @@
  * Pulse Transformer - Code generator
  *
  * Transforms AST into JavaScript code
+ *
+ * Features:
+ * - Import statement support
+ * - Slot-based component composition
+ * - CSS scoping with unique class prefixes
  */
 
 import { NodeType } from './parser.js';
+
+/**
+ * Generate a unique scope ID for CSS scoping
+ */
+function generateScopeId() {
+  return 'p' + Math.random().toString(36).substring(2, 8);
+}
 
 /**
  * Transformer class
@@ -15,10 +27,13 @@ export class Transformer {
     this.options = {
       runtime: 'pulse-framework/runtime',
       minify: false,
+      scopeStyles: true, // Enable CSS scoping by default
       ...options
     };
     this.stateVars = new Set();
     this.actionNames = new Set();
+    this.importedComponents = new Map(); // Map of local name -> import info
+    this.scopeId = this.options.scopeStyles ? generateScopeId() : null;
   }
 
   /**
@@ -27,7 +42,12 @@ export class Transformer {
   transform() {
     const parts = [];
 
-    // Imports
+    // Extract imported components first
+    if (this.ast.imports) {
+      this.extractImportedComponents(this.ast.imports);
+    }
+
+    // Imports (runtime + user imports)
     parts.push(this.generateImports());
 
     // Extract state variables
@@ -67,10 +87,28 @@ export class Transformer {
   }
 
   /**
-   * Generate imports
+   * Extract imported component names
+   */
+  extractImportedComponents(imports) {
+    for (const imp of imports) {
+      for (const spec of imp.specifiers) {
+        this.importedComponents.set(spec.local, {
+          source: imp.source,
+          type: spec.type,
+          imported: spec.imported
+        });
+      }
+    }
+  }
+
+  /**
+   * Generate imports (runtime + user imports)
    */
   generateImports() {
-    const imports = [
+    const lines = [];
+
+    // Runtime imports
+    const runtimeImports = [
       'pulse',
       'computed',
       'effect',
@@ -84,7 +122,48 @@ export class Transformer {
       'model'
     ];
 
-    return `import { ${imports.join(', ')} } from '${this.options.runtime}';`;
+    lines.push(`import { ${runtimeImports.join(', ')} } from '${this.options.runtime}';`);
+
+    // User imports from .pulse files
+    if (this.ast.imports && this.ast.imports.length > 0) {
+      lines.push('');
+      lines.push('// Component imports');
+
+      for (const imp of this.ast.imports) {
+        // Handle default + named imports
+        const defaultSpec = imp.specifiers.find(s => s.type === 'default');
+        const namedSpecs = imp.specifiers.filter(s => s.type === 'named');
+        const namespaceSpec = imp.specifiers.find(s => s.type === 'namespace');
+
+        let importStr = 'import ';
+        if (defaultSpec) {
+          importStr += defaultSpec.local;
+          if (namedSpecs.length > 0) {
+            importStr += ', ';
+          }
+        }
+        if (namespaceSpec) {
+          importStr += `* as ${namespaceSpec.local}`;
+        }
+        if (namedSpecs.length > 0) {
+          const named = namedSpecs.map(s =>
+            s.local !== s.imported ? `${s.imported} as ${s.local}` : s.local
+          );
+          importStr += `{ ${named.join(', ')} }`;
+        }
+
+        // Convert .pulse extension to .js
+        let source = imp.source;
+        if (source.endsWith('.pulse')) {
+          source = source.replace('.pulse', '.js');
+        }
+
+        importStr += ` from '${source}';`;
+        lines.push(importStr);
+      }
+    }
+
+    return lines.join('\n');
   }
 
   /**
@@ -235,7 +314,7 @@ export class Transformer {
   }
 
   /**
-   * Transform a view node (element, directive, text)
+   * Transform a view node (element, directive, slot, text)
    */
   transformViewNode(node, indent = 0) {
     const pad = ' '.repeat(indent);
@@ -256,9 +335,32 @@ export class Transformer {
       case NodeType.EventDirective:
         return this.transformEventDirective(node, indent);
 
+      case NodeType.SlotElement:
+        return this.transformSlot(node, indent);
+
       default:
         return `${pad}/* unknown node: ${node.type} */`;
     }
+  }
+
+  /**
+   * Transform slot element
+   */
+  transformSlot(node, indent) {
+    const pad = ' '.repeat(indent);
+    const slotName = node.name || 'default';
+
+    // If there's fallback content
+    if (node.fallback && node.fallback.length > 0) {
+      const fallbackCode = node.fallback.map(child =>
+        this.transformViewNode(child, indent + 2)
+      ).join(',\n');
+
+      return `${pad}(slots?.${slotName} ? slots.${slotName}() : (\n${fallbackCode}\n${pad}))`;
+    }
+
+    // Simple slot reference
+    return `${pad}(slots?.${slotName} ? slots.${slotName}() : null)`;
   }
 
   /**
@@ -268,8 +370,25 @@ export class Transformer {
     const pad = ' '.repeat(indent);
     const parts = [];
 
+    // Check if this is a component (starts with uppercase)
+    const selectorParts = node.selector.match(/^([a-zA-Z][a-zA-Z0-9]*)/);
+    const tagName = selectorParts ? selectorParts[1] : '';
+    const isComponent = tagName && /^[A-Z]/.test(tagName) && this.importedComponents.has(tagName);
+
+    if (isComponent) {
+      // Render as component call
+      return this.transformComponentCall(node, indent);
+    }
+
+    // Add scoped class to selector if CSS scoping is enabled
+    let selector = node.selector;
+    if (this.scopeId && selector) {
+      // Add scope class to the selector
+      selector = this.addScopeToSelector(selector);
+    }
+
     // Start with el() call
-    parts.push(`${pad}el('${node.selector}'`);
+    parts.push(`${pad}el('${selector}'`);
 
     // Add event handlers as on() chain
     const eventHandlers = node.directives.filter(d => d.type === NodeType.EventDirective);
@@ -300,6 +419,58 @@ export class Transformer {
     }
 
     return result;
+  }
+
+  /**
+   * Add scope class to a CSS selector
+   */
+  addScopeToSelector(selector) {
+    // If selector has classes, add scope class after the first class
+    // Otherwise add it at the end
+    if (selector.includes('.')) {
+      // Add scope after tag name and before first class
+      return selector.replace(/^([a-zA-Z0-9-]*)/, `$1.${this.scopeId}`);
+    }
+    // Just a tag name, add scope class
+    return `${selector}.${this.scopeId}`;
+  }
+
+  /**
+   * Transform a component call (imported component)
+   */
+  transformComponentCall(node, indent) {
+    const pad = ' '.repeat(indent);
+    const selectorParts = node.selector.match(/^([a-zA-Z][a-zA-Z0-9]*)/);
+    const componentName = selectorParts[1];
+
+    // Extract slots from children
+    const slots = {};
+
+    // Children become the default slot
+    if (node.children.length > 0 || node.textContent.length > 0) {
+      const slotContent = [];
+      for (const text of node.textContent) {
+        slotContent.push(this.transformTextNode(text, 0).trim());
+      }
+      for (const child of node.children) {
+        slotContent.push(this.transformViewNode(child, 0).trim());
+      }
+      slots['default'] = slotContent;
+    }
+
+    // Build component call
+    let code = `${pad}${componentName}.render({ `;
+
+    // Add slots if any
+    if (Object.keys(slots).length > 0) {
+      const slotCode = Object.entries(slots).map(([name, content]) => {
+        return `${name}: () => ${content.length === 1 ? content[0] : `[${content.join(', ')}]`}`;
+      }).join(', ');
+      code += `slots: { ${slotCode} }`;
+    }
+
+    code += ' })';
+    return code;
   }
 
   /**
@@ -468,10 +639,15 @@ export class Transformer {
   }
 
   /**
-   * Transform style block
+   * Transform style block with optional scoping
    */
   transformStyle(styleBlock) {
     const lines = ['// Styles'];
+
+    if (this.scopeId) {
+      lines.push(`const SCOPE_ID = '${this.scopeId}';`);
+    }
+
     lines.push('const styles = `');
 
     for (const rule of styleBlock.rules) {
@@ -482,6 +658,11 @@ export class Transformer {
     lines.push('');
     lines.push('// Inject styles');
     lines.push('const styleEl = document.createElement("style");');
+
+    if (this.scopeId) {
+      lines.push(`styleEl.setAttribute('data-p-scope', SCOPE_ID);`);
+    }
+
     lines.push('styleEl.textContent = styles;');
     lines.push('document.head.appendChild(styleEl);');
 
@@ -489,13 +670,19 @@ export class Transformer {
   }
 
   /**
-   * Transform style rule
+   * Transform style rule with optional scoping
    */
   transformStyleRule(rule, indent) {
     const pad = '  '.repeat(indent);
     const lines = [];
 
-    lines.push(`${pad}${rule.selector} {`);
+    // Apply scope to selector if enabled
+    let selector = rule.selector;
+    if (this.scopeId) {
+      selector = this.scopeStyleSelector(selector);
+    }
+
+    lines.push(`${pad}${selector} {`);
 
     for (const prop of rule.properties) {
       lines.push(`${pad}  ${prop.name}: ${prop.value};`);
@@ -509,6 +696,38 @@ export class Transformer {
 
     lines.push(`${pad}}`);
     return lines.join('\n');
+  }
+
+  /**
+   * Add scope to CSS selector
+   * .container -> .container.p123abc
+   * div -> div.p123abc
+   * .a .b -> .a.p123abc .b.p123abc
+   */
+  scopeStyleSelector(selector) {
+    if (!this.scopeId) return selector;
+
+    // Split by comma for multiple selectors
+    return selector.split(',').map(part => {
+      part = part.trim();
+
+      // Split by space for descendant selectors
+      return part.split(/\s+/).map(segment => {
+        // Skip pseudo-elements and pseudo-classes at the end
+        const pseudoMatch = segment.match(/^([^:]+)(:.+)?$/);
+        if (pseudoMatch) {
+          const base = pseudoMatch[1];
+          const pseudo = pseudoMatch[2] || '';
+
+          // Skip if it's just a pseudo selector
+          if (!base) return segment;
+
+          // Add scope class
+          return `${base}.${this.scopeId}${pseudo}`;
+        }
+        return `${segment}.${this.scopeId}`;
+      }).join(' ');
+    }).join(', ');
   }
 
   /**

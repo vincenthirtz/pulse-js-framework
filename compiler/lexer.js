@@ -11,6 +11,11 @@ export const TokenType = {
   VIEW: 'VIEW',
   ACTIONS: 'ACTIONS',
   STYLE: 'STYLE',
+  IMPORT: 'IMPORT',
+  FROM: 'FROM',
+  AS: 'AS',
+  EXPORT: 'EXPORT',
+  SLOT: 'SLOT',
 
   // Directives
   AT: 'AT',           // @
@@ -80,6 +85,11 @@ const KEYWORDS = {
   'view': TokenType.VIEW,
   'actions': TokenType.ACTIONS,
   'style': TokenType.STYLE,
+  'import': TokenType.IMPORT,
+  'from': TokenType.FROM,
+  'as': TokenType.AS,
+  'export': TokenType.EXPORT,
+  'slot': TokenType.SLOT,
   'if': TokenType.IF,
   'else': TokenType.ELSE,
   'each': TokenType.EACH,

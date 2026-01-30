@@ -84,13 +84,29 @@ el('.card',
 
       <h3>Blocks</h3>
       <ul class="feature-list">
+        <li><code>import</code> - Import components from other files</li>
         <li><code>@page Name</code> - Component name declaration</li>
         <li><code>@route "/path"</code> - Route path for routing</li>
         <li><code>state { }</code> - Reactive state definitions</li>
         <li><code>view { }</code> - UI structure using selectors</li>
         <li><code>actions { }</code> - Functions/methods</li>
-        <li><code>style { }</code> - Scoped CSS styles</li>
+        <li><code>style { }</code> - Scoped CSS styles (automatically scoped)</li>
       </ul>
+
+      <h3>Imports</h3>
+      <div class="code-block">
+        <pre><code>// Default import
+import Button from './Button.pulse'
+
+// Named imports
+import { Header, Footer } from './components.pulse'
+
+// Namespace import
+import * as Icons from './icons.pulse'
+
+// Aliased import
+import { Card as MyCard } from './ui.pulse'</code></pre>
+      </div>
 
       <h3>Directives</h3>
       <ul class="feature-list">
@@ -99,6 +115,54 @@ el('.card',
         <li><code>@each(item in items) { }</code> - List rendering</li>
         <li><code>{variable}</code> - Text interpolation</li>
       </ul>
+
+      <h3>Slots (Content Projection)</h3>
+      <p>Use slots to compose components with dynamic content:</p>
+      <div class="code-block">
+        <pre><code>// Card.pulse - Component with slots
+@page Card
+
+view {
+  .card {
+    .card-header {
+      slot "header"   // Named slot
+    }
+    .card-body {
+      slot           // Default slot
+    }
+    .card-footer {
+      slot "footer" {
+        // Fallback content if no footer provided
+        p "Default footer"
+      }
+    }
+  }
+}
+
+// Usage in another component
+import Card from './Card.pulse'
+
+view {
+  Card {
+    // Default slot content
+    p "Card body content"
+  }
+}</code></pre>
+      </div>
+
+      <h3>CSS Scoping</h3>
+      <p>Styles in <code>.pulse</code> files are automatically scoped to the component, preventing style leaks:</p>
+      <div class="code-block">
+        <pre><code>style {
+  // These styles only affect this component
+  .button { background: blue }
+  .title { font-size: 24px }
+}
+
+// Compiled output adds unique scope class:
+// .button.p8x3k2 { background: blue }
+// .title.p8x3k2 { font-size: 24px }</code></pre>
+      </div>
 
       <div class="code-block">
         <pre><code>@page TodoList

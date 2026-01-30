@@ -2,10 +2,18 @@
  * Pulse Router - SPA routing system
  *
  * A simple but powerful router that integrates with Pulse reactivity
+ *
+ * Features:
+ * - Route params and query strings
+ * - Nested routes
+ * - Route meta fields
+ * - Per-route and global guards
+ * - Scroll restoration
+ * - Lazy-loaded routes
  */
 
 import { pulse, effect, batch } from './pulse.js';
-import { el, mount } from './dom.js';
+import { el } from './dom.js';
 
 /**
  * Parse a route pattern into a regex and extract param names
@@ -42,6 +50,33 @@ function parsePattern(pattern) {
   return {
     regex: new RegExp(regexStr),
     paramNames
+  };
+}
+
+/**
+ * Normalize route configuration
+ * Supports both simple (handler function) and full (object with meta) definitions
+ */
+function normalizeRoute(pattern, config) {
+  // Simple format: pattern -> handler
+  if (typeof config === 'function') {
+    return {
+      pattern,
+      handler: config,
+      meta: {},
+      beforeEnter: null,
+      children: null
+    };
+  }
+
+  // Full format: pattern -> { handler, meta, beforeEnter, children }
+  return {
+    pattern,
+    handler: config.handler || config.component,
+    meta: config.meta || {},
+    beforeEnter: config.beforeEnter || null,
+    children: config.children || null,
+    redirect: config.redirect || null
   };
 }
 
@@ -90,7 +125,8 @@ export function createRouter(options = {}) {
   const {
     routes = {},
     mode = 'history', // 'history' or 'hash'
-    base = ''
+    base = '',
+    scrollBehavior = null // Function to control scroll restoration
   } = options;
 
   // Reactive state
@@ -98,20 +134,38 @@ export function createRouter(options = {}) {
   const currentRoute = pulse(null);
   const currentParams = pulse({});
   const currentQuery = pulse({});
+  const currentMeta = pulse({});
   const isLoading = pulse(false);
 
-  // Compiled routes
+  // Scroll positions for history
+  const scrollPositions = new Map();
+
+  // Compile routes (supports nested routes)
   const compiledRoutes = [];
-  for (const [pattern, handler] of Object.entries(routes)) {
-    compiledRoutes.push({
-      pattern,
-      ...parsePattern(pattern),
-      handler
-    });
+
+  function compileRoutes(routeConfig, parentPath = '') {
+    for (const [pattern, config] of Object.entries(routeConfig)) {
+      const normalized = normalizeRoute(pattern, config);
+      const fullPattern = parentPath + pattern;
+
+      compiledRoutes.push({
+        ...normalized,
+        pattern: fullPattern,
+        ...parsePattern(fullPattern)
+      });
+
+      // Compile children (nested routes)
+      if (normalized.children) {
+        compileRoutes(normalized.children, fullPattern);
+      }
+    }
   }
+
+  compileRoutes(routes);
 
   // Hooks
   const beforeHooks = [];
+  const resolveHooks = [];
   const afterHooks = [];
 
   /**
@@ -145,7 +199,10 @@ export function createRouter(options = {}) {
    * Navigate to a path
    */
   async function navigate(path, options = {}) {
-    const { replace = false, query = {} } = options;
+    const { replace = false, query = {}, state = null } = options;
+
+    // Find matching route first (needed for beforeEnter guard)
+    const match = findRoute(path);
 
     // Build full path with query
     let fullPath = path;
@@ -154,34 +211,121 @@ export function createRouter(options = {}) {
       fullPath += '?' + queryString;
     }
 
-    // Run before hooks
+    // Handle redirect
+    if (match?.route?.redirect) {
+      const redirectPath = typeof match.route.redirect === 'function'
+        ? match.route.redirect({ params: match.params, query })
+        : match.route.redirect;
+      return navigate(redirectPath, { replace: true });
+    }
+
+    // Create navigation context for guards
+    const from = {
+      path: currentPath.peek(),
+      params: currentParams.peek(),
+      query: currentQuery.peek(),
+      meta: currentMeta.peek()
+    };
+
+    const to = {
+      path,
+      params: match?.params || {},
+      query: parseQuery(queryString),
+      meta: match?.route?.meta || {}
+    };
+
+    // Run global beforeEach hooks
     for (const hook of beforeHooks) {
-      const result = await hook(path, currentPath.peek());
+      const result = await hook(to, from);
       if (result === false) return false;
       if (typeof result === 'string') {
         return navigate(result, options);
       }
     }
 
+    // Run per-route beforeEnter guard
+    if (match?.route?.beforeEnter) {
+      const result = await match.route.beforeEnter(to, from);
+      if (result === false) return false;
+      if (typeof result === 'string') {
+        return navigate(result, options);
+      }
+    }
+
+    // Run beforeResolve hooks (after per-route guards)
+    for (const hook of resolveHooks) {
+      const result = await hook(to, from);
+      if (result === false) return false;
+      if (typeof result === 'string') {
+        return navigate(result, options);
+      }
+    }
+
+    // Save scroll position before leaving
+    const currentFullPath = currentPath.peek();
+    if (currentFullPath) {
+      scrollPositions.set(currentFullPath, {
+        x: window.scrollX,
+        y: window.scrollY
+      });
+    }
+
     // Update URL
     const url = mode === 'hash' ? `#${fullPath}` : `${base}${fullPath}`;
+    const historyState = { path: fullPath, ...(state || {}) };
+
     if (replace) {
-      window.history.replaceState(null, '', url);
+      window.history.replaceState(historyState, '', url);
     } else {
-      window.history.pushState(null, '', url);
+      window.history.pushState(historyState, '', url);
     }
 
     // Update reactive state
-    await updateRoute(path, parseQuery(queryString));
+    await updateRoute(path, parseQuery(queryString), match);
+
+    // Handle scroll behavior
+    handleScroll(to, from, scrollPositions.get(path));
 
     return true;
   }
 
   /**
+   * Handle scroll behavior after navigation
+   */
+  function handleScroll(to, from, savedPosition) {
+    if (scrollBehavior) {
+      const position = scrollBehavior(to, from, savedPosition);
+      if (position) {
+        if (position.selector) {
+          // Scroll to element
+          const el = document.querySelector(position.selector);
+          if (el) {
+            el.scrollIntoView({ behavior: position.behavior || 'auto' });
+          }
+        } else if (typeof position.x === 'number' || typeof position.y === 'number') {
+          window.scrollTo({
+            left: position.x || 0,
+            top: position.y || 0,
+            behavior: position.behavior || 'auto'
+          });
+        }
+      }
+    } else if (savedPosition) {
+      // Default: restore saved position
+      window.scrollTo(savedPosition.x, savedPosition.y);
+    } else {
+      // Default: scroll to top
+      window.scrollTo(0, 0);
+    }
+  }
+
+  /**
    * Update the current route state
    */
-  async function updateRoute(path, query = {}) {
-    const match = findRoute(path);
+  async function updateRoute(path, query = {}, match = null) {
+    if (!match) {
+      match = findRoute(path);
+    }
 
     batch(() => {
       currentPath.set(path);
@@ -190,15 +334,24 @@ export function createRouter(options = {}) {
       if (match) {
         currentRoute.set(match.route);
         currentParams.set(match.params);
+        currentMeta.set(match.route.meta || {});
       } else {
         currentRoute.set(null);
         currentParams.set({});
+        currentMeta.set({});
       }
     });
 
-    // Run after hooks
+    // Run after hooks with full context
+    const to = {
+      path,
+      params: match?.params || {},
+      query,
+      meta: match?.route?.meta || {}
+    };
+
     for (const hook of afterHooks) {
-      await hook(path);
+      await hook(to);
     }
   }
 
@@ -325,6 +478,17 @@ export function createRouter(options = {}) {
   }
 
   /**
+   * Add before resolve hook (runs after per-route guards)
+   */
+  function beforeResolve(hook) {
+    resolveHooks.push(hook);
+    return () => {
+      const index = resolveHooks.indexOf(hook);
+      if (index > -1) resolveHooks.splice(index, 1);
+    };
+  }
+
+  /**
    * Add after navigation hook
    */
   function afterEach(hook) {
@@ -333,6 +497,31 @@ export function createRouter(options = {}) {
       const index = afterHooks.indexOf(hook);
       if (index > -1) afterHooks.splice(index, 1);
     };
+  }
+
+  /**
+   * Check if a route matches the given path
+   */
+  function isActive(path, exact = false) {
+    const current = currentPath.get();
+    if (exact) {
+      return current === path;
+    }
+    return current.startsWith(path);
+  }
+
+  /**
+   * Get all matched routes (for nested routes)
+   */
+  function getMatchedRoutes(path) {
+    const matches = [];
+    for (const route of compiledRoutes) {
+      const params = matchRoute(route.pattern, path);
+      if (params !== null) {
+        matches.push({ route, params });
+      }
+    }
+    return matches;
   }
 
   /**
@@ -362,6 +551,7 @@ export function createRouter(options = {}) {
     route: currentRoute,
     params: currentParams,
     query: currentQuery,
+    meta: currentMeta,
     loading: isLoading,
 
     // Methods
@@ -370,10 +560,15 @@ export function createRouter(options = {}) {
     link,
     outlet,
     beforeEach,
+    beforeResolve,
     afterEach,
     back,
     forward,
     go,
+
+    // Route inspection
+    isActive,
+    getMatchedRoutes,
 
     // Utils
     matchRoute,

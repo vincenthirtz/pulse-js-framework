@@ -74,6 +74,15 @@ test('tokenizes @ symbol', () => {
   assert(tokens[1].type === 'PAGE', 'Expected PAGE');
 });
 
+test('tokenizes import keywords', () => {
+  const tokens = tokenize('import from as export slot');
+  assert(tokens[0].type === 'IMPORT', 'Expected IMPORT token');
+  assert(tokens[1].type === 'FROM', 'Expected FROM token');
+  assert(tokens[2].type === 'AS', 'Expected AS token');
+  assert(tokens[3].type === 'EXPORT', 'Expected EXPORT token');
+  assert(tokens[4].type === 'SLOT', 'Expected SLOT token');
+});
+
 // =============================================================================
 // Parser Tests
 // =============================================================================
@@ -122,6 +131,70 @@ actions {
   assert(ast.actions !== null, 'Expected actions block');
   assert(ast.actions.functions.length === 1, 'Expected 1 function');
   assert(ast.actions.functions[0].name === 'increment', 'Expected increment function');
+});
+
+test('parses default import', () => {
+  const source = `import Button from './Button.pulse'`;
+  const ast = parse(source);
+  assert(ast.imports.length === 1, 'Expected 1 import');
+  assert(ast.imports[0].specifiers[0].type === 'default', 'Expected default import');
+  assert(ast.imports[0].specifiers[0].local === 'Button', 'Expected Button');
+  assert(ast.imports[0].source === './Button.pulse', 'Expected source');
+});
+
+test('parses named imports', () => {
+  const source = `import { Header, Footer } from './components.pulse'`;
+  const ast = parse(source);
+  assert(ast.imports.length === 1, 'Expected 1 import');
+  assert(ast.imports[0].specifiers.length === 2, 'Expected 2 specifiers');
+  assert(ast.imports[0].specifiers[0].type === 'named', 'Expected named import');
+  assert(ast.imports[0].specifiers[0].local === 'Header', 'Expected Header');
+  assert(ast.imports[0].specifiers[1].local === 'Footer', 'Expected Footer');
+});
+
+test('parses aliased import', () => {
+  const source = `import { Button as Btn } from './ui.pulse'`;
+  const ast = parse(source);
+  assert(ast.imports[0].specifiers[0].imported === 'Button', 'Expected imported name');
+  assert(ast.imports[0].specifiers[0].local === 'Btn', 'Expected local alias');
+});
+
+test('parses namespace import', () => {
+  const source = `import * as Icons from './icons.pulse'`;
+  const ast = parse(source);
+  assert(ast.imports[0].specifiers[0].type === 'namespace', 'Expected namespace import');
+  assert(ast.imports[0].specifiers[0].local === 'Icons', 'Expected Icons');
+});
+
+test('parses slot element', () => {
+  const source = `
+view {
+  div {
+    slot
+    slot "header"
+  }
+}`;
+  const ast = parse(source);
+  assert(ast.view !== null, 'Expected view block');
+  const div = ast.view.children[0];
+  assert(div.children.length === 2, 'Expected 2 children');
+  assert(div.children[0].type === 'SlotElement', 'Expected SlotElement');
+  assert(div.children[0].name === 'default', 'Expected default slot');
+  assert(div.children[1].name === 'header', 'Expected named slot');
+});
+
+test('parses slot with fallback', () => {
+  const source = `
+view {
+  slot "footer" {
+    span "Default footer"
+  }
+}`;
+  const ast = parse(source);
+  const slot = ast.view.children[0];
+  assert(slot.type === 'SlotElement', 'Expected SlotElement');
+  assert(slot.name === 'footer', 'Expected footer slot');
+  assert(slot.fallback.length === 1, 'Expected fallback content');
 });
 
 // =============================================================================
@@ -184,6 +257,104 @@ test('handles compilation errors gracefully', () => {
   // Should not throw, but return error
   assert(!result.success || result.errors.length > 0 || result.code !== null,
     'Expected error handling');
+});
+
+test('compiles with imports', () => {
+  const source = `
+import Button from './Button.pulse'
+import { Header } from './components.pulse'
+
+@page MyComponent
+
+view {
+  div {
+    Header
+    Button "Click me"
+  }
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  assert(result.code.includes("import Button from './Button.js'"), 'Expected Button import');
+  assert(result.code.includes("import { Header } from './components.js'"), 'Expected Header import');
+});
+
+test('compiles slots', () => {
+  const source = `
+@page Card
+
+view {
+  div.card {
+    slot "header"
+    slot
+  }
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  assert(result.code.includes('slots'), 'Expected slots reference');
+});
+
+test('compiles with CSS scoping', () => {
+  const source = `
+@page Scoped
+
+view {
+  div.container {
+    span "Hello"
+  }
+}
+
+style {
+  .container {
+    padding: 20px
+  }
+  .container span {
+    color: red
+  }
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  // Check that scope ID is generated
+  assert(result.code.includes('SCOPE_ID'), 'Expected SCOPE_ID constant');
+  assert(result.code.includes('data-p-scope'), 'Expected scoped style attribute');
+});
+
+test('compiles without CSS scoping when disabled', () => {
+  const source = `
+@page Unscoped
+
+view {
+  div.container "Hello"
+}
+
+style {
+  .container { padding: 10px }
+}`;
+
+  const result = compile(source, { scopeStyles: false });
+  assert(result.success, 'Expected successful compilation');
+  assert(!result.code.includes('SCOPE_ID'), 'Should not have SCOPE_ID');
+});
+
+test('error messages include line numbers', () => {
+  const source = `
+@page Test
+
+state {
+  count: 0
+}
+
+view {
+  invalid syntax here
+}`;
+
+  const result = compile(source);
+  // Should capture error with line info
+  if (!result.success && result.errors.length > 0) {
+    assert(result.errors[0].line !== undefined, 'Expected line number in error');
+  }
 });
 
 // =============================================================================
