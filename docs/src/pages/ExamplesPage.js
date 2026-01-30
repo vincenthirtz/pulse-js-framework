@@ -13,6 +13,22 @@ export function ExamplesPage() {
 
     <div class="examples-grid">
       <div class="example-card featured">
+        <div class="example-icon">🔥</div>
+        <h3>HMR Demo</h3>
+        <p>Hot Module Replacement with state preservation. Edit code and see changes instantly!</p>
+        <ul class="example-features">
+          <li>✓ State survives HMR</li>
+          <li>✓ Effect auto-cleanup</li>
+          <li>✓ Theme switching</li>
+          <li>✓ Notes persistence</li>
+          <li>✓ HMR update counter</li>
+        </ul>
+        <a href="/examples/hmr/" class="btn btn-primary">
+          View Demo →
+        </a>
+      </div>
+
+      <div class="example-card">
         <div class="example-icon">📰</div>
         <h3>Blog</h3>
         <p>Full-featured blog application with CRUD, categories, search, and dark mode.</p>
@@ -145,7 +161,11 @@ export function ExamplesPage() {
       <h2>Run Examples Locally</h2>
       <p>To run the example projects on your machine:</p>
       <div class="code-block">
-        <pre><code># Blog (port 3001)
+        <pre><code># HMR Demo (port 3000) - Try editing code!
+cd pulse/examples/hmr
+npm run dev
+
+# Blog (port 3001)
 cd pulse/examples/blog
 npm run dev -- 3001
 
