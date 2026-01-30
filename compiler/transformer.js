@@ -25,7 +25,7 @@ export class Transformer {
   constructor(ast, options = {}) {
     this.ast = ast;
     this.options = {
-      runtime: 'pulse-framework/runtime',
+      runtime: 'pulse-js-framework/runtime',
       minify: false,
       scopeStyles: true, // Enable CSS scoping by default
       ...options

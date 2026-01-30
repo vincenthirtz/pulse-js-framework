@@ -187,7 +187,7 @@ npm run dev</code></pre>
       <h2>Create Your Own</h2>
       <p>Start a new Pulse project:</p>
       <div class="code-block">
-        <pre><code>npx pulse create my-awesome-app
+        <pre><code>npx pulse-js-framework create my-awesome-app
 cd my-awesome-app
 npm install
 npm run dev</code></pre>

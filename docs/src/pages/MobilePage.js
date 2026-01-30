@@ -123,7 +123,7 @@ pulse mobile run ios</code></pre>
         <h3><code>onNativeReady(callback)</code></h3>
         <p>Called when the native bridge is ready. Use this to initialize your app.</p>
         <div class="code-block">
-          <pre><code>import { onNativeReady } from 'pulse-framework/runtime/native';
+          <pre><code>import { onNativeReady } from 'pulse-js-framework/runtime/native';
 
 onNativeReady(({ platform }) => {
   console.log(\`Running on \${platform}\`); // 'android', 'ios', or 'web'
@@ -135,7 +135,7 @@ onNativeReady(({ platform }) => {
         <h3><code>createNativeStorage(prefix?)</code></h3>
         <p>Creates reactive native storage that persists across app restarts.</p>
         <div class="code-block">
-          <pre><code>import { createNativeStorage } from 'pulse-framework/runtime/native';
+          <pre><code>import { createNativeStorage } from 'pulse-js-framework/runtime/native';
 
 const storage = createNativeStorage('myapp_');
 
@@ -152,7 +152,7 @@ count.update(n => n + 1);</code></pre>
         <h3><code>createDeviceInfo()</code></h3>
         <p>Creates reactive device and network information.</p>
         <div class="code-block">
-          <pre><code>import { createDeviceInfo } from 'pulse-framework/runtime/native';
+          <pre><code>import { createDeviceInfo } from 'pulse-js-framework/runtime/native';
 
 const device = createDeviceInfo();
 
@@ -174,7 +174,7 @@ effect(() => {
         <h3><code>NativeUI</code></h3>
         <p>Native UI helpers for toast notifications and haptic feedback.</p>
         <div class="code-block">
-          <pre><code>import { NativeUI } from 'pulse-framework/runtime/native';
+          <pre><code>import { NativeUI } from 'pulse-js-framework/runtime/native';
 
 // Show a toast notification
 NativeUI.toast('Hello!');
@@ -189,7 +189,7 @@ NativeUI.vibrate(100); // 100ms</code></pre>
         <h3><code>NativeClipboard</code></h3>
         <p>Read and write to the clipboard.</p>
         <div class="code-block">
-          <pre><code>import { NativeClipboard } from 'pulse-framework/runtime/native';
+          <pre><code>import { NativeClipboard } from 'pulse-js-framework/runtime/native';
 
 // Copy text
 await NativeClipboard.copy('Hello World');
@@ -203,7 +203,7 @@ const text = await NativeClipboard.read();</code></pre>
         <h3>App Lifecycle</h3>
         <p>Handle app lifecycle events.</p>
         <div class="code-block">
-          <pre><code>import { onAppPause, onAppResume, onBackButton } from 'pulse-framework/runtime/native';
+          <pre><code>import { onAppPause, onAppResume, onBackButton } from 'pulse-js-framework/runtime/native';
 
 onAppPause(() => {
   console.log('App paused');

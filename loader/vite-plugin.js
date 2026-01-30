@@ -43,7 +43,7 @@ export default function pulsePlugin(options = {}) {
 
       try {
         const result = compile(code, {
-          runtime: 'pulse-framework/runtime',
+          runtime: 'pulse-js-framework/runtime',
           sourceMap
         });
 

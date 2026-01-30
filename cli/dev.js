@@ -79,7 +79,7 @@ export async function startDevServer(args) {
         try {
           const source = readFileSync(filePath, 'utf-8');
           const result = compile(source, {
-            runtime: '/node_modules/pulse-framework/runtime/index.js'
+            runtime: '/node_modules/pulse-js-framework/runtime/index.js'
           });
 
           if (result.success) {
@@ -108,8 +108,8 @@ export async function startDevServer(args) {
     }
 
     // Handle node_modules
-    if (pathname.startsWith('/node_modules/pulse-framework/')) {
-      const modulePath = join(root, '..', 'pulse', pathname.replace('/node_modules/pulse-framework/', ''));
+    if (pathname.startsWith('/node_modules/pulse-js-framework/')) {
+      const modulePath = join(root, '..', 'pulse', pathname.replace('/node_modules/pulse-js-framework/', ''));
       if (existsSync(modulePath)) {
         const content = readFileSync(modulePath, 'utf-8');
         res.writeHead(200, { 'Content-Type': 'application/javascript' });

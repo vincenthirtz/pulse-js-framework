@@ -26,7 +26,7 @@ npm install pulse-js-framework
 ### Create a new project
 
 ```bash
-npx pulse create my-app
+npx pulse-js-framework create my-app
 cd my-app
 npm install
 npm run dev

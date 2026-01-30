@@ -14,7 +14,7 @@ export function GettingStartedPage() {
       <h2>Installation</h2>
       <p>Create a new Pulse project with a single command:</p>
       <div class="code-block">
-        <pre><code>npx pulse create my-app
+        <pre><code>npx pulse-js-framework create my-app
 cd my-app
 npm install
 npm run dev</code></pre>
@@ -25,11 +25,11 @@ npm run dev</code></pre>
       <h2>Manual Setup</h2>
       <p>Or set up manually in any project:</p>
       <div class="code-block">
-        <pre><code>npm install pulse-framework</code></pre>
+        <pre><code>npm install pulse-js-framework</code></pre>
       </div>
       <p>Then import in your JavaScript:</p>
       <div class="code-block">
-        <pre><code>import { pulse, effect, el, mount } from 'pulse-framework';</code></pre>
+        <pre><code>import { pulse, effect, el, mount } from 'pulse-js-framework';</code></pre>
       </div>
     </section>
 
@@ -37,7 +37,7 @@ npm run dev</code></pre>
       <h2>Your First Component</h2>
       <p>Create a simple reactive counter:</p>
       <div class="code-block">
-        <pre><code>import { pulse, effect, el, mount } from 'pulse-framework';
+        <pre><code>import { pulse, effect, el, mount } from 'pulse-js-framework';
 
 // Create reactive state
 const count = pulse(0);
@@ -74,7 +74,7 @@ mount('#app', App());</code></pre>
       <div class="code-block">
         <div class="code-header">vite.config.js</div>
         <pre><code>import { defineConfig } from 'vite';
-import pulse from 'pulse-framework/vite';
+import pulse from 'pulse-js-framework/vite';
 
 export default defineConfig({
   plugins: [pulse()]

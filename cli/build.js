@@ -120,7 +120,7 @@ function processDirectory(srcDir, outDir) {
 
       // Rewrite runtime imports
       content = content.replace(
-        /from\s+['"]pulse-framework\/runtime['"]/g,
+        /from\s+['"]pulse-js-framework\/runtime['"]/g,
         "from './runtime.js'"
       );
 
@@ -168,7 +168,7 @@ ${readRuntimeFile('store.js')}
  */
 function readRuntimeFile(filename) {
   const paths = [
-    join(process.cwd(), 'node_modules', 'pulse-framework', 'runtime', filename),
+    join(process.cwd(), 'node_modules', 'pulse-js-framework', 'runtime', filename),
     join(dirname(new URL(import.meta.url).pathname), '..', 'runtime', filename)
   ];
 

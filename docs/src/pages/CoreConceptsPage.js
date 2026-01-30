@@ -14,7 +14,7 @@ export function CoreConceptsPage() {
       <h2>Pulsations (Reactive State)</h2>
       <p>A <strong>Pulse</strong> is a reactive value container. When its value changes, it automatically notifies all dependents.</p>
       <div class="code-block">
-        <pre><code>import { pulse, effect } from 'pulse-framework';
+        <pre><code>import { pulse, effect } from 'pulse-js-framework';
 
 // Create a pulse
 const count = pulse(0);
@@ -50,7 +50,7 @@ name.set('Pulse'); // Logs: "Hello, Pulse!"</code></pre>
       <h2>CSS Selector Syntax</h2>
       <p>Create DOM elements using familiar CSS selector syntax:</p>
       <div class="code-block">
-        <pre><code>import { el } from 'pulse-framework';
+        <pre><code>import { el } from 'pulse-js-framework';
 
 // Tag name
 el('div')              // &lt;div&gt;&lt;/div&gt;

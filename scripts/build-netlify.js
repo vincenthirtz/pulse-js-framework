@@ -129,11 +129,11 @@ function processJSFiles(dir, shouldMinify = true) {
         "from '/runtime/$1'"
       );
       content = content.replace(
-        /from\s+['"]pulse-framework\/runtime['"]/g,
+        /from\s+['"]pulse-js-framework\/runtime['"]/g,
         "from '/runtime/index.js'"
       );
       content = content.replace(
-        /from\s+['"]pulse-framework\/runtime\/([^'"]+)['"]/g,
+        /from\s+['"]pulse-js-framework\/runtime\/([^'"]+)['"]/g,
         "from '/runtime/$1'"
       );
 

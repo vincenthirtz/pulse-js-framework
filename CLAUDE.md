@@ -234,12 +234,12 @@ style {
 ## Export Map
 
 ```javascript
-import { pulse, effect, computed } from 'pulse-framework/runtime';
-import { el, mount, on } from 'pulse-framework/runtime';
-import { createRouter } from 'pulse-framework/runtime/router';
-import { createStore } from 'pulse-framework/runtime/store';
-import { compile } from 'pulse-framework/compiler';
-import pulsePlugin from 'pulse-framework/vite';
+import { pulse, effect, computed } from 'pulse-js-framework/runtime';
+import { el, mount, on } from 'pulse-js-framework/runtime';
+import { createRouter } from 'pulse-js-framework/runtime/router';
+import { createStore } from 'pulse-js-framework/runtime/store';
+import { compile } from 'pulse-js-framework/compiler';
+import pulsePlugin from 'pulse-js-framework/vite';
 ```
 
 ## Testing
