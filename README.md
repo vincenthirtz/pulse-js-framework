@@ -420,6 +420,28 @@ onNativeReady(({ platform }) => {
 
 **Available APIs:** Storage, Device Info, Network Status, Toast, Vibration, Clipboard, App Lifecycle
 
+## VSCode Extension
+
+Pulse includes a VSCode extension for `.pulse` files with syntax highlighting and snippets.
+
+### Installation
+
+```bash
+# Windows (PowerShell)
+cd vscode-extension
+powershell -ExecutionPolicy Bypass -File install.ps1
+
+# macOS/Linux
+cd vscode-extension
+bash install.sh
+```
+
+Then restart VSCode. You'll get:
+- Syntax highlighting for `.pulse` files
+- Code snippets (`page`, `state`, `view`, `@click`, etc.)
+- Bracket matching and auto-closing
+- Comment toggling (Ctrl+/)
+
 ## TypeScript Support
 
 Pulse includes full TypeScript definitions for IDE autocomplete and type checking:

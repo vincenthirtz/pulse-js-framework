@@ -1,0 +1,193 @@
+{
+  "Pulse Page": {
+    "prefix": "page",
+    "body": [
+      "@page ${1:ComponentName}",
+      "",
+      "state {",
+      "  ${2:property}: ${3:value}",
+      "}",
+      "",
+      "view {",
+      "  .${4:container} {",
+      "    $0",
+      "  }",
+      "}",
+      ""
+    ],
+    "description": "Create a new Pulse page component"
+  },
+  "Pulse Component": {
+    "prefix": "component",
+    "body": [
+      "@page ${1:ComponentName}",
+      "",
+      "props {",
+      "  ${2:propName}: ${3:defaultValue}",
+      "}",
+      "",
+      "view {",
+      "  .${4:container} {",
+      "    $0",
+      "  }",
+      "}",
+      ""
+    ],
+    "description": "Create a new Pulse component with props"
+  },
+  "State Block": {
+    "prefix": "state",
+    "body": [
+      "state {",
+      "  ${1:property}: ${2:value}",
+      "}"
+    ],
+    "description": "Add a state block"
+  },
+  "View Block": {
+    "prefix": "view",
+    "body": [
+      "view {",
+      "  ${1:.container} {",
+      "    $0",
+      "  }",
+      "}"
+    ],
+    "description": "Add a view block"
+  },
+  "Style Block": {
+    "prefix": "style",
+    "body": [
+      "style {",
+      "  .${1:selector} {",
+      "    ${2:property}: ${3:value}",
+      "  }",
+      "}"
+    ],
+    "description": "Add a style block"
+  },
+  "Actions Block": {
+    "prefix": "actions",
+    "body": [
+      "actions {",
+      "  ${1:actionName}() {",
+      "    $0",
+      "  }",
+      "}"
+    ],
+    "description": "Add an actions block"
+  },
+  "Router Block": {
+    "prefix": "router",
+    "body": [
+      "router {",
+      "  mode: \"${1|hash,history|}\"",
+      "  routes {",
+      "    \"/\": ${2:HomePage}",
+      "    $0",
+      "  }",
+      "}"
+    ],
+    "description": "Add a router configuration"
+  },
+  "Store Block": {
+    "prefix": "store",
+    "body": [
+      "store {",
+      "  state {",
+      "    ${1:property}: ${2:value}",
+      "  }",
+      "  actions {",
+      "    ${3:actionName}() {",
+      "      $0",
+      "    }",
+      "  }",
+      "}"
+    ],
+    "description": "Add a store configuration"
+  },
+  "Import": {
+    "prefix": "import",
+    "body": [
+      "import ${1:Component} from '${2:./Component.pulse}'"
+    ],
+    "description": "Import a component"
+  },
+  "Import Named": {
+    "prefix": "importn",
+    "body": [
+      "import { ${1:Component} } from '${2:./components.pulse}'"
+    ],
+    "description": "Import named exports"
+  },
+  "Click Handler": {
+    "prefix": "@click",
+    "body": [
+      "@click(${1:handler})"
+    ],
+    "description": "Add click event handler"
+  },
+  "Conditional": {
+    "prefix": "@if",
+    "body": [
+      "@if(${1:condition}) {",
+      "  $0",
+      "}"
+    ],
+    "description": "Add conditional rendering"
+  },
+  "Loop": {
+    "prefix": "@for",
+    "body": [
+      "@for(${1:item} in ${2:items}) {",
+      "  $0",
+      "}"
+    ],
+    "description": "Add loop rendering"
+  },
+  "Slot": {
+    "prefix": "slot",
+    "body": [
+      "slot${1: \"${2:name}\"}"
+    ],
+    "description": "Add a slot for content projection"
+  },
+  "Link Directive": {
+    "prefix": "@link",
+    "body": [
+      "@link(\"${1:/path}\") \"${2:Link Text}\""
+    ],
+    "description": "Add a router link"
+  },
+  "Outlet Directive": {
+    "prefix": "@outlet",
+    "body": [
+      "@outlet"
+    ],
+    "description": "Add router outlet"
+  },
+  "Button Element": {
+    "prefix": "button",
+    "body": [
+      "button${1:.btn} @click(${2:handler}) \"${3:Click me}\""
+    ],
+    "description": "Create a button with click handler"
+  },
+  "Input Element": {
+    "prefix": "input",
+    "body": [
+      "input[type=${1|text,password,email,number|}] @model(${2:value})"
+    ],
+    "description": "Create an input with two-way binding"
+  },
+  "Form Element": {
+    "prefix": "form",
+    "body": [
+      "form @submit(${1:handleSubmit}) {",
+      "  $0",
+      "  button[type=submit] \"Submit\"",
+      "}"
+    ],
+    "description": "Create a form with submit handler"
+  }
+}

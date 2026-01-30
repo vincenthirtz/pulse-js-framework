@@ -1,0 +1,52 @@
+{
+  "name": "pulse-language",
+  "displayName": "Pulse Language",
+  "description": "Syntax highlighting and snippets for Pulse framework (.pulse files)",
+  "version": "1.0.0",
+  "publisher": "pulse-framework",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vincenthirtz/pulse-js-framework"
+  },
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets"
+  ],
+  "keywords": [
+    "pulse",
+    "frontend",
+    "framework",
+    "reactive",
+    "dsl"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "pulse",
+        "aliases": ["Pulse", "pulse"],
+        "extensions": [".pulse"],
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "./icons/pulse-light.png",
+          "dark": "./icons/pulse-dark.png"
+        }
+      }
+    ],
+    "grammars": [
+      {
+        "language": "pulse",
+        "scopeName": "source.pulse",
+        "path": "./syntaxes/pulse.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "pulse",
+        "path": "./snippets/pulse.json"
+      }
+    ]
+  }
+}
