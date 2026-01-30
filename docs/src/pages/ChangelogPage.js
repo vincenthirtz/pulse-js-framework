@@ -12,6 +12,54 @@ export function ChangelogPage() {
     <p class="intro">Recent updates and improvements to Pulse Framework</p>
 
     <section class="doc-section changelog-section">
+      <h2>v1.4.7 - HMR with .pulse Components</h2>
+      <p class="release-date">January 2026</p>
+
+      <h3>📦 HMR Example with .pulse Files</h3>
+      <div class="changelog-group">
+        <p>The HMR demo has been refactored to showcase .pulse component architecture:</p>
+
+        <div class="changelog-item">
+          <h4>Component-Based Structure</h4>
+          <p>The HMR example now uses modular .pulse components:</p>
+          <div class="code-block">
+            <pre><code>examples/hmr/src/
+├── main.js              # HMR setup & state
+└── components/
+    ├── App.pulse        # Main layout
+    ├── Counter.pulse    # Preserved counter
+    ├── Notes.pulse      # Notes list
+    ├── ThemeSwitcher.pulse
+    ├── HMRIndicator.pulse
+    └── StateDebug.pulse</code></pre>
+          </div>
+        </div>
+
+        <div class="changelog-item">
+          <h4>State Preservation with Components</h4>
+          <p>Demonstrates passing HMR-preserved state to .pulse components:</p>
+          <div class="code-block">
+            <pre><code>// main.js - HMR setup
+const count = hmr.preservePulse('count', 0);
+
+// Pass to .pulse component
+mount('#app', App({ count, onIncrement: increment }));</code></pre>
+          </div>
+        </div>
+
+        <div class="changelog-item">
+          <h4>Playground Templates</h4>
+          <p>Added 6 new playground templates: Calculator, Tabs, Theme Switcher, Search Filter, Shopping Cart, and Animation Demo.</p>
+        </div>
+
+        <div class="changelog-item">
+          <h4>API Reference Search</h4>
+          <p>New search functionality in API Reference docs with keyboard shortcut (/) and live filtering.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="doc-section changelog-section">
       <h2>v1.4.6 - Hot Module Replacement</h2>
       <p class="release-date">January 2026</p>
 

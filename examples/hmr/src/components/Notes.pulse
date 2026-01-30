@@ -1,0 +1,168 @@
+/**
+ * Notes Component - Preserved note list with add/delete
+ */
+
+@page Notes
+
+props {
+  notes: null
+  inputValue: null
+  onAdd: null
+  onDelete: null
+  onInputChange: null
+}
+
+view {
+  .card.wide {
+    h2 "Notes (Preserved)"
+
+    .input-row {
+      input[type=text][placeholder="Add a note..."][value="{inputValue.get()}"]
+        @input(onInputChange && onInputChange(event.target.value))
+        @keydown(event.key === 'Enter' && onAdd && onAdd())
+      button.btn.primary @click(onAdd && onAdd()) "Add"
+    }
+
+    .notes-list {
+      @if (notes.get().length === 0) {
+        .empty "No notes yet. Add one above!"
+      }
+
+      @for (note of notes.get()) {
+        .note-item {
+          .note-content {
+            .note-text "{note.text}"
+            .note-time "{note.timestamp}"
+          }
+          button.delete-btn @click(onDelete && onDelete(note.id)) "x"
+        }
+      }
+    }
+  }
+}
+
+style {
+  .card {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 24px;
+    transition: background 0.3s;
+  }
+
+  .card.wide {
+    grid-column: 1 / -1;
+  }
+
+  .card h2 {
+    font-size: 1.1em;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .input-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .input-row input {
+    flex: 1;
+    padding: 12px 16px;
+    font-size: 1em;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+    color: var(--text);
+    transition: border-color 0.2s;
+  }
+
+  .input-row input:focus {
+    outline: none;
+    border-color: var(--primary);
+  }
+
+  .btn {
+    padding: 12px 24px;
+    font-size: 1em;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    background: var(--border);
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn.primary {
+    background: var(--primary);
+    color: white;
+  }
+
+  .btn.primary:hover {
+    filter: brightness(1.1);
+  }
+
+  .notes-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .note-item {
+    display: flex;
+    align-items: center;
+    background: var(--bg);
+    padding: 12px 16px;
+    border-radius: 8px;
+    animation: slideIn 0.2s ease;
+  }
+
+  @keyframes slideIn {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .note-content {
+    flex: 1;
+  }
+
+  .note-text {
+    font-weight: 500;
+  }
+
+  .note-time {
+    font-size: 0.8em;
+    color: var(--text-muted);
+  }
+
+  .delete-btn {
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 1.5em;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .delete-btn:hover {
+    background: #ef4444;
+    color: white;
+  }
+
+  .empty {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 24px;
+  }
+}

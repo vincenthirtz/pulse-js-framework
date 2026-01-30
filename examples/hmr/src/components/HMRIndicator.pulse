@@ -1,0 +1,43 @@
+/**
+ * HMR Indicator Component - Shows HMR update count
+ */
+
+@page HMRIndicator
+
+props {
+  hmrCount: null
+}
+
+view {
+  .hmr-indicator {
+    .hmr-badge "HMR Updates: {hmrCount.get()}"
+    .hmr-hint "Edit any file and save to see HMR in action!"
+  }
+}
+
+style {
+  .hmr-indicator {
+    background: var(--card);
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 24px;
+    text-align: center;
+  }
+
+  .hmr-badge {
+    display: inline-block;
+    background: var(--primary);
+    color: white;
+    padding: 6px 16px;
+    border-radius: 100px;
+    font-weight: 600;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+
+  .hmr-hint {
+    color: var(--text-muted);
+    font-size: 0.9em;
+    margin-top: 8px;
+  }
+}

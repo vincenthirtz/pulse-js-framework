@@ -1,0 +1,68 @@
+/**
+ * State Debug Component - Shows current state values
+ */
+
+@page StateDebug
+
+props {
+  count: null
+  notes: null
+  theme: null
+  hmrCount: null
+  notPreserved: null
+}
+
+state {
+  debugText: ""
+}
+
+actions {
+  getDebugText() {
+    return JSON.stringify({
+      count: count.get(),
+      notes: notes.get().length,
+      theme: theme.get(),
+      hmrUpdates: hmrCount.get(),
+      notPreserved: notPreserved.get()
+    }, null, 2)
+  }
+}
+
+view {
+  .card.debug {
+    h2 "State Debug"
+    pre.state-dump "{getDebugText()}"
+  }
+}
+
+style {
+  .card {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 24px;
+    transition: background 0.3s;
+  }
+
+  .card.debug {
+    font-size: 0.85em;
+  }
+
+  .card h2 {
+    font-size: 1.1em;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .state-dump {
+    background: var(--bg);
+    padding: 16px;
+    border-radius: 8px;
+    font-family: 'Fira Code', 'Consolas', monospace;
+    font-size: 0.9em;
+    color: var(--success);
+    overflow-x: auto;
+    white-space: pre-wrap;
+  }
+}

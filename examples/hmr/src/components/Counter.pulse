@@ -1,0 +1,86 @@
+/**
+ * Counter Component - Preserved across HMR
+ */
+
+@page Counter
+
+props {
+  count: null
+  onIncrement: null
+  onDecrement: null
+}
+
+view {
+  .card {
+    h2 "Counter (Preserved)"
+    .counter-display "{count.get()}"
+    .button-group {
+      button.btn @click(onDecrement && onDecrement()) "-"
+      button.btn.primary @click(onIncrement && onIncrement()) "+"
+    }
+    .info "This value survives HMR updates"
+  }
+}
+
+style {
+  .card {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 24px;
+    transition: background 0.3s;
+  }
+
+  .card h2 {
+    font-size: 1.1em;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .counter-display {
+    font-size: 4em;
+    font-weight: 700;
+    text-align: center;
+    color: var(--primary);
+    margin: 16px 0;
+  }
+
+  .button-group {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+  }
+
+  .btn {
+    padding: 12px 24px;
+    font-size: 1.1em;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    background: var(--border);
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn:hover {
+    background: var(--text-muted);
+  }
+
+  .btn.primary {
+    background: var(--primary);
+    color: white;
+  }
+
+  .btn.primary:hover {
+    filter: brightness(1.1);
+  }
+
+  .info {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.85em;
+    margin-top: 16px;
+  }
+}

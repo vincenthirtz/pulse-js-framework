@@ -10,6 +10,13 @@ export function ApiReferencePage() {
   page.innerHTML = `
     <h1>📖 API Reference</h1>
 
+    <div class="api-search">
+      <input type="text" id="api-search-input" placeholder="Search API... (e.g. pulse, effect, router)" autocomplete="off">
+      <kbd class="api-search-kbd" id="api-search-kbd">/</kbd>
+      <span class="api-search-clear" id="api-search-clear">&times;</span>
+      <div class="api-search-results" id="api-search-results"></div>
+    </div>
+
     <section class="doc-section">
       <h2>TypeScript Support</h2>
       <p>Pulse includes full TypeScript definitions for IDE autocomplete. Types are automatically detected:</p>
@@ -463,6 +470,136 @@ console.log(hmr.data.myCustomState); // { x: 1, y: 2 }</code></pre>
       </button>
     </div>
   `;
+
+  // Setup search functionality after DOM is ready
+  setTimeout(() => {
+    const input = page.querySelector('#api-search-input');
+    const clearBtn = page.querySelector('#api-search-clear');
+    const kbdHint = page.querySelector('#api-search-kbd');
+    const resultsDiv = page.querySelector('#api-search-results');
+    const sections = page.querySelectorAll('.doc-section');
+    const apiItems = page.querySelectorAll('.api-item');
+
+    if (!input) return;
+
+    // Build search index for api-items
+    const searchIndex = [];
+    apiItems.forEach((item) => {
+      const title = item.querySelector('h3')?.textContent || '';
+      const description = item.querySelector('p')?.textContent || '';
+      const code = item.querySelector('code')?.textContent || '';
+      const section = item.closest('.doc-section')?.querySelector('h2')?.textContent || '';
+      searchIndex.push({
+        element: item,
+        section,
+        title: title.toLowerCase(),
+        description: description.toLowerCase(),
+        code: code.toLowerCase(),
+        text: `${title} ${description} ${code} ${section}`.toLowerCase()
+      });
+    });
+
+    // Build section index for sections without api-items (like TypeScript Support)
+    const sectionIndex = [];
+    sections.forEach((section) => {
+      const hasApiItems = section.querySelector('.api-item');
+      if (!hasApiItems) {
+        const title = section.querySelector('h2')?.textContent || '';
+        const content = section.textContent || '';
+        sectionIndex.push({
+          element: section,
+          text: `${title} ${content}`.toLowerCase()
+        });
+      }
+    });
+
+    function performSearch(query) {
+      const q = query.toLowerCase().trim();
+
+      // Toggle kbd hint visibility
+      if (kbdHint) {
+        kbdHint.style.display = q ? 'none' : '';
+      }
+
+      if (!q) {
+        // Show all
+        sections.forEach(s => s.style.display = '');
+        apiItems.forEach(item => {
+          item.style.display = '';
+          item.classList.remove('search-highlight');
+        });
+        resultsDiv.textContent = '';
+        clearBtn.style.opacity = '0';
+        return;
+      }
+
+      clearBtn.style.opacity = '1';
+
+      let matchCount = 0;
+      const visibleSections = new Set();
+
+      // Search api-items
+      searchIndex.forEach(entry => {
+        const matches = entry.text.includes(q) ||
+                        entry.title.includes(q) ||
+                        entry.code.includes(q);
+
+        if (matches) {
+          entry.element.style.display = '';
+          entry.element.classList.add('search-highlight');
+          visibleSections.add(entry.element.closest('.doc-section'));
+          matchCount++;
+        } else {
+          entry.element.style.display = 'none';
+          entry.element.classList.remove('search-highlight');
+        }
+      });
+
+      // Search sections without api-items
+      sectionIndex.forEach(entry => {
+        if (entry.text.includes(q)) {
+          visibleSections.add(entry.element);
+          matchCount++;
+        }
+      });
+
+      // Show/hide sections based on visible items
+      sections.forEach(section => {
+        if (visibleSections.has(section)) {
+          section.style.display = '';
+        } else {
+          section.style.display = 'none';
+        }
+      });
+
+      resultsDiv.textContent = matchCount > 0
+        ? `${matchCount} result${matchCount !== 1 ? 's' : ''} found`
+        : 'No results found';
+    }
+
+    input.addEventListener('input', (e) => performSearch(e.target.value));
+
+    clearBtn.addEventListener('click', () => {
+      input.value = '';
+      performSearch('');
+      input.focus();
+    });
+
+    // Keyboard shortcut: / to focus search
+    document.addEventListener('keydown', (e) => {
+      if (e.key === '/' && document.activeElement !== input) {
+        e.preventDefault();
+        input.focus();
+      }
+      if (e.key === 'Escape' && document.activeElement === input) {
+        input.blur();
+        if (input.value) {
+          input.value = '';
+          performSearch('');
+        }
+      }
+    });
+  }, 0);
 
   return page;
 }

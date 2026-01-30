@@ -1,0 +1,82 @@
+/**
+ * Not Preserved Counter - Resets on HMR
+ * Demonstrates the difference with regular pulse()
+ */
+
+@page NotPreservedCounter
+
+props {
+  count: null
+  onIncrement: null
+}
+
+view {
+  .card.muted {
+    h2 "Counter (NOT Preserved)"
+    .counter-display.small "{count.get()}"
+    button.btn @click(onIncrement && onIncrement()) "Increment"
+    .info.warning "This resets to 0 on every HMR update"
+  }
+}
+
+style {
+  .card {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 24px;
+    transition: background 0.3s;
+  }
+
+  .card.muted {
+    opacity: 0.7;
+  }
+
+  .card h2 {
+    font-size: 1.1em;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .counter-display {
+    font-size: 4em;
+    font-weight: 700;
+    text-align: center;
+    color: var(--primary);
+    margin: 16px 0;
+  }
+
+  .counter-display.small {
+    font-size: 2.5em;
+  }
+
+  .btn {
+    display: block;
+    width: 100%;
+    padding: 12px 24px;
+    font-size: 1.1em;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    background: var(--border);
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn:hover {
+    background: var(--text-muted);
+  }
+
+  .info {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.85em;
+    margin-top: 16px;
+  }
+
+  .info.warning {
+    color: var(--warning);
+  }
+}

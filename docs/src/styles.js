@@ -880,6 +880,108 @@ body {
   color: var(--text-muted);
   margin: 0;
 }
+
+/* API Search */
+.api-search {
+  position: relative;
+  margin-bottom: 32px;
+}
+
+.api-search input {
+  width: 100%;
+  padding: 14px 48px 14px 16px;
+  font-size: 1em;
+  background: var(--bg-light);
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.api-search input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+.api-search input::placeholder {
+  color: var(--text-muted);
+}
+
+.api-search-clear {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.4em;
+  color: var(--text-muted);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s, color 0.2s;
+  user-select: none;
+}
+
+.api-search-clear:hover {
+  color: var(--text);
+}
+
+.api-search-results {
+  position: absolute;
+  right: 50px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.85em;
+  color: var(--text-muted);
+}
+
+.api-item.search-highlight {
+  border-left: 3px solid var(--primary);
+  animation: highlightPulse 0.3s ease;
+}
+
+@keyframes highlightPulse {
+  0% { background: rgba(99, 102, 241, 0.1); }
+  100% { background: var(--bg-light); }
+}
+
+.doc-section[style*="display: none"] + .doc-section {
+  margin-top: 0;
+}
+
+/* Keyboard hint */
+.api-search-kbd {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 4px 10px;
+  font-size: 0.85em;
+  font-family: inherit;
+  background: var(--border);
+  color: var(--text-muted);
+  border-radius: 6px;
+  border: 1px solid var(--text-muted);
+  opacity: 0.7;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+
+.api-search:focus-within .api-search-kbd {
+  opacity: 0;
+}
+
+/* No results message */
+.api-no-results {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--text-muted);
+}
+
+.api-no-results-icon {
+  font-size: 3em;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
 `;
 
 export function injectStyles() {

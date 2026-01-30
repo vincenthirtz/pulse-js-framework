@@ -1,0 +1,135 @@
+/**
+ * HMR Demo - Main App Component
+ * Orchestrates all sub-components
+ */
+
+import Counter from './Counter.pulse'
+import NotPreservedCounter from './NotPreservedCounter.pulse'
+import ThemeSwitcher from './ThemeSwitcher.pulse'
+import Notes from './Notes.pulse'
+import HMRIndicator from './HMRIndicator.pulse'
+import StateDebug from './StateDebug.pulse'
+
+@page App
+
+props {
+  count: null
+  notes: null
+  theme: null
+  inputValue: null
+  hmrCount: null
+  notPreserved: null
+  themes: null
+  increment: null
+  decrement: null
+  incrementNotPreserved: null
+  cycleTheme: null
+  addNote: null
+  deleteNote: null
+  setInput: null
+}
+
+view {
+  .app {
+    header {
+      h1 "Pulse HMR Demo"
+      p.subtitle "Hot Module Replacement with .pulse Components"
+    }
+
+    HMRIndicator(hmrCount={hmrCount})
+
+    .grid {
+      Counter(
+        count={count},
+        onIncrement={increment},
+        onDecrement={decrement}
+      )
+
+      NotPreservedCounter(
+        count={notPreserved},
+        onIncrement={incrementNotPreserved}
+      )
+
+      ThemeSwitcher(
+        theme={theme},
+        themes={themes},
+        onCycle={cycleTheme}
+      )
+
+      StateDebug(
+        count={count},
+        notes={notes},
+        theme={theme},
+        hmrCount={hmrCount},
+        notPreserved={notPreserved}
+      )
+    }
+
+    Notes(
+      notes={notes},
+      inputValue={inputValue},
+      onAdd={addNote},
+      onDelete={deleteNote},
+      onInputChange={setInput}
+    )
+
+    footer {
+      p "Built with Pulse Framework"
+      p.tip "Tip: Edit any .pulse file - state persists!"
+    }
+  }
+}
+
+style {
+  .app {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 24px;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 24px;
+  }
+
+  header h1 {
+    font-size: 2.5em;
+    background: linear-gradient(135deg, var(--primary), #a855f7);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .subtitle {
+    color: var(--text-muted);
+    margin-top: 8px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  footer {
+    text-align: center;
+    padding: 24px;
+    color: var(--text-muted);
+  }
+
+  .tip {
+    font-size: 0.85em;
+    margin-top: 8px;
+  }
+
+  @media (max-width: 600px) {
+    .app {
+      padding: 16px;
+    }
+
+    header h1 {
+      font-size: 1.8em;
+    }
+  }
+}
