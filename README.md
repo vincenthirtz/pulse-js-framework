@@ -280,6 +280,27 @@ const store = createStore({
 store.user.set({ name: 'John' });
 ```
 
+### Logger
+
+```javascript
+import { createLogger, setLogLevel, LogLevel } from 'pulse-js-framework/runtime/logger';
+
+// Create a namespaced logger
+const log = createLogger('MyComponent');
+
+log.info('Component initialized');    // [MyComponent] Component initialized
+log.warn('Deprecated method used');
+log.error('Failed to load', error);
+log.debug('Detailed info');           // Only shown at DEBUG level
+
+// Set global log level
+setLogLevel(LogLevel.DEBUG);  // SILENT, ERROR, WARN, INFO, DEBUG
+
+// Child loggers for sub-namespaces
+const childLog = log.child('Validation');
+childLog.info('Validating'); // [MyComponent:Validation] Validating
+```
+
 ## CLI Commands
 
 ```bash
