@@ -108,6 +108,33 @@ body {
   transform: translateY(-1px);
 }
 
+.stars-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75em;
+  padding: 4px 10px;
+  background: rgba(250, 204, 21, 0.15);
+  color: #fbbf24;
+  border-radius: 20px;
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.stars-badge:hover {
+  background: rgba(250, 204, 21, 0.25);
+  transform: translateY(-1px);
+}
+
+.star-icon {
+  font-size: 1.1em;
+}
+
+.star-count {
+  font-weight: 600;
+}
+
 .nav {
   display: flex;
   gap: 8px;

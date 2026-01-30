@@ -27,6 +27,28 @@ export function Header() {
   versionBadge.title = `View release v${version} on GitHub`;
   logoContainer.appendChild(versionBadge);
 
+  // GitHub stars badge
+  const starsBadge = el('a.stars-badge');
+  starsBadge.innerHTML = '<span class="star-icon">★</span><span class="star-count">-</span>';
+  starsBadge.href = 'https://github.com/vincenthirtz/pulse-js-framework';
+  starsBadge.target = '_blank';
+  starsBadge.rel = 'noopener noreferrer';
+  starsBadge.title = 'Star on GitHub';
+  logoContainer.appendChild(starsBadge);
+
+  // Fetch GitHub stars count
+  fetch('https://api.github.com/repos/vincenthirtz/pulse-js-framework')
+    .then(res => res.json())
+    .then(data => {
+      if (data.stargazers_count !== undefined) {
+        const count = data.stargazers_count;
+        starsBadge.querySelector('.star-count').textContent = count >= 1000 ? `${(count / 1000).toFixed(1)}k` : count;
+      }
+    })
+    .catch(() => {
+      starsBadge.querySelector('.star-count').textContent = '★';
+    });
+
   header.appendChild(logoContainer);
 
   const nav = el('nav.nav');
