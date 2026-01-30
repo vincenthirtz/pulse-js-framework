@@ -79,7 +79,7 @@ export async function startDevServer(args) {
         try {
           const source = readFileSync(filePath, 'utf-8');
           const result = compile(source, {
-            runtime: '/node_modules/pulse-js-framework/runtime/index.js'
+            runtime: '/runtime/index.js'
           });
 
           if (result.success) {
@@ -103,6 +103,29 @@ export async function startDevServer(args) {
         const content = readFileSync(filePath, 'utf-8');
         res.writeHead(200, { 'Content-Type': 'application/javascript' });
         res.end(content);
+        return;
+      }
+
+      // Check if there's a .pulse file that should be compiled to .js
+      const pulseFilePath = filePath.replace(/\.js$/, '.pulse');
+      if (existsSync(pulseFilePath)) {
+        try {
+          const source = readFileSync(pulseFilePath, 'utf-8');
+          const result = compile(source, {
+            runtime: '/runtime/index.js'
+          });
+
+          if (result.success) {
+            res.writeHead(200, { 'Content-Type': 'application/javascript' });
+            res.end(result.code);
+          } else {
+            res.writeHead(500, { 'Content-Type': 'text/plain' });
+            res.end(`Compilation error: ${result.errors.map(e => e.message).join('\n')}`);
+          }
+        } catch (error) {
+          res.writeHead(500, { 'Content-Type': 'text/plain' });
+          res.end(`Error: ${error.message}`);
+        }
         return;
       }
     }
