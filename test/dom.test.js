@@ -1,8 +1,10 @@
 /**
  * Pulse DOM Tests
  *
- * Tests for runtime/dom.js
+ * Tests for runtime/dom.js - DOM creation and reactive bindings
  * Requires linkedom for DOM simulation
+ *
+ * @module test/dom
  */
 
 import { parseHTML } from 'linkedom';
@@ -43,45 +45,22 @@ import {
 
 import { pulse, effect, batch } from '../runtime/pulse.js';
 
-// Simple test runner
-let passed = 0;
-let failed = 0;
-
-function test(name, fn) {
-  try {
-    fn();
-    console.log(`✓ ${name}`);
-    passed++;
-  } catch (error) {
-    console.log(`✗ ${name}`);
-    console.log(`  Error: ${error.message}`);
-    failed++;
-  }
-}
-
-function assert(condition, message) {
-  if (!condition) {
-    throw new Error(message || 'Assertion failed');
-  }
-}
-
-function assertEqual(actual, expected, message) {
-  if (actual !== expected) {
-    throw new Error(message || `Expected ${expected}, got ${actual}`);
-  }
-}
-
-function assertDeepEqual(actual, expected, message) {
-  if (JSON.stringify(actual) !== JSON.stringify(expected)) {
-    throw new Error(message || `Expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
-  }
-}
+// Import test utilities (after DOM setup)
+import {
+  test,
+  assert,
+  assertEqual,
+  assertDeepEqual,
+  printResults,
+  exitWithCode,
+  printSection
+} from './utils.js';
 
 // =============================================================================
 // parseSelector Tests
 // =============================================================================
 
-console.log('\n--- parseSelector Tests ---\n');
+printSection('parseSelector Tests');
 
 test('parses tag name', () => {
   const config = parseSelector('div');
@@ -151,7 +130,7 @@ test('parses complex selector', () => {
 // el() Tests
 // =============================================================================
 
-console.log('\n--- el() Tests ---\n');
+printSection('el() Tests');
 
 test('creates element from simple selector', () => {
   const div = el('div');
@@ -215,7 +194,7 @@ test('creates element with array of children', () => {
 // text() Tests
 // =============================================================================
 
-console.log('\n--- text() Tests ---\n');
+printSection('text() Tests');
 
 test('creates text node', () => {
   const node = text('Hello');
@@ -236,7 +215,7 @@ test('creates reactive text', () => {
 // bind() Tests
 // =============================================================================
 
-console.log('\n--- bind() Tests ---\n');
+printSection('bind() Tests');
 
 test('binds attribute value', () => {
   const elem = el('a');
@@ -253,7 +232,7 @@ test('binds attribute value', () => {
 // prop() Tests
 // =============================================================================
 
-console.log('\n--- prop() Tests ---\n');
+printSection('prop() Tests');
 
 test('sets property value', () => {
   const input = el('input[type=checkbox]');
@@ -271,7 +250,7 @@ test('sets property value', () => {
 // cls() Tests
 // =============================================================================
 
-console.log('\n--- cls() Tests ---\n');
+printSection('cls() Tests');
 
 test('adds/removes class based on condition', () => {
   const elem = el('div');
@@ -292,7 +271,7 @@ test('adds/removes class based on condition', () => {
 // style() Tests
 // =============================================================================
 
-console.log('\n--- style() Tests ---\n');
+printSection('style() Tests');
 
 test('sets style property', () => {
   const elem = el('div');
@@ -310,7 +289,7 @@ test('sets style property', () => {
 // on() Tests
 // =============================================================================
 
-console.log('\n--- on() Tests ---\n');
+printSection('on() Tests');
 
 test('attaches event listener', () => {
   const button = el('button');
@@ -340,7 +319,7 @@ test('returns element for chaining', () => {
 // list() Tests
 // =============================================================================
 
-console.log('\n--- list() Tests ---\n');
+printSection('list() Tests');
 
 test('creates list from array', () => {
   const items = pulse(['a', 'b', 'c']);
@@ -396,7 +375,7 @@ test('list removes items', () => {
 // when() Tests
 // =============================================================================
 
-console.log('\n--- when() Tests ---\n');
+printSection('when() Tests');
 
 test('when shows content when true', () => {
   const show = pulse(true);
@@ -466,7 +445,7 @@ test('when switches content', () => {
 // match() Tests
 // =============================================================================
 
-console.log('\n--- match() Tests ---\n');
+printSection('match() Tests');
 
 test('match renders matching case', () => {
   const status = pulse('initial');  // Start with different value
@@ -511,7 +490,7 @@ test('match switches cases', () => {
 // model() Tests
 // =============================================================================
 
-console.log('\n--- model() Tests ---\n');
+printSection('model() Tests');
 
 test('model binds value to input', () => {
   const value = pulse('hello');
@@ -565,7 +544,7 @@ test('model updates pulse on input', () => {
 // mount() Tests
 // =============================================================================
 
-console.log('\n--- mount() Tests ---\n');
+printSection('mount() Tests');
 
 test('mount appends to target', () => {
   const target = el('div#app');
@@ -600,7 +579,7 @@ test('mount returns unmount function', () => {
 // component() Tests
 // =============================================================================
 
-console.log('\n--- component() Tests ---\n');
+printSection('component() Tests');
 
 test('component creates factory', () => {
   const Counter = component(({ pulse, el }) => {
@@ -625,7 +604,7 @@ test('component receives props', () => {
 // show() Tests
 // =============================================================================
 
-console.log('\n--- show() Tests ---\n');
+printSection('show() Tests');
 
 test('show hides element when false', () => {
   const visible = pulse(true);
@@ -655,7 +634,7 @@ test('show shows element when true', () => {
 // portal() Tests
 // =============================================================================
 
-console.log('\n--- portal() Tests ---\n');
+printSection('portal() Tests');
 
 test('portal renders to target', () => {
   const target = el('div#portal-target');
@@ -692,7 +671,7 @@ test('portal with reactive children', () => {
 // errorBoundary() Tests
 // =============================================================================
 
-console.log('\n--- errorBoundary() Tests ---\n');
+printSection('errorBoundary() Tests');
 
 test('errorBoundary renders children normally', () => {
   const container = el('div');
@@ -712,7 +691,7 @@ test('errorBoundary renders children normally', () => {
 // transition() Tests
 // =============================================================================
 
-console.log('\n--- transition() Tests ---\n');
+printSection('transition() Tests');
 
 test('transition adds enter class', (done) => {
   const elem = el('div', 'Content');
@@ -735,14 +714,8 @@ test('transition attaches exit method', () => {
 });
 
 // =============================================================================
-// Summary
+// Results
 // =============================================================================
 
-console.log('\n--- Summary ---\n');
-console.log(`Passed: ${passed}`);
-console.log(`Failed: ${failed}`);
-console.log(`Total: ${passed + failed}`);
-
-if (failed > 0) {
-  process.exit(1);
-}
+printResults();
+exitWithCode();

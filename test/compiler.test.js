@@ -1,111 +1,101 @@
 /**
  * Pulse Compiler Tests
+ *
+ * Tests for the .pulse file compiler (lexer, parser, transformer)
+ *
+ * @module test/compiler
  */
 
 import { tokenize, parse, compile } from '../compiler/index.js';
-
-// Simple test runner
-let passed = 0;
-let failed = 0;
-
-function test(name, fn) {
-  try {
-    fn();
-    console.log(`✓ ${name}`);
-    passed++;
-  } catch (error) {
-    console.log(`✗ ${name}`);
-    console.log(`  Error: ${error.message}`);
-    failed++;
-  }
-}
-
-function assert(condition, message) {
-  if (!condition) {
-    throw new Error(message || 'Assertion failed');
-  }
-}
+import {
+  test,
+  assert,
+  assertEqual,
+  printResults,
+  exitWithCode,
+  printSection
+} from './utils.js';
 
 // =============================================================================
 // Lexer Tests
 // =============================================================================
 
-console.log('\n--- Lexer Tests ---\n');
+printSection('Lexer Tests');
 
 test('tokenizes keywords', () => {
   const tokens = tokenize('state view actions style');
-  assert(tokens[0].type === 'STATE', 'Expected STATE token');
-  assert(tokens[1].type === 'VIEW', 'Expected VIEW token');
-  assert(tokens[2].type === 'ACTIONS', 'Expected ACTIONS token');
-  assert(tokens[3].type === 'STYLE', 'Expected STYLE token');
+  assertEqual(tokens[0].type, 'STATE', 'Expected STATE token');
+  assertEqual(tokens[1].type, 'VIEW', 'Expected VIEW token');
+  assertEqual(tokens[2].type, 'ACTIONS', 'Expected ACTIONS token');
+  assertEqual(tokens[3].type, 'STYLE', 'Expected STYLE token');
 });
 
 test('tokenizes strings', () => {
   const tokens = tokenize('"hello world"');
-  assert(tokens[0].type === 'STRING', 'Expected STRING token');
-  assert(tokens[0].value === 'hello world', 'Expected string value');
+  assertEqual(tokens[0].type, 'STRING', 'Expected STRING token');
+  assertEqual(tokens[0].value, 'hello world', 'Expected string value');
 });
 
 test('tokenizes numbers', () => {
   const tokens = tokenize('42 3.14 1e10');
-  assert(tokens[0].type === 'NUMBER', 'Expected NUMBER token');
-  assert(tokens[0].value === 42, 'Expected 42');
-  assert(tokens[1].value === 3.14, 'Expected 3.14');
+  assertEqual(tokens[0].type, 'NUMBER', 'Expected NUMBER token');
+  assertEqual(tokens[0].value, 42, 'Expected 42');
+  assertEqual(tokens[1].value, 3.14, 'Expected 3.14');
 });
 
 test('tokenizes operators', () => {
   const tokens = tokenize('+ - * / = == != < > <= >= && ||');
-  assert(tokens[0].type === 'PLUS', 'Expected PLUS');
-  assert(tokens[1].type === 'MINUS', 'Expected MINUS');
-  assert(tokens[4].type === 'EQ', 'Expected EQ');
-  assert(tokens[5].type === 'EQEQ', 'Expected EQEQ');
+  assertEqual(tokens[0].type, 'PLUS', 'Expected PLUS');
+  assertEqual(tokens[1].type, 'MINUS', 'Expected MINUS');
+  assertEqual(tokens[4].type, 'EQ', 'Expected EQ');
+  assertEqual(tokens[5].type, 'EQEQ', 'Expected EQEQ');
 });
 
 test('tokenizes punctuation', () => {
   const tokens = tokenize('{ } ( ) [ ] : , .');
-  assert(tokens[0].type === 'LBRACE', 'Expected LBRACE');
-  assert(tokens[1].type === 'RBRACE', 'Expected RBRACE');
-  assert(tokens[2].type === 'LPAREN', 'Expected LPAREN');
+  assertEqual(tokens[0].type, 'LBRACE', 'Expected LBRACE');
+  assertEqual(tokens[1].type, 'RBRACE', 'Expected RBRACE');
+  assertEqual(tokens[2].type, 'LPAREN', 'Expected LPAREN');
 });
 
 test('tokenizes @ symbol', () => {
   const tokens = tokenize('@page @route @if');
-  assert(tokens[0].type === 'AT', 'Expected AT');
-  assert(tokens[1].type === 'PAGE', 'Expected PAGE');
+  assertEqual(tokens[0].type, 'AT', 'Expected AT');
+  assertEqual(tokens[1].type, 'PAGE', 'Expected PAGE');
 });
 
 test('tokenizes import keywords', () => {
   const tokens = tokenize('import from as export slot');
-  assert(tokens[0].type === 'IMPORT', 'Expected IMPORT token');
-  assert(tokens[1].type === 'FROM', 'Expected FROM token');
-  assert(tokens[2].type === 'AS', 'Expected AS token');
-  assert(tokens[3].type === 'EXPORT', 'Expected EXPORT token');
-  assert(tokens[4].type === 'SLOT', 'Expected SLOT token');
+  assertEqual(tokens[0].type, 'IMPORT', 'Expected IMPORT token');
+  assertEqual(tokens[1].type, 'FROM', 'Expected FROM token');
+  assertEqual(tokens[2].type, 'AS', 'Expected AS token');
+  assertEqual(tokens[3].type, 'EXPORT', 'Expected EXPORT token');
+  assertEqual(tokens[4].type, 'SLOT', 'Expected SLOT token');
 });
 
 // =============================================================================
 // Parser Tests
 // =============================================================================
 
-console.log('\n--- Parser Tests ---\n');
+printSection('Parser Tests');
 
 test('parses page declaration', () => {
   const ast = parse('@page MyPage');
   assert(ast.page !== null, 'Expected page declaration');
-  assert(ast.page.name === 'MyPage', 'Expected page name');
+  assertEqual(ast.page.name, 'MyPage', 'Expected page name');
 });
 
 test('parses route declaration', () => {
   const ast = parse('@route "/home"');
   assert(ast.route !== null, 'Expected route declaration');
-  assert(ast.route.path === '/home', 'Expected route path');
+  assertEqual(ast.route.path, '/home', 'Expected route path');
 });
 
 test('parses state block', () => {
   const ast = parse('state { count: 0 name: "test" }');
   assert(ast.state !== null, 'Expected state block');
-  assert(ast.state.properties.length === 2, 'Expected 2 properties');
-  assert(ast.state.properties[0].name === 'count', 'Expected count property');
+  assertEqual(ast.state.properties.length, 2, 'Expected 2 properties');
+  assertEqual(ast.state.properties[0].name, 'count', 'Expected count property');
 });
 
 test('parses view block', () => {
@@ -129,41 +119,41 @@ actions {
 }`;
   const ast = parse(source);
   assert(ast.actions !== null, 'Expected actions block');
-  assert(ast.actions.functions.length === 1, 'Expected 1 function');
-  assert(ast.actions.functions[0].name === 'increment', 'Expected increment function');
+  assertEqual(ast.actions.functions.length, 1, 'Expected 1 function');
+  assertEqual(ast.actions.functions[0].name, 'increment', 'Expected increment function');
 });
 
 test('parses default import', () => {
   const source = `import Button from './Button.pulse'`;
   const ast = parse(source);
-  assert(ast.imports.length === 1, 'Expected 1 import');
-  assert(ast.imports[0].specifiers[0].type === 'default', 'Expected default import');
-  assert(ast.imports[0].specifiers[0].local === 'Button', 'Expected Button');
-  assert(ast.imports[0].source === './Button.pulse', 'Expected source');
+  assertEqual(ast.imports.length, 1, 'Expected 1 import');
+  assertEqual(ast.imports[0].specifiers[0].type, 'default', 'Expected default import');
+  assertEqual(ast.imports[0].specifiers[0].local, 'Button', 'Expected Button');
+  assertEqual(ast.imports[0].source, './Button.pulse', 'Expected source');
 });
 
 test('parses named imports', () => {
   const source = `import { Header, Footer } from './components.pulse'`;
   const ast = parse(source);
-  assert(ast.imports.length === 1, 'Expected 1 import');
-  assert(ast.imports[0].specifiers.length === 2, 'Expected 2 specifiers');
-  assert(ast.imports[0].specifiers[0].type === 'named', 'Expected named import');
-  assert(ast.imports[0].specifiers[0].local === 'Header', 'Expected Header');
-  assert(ast.imports[0].specifiers[1].local === 'Footer', 'Expected Footer');
+  assertEqual(ast.imports.length, 1, 'Expected 1 import');
+  assertEqual(ast.imports[0].specifiers.length, 2, 'Expected 2 specifiers');
+  assertEqual(ast.imports[0].specifiers[0].type, 'named', 'Expected named import');
+  assertEqual(ast.imports[0].specifiers[0].local, 'Header', 'Expected Header');
+  assertEqual(ast.imports[0].specifiers[1].local, 'Footer', 'Expected Footer');
 });
 
 test('parses aliased import', () => {
   const source = `import { Button as Btn } from './ui.pulse'`;
   const ast = parse(source);
-  assert(ast.imports[0].specifiers[0].imported === 'Button', 'Expected imported name');
-  assert(ast.imports[0].specifiers[0].local === 'Btn', 'Expected local alias');
+  assertEqual(ast.imports[0].specifiers[0].imported, 'Button', 'Expected imported name');
+  assertEqual(ast.imports[0].specifiers[0].local, 'Btn', 'Expected local alias');
 });
 
 test('parses namespace import', () => {
   const source = `import * as Icons from './icons.pulse'`;
   const ast = parse(source);
-  assert(ast.imports[0].specifiers[0].type === 'namespace', 'Expected namespace import');
-  assert(ast.imports[0].specifiers[0].local === 'Icons', 'Expected Icons');
+  assertEqual(ast.imports[0].specifiers[0].type, 'namespace', 'Expected namespace import');
+  assertEqual(ast.imports[0].specifiers[0].local, 'Icons', 'Expected Icons');
 });
 
 test('parses slot element', () => {
@@ -177,10 +167,10 @@ view {
   const ast = parse(source);
   assert(ast.view !== null, 'Expected view block');
   const div = ast.view.children[0];
-  assert(div.children.length === 2, 'Expected 2 children');
-  assert(div.children[0].type === 'SlotElement', 'Expected SlotElement');
-  assert(div.children[0].name === 'default', 'Expected default slot');
-  assert(div.children[1].name === 'header', 'Expected named slot');
+  assertEqual(div.children.length, 2, 'Expected 2 children');
+  assertEqual(div.children[0].type, 'SlotElement', 'Expected SlotElement');
+  assertEqual(div.children[0].name, 'default', 'Expected default slot');
+  assertEqual(div.children[1].name, 'header', 'Expected named slot');
 });
 
 test('parses slot with fallback', () => {
@@ -192,9 +182,9 @@ view {
 }`;
   const ast = parse(source);
   const slot = ast.view.children[0];
-  assert(slot.type === 'SlotElement', 'Expected SlotElement');
-  assert(slot.name === 'footer', 'Expected footer slot');
-  assert(slot.fallback.length === 1, 'Expected fallback content');
+  assertEqual(slot.type, 'SlotElement', 'Expected SlotElement');
+  assertEqual(slot.name, 'footer', 'Expected footer slot');
+  assertEqual(slot.fallback.length, 1, 'Expected fallback content');
 });
 
 test('parses props block', () => {
@@ -206,10 +196,10 @@ props {
 }`;
   const ast = parse(source);
   assert(ast.props !== null, 'Expected props block');
-  assert(ast.props.properties.length === 3, 'Expected 3 props');
-  assert(ast.props.properties[0].name === 'label', 'Expected label prop');
-  assert(ast.props.properties[1].name === 'disabled', 'Expected disabled prop');
-  assert(ast.props.properties[2].name === 'count', 'Expected count prop');
+  assertEqual(ast.props.properties.length, 3, 'Expected 3 props');
+  assertEqual(ast.props.properties[0].name, 'label', 'Expected label prop');
+  assertEqual(ast.props.properties[1].name, 'disabled', 'Expected disabled prop');
+  assertEqual(ast.props.properties[2].name, 'count', 'Expected count prop');
 });
 
 test('parses component with props', () => {
@@ -222,9 +212,9 @@ view {
   const ast = parse(source);
   assert(ast.view !== null, 'Expected view block');
   const button = ast.view.children[0];
-  assert(button.props.length === 2, 'Expected 2 props');
-  assert(button.props[0].name === 'label', 'Expected label prop');
-  assert(button.props[1].name === 'disabled', 'Expected disabled prop');
+  assertEqual(button.props.length, 2, 'Expected 2 props');
+  assertEqual(button.props[0].name, 'label', 'Expected label prop');
+  assertEqual(button.props[1].name, 'disabled', 'Expected disabled prop');
 });
 
 test('parses component props with expressions', () => {
@@ -240,16 +230,16 @@ view {
 }`;
   const ast = parse(source);
   const button = ast.view.children[0];
-  assert(button.props.length === 2, 'Expected 2 props');
-  assert(button.props[0].value.type === 'Identifier', 'Expected Identifier for label');
-  assert(button.props[1].value.type === 'BinaryExpression', 'Expected BinaryExpression for count');
+  assertEqual(button.props.length, 2, 'Expected 2 props');
+  assertEqual(button.props[0].value.type, 'Identifier', 'Expected Identifier for label');
+  assertEqual(button.props[1].value.type, 'BinaryExpression', 'Expected BinaryExpression for count');
 });
 
 // =============================================================================
 // Compiler Integration Tests
 // =============================================================================
 
-console.log('\n--- Compiler Tests ---\n');
+printSection('Compiler Tests');
 
 test('compiles simple component', () => {
   const source = `
@@ -447,16 +437,16 @@ view {
 // Router Tests
 // =============================================================================
 
-console.log('\n--- Router Tests ---\n');
+printSection('Router Tests');
 
 test('tokenizes router keywords', () => {
   const tokens = tokenize('router routes mode base beforeEach afterEach');
-  assert(tokens[0].type === 'ROUTER', 'Expected ROUTER token');
-  assert(tokens[1].type === 'ROUTES', 'Expected ROUTES token');
-  assert(tokens[2].type === 'MODE', 'Expected MODE token');
-  assert(tokens[3].type === 'BASE', 'Expected BASE token');
-  assert(tokens[4].type === 'BEFORE_EACH', 'Expected BEFORE_EACH token');
-  assert(tokens[5].type === 'AFTER_EACH', 'Expected AFTER_EACH token');
+  assertEqual(tokens[0].type, 'ROUTER', 'Expected ROUTER token');
+  assertEqual(tokens[1].type, 'ROUTES', 'Expected ROUTES token');
+  assertEqual(tokens[2].type, 'MODE', 'Expected MODE token');
+  assertEqual(tokens[3].type, 'BASE', 'Expected BASE token');
+  assertEqual(tokens[4].type, 'BEFORE_EACH', 'Expected BEFORE_EACH token');
+  assertEqual(tokens[5].type, 'AFTER_EACH', 'Expected AFTER_EACH token');
 });
 
 test('parses router block', () => {
@@ -472,10 +462,10 @@ router {
 }`;
   const ast = parse(source);
   assert(ast.router !== null, 'Expected router block');
-  assert(ast.router.mode === 'hash', 'Expected hash mode');
-  assert(ast.router.routes.length === 2, 'Expected 2 routes');
-  assert(ast.router.routes[0].path === '/', 'Expected / path');
-  assert(ast.router.routes[0].handler === 'HomePage', 'Expected HomePage handler');
+  assertEqual(ast.router.mode, 'hash', 'Expected hash mode');
+  assertEqual(ast.router.routes.length, 2, 'Expected 2 routes');
+  assertEqual(ast.router.routes[0].path, '/', 'Expected / path');
+  assertEqual(ast.router.routes[0].handler, 'HomePage', 'Expected HomePage handler');
 });
 
 test('parses router with guards', () => {
@@ -493,9 +483,9 @@ router {
 }`;
   const ast = parse(source);
   assert(ast.router.beforeEach !== null, 'Expected beforeEach guard');
-  assert(ast.router.beforeEach.params.length === 2, 'Expected 2 params');
-  assert(ast.router.beforeEach.params[0] === 'to', 'Expected to param');
-  assert(ast.router.beforeEach.params[1] === 'from', 'Expected from param');
+  assertEqual(ast.router.beforeEach.params.length, 2, 'Expected 2 params');
+  assertEqual(ast.router.beforeEach.params[0], 'to', 'Expected to param');
+  assertEqual(ast.router.beforeEach.params[1], 'from', 'Expected from param');
 });
 
 test('compiles router block', () => {
@@ -524,15 +514,15 @@ view {
 // Store Tests
 // =============================================================================
 
-console.log('\n--- Store Tests ---\n');
+printSection('Store Tests');
 
 test('tokenizes store keywords', () => {
   const tokens = tokenize('store getters persist storageKey plugins');
-  assert(tokens[0].type === 'STORE', 'Expected STORE token');
-  assert(tokens[1].type === 'GETTERS', 'Expected GETTERS token');
-  assert(tokens[2].type === 'PERSIST', 'Expected PERSIST token');
-  assert(tokens[3].type === 'STORAGE_KEY', 'Expected STORAGE_KEY token');
-  assert(tokens[4].type === 'PLUGINS', 'Expected PLUGINS token');
+  assertEqual(tokens[0].type, 'STORE', 'Expected STORE token');
+  assertEqual(tokens[1].type, 'GETTERS', 'Expected GETTERS token');
+  assertEqual(tokens[2].type, 'PERSIST', 'Expected PERSIST token');
+  assertEqual(tokens[3].type, 'STORAGE_KEY', 'Expected STORAGE_KEY token');
+  assertEqual(tokens[4].type, 'PLUGINS', 'Expected PLUGINS token');
 });
 
 test('parses store block', () => {
@@ -549,9 +539,9 @@ store {
 }`;
   const ast = parse(source);
   assert(ast.store !== null, 'Expected store block');
-  assert(ast.store.state.properties.length === 2, 'Expected 2 state properties');
-  assert(ast.store.persist === true, 'Expected persist true');
-  assert(ast.store.storageKey === 'my-store', 'Expected storageKey');
+  assertEqual(ast.store.state.properties.length, 2, 'Expected 2 state properties');
+  assertEqual(ast.store.persist, true, 'Expected persist true');
+  assertEqual(ast.store.storageKey, 'my-store', 'Expected storageKey');
 });
 
 test('parses store with getters and actions', () => {
@@ -570,10 +560,10 @@ store {
   }
 }`;
   const ast = parse(source);
-  assert(ast.store.getters.getters.length === 1, 'Expected 1 getter');
-  assert(ast.store.getters.getters[0].name === 'doubled', 'Expected doubled getter');
-  assert(ast.store.actions.functions.length === 1, 'Expected 1 action');
-  assert(ast.store.actions.functions[0].name === 'increment', 'Expected increment action');
+  assertEqual(ast.store.getters.getters.length, 1, 'Expected 1 getter');
+  assertEqual(ast.store.getters.getters[0].name, 'doubled', 'Expected doubled getter');
+  assertEqual(ast.store.actions.functions.length, 1, 'Expected 1 action');
+  assertEqual(ast.store.actions.functions[0].name, 'increment', 'Expected increment action');
 });
 
 test('compiles store block', () => {
@@ -606,16 +596,16 @@ view {
 // Router Directive Tests
 // =============================================================================
 
-console.log('\n--- Router Directive Tests ---\n');
+printSection('Router Directive Tests');
 
 test('tokenizes view directives', () => {
   const tokens = tokenize('@link @outlet @navigate @back @forward');
-  assert(tokens[0].type === 'AT', 'Expected AT');
-  assert(tokens[1].type === 'LINK', 'Expected LINK');
-  assert(tokens[2].type === 'AT', 'Expected AT');
-  assert(tokens[3].type === 'OUTLET', 'Expected OUTLET');
-  assert(tokens[4].type === 'AT', 'Expected AT');
-  assert(tokens[5].type === 'NAVIGATE', 'Expected NAVIGATE');
+  assertEqual(tokens[0].type, 'AT', 'Expected AT');
+  assertEqual(tokens[1].type, 'LINK', 'Expected LINK');
+  assertEqual(tokens[2].type, 'AT', 'Expected AT');
+  assertEqual(tokens[3].type, 'OUTLET', 'Expected OUTLET');
+  assertEqual(tokens[4].type, 'AT', 'Expected AT');
+  assertEqual(tokens[5].type, 'NAVIGATE', 'Expected NAVIGATE');
 });
 
 test('parses @outlet directive', () => {
@@ -632,7 +622,7 @@ view {
   // Find the outlet directive in the tree
   const div = ast.view.children[0];
   assert(div.children.length > 0, 'Expected children');
-  assert(div.children[0].type === 'OutletDirective', 'Expected OutletDirective');
+  assertEqual(div.children[0].type, 'OutletDirective', 'Expected OutletDirective');
 });
 
 test('compiles @outlet directive', () => {
@@ -661,11 +651,5 @@ view {
 // Results
 // =============================================================================
 
-console.log('\n--- Results ---\n');
-console.log(`Passed: ${passed}`);
-console.log(`Failed: ${failed}`);
-console.log(`Total:  ${passed + failed}`);
-
-if (failed > 0) {
-  process.exit(1);
-}
+printResults();
+exitWithCode();

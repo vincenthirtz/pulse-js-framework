@@ -11,12 +11,17 @@
 
 import { NodeType } from './parser.js';
 
-/**
- * Generate a unique scope ID for CSS scoping
- */
-function generateScopeId() {
-  return 'p' + Math.random().toString(36).substring(2, 8);
-}
+/** Generate a unique scope ID for CSS scoping */
+const generateScopeId = () => 'p' + Math.random().toString(36).substring(2, 8);
+
+// Token spacing constants (shared across methods)
+const NO_SPACE_AFTER = new Set(['DOT', 'LPAREN', 'LBRACKET', 'LBRACE', 'NOT', 'SPREAD', '.', '(', '[', '{', '!', '~', '...']);
+const NO_SPACE_BEFORE = new Set(['DOT', 'RPAREN', 'RBRACKET', 'RBRACE', 'SEMICOLON', 'COMMA', 'INCREMENT', 'DECREMENT', 'LPAREN', 'LBRACKET', '.', ')', ']', '}', ';', ',', '++', '--', '(', '[']);
+const PUNCT_NO_SPACE_BEFORE = ['DOT', 'LPAREN', 'RPAREN', 'LBRACKET', 'RBRACKET', 'SEMICOLON', 'COMMA', 'COLON'];
+const PUNCT_NO_SPACE_AFTER = ['DOT', 'LPAREN', 'LBRACKET', 'NOT', 'COLON'];
+const STATEMENT_KEYWORDS = new Set(['let', 'const', 'var', 'return', 'if', 'else', 'for', 'while', 'switch', 'throw', 'try', 'catch', 'finally']);
+const BUILTIN_FUNCTIONS = new Set(['setTimeout', 'setInterval', 'clearTimeout', 'clearInterval', 'alert', 'confirm', 'prompt', 'console', 'document', 'window', 'Math', 'JSON', 'Date', 'Array', 'Object', 'String', 'Number', 'Boolean', 'Promise', 'fetch']);
+const STATEMENT_TOKEN_TYPES = new Set(['IF', 'FOR', 'EACH']);
 
 /**
  * Transformer class
@@ -24,17 +29,12 @@ function generateScopeId() {
 export class Transformer {
   constructor(ast, options = {}) {
     this.ast = ast;
-    this.options = {
-      runtime: 'pulse-js-framework/runtime',
-      minify: false,
-      scopeStyles: true, // Enable CSS scoping by default
-      ...options
-    };
+    this.options = { runtime: 'pulse-js-framework/runtime', minify: false, scopeStyles: true, ...options };
     this.stateVars = new Set();
-    this.propVars = new Set(); // Track prop names
-    this.propDefaults = new Map(); // Track prop default values
+    this.propVars = new Set();
+    this.propDefaults = new Map();
     this.actionNames = new Set();
-    this.importedComponents = new Map(); // Map of local name -> import info
+    this.importedComponents = new Map();
     this.scopeId = this.options.scopeStyles ? generateScopeId() : null;
   }
 
@@ -283,30 +283,30 @@ export class Transformer {
     return lines.join('\n');
   }
 
-  /**
-   * Transform router guard body - handles store references
-   */
+  /** Helper to emit token value with proper string/template handling */
+  emitToken(token) {
+    if (token.type === 'STRING') return token.raw || JSON.stringify(token.value);
+    if (token.type === 'TEMPLATE') return token.raw || ('`' + token.value + '`');
+    return token.value;
+  }
+
+  /** Helper to check if space needed between tokens */
+  needsSpace(token, nextToken) {
+    if (!nextToken) return false;
+    return !PUNCT_NO_SPACE_BEFORE.includes(nextToken.type) && !PUNCT_NO_SPACE_AFTER.includes(token.type);
+  }
+
+  /** Transform router guard body - handles store references */
   transformRouterGuardBody(tokens) {
     let code = '';
     for (let i = 0; i < tokens.length; i++) {
       const token = tokens[i];
-      if (token.type === 'STRING') {
-        code += token.raw || JSON.stringify(token.value);
-      } else if (token.type === 'TEMPLATE') {
-        code += token.raw || ('`' + token.value + '`');
-      } else if (token.value === 'store' && tokens[i + 1]?.type === 'DOT') {
-        // Transform store.xxx to $store.xxx for accessing combined store
+      if (token.value === 'store' && tokens[i + 1]?.type === 'DOT') {
         code += '$store';
       } else {
-        code += token.value;
+        code += this.emitToken(token);
       }
-      // Add space between tokens unless it's punctuation (before or after)
-      const nextToken = tokens[i + 1];
-      const noPunctBefore = ['DOT', 'LPAREN', 'RPAREN', 'LBRACKET', 'RBRACKET', 'SEMICOLON', 'COMMA', 'COLON'];
-      const noPunctAfter = ['DOT', 'LPAREN', 'LBRACKET', 'NOT', 'COLON'];
-      if (nextToken && !noPunctBefore.includes(nextToken.type) && !noPunctAfter.includes(token.type)) {
-        code += ' ';
-      }
+      if (this.needsSpace(token, tokens[i + 1])) code += ' ';
     }
     return code.trim();
   }
@@ -374,49 +374,22 @@ export class Transformer {
     return lines.join('\n');
   }
 
-  /**
-   * Transform store action body (this.x = y -> store.x.set(y))
-   */
+  /** Transform store action body (this.x = y -> store.x.set(y)) */
   transformStoreActionBody(tokens) {
     let code = '';
     for (let i = 0; i < tokens.length; i++) {
       const token = tokens[i];
-      // Transform 'this' to 'store'
-      if (token.value === 'this') {
-        code += 'store';
-      } else if (token.type === 'STRING') {
-        code += token.raw || JSON.stringify(token.value);
-      } else if (token.type === 'TEMPLATE') {
-        code += token.raw || ('`' + token.value + '`');
-      } else if (token.type === 'COLON') {
-        // Handle colon with proper spacing (ternary operator)
-        code += ' : ';
-      } else {
-        code += token.value;
-      }
-      // Add space between tokens unless it's punctuation (before or after)
-      const nextToken = tokens[i + 1];
-      const noPunctBefore = ['DOT', 'LPAREN', 'RPAREN', 'LBRACKET', 'RBRACKET', 'SEMICOLON', 'COMMA', 'COLON'];
-      const noPunctAfter = ['DOT', 'LPAREN', 'LBRACKET', 'NOT', 'COLON'];
-      if (nextToken && !noPunctBefore.includes(nextToken.type) && !noPunctAfter.includes(token.type)) {
-        code += ' ';
-      }
+      if (token.value === 'this') code += 'store';
+      else if (token.type === 'COLON') code += ' : ';
+      else code += this.emitToken(token);
+      if (this.needsSpace(token, tokens[i + 1])) code += ' ';
     }
-
-    // Post-process: store.x = y -> store.x.set(y)
-    code = code.replace(/store\.(\w+)\s*=\s*([^;]+)/g, 'store.$1.set($2)');
-
-    return code.trim();
+    return code.replace(/store\.(\w+)\s*=\s*([^;]+)/g, 'store.$1.set($2)').trim();
   }
 
-  /**
-   * Transform store getter body (this.x -> store.x.get())
-   */
+  /** Transform store getter body (this.x -> store.x.get()) */
   transformStoreGetterBody(tokens) {
-    let code = this.transformStoreActionBody(tokens);
-    // Transform store.x reads to store.x.get() (but not store.x.set or store.x.get)
-    code = code.replace(/store\.(\w+)(?!\.(?:get|set)\()/g, 'store.$1.get()');
-    return code;
+    return this.transformStoreActionBody(tokens).replace(/store\.(\w+)(?!\.(?:get|set)\()/g, 'store.$1.get()');
   }
 
   /**
@@ -479,76 +452,20 @@ export class Transformer {
     let code = '';
     let lastToken = null;
     let lastNonSpaceToken = null;
-    const statementKeywords = ['let', 'const', 'var', 'return', 'if', 'else', 'for', 'while', 'switch', 'throw', 'try', 'catch', 'finally'];
-    const builtinFunctions = ['setTimeout', 'setInterval', 'clearTimeout', 'clearInterval', 'alert', 'confirm', 'prompt', 'console', 'document', 'window', 'Math', 'JSON', 'Date', 'Array', 'Object', 'String', 'Number', 'Boolean', 'Promise', 'fetch'];
-
-    // Tokens that should not have space after them
-    const noSpaceAfterTypes = new Set(['DOT', 'LPAREN', 'LBRACKET', 'LBRACE', 'NOT', 'SPREAD']);
-    const noSpaceAfterValues = new Set(['.', '(', '[', '{', '!', '~', '...']);
-
-    // Tokens that should not have space before them
-    const noSpaceBeforeTypes = new Set(['DOT', 'RPAREN', 'RBRACKET', 'RBRACE', 'SEMICOLON', 'COMMA', 'INCREMENT', 'DECREMENT', 'LPAREN', 'LBRACKET']);
-    const noSpaceBeforeValues = new Set(['.', ')', ']', '}', ';', ',', '++', '--', '(', '[']);
-
-    // Check if token is a statement starter that the regex won't handle
-    // (i.e., not a state variable assignment - those are handled by regex)
-    // Statement keywords that have their own token types
-    // Note: ELSE is excluded because it follows IF and should not have semicolon before it
-    const statementTokenTypes = new Set(['IF', 'FOR', 'EACH']);
 
     const needsManualSemicolon = (token, nextToken, lastNonSpace) => {
-      if (!token) return false;
-
-      // Don't add semicolon after 'new' keyword (e.g., new Date())
-      if (lastNonSpace?.value === 'new') return false;
-
-      // Statement keywords with dedicated token types (if, else, for, etc.)
-      if (statementTokenTypes.has(token.type)) return true;
-
-      // Only process IDENT tokens from here
+      if (!token || lastNonSpace?.value === 'new') return false;
+      if (STATEMENT_TOKEN_TYPES.has(token.type)) return true;
       if (token.type !== 'IDENT') return false;
-
-      // Statement keywords (let, const, var, return, etc.)
-      if (statementKeywords.includes(token.value)) return true;
-
-      // State variable assignment (stateVar = value)
-      // These need semicolons BEFORE them when following a statement end
-      // The regex adds semicolons AFTER, but not before
-      if (this.stateVars.has(token.value) && nextToken?.type === 'EQ') {
-        return true;
-      }
-
-      // Builtin function call or action call (not state var assignment)
-      if (nextToken?.type === 'LPAREN') {
-        if (builtinFunctions.includes(token.value)) return true;
-        if (this.actionNames.has(token.value)) return true;
-      }
-
-      // Builtin method chain (e.g., document.body.classList.toggle(...))
-      if (nextToken?.type === 'DOT' && builtinFunctions.includes(token.value)) {
-        return true;
-      }
-
+      if (STATEMENT_KEYWORDS.has(token.value)) return true;
+      if (this.stateVars.has(token.value) && nextToken?.type === 'EQ') return true;
+      if (nextToken?.type === 'LPAREN' && (BUILTIN_FUNCTIONS.has(token.value) || this.actionNames.has(token.value))) return true;
+      if (nextToken?.type === 'DOT' && BUILTIN_FUNCTIONS.has(token.value)) return true;
       return false;
     };
 
-    // Check if previous context indicates end of statement
-    const afterStatementEnd = (lastNonSpace) => {
-      if (!lastNonSpace) return false;
-      return lastNonSpace.type === 'RBRACE' ||
-             lastNonSpace.type === 'RPAREN' ||
-             lastNonSpace.type === 'RBRACKET' ||
-             lastNonSpace.type === 'SEMICOLON' ||
-             lastNonSpace.type === 'STRING' ||
-             lastNonSpace.type === 'NUMBER' ||
-             lastNonSpace.type === 'TRUE' ||
-             lastNonSpace.type === 'FALSE' ||
-             lastNonSpace.type === 'NULL' ||
-             lastNonSpace.value === 'null' ||
-             lastNonSpace.value === 'true' ||
-             lastNonSpace.value === 'false' ||
-             lastNonSpace.type === 'IDENT';  // Any identifier can end a statement (variables, function results, etc.)
-    };
+    const STATEMENT_END_TYPES = new Set(['RBRACE', 'RPAREN', 'RBRACKET', 'SEMICOLON', 'STRING', 'NUMBER', 'TRUE', 'FALSE', 'NULL', 'IDENT']);
+    const afterStatementEnd = (t) => t && STATEMENT_END_TYPES.has(t.type);
 
     let afterIfCondition = false;  // Track if we just closed an if(...) condition
 
@@ -604,43 +521,24 @@ export class Transformer {
       }
 
       // Decide whether to add space after this token
-      let addSpace = true;
-
-      // No space after certain tokens
-      if (noSpaceAfterTypes.has(token.type) || noSpaceAfterValues.has(token.value)) {
-        addSpace = false;
-      }
-
-      // No space before certain tokens (look ahead)
-      if (nextToken && (noSpaceBeforeTypes.has(nextToken.type) || noSpaceBeforeValues.has(nextToken.value))) {
-        addSpace = false;
-      }
-
-      if (addSpace && nextToken) {
-        code += ' ';
-      }
+      const noSpaceAfter = NO_SPACE_AFTER.has(token.type) || NO_SPACE_AFTER.has(token.value);
+      const noSpaceBefore = nextToken && (NO_SPACE_BEFORE.has(nextToken.type) || NO_SPACE_BEFORE.has(nextToken.value));
+      if (!noSpaceAfter && !noSpaceBefore && nextToken) code += ' ';
 
       lastToken = token;
       lastNonSpaceToken = token;
     }
 
-    // Build patterns for boundaries
+    // Build patterns for state variable transformation
     const stateVarPattern = [...this.stateVars].join('|');
-    const funcPattern = [...this.actionNames, ...builtinFunctions].join('|');
+    const funcPattern = [...this.actionNames, ...BUILTIN_FUNCTIONS].join('|');
+    const keywordsPattern = [...STATEMENT_KEYWORDS].join('|');
 
-    // Transform state access - order matters!
-    // First, replace state var assignments with boundary detection
-    // Use multiple passes to handle the case where replacements change the boundaries
+    // Transform state var assignments: stateVar = value -> stateVar.set(value)
     for (const stateVar of this.stateVars) {
-      // Replace standalone state var assignments: stateVar = value -> stateVar.set(value)
-      // Use negative lookahead (?!=) to avoid matching === or ==
-      // Stop at: next state var assignment (original or already replaced), function call, statement keyword, or end
-      const boundaryPattern = `\\s+(?:${stateVarPattern})(?:\\s*=(?!=)|\\s*\\.set\\()|\\s+(?:${funcPattern})\\s*\\(|\\s+(?:${statementKeywords.join('|')})\\b|;|$`;
-      const assignPattern = new RegExp(
-        `\\b${stateVar}\\s*=(?!=)\\s*(.+?)(?=${boundaryPattern})`,
-        'g'
-      );
-      code = code.replace(assignPattern, (_match, value) => `${stateVar}.set(${value.trim()});`);
+      const boundaryPattern = `\\s+(?:${stateVarPattern})(?:\\s*=(?!=)|\\s*\\.set\\()|\\s+(?:${funcPattern})\\s*\\(|\\s+(?:${keywordsPattern})\\b|;|$`;
+      const assignPattern = new RegExp(`\\b${stateVar}\\s*=(?!=)\\s*(.+?)(?=${boundaryPattern})`, 'g');
+      code = code.replace(assignPattern, (_, value) => `${stateVar}.set(${value.trim()});`);
     }
 
     // Clean up any double semicolons
@@ -700,44 +598,24 @@ export class Transformer {
     return lines.join('\n');
   }
 
-  /**
-   * Transform a view node (element, directive, slot, text)
-   */
+  /** View node transformers lookup table */
+  static VIEW_NODE_HANDLERS = {
+    [NodeType.Element]: 'transformElement',
+    [NodeType.TextNode]: 'transformTextNode',
+    [NodeType.IfDirective]: 'transformIfDirective',
+    [NodeType.EachDirective]: 'transformEachDirective',
+    [NodeType.EventDirective]: 'transformEventDirective',
+    [NodeType.SlotElement]: 'transformSlot',
+    [NodeType.LinkDirective]: 'transformLinkDirective',
+    [NodeType.OutletDirective]: 'transformOutletDirective',
+    [NodeType.NavigateDirective]: 'transformNavigateDirective'
+  };
+
+  /** Transform a view node (element, directive, slot, text) */
   transformViewNode(node, indent = 0) {
-    const pad = ' '.repeat(indent);
-
-    switch (node.type) {
-      case NodeType.Element:
-        return this.transformElement(node, indent);
-
-      case NodeType.TextNode:
-        return this.transformTextNode(node, indent);
-
-      case NodeType.IfDirective:
-        return this.transformIfDirective(node, indent);
-
-      case NodeType.EachDirective:
-        return this.transformEachDirective(node, indent);
-
-      case NodeType.EventDirective:
-        return this.transformEventDirective(node, indent);
-
-      case NodeType.SlotElement:
-        return this.transformSlot(node, indent);
-
-      // Router directives
-      case NodeType.LinkDirective:
-        return this.transformLinkDirective(node, indent);
-
-      case NodeType.OutletDirective:
-        return this.transformOutletDirective(node, indent);
-
-      case NodeType.NavigateDirective:
-        return this.transformNavigateDirective(node, indent);
-
-      default:
-        return `${pad}/* unknown node: ${node.type} */`;
-    }
+    const handler = Transformer.VIEW_NODE_HANDLERS[node.type];
+    if (handler) return this[handler](node, indent);
+    return `${' '.repeat(indent)}/* unknown node: ${node.type} */`;
   }
 
   /**

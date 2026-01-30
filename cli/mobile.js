@@ -4,7 +4,7 @@
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync, cpSync, readdirSync } from 'fs';
-import { join, resolve, dirname } from 'path';
+import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
 
@@ -13,6 +13,38 @@ const __dirname = dirname(__filename);
 
 const MOBILE_DIR = 'mobile';
 const CONFIG_FILE = 'pulse.mobile.json';
+
+// ============================================================================
+// Helper functions
+// ============================================================================
+
+/** Create directory if it doesn't exist */
+const mkdirp = (path) => !existsSync(path) && mkdirSync(path, { recursive: true });
+
+/** Create multiple directories at once */
+const mkdirs = (base, dirs) => dirs.forEach(d => mkdirp(join(base, d)));
+
+/** Write file (auto-creates parent directories) */
+const writeFile = (path, content) => {
+  mkdirp(dirname(path));
+  writeFileSync(path, content.trim());
+};
+
+/** Apply template variables to content */
+const applyTemplate = (content, config) => content
+  .replace(/\{\{APP_NAME\}\}/g, config.name)
+  .replace(/\{\{DISPLAY_NAME\}\}/g, config.displayName)
+  .replace(/\{\{PACKAGE_ID\}\}/g, config.packageId)
+  .replace(/\{\{VERSION\}\}/g, config.version)
+  .replace(/\{\{MIN_SDK\}\}/g, String(config.android?.minSdkVersion || 24))
+  .replace(/\{\{TARGET_SDK\}\}/g, String(config.android?.targetSdkVersion || 34))
+  .replace(/\{\{COMPILE_SDK\}\}/g, String(config.android?.compileSdkVersion || 34))
+  .replace(/\{\{IOS_TARGET\}\}/g, config.ios?.deploymentTarget || '13.0');
+
+/** Convert string to PascalCase */
+const toPascalCase = (str) => str
+  .replace(/[-_](.)/g, (_, c) => c.toUpperCase())
+  .replace(/^(.)/, (_, c) => c.toUpperCase());
 
 /**
  * Handle mobile subcommands
@@ -419,67 +451,35 @@ function loadConfig(root) {
   return JSON.parse(readFileSync(configPath, 'utf-8'));
 }
 
-/**
- * Copy and process template files
- */
+/** Copy and process template files */
 function copyAndProcessTemplate(src, dest, config) {
-  if (!existsSync(src)) {
-    return;
-  }
+  if (!existsSync(src)) return;
+  mkdirp(dest);
 
-  mkdirSync(dest, { recursive: true });
-
-  const files = readdirSync(src, { withFileTypes: true });
-
-  for (const file of files) {
+  for (const file of readdirSync(src, { withFileTypes: true })) {
     const srcPath = join(src, file.name);
     const destPath = join(dest, file.name);
 
     if (file.isDirectory()) {
       copyAndProcessTemplate(srcPath, destPath, config);
     } else {
-      let content = readFileSync(srcPath, 'utf-8');
-
-      // Replace template variables
-      content = content
-        .replace(/\{\{APP_NAME\}\}/g, config.name)
-        .replace(/\{\{DISPLAY_NAME\}\}/g, config.displayName)
-        .replace(/\{\{PACKAGE_ID\}\}/g, config.packageId)
-        .replace(/\{\{VERSION\}\}/g, config.version)
-        .replace(/\{\{MIN_SDK\}\}/g, String(config.android?.minSdkVersion || 24))
-        .replace(/\{\{TARGET_SDK\}\}/g, String(config.android?.targetSdkVersion || 34))
-        .replace(/\{\{COMPILE_SDK\}\}/g, String(config.android?.compileSdkVersion || 34))
-        .replace(/\{\{IOS_TARGET\}\}/g, config.ios?.deploymentTarget || '13.0');
-
-      writeFileSync(destPath, content);
+      writeFileSync(destPath, applyTemplate(readFileSync(srcPath, 'utf-8'), config));
     }
   }
 }
 
-/**
- * Create Android project from scratch
- */
+/** Create Android project from scratch */
 function createAndroidProject(androidDir, config) {
   const packagePath = config.packageId.replace(/\./g, '/');
 
   // Create directory structure
-  const dirs = [
+  mkdirs(androidDir, [
     'app/src/main/java/' + packagePath,
-    'app/src/main/res/layout',
-    'app/src/main/res/values',
-    'app/src/main/res/drawable',
-    'app/src/main/res/mipmap-hdpi',
-    'app/src/main/res/mipmap-mdpi',
-    'app/src/main/res/mipmap-xhdpi',
-    'app/src/main/res/mipmap-xxhdpi',
-    'app/src/main/res/mipmap-xxxhdpi',
-    'app/src/main/assets/www',
-    'gradle/wrapper'
-  ];
-
-  for (const dir of dirs) {
-    mkdirSync(join(androidDir, dir), { recursive: true });
-  }
+    'app/src/main/res/layout', 'app/src/main/res/values', 'app/src/main/res/drawable',
+    'app/src/main/res/mipmap-hdpi', 'app/src/main/res/mipmap-mdpi',
+    'app/src/main/res/mipmap-xhdpi', 'app/src/main/res/mipmap-xxhdpi', 'app/src/main/res/mipmap-xxxhdpi',
+    'app/src/main/assets/www', 'gradle/wrapper'
+  ]);
 
   // MainActivity.java
   writeFileSync(join(androidDir, 'app/src/main/java', packagePath, 'MainActivity.java'), `
@@ -906,21 +906,9 @@ gradle %*
 `.trim());
 }
 
-/**
- * Create iOS project from scratch
- */
+/** Create iOS project from scratch */
 function createIOSProject(iosDir, config) {
-  // Create directory structure
-  const dirs = [
-    'PulseApp',
-    'PulseApp/www',
-    'PulseApp/Assets.xcassets',
-    'PulseApp.xcodeproj'
-  ];
-
-  for (const dir of dirs) {
-    mkdirSync(join(iosDir, dir), { recursive: true });
-  }
+  mkdirs(iosDir, ['PulseApp', 'PulseApp/www', 'PulseApp/Assets.xcassets', 'PulseApp.xcodeproj']);
 
   // AppDelegate.swift
   writeFileSync(join(iosDir, 'PulseApp/AppDelegate.swift'), `
@@ -1430,18 +1418,7 @@ function generateXcodeProject(config) {
 `;
 }
 
-/**
- * Convert string to PascalCase
- */
-function toPascalCase(str) {
-  return str
-    .replace(/[-_](.)/g, (_, char) => char.toUpperCase())
-    .replace(/^(.)/, (_, char) => char.toUpperCase());
-}
-
-/**
- * Show mobile help
- */
+/** Show mobile help */
 function showMobileHelp() {
   console.log(`
 Pulse Mobile - Zero-Dependency Mobile Platform

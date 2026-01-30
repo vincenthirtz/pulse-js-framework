@@ -385,38 +385,35 @@ export class Parser {
   }
 
   /**
+   * Try to parse a literal token (STRING, NUMBER, TRUE, FALSE, NULL)
+   * Returns the AST node or null if not a literal
+   */
+  tryParseLiteral() {
+    const token = this.current();
+    if (!token) return null;
+
+    const literalMap = {
+      [TokenType.STRING]: () => new ASTNode(NodeType.Literal, { value: this.advance().value, raw: token.raw }),
+      [TokenType.NUMBER]: () => new ASTNode(NodeType.Literal, { value: this.advance().value }),
+      [TokenType.TRUE]: () => (this.advance(), new ASTNode(NodeType.Literal, { value: true })),
+      [TokenType.FALSE]: () => (this.advance(), new ASTNode(NodeType.Literal, { value: false })),
+      [TokenType.NULL]: () => (this.advance(), new ASTNode(NodeType.Literal, { value: null }))
+    };
+
+    return literalMap[token.type]?.() || null;
+  }
+
+  /**
    * Parse a value (literal, object, array, etc.)
    */
   parseValue() {
-    if (this.is(TokenType.LBRACE)) {
-      return this.parseObjectLiteral();
-    }
-    if (this.is(TokenType.LBRACKET)) {
-      return this.parseArrayLiteral();
-    }
-    if (this.is(TokenType.STRING)) {
-      const token = this.advance();
-      return new ASTNode(NodeType.Literal, { value: token.value, raw: token.raw });
-    }
-    if (this.is(TokenType.NUMBER)) {
-      const token = this.advance();
-      return new ASTNode(NodeType.Literal, { value: token.value });
-    }
-    if (this.is(TokenType.TRUE)) {
-      this.advance();
-      return new ASTNode(NodeType.Literal, { value: true });
-    }
-    if (this.is(TokenType.FALSE)) {
-      this.advance();
-      return new ASTNode(NodeType.Literal, { value: false });
-    }
-    if (this.is(TokenType.NULL)) {
-      this.advance();
-      return new ASTNode(NodeType.Literal, { value: null });
-    }
-    if (this.is(TokenType.IDENT)) {
-      return this.parseIdentifierOrExpression();
-    }
+    if (this.is(TokenType.LBRACE)) return this.parseObjectLiteral();
+    if (this.is(TokenType.LBRACKET)) return this.parseArrayLiteral();
+
+    const literal = this.tryParseLiteral();
+    if (literal) return literal;
+
+    if (this.is(TokenType.IDENT)) return this.parseIdentifierOrExpression();
 
     throw new Error(
       `Unexpected token ${this.current()?.type} in value at line ${this.current()?.line}`
@@ -612,32 +609,18 @@ export class Parser {
 
     let value;
     if (this.is(TokenType.LBRACE)) {
-      // Expression prop: name={expression}
-      this.advance(); // consume {
+      this.advance();
       value = this.parseExpression();
       this.expect(TokenType.RBRACE);
-    } else if (this.is(TokenType.STRING)) {
-      // String prop: name="value"
-      const token = this.advance();
-      value = new ASTNode(NodeType.Literal, { value: token.value, raw: token.raw });
-    } else if (this.is(TokenType.NUMBER)) {
-      // Number prop: name=123
-      const token = this.advance();
-      value = new ASTNode(NodeType.Literal, { value: token.value });
-    } else if (this.is(TokenType.TRUE)) {
-      this.advance();
-      value = new ASTNode(NodeType.Literal, { value: true });
-    } else if (this.is(TokenType.FALSE)) {
-      this.advance();
-      value = new ASTNode(NodeType.Literal, { value: false });
-    } else if (this.is(TokenType.NULL)) {
-      this.advance();
-      value = new ASTNode(NodeType.Literal, { value: null });
-    } else if (this.is(TokenType.IDENT)) {
-      // Identifier prop: name=someVar
-      value = this.parseIdentifierOrExpression();
     } else {
-      throw this.createError(`Unexpected token in prop value: ${this.current()?.type}`);
+      value = this.tryParseLiteral();
+      if (!value) {
+        if (this.is(TokenType.IDENT)) {
+          value = this.parseIdentifierOrExpression();
+        } else {
+          throw this.createError(`Unexpected token in prop value: ${this.current()?.type}`);
+        }
+      }
     }
 
     return new ASTNode(NodeType.Property, { name: name.value, value });
@@ -885,80 +868,39 @@ export class Parser {
   }
 
   /**
-   * Parse OR expression
+   * Binary operator precedence table (higher = binds tighter)
    */
-  parseOrExpression() {
-    let left = this.parseAndExpression();
-
-    while (this.is(TokenType.OR)) {
-      this.advance();
-      const right = this.parseAndExpression();
-      left = new ASTNode(NodeType.BinaryExpression, { operator: '||', left, right });
-    }
-
-    return left;
-  }
+  static BINARY_OPS = [
+    { ops: [TokenType.OR], name: 'or' },
+    { ops: [TokenType.AND], name: 'and' },
+    { ops: [TokenType.EQEQ, TokenType.EQEQEQ, TokenType.NEQ, TokenType.NEQEQ,
+            TokenType.LT, TokenType.GT, TokenType.LTE, TokenType.GTE], name: 'comparison' },
+    { ops: [TokenType.PLUS, TokenType.MINUS], name: 'additive' },
+    { ops: [TokenType.STAR, TokenType.SLASH, TokenType.PERCENT], name: 'multiplicative' }
+  ];
 
   /**
-   * Parse AND expression
+   * Generic binary expression parser using precedence climbing
    */
-  parseAndExpression() {
-    let left = this.parseComparisonExpression();
-
-    while (this.is(TokenType.AND)) {
-      this.advance();
-      const right = this.parseComparisonExpression();
-      left = new ASTNode(NodeType.BinaryExpression, { operator: '&&', left, right });
+  parseBinaryExpr(level = 0) {
+    if (level >= Parser.BINARY_OPS.length) {
+      return this.parseUnaryExpression();
     }
 
-    return left;
-  }
+    let left = this.parseBinaryExpr(level + 1);
+    const { ops } = Parser.BINARY_OPS[level];
 
-  /**
-   * Parse comparison expression
-   */
-  parseComparisonExpression() {
-    let left = this.parseAdditiveExpression();
-
-    while (this.isAny(TokenType.EQEQ, TokenType.EQEQEQ, TokenType.NEQ, TokenType.NEQEQ,
-                       TokenType.LT, TokenType.GT, TokenType.LTE, TokenType.GTE)) {
+    while (this.isAny(...ops)) {
       const operator = this.advance().value;
-      const right = this.parseAdditiveExpression();
+      const right = this.parseBinaryExpr(level + 1);
       left = new ASTNode(NodeType.BinaryExpression, { operator, left, right });
     }
 
     return left;
   }
 
-  /**
-   * Parse additive expression
-   */
-  parseAdditiveExpression() {
-    let left = this.parseMultiplicativeExpression();
-
-    while (this.isAny(TokenType.PLUS, TokenType.MINUS)) {
-      const operator = this.advance().value;
-      const right = this.parseMultiplicativeExpression();
-      left = new ASTNode(NodeType.BinaryExpression, { operator, left, right });
-    }
-
-    return left;
-  }
-
-  /**
-   * Parse multiplicative expression
-   */
-  parseMultiplicativeExpression() {
-    let left = this.parseUnaryExpression();
-
-    while (this.isAny(TokenType.STAR, TokenType.SLASH, TokenType.PERCENT)) {
-      const operator = this.advance().value;
-      const right = this.parseUnaryExpression();
-      left = new ASTNode(NodeType.BinaryExpression, { operator, left, right });
-    }
-
-    return left;
-  }
+  /** Parse OR expression (entry point for binary expressions) */
+  parseOrExpression() { return this.parseBinaryExpr(0); }
 
   /**
    * Parse unary expression
@@ -1048,30 +990,9 @@ export class Parser {
       return new ASTNode(NodeType.SpreadElement, { argument });
     }
 
-    if (this.is(TokenType.NUMBER)) {
-      const token = this.advance();
-      return new ASTNode(NodeType.Literal, { value: token.value });
-    }
-
-    if (this.is(TokenType.STRING)) {
-      const token = this.advance();
-      return new ASTNode(NodeType.Literal, { value: token.value, raw: token.raw });
-    }
-
-    if (this.is(TokenType.TRUE)) {
-      this.advance();
-      return new ASTNode(NodeType.Literal, { value: true });
-    }
-
-    if (this.is(TokenType.FALSE)) {
-      this.advance();
-      return new ASTNode(NodeType.Literal, { value: false });
-    }
-
-    if (this.is(TokenType.NULL)) {
-      this.advance();
-      return new ASTNode(NodeType.Literal, { value: null });
-    }
+    // Try parsing a literal (NUMBER, STRING, TRUE, FALSE, NULL)
+    const literal = this.tryParseLiteral();
+    if (literal) return literal;
 
     // In expressions, SELECTOR tokens should be treated as IDENT
     // This happens when identifiers like 'selectedCategory' are followed by space in view context

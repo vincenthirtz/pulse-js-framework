@@ -1,7 +1,9 @@
 /**
  * Pulse Core Reactivity Tests
  *
- * Tests for runtime/pulse.js
+ * Tests for runtime/pulse.js - the core reactive system
+ *
+ * @module test/pulse
  */
 
 import {
@@ -19,60 +21,23 @@ import {
   memoComputed
 } from '../runtime/pulse.js';
 
-// Simple test runner
-let passed = 0;
-let failed = 0;
-let currentTest = '';
-
-function test(name, fn) {
-  currentTest = name;
-  try {
-    fn();
-    console.log(`✓ ${name}`);
-    passed++;
-  } catch (error) {
-    console.log(`✗ ${name}`);
-    console.log(`  Error: ${error.message}`);
-    failed++;
-  }
-}
-
-async function testAsync(name, fn) {
-  currentTest = name;
-  try {
-    await fn();
-    console.log(`✓ ${name}`);
-    passed++;
-  } catch (error) {
-    console.log(`✗ ${name}`);
-    console.log(`  Error: ${error.message}`);
-    failed++;
-  }
-}
-
-function assert(condition, message) {
-  if (!condition) {
-    throw new Error(message || 'Assertion failed');
-  }
-}
-
-function assertEqual(actual, expected, message) {
-  if (actual !== expected) {
-    throw new Error(message || `Expected ${expected}, got ${actual}`);
-  }
-}
-
-function assertDeepEqual(actual, expected, message) {
-  if (JSON.stringify(actual) !== JSON.stringify(expected)) {
-    throw new Error(message || `Expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
-  }
-}
+import {
+  test,
+  testAsync,
+  runAsyncTests,
+  assert,
+  assertEqual,
+  assertDeepEqual,
+  printResults,
+  exitWithCode,
+  printSection
+} from './utils.js';
 
 // =============================================================================
 // Pulse Class Tests
 // =============================================================================
 
-console.log('\n--- Pulse Class Tests ---\n');
+printSection('Pulse Class Tests');
 
 test('creates a pulse with initial value', () => {
   const p = pulse(42);
@@ -171,7 +136,7 @@ test('derive creates a derived pulse', () => {
 // Effect Tests
 // =============================================================================
 
-console.log('\n--- Effect Tests ---\n');
+printSection('Effect Tests');
 
 test('effect runs immediately', () => {
   let ran = false;
@@ -245,7 +210,6 @@ test('effect returns dispose function', () => {
 
 test('effect handles errors gracefully', () => {
   const p = pulse(1);
-  let errorThrown = false;
 
   effect(() => {
     if (p.get() === 2) {
@@ -262,7 +226,7 @@ test('effect handles errors gracefully', () => {
 // onCleanup Tests
 // =============================================================================
 
-console.log('\n--- onCleanup Tests ---\n');
+printSection('onCleanup Tests');
 
 test('onCleanup runs when effect re-executes', () => {
   const p = pulse(1);
@@ -317,7 +281,7 @@ test('multiple onCleanup callbacks', () => {
 // Computed Tests
 // =============================================================================
 
-console.log('\n--- Computed Tests ---\n');
+printSection('Computed Tests');
 
 test('computed calculates derived value', () => {
   const a = pulse(2);
@@ -428,7 +392,7 @@ test('computed dispose stops updates', () => {
 // Batch Tests
 // =============================================================================
 
-console.log('\n--- Batch Tests ---\n');
+printSection('Batch Tests');
 
 test('batch defers effects', () => {
   const a = pulse(1);
@@ -484,7 +448,7 @@ test('batch returns function result', () => {
 // createState Tests
 // =============================================================================
 
-console.log('\n--- createState Tests ---\n');
+printSection('createState Tests');
 
 test('createState creates reactive properties', () => {
   const state = createState({ count: 0, name: 'test' });
@@ -610,7 +574,7 @@ test('createState array changes are reactive', () => {
 // watch Tests
 // =============================================================================
 
-console.log('\n--- watch Tests ---\n');
+printSection('watch Tests');
 
 test('watch runs callback on change', () => {
   const p = pulse(1);
@@ -666,7 +630,7 @@ test('watch returns cleanup function', () => {
 // untrack Tests
 // =============================================================================
 
-console.log('\n--- untrack Tests ---\n');
+printSection('untrack Tests');
 
 test('untrack reads without creating dependency', () => {
   const a = pulse(1);
@@ -699,7 +663,7 @@ test('untrack returns the value', () => {
 // memo Tests
 // =============================================================================
 
-console.log('\n--- memo Tests ---\n');
+printSection('memo Tests');
 
 test('memo caches results', () => {
   let computeCount = 0;
@@ -744,7 +708,7 @@ test('memo with custom equals', () => {
 // memoComputed Tests
 // =============================================================================
 
-console.log('\n--- memoComputed Tests ---\n');
+printSection('memoComputed Tests');
 
 test('memoComputed combines memo with computed', () => {
   const a = pulse(2);
@@ -770,9 +734,9 @@ test('memoComputed combines memo with computed', () => {
 // fromPromise Tests
 // =============================================================================
 
-console.log('\n--- fromPromise Tests ---\n');
+printSection('fromPromise Tests');
 
-await testAsync('fromPromise resolves value', async () => {
+testAsync('fromPromise resolves value', async () => {
   const { value, loading, error } = fromPromise(Promise.resolve(42));
 
   assert(loading.get() === true, 'Should be loading initially');
@@ -784,7 +748,7 @@ await testAsync('fromPromise resolves value', async () => {
   assertEqual(error.get(), null);
 });
 
-await testAsync('fromPromise handles rejection', async () => {
+testAsync('fromPromise handles rejection', async () => {
   const testError = new Error('Test error');
   const { value, loading, error } = fromPromise(Promise.reject(testError));
 
@@ -794,7 +758,7 @@ await testAsync('fromPromise handles rejection', async () => {
   assertEqual(error.get(), testError);
 });
 
-await testAsync('fromPromise uses initial value', async () => {
+testAsync('fromPromise uses initial value', async () => {
   const { value, loading } = fromPromise(
     new Promise(r => setTimeout(() => r(42), 50)),
     'initial'
@@ -805,14 +769,9 @@ await testAsync('fromPromise uses initial value', async () => {
 });
 
 // =============================================================================
-// Summary
+// Run Tests and Print Results
 // =============================================================================
 
-console.log('\n--- Summary ---\n');
-console.log(`Passed: ${passed}`);
-console.log(`Failed: ${failed}`);
-console.log(`Total: ${passed + failed}`);
-
-if (failed > 0) {
-  process.exit(1);
-}
+await runAsyncTests();
+printResults();
+exitWithCode();

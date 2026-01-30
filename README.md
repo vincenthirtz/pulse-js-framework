@@ -14,6 +14,7 @@ A declarative DOM framework with CSS selector-based structure and reactive pulsa
 - **Lightweight** - Minimal footprint, maximum performance
 - **Router & Store** - Built-in SPA routing and state management
 - **Mobile Apps** - Build native Android & iOS apps (zero dependencies)
+- **TypeScript Support** - Full type definitions for IDE autocomplete
 
 ## Installation
 
@@ -397,6 +398,27 @@ onNativeReady(({ platform }) => {
 ```
 
 **Available APIs:** Storage, Device Info, Network Status, Toast, Vibration, Clipboard, App Lifecycle
+
+## TypeScript Support
+
+Pulse includes full TypeScript definitions for IDE autocomplete and type checking:
+
+```typescript
+import { pulse, effect, computed, Pulse } from 'pulse-js-framework/runtime';
+import { el, list, when } from 'pulse-js-framework/runtime';
+import { createRouter, Router } from 'pulse-js-framework/runtime/router';
+import { createStore, Store } from 'pulse-js-framework/runtime/store';
+
+// Full autocomplete for all APIs
+const count: Pulse<number> = pulse(0);
+const doubled = computed(() => count.get() * 2);
+
+effect(() => {
+  console.log(count.get()); // Type-safe access
+});
+```
+
+Types are automatically detected by IDEs (VS Code, WebStorm) without additional configuration.
 
 ## Examples
 

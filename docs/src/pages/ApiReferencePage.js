@@ -11,6 +11,19 @@ export function ApiReferencePage() {
     <h1>📖 API Reference</h1>
 
     <section class="doc-section">
+      <h2>TypeScript Support</h2>
+      <p>Pulse includes full TypeScript definitions for IDE autocomplete. Types are automatically detected:</p>
+      <div class="code-block">
+        <pre><code>import { pulse, effect, computed, Pulse } from 'pulse-js-framework/runtime';
+import { createRouter, Router } from 'pulse-js-framework/runtime/router';
+import { createStore, Store } from 'pulse-js-framework/runtime/store';
+
+const count: Pulse&lt;number&gt; = pulse(0);
+const doubled = computed(() => count.get() * 2);</code></pre>
+      </div>
+    </section>
+
+    <section class="doc-section">
       <h2>Reactivity</h2>
 
       <div class="api-item">

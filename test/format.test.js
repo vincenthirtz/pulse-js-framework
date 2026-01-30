@@ -1,34 +1,35 @@
 /**
  * Format Command Tests
+ *
+ * Tests for the Pulse code formatter
+ *
+ * @module test/format
  */
 
 import { strict as assert } from 'node:assert';
 import { PulseFormatter, FormatOptions } from '../cli/format.js';
 import { parse } from '../compiler/index.js';
+import {
+  test,
+  printResults,
+  exitWithCode,
+  printSection
+} from './utils.js';
 
-let passed = 0;
-let failed = 0;
-
-function test(name, fn) {
-  try {
-    fn();
-    console.log(`✓ ${name}`);
-    passed++;
-  } catch (error) {
-    console.log(`✗ ${name}`);
-    console.log(`  ${error.message}`);
-    failed++;
-  }
-}
-
-// Helper function
+/**
+ * Formats Pulse source code
+ *
+ * @param {string} source - The Pulse source code
+ * @param {Object} [options={}] - Formatter options
+ * @returns {string} Formatted source code
+ */
 function format(source, options = {}) {
   const ast = parse(source);
   const formatter = new PulseFormatter(ast, options);
   return formatter.format();
 }
 
-console.log('\n--- Format Tests ---\n');
+printSection('Format Tests');
 
 // =============================================================================
 // Basic Formatting Tests
@@ -281,11 +282,5 @@ test('FormatOptions has correct defaults', () => {
 // Results
 // =============================================================================
 
-console.log('\n--- Results ---\n');
-console.log(`Passed: ${passed}`);
-console.log(`Failed: ${failed}`);
-console.log(`Total:  ${passed + failed}`);
-
-if (failed > 0) {
-  process.exit(1);
-}
+printResults();
+exitWithCode();

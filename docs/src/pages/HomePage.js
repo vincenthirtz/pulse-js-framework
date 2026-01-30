@@ -105,6 +105,13 @@ export function HomePage() {
             <td>Capacitor</td>
             <td><strong>Built-in</strong></td>
           </tr>
+          <tr>
+            <td>TypeScript</td>
+            <td>Built-in</td>
+            <td>Built-in</td>
+            <td>Built-in</td>
+            <td><strong>Built-in</strong></td>
+          </tr>
         </tbody>
       </table>
     </div>

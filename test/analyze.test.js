@@ -1,27 +1,22 @@
 /**
  * Analyze Command Tests
+ *
+ * Tests for bundle analysis and file utilities
+ *
+ * @module test/analyze
  */
 
 import { strict as assert } from 'node:assert';
 import { buildImportGraph } from '../cli/analyze.js';
 import { findPulseFiles, formatBytes, parseArgs } from '../cli/utils/file-utils.js';
+import {
+  test,
+  printResults,
+  exitWithCode,
+  printSection
+} from './utils.js';
 
-let passed = 0;
-let failed = 0;
-
-function test(name, fn) {
-  try {
-    fn();
-    console.log(`✓ ${name}`);
-    passed++;
-  } catch (error) {
-    console.log(`✗ ${name}`);
-    console.log(`  ${error.message}`);
-    failed++;
-  }
-}
-
-console.log('\n--- Analyze Tests ---\n');
+printSection('Analyze Tests');
 
 // =============================================================================
 // File Utils Tests
@@ -96,11 +91,5 @@ test('buildImportGraph returns correct structure', async () => {
 // Results
 // =============================================================================
 
-console.log('\n--- Results ---\n');
-console.log(`Passed: ${passed}`);
-console.log(`Failed: ${failed}`);
-console.log(`Total:  ${passed + failed}`);
-
-if (failed > 0) {
-  process.exit(1);
-}
+printResults();
+exitWithCode();
