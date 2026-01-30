@@ -124,12 +124,14 @@ const KEYWORDS = {
  * Token class
  */
 export class Token {
-  constructor(type, value, line, column, raw = null) {
+  constructor(type, value, line, column, raw = null, startPos = null, endPos = null) {
     this.type = type;
     this.value = value;
     this.line = line;
     this.column = column;
     this.raw = raw || value;
+    this.startPos = startPos;
+    this.endPos = endPos;
   }
 
   toString() {

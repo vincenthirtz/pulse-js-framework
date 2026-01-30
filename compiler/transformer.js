@@ -256,30 +256,177 @@ export class Transformer {
    */
   transformFunctionBody(tokens) {
     let code = '';
-    for (const token of tokens) {
+    let lastToken = null;
+    let lastNonSpaceToken = null;
+    const statementKeywords = ['let', 'const', 'var', 'return', 'if', 'else', 'for', 'while', 'switch', 'throw', 'try', 'catch', 'finally'];
+    const builtinFunctions = ['setTimeout', 'setInterval', 'clearTimeout', 'clearInterval', 'alert', 'confirm', 'prompt', 'console', 'document', 'window', 'Math', 'JSON', 'Date', 'Array', 'Object', 'String', 'Number', 'Boolean', 'Promise', 'fetch'];
+
+    // Tokens that should not have space after them
+    const noSpaceAfterTypes = new Set(['DOT', 'LPAREN', 'LBRACKET', 'LBRACE', 'NOT', 'SPREAD']);
+    const noSpaceAfterValues = new Set(['.', '(', '[', '{', '!', '~', '...']);
+
+    // Tokens that should not have space before them
+    const noSpaceBeforeTypes = new Set(['DOT', 'RPAREN', 'RBRACKET', 'RBRACE', 'SEMICOLON', 'COMMA', 'INCREMENT', 'DECREMENT', 'LPAREN', 'LBRACKET']);
+    const noSpaceBeforeValues = new Set(['.', ')', ']', '}', ';', ',', '++', '--', '(', '[']);
+
+    // Check if token is a statement starter that the regex won't handle
+    // (i.e., not a state variable assignment - those are handled by regex)
+    // Statement keywords that have their own token types
+    // Note: ELSE is excluded because it follows IF and should not have semicolon before it
+    const statementTokenTypes = new Set(['IF', 'FOR', 'EACH']);
+
+    const needsManualSemicolon = (token, nextToken, lastNonSpace) => {
+      if (!token) return false;
+
+      // Don't add semicolon after 'new' keyword (e.g., new Date())
+      if (lastNonSpace?.value === 'new') return false;
+
+      // Statement keywords with dedicated token types (if, else, for, etc.)
+      if (statementTokenTypes.has(token.type)) return true;
+
+      // Only process IDENT tokens from here
+      if (token.type !== 'IDENT') return false;
+
+      // Statement keywords (let, const, var, return, etc.)
+      if (statementKeywords.includes(token.value)) return true;
+
+      // Builtin function call or action call (not state var assignment)
+      if (nextToken?.type === 'LPAREN') {
+        if (builtinFunctions.includes(token.value)) return true;
+        if (this.actionNames.has(token.value)) return true;
+      }
+
+      // Builtin method chain (e.g., document.body.classList.toggle(...))
+      if (nextToken?.type === 'DOT' && builtinFunctions.includes(token.value)) {
+        return true;
+      }
+
+      // NOTE: State variable assignments are NOT included here
+      // because they are handled by the regex replacement which adds semicolons
+
+      return false;
+    };
+
+    // Check if previous context indicates end of statement
+    const afterStatementEnd = (lastNonSpace) => {
+      if (!lastNonSpace) return false;
+      return lastNonSpace.type === 'RBRACE' ||
+             lastNonSpace.type === 'RPAREN' ||
+             lastNonSpace.type === 'RBRACKET' ||
+             lastNonSpace.type === 'SEMICOLON' ||
+             lastNonSpace.type === 'STRING' ||
+             lastNonSpace.type === 'NUMBER' ||
+             lastNonSpace.type === 'TRUE' ||
+             lastNonSpace.type === 'FALSE' ||
+             lastNonSpace.type === 'NULL' ||
+             lastNonSpace.value === 'null' ||
+             lastNonSpace.value === 'true' ||
+             lastNonSpace.value === 'false' ||
+             lastNonSpace.type === 'IDENT';  // Any identifier can end a statement (variables, function results, etc.)
+    };
+
+    let afterIfCondition = false;  // Track if we just closed an if(...) condition
+
+    for (let i = 0; i < tokens.length; i++) {
+      const token = tokens[i];
+      const nextToken = tokens[i + 1];
+
+      // Track if we're exiting an if condition (if followed by ( ... ))
+      if (token.type === 'RPAREN' && lastNonSpaceToken?.type === 'IF') {
+        // This isn't quite right - we need to track the if keyword before the paren
+      }
+
+      // Detect if we just closed an if/for/while condition
+      // Look back to find if there was an if/for/while before this )
+      if (token.type === 'RPAREN') {
+        // Check if this ) closes an if/for/while condition
+        // by looking for the matching ( and what's before it
+        let parenDepth = 1;
+        for (let j = i - 1; j >= 0 && parenDepth > 0; j--) {
+          if (tokens[j].type === 'RPAREN') parenDepth++;
+          else if (tokens[j].type === 'LPAREN') parenDepth--;
+          if (parenDepth === 0) {
+            // Found matching (, check what's before it
+            if (j > 0 && (tokens[j - 1].type === 'IF' || tokens[j - 1].type === 'FOR' ||
+                         tokens[j - 1].type === 'EACH' || tokens[j - 1].value === 'while')) {
+              afterIfCondition = true;
+            }
+            break;
+          }
+        }
+      }
+
+      // Add semicolon before statement starters (only for non-state-var cases)
+      // But NOT immediately after an if/for/while condition (the next statement is the body)
+      if (needsManualSemicolon(token, nextToken, lastNonSpaceToken) && afterStatementEnd(lastNonSpaceToken)) {
+        if (!afterIfCondition && lastToken && lastToken.value !== ';' && lastToken.value !== '{') {
+          code += '; ';
+        }
+      }
+
+      // Reset afterIfCondition after processing the token following the condition
+      if (afterIfCondition && token.type !== 'RPAREN') {
+        afterIfCondition = false;
+      }
+
+      // Emit the token value
       if (token.type === 'STRING') {
         code += token.raw || JSON.stringify(token.value);
+      } else if (token.type === 'TEMPLATE') {
+        code += token.raw || ('`' + token.value + '`');
       } else {
         code += token.value;
       }
-      code += ' ';
+
+      // Decide whether to add space after this token
+      let addSpace = true;
+
+      // No space after certain tokens
+      if (noSpaceAfterTypes.has(token.type) || noSpaceAfterValues.has(token.value)) {
+        addSpace = false;
+      }
+
+      // No space before certain tokens (look ahead)
+      if (nextToken && (noSpaceBeforeTypes.has(nextToken.type) || noSpaceBeforeValues.has(nextToken.value))) {
+        addSpace = false;
+      }
+
+      if (addSpace && nextToken) {
+        code += ' ';
+      }
+
+      lastToken = token;
+      lastNonSpaceToken = token;
     }
 
-    // Transform state access
+    // Build patterns for boundaries
+    const stateVarPattern = [...this.stateVars].join('|');
+    const funcPattern = [...this.actionNames, ...builtinFunctions].join('|');
+
+    // Transform state access - order matters!
+    // First, replace state var assignments with boundary detection
+    // Use multiple passes to handle the case where replacements change the boundaries
     for (const stateVar of this.stateVars) {
-      // Replace standalone state var assignments
-      code = code.replace(
-        new RegExp(`\\b${stateVar}\\s*=\\s*`, 'g'),
-        `${stateVar}.set(`
+      // Replace standalone state var assignments: stateVar = value -> stateVar.set(value)
+      // Use negative lookahead (?!=) to avoid matching === or ==
+      // Stop at: next state var assignment (original or already replaced), function call, statement keyword, or end
+      const boundaryPattern = `\\s+(?:${stateVarPattern})(?:\\s*=(?!=)|\\s*\\.set\\()|\\s+(?:${funcPattern})\\s*\\(|\\s+(?:${statementKeywords.join('|')})\\b|;|$`;
+      const assignPattern = new RegExp(
+        `\\b${stateVar}\\s*=(?!=)\\s*(.+?)(?=${boundaryPattern})`,
+        'g'
       );
-      // Close the set call (simplified)
+      code = code.replace(assignPattern, (_match, value) => `${stateVar}.set(${value.trim()});`);
+    }
+
+    // Clean up any double semicolons
+    code = code.replace(/;+/g, ';');
+    code = code.replace(/; ;/g, ';');
+
+    // Then, replace state var reads (not followed by . or single = or ( or already .set/.get)
+    // Use (?!=) to ensure we don't skip === or == comparisons
+    for (const stateVar of this.stateVars) {
       code = code.replace(
-        new RegExp(`${stateVar}\\.set\\(([^;\\n]+)([;\\n])`, 'g'),
-        `${stateVar}.set($1)$2`
-      );
-      // Replace state var reads
-      code = code.replace(
-        new RegExp(`\\b${stateVar}\\b(?!\\s*[.=])`, 'g'),
+        new RegExp(`\\b${stateVar}\\b(?!\\s*\\.|\\s*=(?!=)|\\s*\\(|\\s*\\.(?:get|set))`, 'g'),
         `${stateVar}.get()`
       );
     }
