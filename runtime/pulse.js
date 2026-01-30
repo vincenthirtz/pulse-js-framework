@@ -28,6 +28,8 @@ const log = loggers.pulse;
  * @property {number} batchDepth - Nesting depth of batch() calls
  * @property {Set<EffectFn>} pendingEffects - Effects queued during batch
  * @property {boolean} isRunningEffects - Flag to prevent recursive effect flushing
+ * @property {string|null} currentModuleId - Current module ID for HMR effect tracking
+ * @property {Map<string, Set<EffectFn>>} effectRegistry - Module ID to effects mapping for HMR
  */
 
 /**
@@ -39,7 +41,10 @@ export const context = {
   currentEffect: null,
   batchDepth: 0,
   pendingEffects: new Set(),
-  isRunningEffects: false
+  isRunningEffects: false,
+  // HMR support
+  currentModuleId: null,
+  effectRegistry: new Map()
 };
 
 /**
@@ -56,6 +61,56 @@ export function resetContext() {
   context.batchDepth = 0;
   context.pendingEffects.clear();
   context.isRunningEffects = false;
+  context.currentModuleId = null;
+  context.effectRegistry.clear();
+}
+
+/**
+ * Set the current module ID for HMR effect tracking.
+ * Effects created while a module ID is set will be registered for cleanup.
+ * @param {string} moduleId - The module identifier (typically import.meta.url)
+ * @returns {void}
+ */
+export function setCurrentModule(moduleId) {
+  context.currentModuleId = moduleId;
+}
+
+/**
+ * Clear the current module ID after module initialization.
+ * @returns {void}
+ */
+export function clearCurrentModule() {
+  context.currentModuleId = null;
+}
+
+/**
+ * Dispose all effects associated with a module.
+ * Called during HMR to clean up before re-executing the module.
+ * @param {string} moduleId - The module identifier to dispose
+ * @returns {void}
+ */
+export function disposeModule(moduleId) {
+  const effects = context.effectRegistry.get(moduleId);
+  if (effects) {
+    for (const effectFn of effects) {
+      // Run cleanup functions
+      for (const cleanup of effectFn.cleanups) {
+        try {
+          cleanup();
+        } catch (e) {
+          log.error('HMR cleanup error:', e);
+        }
+      }
+      effectFn.cleanups = [];
+
+      // Unsubscribe from all dependencies
+      for (const dep of effectFn.dependencies) {
+        dep._unsubscribe(effectFn);
+      }
+      effectFn.dependencies.clear();
+    }
+    context.effectRegistry.delete(moduleId);
+  }
 }
 
 /**
@@ -491,6 +546,9 @@ export function computed(fn, options = {}) {
  * });
  */
 export function effect(fn) {
+  // Capture module ID at creation time for HMR tracking
+  const moduleId = context.currentModuleId;
+
   const effectFn = {
     run: () => {
       // Run cleanup functions from previous run
@@ -525,6 +583,14 @@ export function effect(fn) {
     cleanups: []
   };
 
+  // HMR: Register effect with current module
+  if (moduleId) {
+    if (!context.effectRegistry.has(moduleId)) {
+      context.effectRegistry.set(moduleId, new Set());
+    }
+    context.effectRegistry.get(moduleId).add(effectFn);
+  }
+
   // Run immediately to collect dependencies
   effectFn.run();
 
@@ -544,6 +610,11 @@ export function effect(fn) {
       dep._unsubscribe(effectFn);
     }
     effectFn.dependencies.clear();
+
+    // HMR: Remove from registry
+    if (moduleId && context.effectRegistry.has(moduleId)) {
+      context.effectRegistry.get(moduleId).delete(effectFn);
+    }
   };
 }
 
@@ -878,5 +949,9 @@ export default {
   memo,
   memoComputed,
   context,
-  resetContext
+  resetContext,
+  // HMR support
+  setCurrentModule,
+  clearCurrentModule,
+  disposeModule
 };

@@ -300,6 +300,12 @@ export function style(element, prop, getValue) {
  */
 export function on(element, event, handler, options) {
   element.addEventListener(event, handler, options);
+
+  // Auto-cleanup: remove listener when effect is disposed (HMR support)
+  onCleanup(() => {
+    element.removeEventListener(event, handler, options);
+  });
+
   return element;
 }
 

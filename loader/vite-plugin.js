@@ -69,22 +69,30 @@ export default function pulsePlugin(options = {}) {
     /**
      * Handle hot module replacement
      */
-    handleHotUpdate({ file, server }) {
+    handleHotUpdate({ file, server, modules }) {
       if (file.endsWith('.pulse')) {
         console.log(`[Pulse] HMR update: ${file}`);
 
-        // Invalidate the module
+        // Invalidate the module in Vite's module graph
         const module = server.moduleGraph.getModuleById(file);
         if (module) {
           server.moduleGraph.invalidateModule(module);
         }
 
-        // Send full reload for now
-        // In a more advanced implementation, we could do partial updates
+        // Send HMR update instead of full reload
+        // The module will handle its own state preservation via hmrRuntime
         server.ws.send({
-          type: 'full-reload',
-          path: '*'
+          type: 'update',
+          updates: [{
+            type: 'js-update',
+            path: file,
+            acceptedPath: file,
+            timestamp: Date.now()
+          }]
         });
+
+        // Return empty array to prevent Vite's default HMR handling
+        return [];
       }
     },
 
@@ -117,6 +125,14 @@ export default function pulsePlugin(options = {}) {
  */
 export const hmrRuntime = `
 if (import.meta.hot) {
+  // Cleanup effects before module replacement
+  import.meta.hot.dispose(() => {
+    import('pulse-js-framework/runtime/pulse').then(m => {
+      m.disposeModule(import.meta.url);
+    });
+  });
+
+  // Accept HMR updates
   import.meta.hot.accept((newModule) => {
     if (newModule) {
       // Re-render with new module
