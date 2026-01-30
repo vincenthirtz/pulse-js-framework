@@ -50,7 +50,8 @@
     "test:lint": "node test/lint.test.js",
     "test:format": "node test/format.test.js",
     "test:analyze": "node test/analyze.test.js",
-    "build:netlify": "node scripts/build-netlify.js"
+    "build:netlify": "node scripts/build-netlify.js",
+    "version": "node scripts/sync-version.js"
   },
   "keywords": [
     "framework",

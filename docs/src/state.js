@@ -45,8 +45,8 @@ export const navigation = [
   { path: '/playground', label: '🎮 Playground' }
 ];
 
-// Current version
-export const version = '1.4.3';
+// Current version - automatically updated by npm version script
+export const version = '1.4.4';
 
 // =============================================================================
 // Router
