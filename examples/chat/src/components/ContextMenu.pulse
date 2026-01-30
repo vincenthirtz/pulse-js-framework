@@ -1,0 +1,109 @@
+/**
+ * ContextMenu Component - Right-click menu for messages
+ */
+
+@page ContextMenu
+
+props {
+  context: null
+  reactions: []
+  onAddReaction: null
+  onEdit: null
+  onDelete: null
+  onClose: null
+}
+
+view {
+  .context-menu[style="display: {context ? 'block' : 'none'}; left: {context ? context.x : 0}px; top: {context ? context.y : 0}px"] {
+    @if (context) {
+      .context-reactions {
+        @for (emoji of reactions) {
+          button.context-reaction-btn @click(handleReaction(emoji)) "{emoji}"
+        }
+      }
+      @if (context.isOwn) {
+        button.context-action @click(handleEdit()) "✏️ Edit"
+        button.context-action.danger @click(handleDelete()) "🗑️ Delete"
+      }
+    }
+  }
+}
+
+actions {
+  handleReaction(emoji) {
+    if (onAddReaction && context) {
+      onAddReaction(context.msg.id, emoji)
+    }
+  }
+
+  handleEdit() {
+    if (onEdit && context) {
+      onEdit(context.msg)
+    }
+  }
+
+  handleDelete() {
+    if (onDelete && context) {
+      onDelete(context.msg.id)
+    }
+  }
+}
+
+style {
+  .context-menu {
+    position: fixed;
+    background: var(--bg-medium);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    z-index: 300;
+    min-width: 180px;
+    overflow: hidden;
+  }
+
+  .context-reactions {
+    display: flex;
+    padding: 8px;
+    gap: 4px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .context-reaction-btn {
+    background: none;
+    border: none;
+    font-size: 1.2em;
+    padding: 6px 8px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background 0.2s;
+  }
+
+  .context-reaction-btn:hover {
+    background: var(--bg-lighter);
+  }
+
+  .context-action {
+    display: block;
+    width: 100%;
+    padding: 10px 14px;
+    background: none;
+    border: none;
+    color: var(--text);
+    font-size: 0.9em;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .context-action:hover {
+    background: var(--bg-lighter);
+  }
+
+  .context-action.danger {
+    color: #ed4245;
+  }
+
+  .context-action.danger:hover {
+    background: rgba(237, 66, 69, 0.1);
+  }
+}

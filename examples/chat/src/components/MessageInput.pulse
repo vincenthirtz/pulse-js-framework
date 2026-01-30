@@ -1,0 +1,189 @@
+/**
+ * MessageInput Component - Input area for sending messages
+ */
+
+@page MessageInput
+
+props {
+  inputText: ""
+  editingMessage: null
+  showEmojiPicker: false
+  onInputChange: null
+  onSend: null
+  onSaveEdit: null
+  onCancelEdit: null
+  onToggleEmoji: null
+  onSelectEmoji: null
+}
+
+view {
+  .message-input-container {
+    .emoji-picker[style="display: {showEmojiPicker ? 'grid' : 'none'}"] {
+      @for (emoji of getEmojis()) {
+        button.emoji-btn @click(onSelectEmoji && onSelectEmoji(emoji)) "{emoji}"
+      }
+    }
+
+    @if (editingMessage) {
+      .edit-indicator {
+        span "✏️ Editing message"
+        button.cancel-edit-btn @click(onCancelEdit && onCancelEdit()) "Cancel"
+      }
+    }
+
+    .input-row {
+      button.emoji-toggle @click(onToggleEmoji && onToggleEmoji()) "😊"
+      input.message-input[type=text][placeholder="Type a message..."][value={inputText}] @input(onInputChange && onInputChange(event.target.value)) @keydown(handleKeydown(event))
+      button.send-btn @click(handleSend()) "{editingMessage ? '✓' : '📤'}"
+    }
+  }
+}
+
+actions {
+  getEmojis() {
+    return [
+      "😀", "😃", "😄", "😁", "😅", "😂", "🤣", "😊",
+      "😇", "🥰", "😍", "🤩", "😘", "😗", "😚", "😋",
+      "😛", "😜", "🤪", "😝", "🤑", "🤗", "🤭", "🤫",
+      "🤔", "🤐", "🤨", "😐", "😑", "😶", "😏", "😒",
+      "🙄", "😬", "😮", "😯", "😲", "😳", "🥺", "😦",
+      "😧", "😨", "😰", "😥", "😢", "😭", "😱", "😖",
+      "👍", "👎", "👏", "🙌", "🤝", "🙏", "💪", "🎉",
+      "❤️", "🧡", "💛", "💚", "💙", "💜", "🖤", "💯"
+    ]
+  }
+
+  handleKeydown(e) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault()
+      handleSend()
+    }
+    if (e.key === "Escape" && editingMessage) {
+      if (onCancelEdit) onCancelEdit()
+    }
+  }
+
+  handleSend() {
+    if (editingMessage) {
+      if (onSaveEdit) onSaveEdit()
+    } else {
+      if (onSend) onSend()
+    }
+  }
+}
+
+style {
+  .message-input-container {
+    padding: 16px 20px;
+    background: var(--bg-light);
+    position: relative;
+  }
+
+  .emoji-picker {
+    position: absolute;
+    bottom: 100%;
+    left: 20px;
+    background: var(--bg-medium);
+    border-radius: var(--radius);
+    padding: 12px;
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 4px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    max-height: 200px;
+    overflow-y: auto;
+  }
+
+  .emoji-btn {
+    background: none;
+    border: none;
+    font-size: 1.3em;
+    padding: 8px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background 0.2s;
+  }
+
+  .emoji-btn:hover {
+    background: var(--bg-lighter);
+  }
+
+  .edit-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: rgba(88, 101, 242, 0.1);
+    border-left: 3px solid var(--primary);
+    margin-bottom: 8px;
+    border-radius: 0 var(--radius) var(--radius) 0;
+    font-size: 0.9em;
+    color: var(--text-muted);
+  }
+
+  .cancel-edit-btn {
+    background: none;
+    border: none;
+    color: var(--primary);
+    cursor: pointer;
+    font-size: 0.85em;
+    padding: 4px 8px;
+    border-radius: 4px;
+  }
+
+  .cancel-edit-btn:hover {
+    background: rgba(88, 101, 242, 0.2);
+  }
+
+  .input-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .emoji-toggle {
+    background: none;
+    border: none;
+    font-size: 1.5em;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+  }
+
+  .emoji-toggle:hover {
+    opacity: 1;
+  }
+
+  .message-input {
+    flex: 1;
+    padding: 14px 18px;
+    background: var(--bg-lighter);
+    border: none;
+    border-radius: var(--radius);
+    color: var(--text);
+    font-size: 1em;
+    outline: none;
+  }
+
+  .message-input::placeholder {
+    color: var(--text-muted);
+  }
+
+  .message-input:focus {
+    box-shadow: 0 0 0 2px var(--primary);
+  }
+
+  .send-btn {
+    background: var(--primary);
+    border: none;
+    font-size: 1.3em;
+    padding: 12px 16px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .send-btn:hover {
+    background: var(--primary-dark);
+  }
+}

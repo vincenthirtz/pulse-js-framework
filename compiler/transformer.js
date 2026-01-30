@@ -67,6 +67,16 @@ export class Transformer {
       this.extractActionNames(this.ast.actions);
     }
 
+    // Store (must come before router so $store is available to guards)
+    if (this.ast.store) {
+      parts.push(this.transformStore(this.ast.store));
+    }
+
+    // Router (after store so guards can access $store)
+    if (this.ast.router) {
+      parts.push(this.transformRouter(this.ast.router));
+    }
+
     // State
     if (this.ast.state) {
       parts.push(this.transformState(this.ast.state));
@@ -130,6 +140,17 @@ export class Transformer {
     ];
 
     lines.push(`import { ${runtimeImports.join(', ')} } from '${this.options.runtime}';`);
+
+    // Router imports (if router block exists)
+    if (this.ast.router) {
+      lines.push(`import { createRouter } from '${this.options.runtime}/router';`);
+    }
+
+    // Store imports (if store block exists)
+    if (this.ast.store) {
+      const storeImports = ['createStore', 'createActions', 'createGetters'];
+      lines.push(`import { ${storeImports.join(', ')} } from '${this.options.runtime}/store';`);
+    }
 
     // User imports from .pulse files
     if (this.ast.imports && this.ast.imports.length > 0) {
@@ -213,6 +234,189 @@ export class Transformer {
     }
 
     return lines.join('\n');
+  }
+
+  // =============================================================================
+  // Router Transformation
+  // =============================================================================
+
+  /**
+   * Transform router block to createRouter() call
+   */
+  transformRouter(routerBlock) {
+    const lines = ['// Router'];
+
+    // Build routes object
+    const routesCode = [];
+    for (const route of routerBlock.routes) {
+      routesCode.push(`    '${route.path}': ${route.handler}`);
+    }
+
+    lines.push('const router = createRouter({');
+    lines.push(`  mode: '${routerBlock.mode}',`);
+    if (routerBlock.base) {
+      lines.push(`  base: '${routerBlock.base}',`);
+    }
+    lines.push('  routes: {');
+    lines.push(routesCode.join(',\n'));
+    lines.push('  }');
+    lines.push('});');
+    lines.push('');
+
+    // Add global guards
+    if (routerBlock.beforeEach) {
+      const params = routerBlock.beforeEach.params.join(', ');
+      const body = this.transformRouterGuardBody(routerBlock.beforeEach.body);
+      lines.push(`router.beforeEach((${params}) => { ${body} });`);
+    }
+
+    if (routerBlock.afterEach) {
+      const params = routerBlock.afterEach.params.join(', ');
+      const body = this.transformRouterGuardBody(routerBlock.afterEach.body);
+      lines.push(`router.afterEach((${params}) => { ${body} });`);
+    }
+
+    lines.push('');
+    lines.push('// Start router');
+    lines.push('router.start();');
+
+    return lines.join('\n');
+  }
+
+  /**
+   * Transform router guard body - handles store references
+   */
+  transformRouterGuardBody(tokens) {
+    let code = '';
+    for (let i = 0; i < tokens.length; i++) {
+      const token = tokens[i];
+      if (token.type === 'STRING') {
+        code += token.raw || JSON.stringify(token.value);
+      } else if (token.type === 'TEMPLATE') {
+        code += token.raw || ('`' + token.value + '`');
+      } else if (token.value === 'store' && tokens[i + 1]?.type === 'DOT') {
+        // Transform store.xxx to $store.xxx for accessing combined store
+        code += '$store';
+      } else {
+        code += token.value;
+      }
+      // Add space between tokens unless it's punctuation (before or after)
+      const nextToken = tokens[i + 1];
+      const noPunctBefore = ['DOT', 'LPAREN', 'RPAREN', 'LBRACKET', 'RBRACKET', 'SEMICOLON', 'COMMA', 'COLON'];
+      const noPunctAfter = ['DOT', 'LPAREN', 'LBRACKET', 'NOT', 'COLON'];
+      if (nextToken && !noPunctBefore.includes(nextToken.type) && !noPunctAfter.includes(token.type)) {
+        code += ' ';
+      }
+    }
+    return code.trim();
+  }
+
+  // =============================================================================
+  // Store Transformation
+  // =============================================================================
+
+  /**
+   * Transform store block to createStore(), createActions(), createGetters() calls
+   */
+  transformStore(storeBlock) {
+    const lines = ['// Store'];
+
+    // Transform state
+    if (storeBlock.state) {
+      const stateProps = storeBlock.state.properties.map(p =>
+        `  ${p.name}: ${this.transformValue(p.value)}`
+      ).join(',\n');
+
+      lines.push('const store = createStore({');
+      lines.push(stateProps);
+      lines.push('}, {');
+      lines.push(`  persist: ${storeBlock.persist},`);
+      lines.push(`  storageKey: '${storeBlock.storageKey}'`);
+      lines.push('});');
+      lines.push('');
+    }
+
+    // Transform actions
+    if (storeBlock.actions) {
+      lines.push('const storeActions = createActions(store, {');
+      for (const fn of storeBlock.actions.functions) {
+        const params = fn.params.length > 0 ? ', ' + fn.params.join(', ') : '';
+        const body = this.transformStoreActionBody(fn.body);
+        lines.push(`  ${fn.name}: (store${params}) => { ${body} },`);
+      }
+      lines.push('});');
+      lines.push('');
+    }
+
+    // Transform getters
+    if (storeBlock.getters) {
+      lines.push('const storeGetters = createGetters(store, {');
+      for (const getter of storeBlock.getters.getters) {
+        const body = this.transformStoreGetterBody(getter.body);
+        lines.push(`  ${getter.name}: (store) => { ${body} },`);
+      }
+      lines.push('});');
+      lines.push('');
+    }
+
+    // Create combined $store object for easy access
+    lines.push('// Combined store with actions and getters');
+    lines.push('const $store = {');
+    lines.push('  ...store,');
+    if (storeBlock.actions) {
+      lines.push('  ...storeActions,');
+    }
+    if (storeBlock.getters) {
+      lines.push('  ...storeGetters,');
+    }
+    lines.push('};');
+
+    return lines.join('\n');
+  }
+
+  /**
+   * Transform store action body (this.x = y -> store.x.set(y))
+   */
+  transformStoreActionBody(tokens) {
+    let code = '';
+    for (let i = 0; i < tokens.length; i++) {
+      const token = tokens[i];
+      // Transform 'this' to 'store'
+      if (token.value === 'this') {
+        code += 'store';
+      } else if (token.type === 'STRING') {
+        code += token.raw || JSON.stringify(token.value);
+      } else if (token.type === 'TEMPLATE') {
+        code += token.raw || ('`' + token.value + '`');
+      } else if (token.type === 'COLON') {
+        // Handle colon with proper spacing (ternary operator)
+        code += ' : ';
+      } else {
+        code += token.value;
+      }
+      // Add space between tokens unless it's punctuation (before or after)
+      const nextToken = tokens[i + 1];
+      const noPunctBefore = ['DOT', 'LPAREN', 'RPAREN', 'LBRACKET', 'RBRACKET', 'SEMICOLON', 'COMMA', 'COLON'];
+      const noPunctAfter = ['DOT', 'LPAREN', 'LBRACKET', 'NOT', 'COLON'];
+      if (nextToken && !noPunctBefore.includes(nextToken.type) && !noPunctAfter.includes(token.type)) {
+        code += ' ';
+      }
+    }
+
+    // Post-process: store.x = y -> store.x.set(y)
+    code = code.replace(/store\.(\w+)\s*=\s*([^;]+)/g, 'store.$1.set($2)');
+
+    return code.trim();
+  }
+
+  /**
+   * Transform store getter body (this.x -> store.x.get())
+   */
+  transformStoreGetterBody(tokens) {
+    let code = this.transformStoreActionBody(tokens);
+    // Transform store.x reads to store.x.get() (but not store.x.set or store.x.get)
+    code = code.replace(/store\.(\w+)(?!\.(?:get|set)\()/g, 'store.$1.get()');
+    return code;
   }
 
   /**
@@ -521,6 +725,16 @@ export class Transformer {
       case NodeType.SlotElement:
         return this.transformSlot(node, indent);
 
+      // Router directives
+      case NodeType.LinkDirective:
+        return this.transformLinkDirective(node, indent);
+
+      case NodeType.OutletDirective:
+        return this.transformOutletDirective(node, indent);
+
+      case NodeType.NavigateDirective:
+        return this.transformNavigateDirective(node, indent);
+
       default:
         return `${pad}/* unknown node: ${node.type} */`;
     }
@@ -544,6 +758,66 @@ export class Transformer {
 
     // Simple slot reference
     return `${pad}(slots?.${slotName} ? slots.${slotName}() : null)`;
+  }
+
+  // =============================================================================
+  // Router Directive Transformations
+  // =============================================================================
+
+  /**
+   * Transform @link directive
+   */
+  transformLinkDirective(node, indent) {
+    const pad = ' '.repeat(indent);
+    const path = this.transformExpression(node.path);
+
+    let content;
+    if (Array.isArray(node.content)) {
+      content = node.content.map(c => this.transformViewNode(c, 0)).join(', ');
+    } else if (node.content) {
+      content = this.transformTextNode(node.content, 0).trim();
+    } else {
+      content = '""';
+    }
+
+    let options = '{}';
+    if (node.options) {
+      options = this.transformExpression(node.options);
+    }
+
+    return `${pad}router.link(${path}, ${content}, ${options})`;
+  }
+
+  /**
+   * Transform @outlet directive
+   */
+  transformOutletDirective(node, indent) {
+    const pad = ' '.repeat(indent);
+    const container = node.container ? `'${node.container}'` : "'#app'";
+    return `${pad}router.outlet(${container})`;
+  }
+
+  /**
+   * Transform @navigate directive (used in event handlers)
+   */
+  transformNavigateDirective(node, indent) {
+    const pad = ' '.repeat(indent);
+
+    // Handle @back and @forward
+    if (node.action === 'back') {
+      return `${pad}router.back()`;
+    }
+    if (node.action === 'forward') {
+      return `${pad}router.forward()`;
+    }
+
+    // Regular @navigate(path)
+    const path = this.transformExpression(node.path);
+    let options = '';
+    if (node.options) {
+      options = ', ' + this.transformExpression(node.options);
+    }
+    return `${pad}router.navigate(${path}${options})`;
   }
 
   /**

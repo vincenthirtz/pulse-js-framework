@@ -1,0 +1,414 @@
+/**
+ * Pulse Chat App - Main Application
+ */
+
+import Sidebar from './components/Sidebar.pulse'
+import ChatHeader from './components/ChatHeader.pulse'
+import MessageList from './components/MessageList.pulse'
+import MessageInput from './components/MessageInput.pulse'
+import UserSetupModal from './components/UserSetupModal.pulse'
+import ContextMenu from './components/ContextMenu.pulse'
+
+@page App
+
+state {
+  user: null
+  currentRoom: "general"
+  messages: {}
+  inputText: ""
+  onlineUsers: []
+  typingUsers: []
+  showUserSetup: true
+  showEmojiPicker: false
+  sidebarOpen: true
+  editingMessage: null
+  contextMenu: null
+}
+
+view {
+  .chat-app {
+    Sidebar(
+      user={user},
+      currentRoom={currentRoom},
+      rooms={getRooms()},
+      onlineUsers={onlineUsers},
+      messages={messages},
+      isOpen={sidebarOpen},
+      onChangeRoom={changeRoom},
+      onLogout={logout}
+    )
+    .chat-area {
+      ChatHeader(
+        room={getCurrentRoom()},
+        onToggleSidebar={toggleSidebar},
+        onClearChat={clearChat}
+      )
+      MessageList(
+        messages={getCurrentMessages()},
+        currentUserId={user ? user.id : null},
+        typingUsers={typingUsers},
+        onShowContextMenu={showContextMenuFn},
+        onAddReaction={addReaction}
+      )
+      MessageInput(
+        inputText={inputText},
+        editingMessage={editingMessage},
+        showEmojiPicker={showEmojiPicker},
+        onInputChange={setInputText},
+        onSend={sendMessage},
+        onSaveEdit={saveEditMessage},
+        onCancelEdit={cancelEdit},
+        onToggleEmoji={toggleEmojiPicker},
+        onSelectEmoji={addEmoji}
+      )
+    }
+    UserSetupModal(
+      show={showUserSetup},
+      onSetup={setupUser}
+    )
+    ContextMenu(
+      context={contextMenu},
+      reactions={getReactions()},
+      onAddReaction={addReaction},
+      onEdit={startEditMessage},
+      onDelete={deleteMessage},
+      onClose={closeContextMenu}
+    )
+  }
+}
+
+actions {
+  init() {
+    // Load user from localStorage
+    const savedUser = localStorage.getItem("chat-user")
+    if (savedUser) {
+      user = JSON.parse(savedUser)
+      showUserSetup = false
+    }
+
+    // Load messages from localStorage
+    const savedMessages = localStorage.getItem("chat-messages")
+    if (savedMessages) {
+      messages = JSON.parse(savedMessages)
+    }
+
+    // Initialize online users
+    onlineUsers = getBots().filter(b => b.status === "online")
+
+    // Close context menu on click
+    document.addEventListener("click", closeContextMenu)
+  }
+
+  getBots() {
+    return [
+      { id: "bot1", name: "Alice", avatar: "👩", status: "online" },
+      { id: "bot2", name: "Bob", avatar: "👨", status: "online" },
+      { id: "bot3", name: "Charlie", avatar: "🧑", status: "away" },
+      { id: "bot4", name: "Diana", avatar: "👩‍💻", status: "online" },
+      { id: "bot5", name: "Eve", avatar: "👱‍♀️", status: "offline" }
+    ]
+  }
+
+  getBotResponses() {
+    return [
+      "That's interesting! Tell me more.",
+      "I totally agree with you!",
+      "Hmm, I'm not sure about that...",
+      "Great point! 👍",
+      "Haha, that's funny! 😄",
+      "Really? I didn't know that!",
+      "Let me think about it...",
+      "Nice! I love that idea!",
+      "That reminds me of something...",
+      "Could you explain more?",
+      "I was just thinking the same thing!",
+      "Interesting perspective!",
+      "Thanks for sharing! 🙏",
+      "Oh wow, that's amazing!",
+      "I see what you mean."
+    ]
+  }
+
+  getRooms() {
+    return [
+      { id: "general", name: "General", icon: "💬", description: "General discussion" },
+      { id: "random", name: "Random", icon: "🎲", description: "Random topics" },
+      { id: "tech", name: "Tech Talk", icon: "💻", description: "Technology discussion" },
+      { id: "gaming", name: "Gaming", icon: "🎮", description: "Gaming chat" },
+      { id: "music", name: "Music", icon: "🎵", description: "Music lovers" }
+    ]
+  }
+
+  getReactions() {
+    return ["👍", "❤️", "😂", "😮", "😢", "🎉"]
+  }
+
+  getCurrentRoom() {
+    return getRooms().find(r => r.id === currentRoom)
+  }
+
+  getCurrentMessages() {
+    return messages[currentRoom] || []
+  }
+
+  saveUser() {
+    localStorage.setItem("chat-user", JSON.stringify(user))
+  }
+
+  saveMessages() {
+    localStorage.setItem("chat-messages", JSON.stringify(messages))
+  }
+
+  setupUser(name, avatar) {
+    user = {
+      id: "user_" + Date.now(),
+      name: name,
+      avatar: avatar,
+      status: "online"
+    }
+    saveUser()
+    showUserSetup = false
+    addSystemMessage("general", name + " joined the chat! Welcome! 🎉")
+  }
+
+  changeRoom(roomId) {
+    currentRoom = roomId
+    typingUsers = []
+  }
+
+  toggleSidebar() {
+    sidebarOpen = !sidebarOpen
+  }
+
+  setInputText(text) {
+    inputText = text
+    showEmojiPicker = false
+  }
+
+  toggleEmojiPicker() {
+    showEmojiPicker = !showEmojiPicker
+  }
+
+  addEmoji(emoji) {
+    inputText = inputText + emoji
+    showEmojiPicker = false
+  }
+
+  sendMessage() {
+    const text = inputText.trim()
+    if (!text || !user) return
+
+    const msg = {
+      id: "msg_" + Date.now(),
+      userId: user.id,
+      userName: user.name,
+      userAvatar: user.avatar,
+      text: text,
+      timestamp: Date.now(),
+      type: "user"
+    }
+
+    const roomMessages = messages[currentRoom] || []
+    messages = {
+      ...messages,
+      [currentRoom]: [...roomMessages, msg]
+    }
+    saveMessages()
+    inputText = ""
+
+    simulateBotResponse(currentRoom)
+  }
+
+  addSystemMessage(room, text) {
+    const msg = {
+      id: "sys_" + Date.now(),
+      text: text,
+      timestamp: Date.now(),
+      type: "system"
+    }
+
+    const roomMessages = messages[room] || []
+    messages = {
+      ...messages,
+      [room]: [...roomMessages, msg]
+    }
+    saveMessages()
+  }
+
+  simulateBotResponse(room) {
+    if (Math.random() > 0.7) return
+
+    const activeBots = getBots().filter(b => b.status === "online")
+    if (activeBots.length === 0) return
+
+    const bot = activeBots[Math.floor(Math.random() * activeBots.length)]
+
+    setTimeout(() => {
+      typingUsers = [bot]
+    }, 500)
+
+    const delay = 1500 + Math.random() * 2000
+    setTimeout(() => {
+      typingUsers = []
+
+      const responses = getBotResponses()
+      const response = responses[Math.floor(Math.random() * responses.length)]
+      const msg = {
+        id: "msg_" + Date.now(),
+        userId: bot.id,
+        userName: bot.name,
+        userAvatar: bot.avatar,
+        text: response,
+        timestamp: Date.now(),
+        type: "bot"
+      }
+
+      const roomMessages = messages[room] || []
+      messages = {
+        ...messages,
+        [room]: [...roomMessages, msg]
+      }
+      saveMessages()
+    }, delay)
+  }
+
+  showContextMenuFn(e, msg) {
+    e.preventDefault()
+    const isOwn = msg.userId === (user ? user.id : null)
+    contextMenu = {
+      x: e.clientX,
+      y: e.clientY,
+      msg: msg,
+      isOwn: isOwn
+    }
+  }
+
+  closeContextMenu() {
+    contextMenu = null
+  }
+
+  addReaction(msgId, emoji) {
+    const roomMessages = messages[currentRoom] || []
+    const updatedMessages = roomMessages.map(msg => {
+      if (msg.id === msgId) {
+        const reactions = msg.reactions || {}
+        const userId = user ? user.id : null
+        const users = reactions[emoji] || []
+
+        if (users.includes(userId)) {
+          reactions[emoji] = users.filter(id => id !== userId)
+          if (reactions[emoji].length === 0) delete reactions[emoji]
+        } else {
+          reactions[emoji] = [...users, userId]
+        }
+
+        return { ...msg, reactions: reactions }
+      }
+      return msg
+    })
+
+    messages = { ...messages, [currentRoom]: updatedMessages }
+    saveMessages()
+    contextMenu = null
+  }
+
+  deleteMessage(msgId) {
+    const roomMessages = messages[currentRoom] || []
+    messages = {
+      ...messages,
+      [currentRoom]: roomMessages.filter(msg => msg.id !== msgId)
+    }
+    saveMessages()
+    contextMenu = null
+  }
+
+  startEditMessage(msg) {
+    editingMessage = msg
+    inputText = msg.text
+    contextMenu = null
+  }
+
+  saveEditMessage() {
+    if (!editingMessage) return
+
+    const newText = inputText.trim()
+    if (!newText) return
+
+    const roomMessages = messages[currentRoom] || []
+    const updatedMessages = roomMessages.map(msg => {
+      if (msg.id === editingMessage.id) {
+        return { ...msg, text: newText, edited: true }
+      }
+      return msg
+    })
+
+    messages = { ...messages, [currentRoom]: updatedMessages }
+    saveMessages()
+    editingMessage = null
+    inputText = ""
+  }
+
+  cancelEdit() {
+    editingMessage = null
+    inputText = ""
+  }
+
+  clearChat() {
+    messages = {
+      ...messages,
+      [currentRoom]: []
+    }
+    saveMessages()
+  }
+
+  logout() {
+    user = null
+    localStorage.removeItem("chat-user")
+    showUserSetup = true
+  }
+}
+
+style {
+  :root {
+    --primary: #5865f2;
+    --primary-dark: #4752c4;
+    --bg-dark: #1e1f22;
+    --bg-medium: #2b2d31;
+    --bg-light: #313338;
+    --bg-lighter: #383a40;
+    --text: #f2f3f5;
+    --text-muted: #949ba4;
+    --text-dim: #6d6f78;
+    --online: #23a559;
+    --away: #f0b232;
+    --offline: #6d6f78;
+    --border: #3f4147;
+    --radius: 8px;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg-dark);
+    color: var(--text);
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  .chat-app {
+    display: flex;
+    height: 100vh;
+  }
+
+  .chat-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-light);
+  }
+}

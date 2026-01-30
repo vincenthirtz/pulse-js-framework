@@ -1,0 +1,114 @@
+/**
+ * Header Component - Title, dark mode toggle, progress bar, and new todo input
+ */
+
+@page Header
+
+props {
+  darkMode: false
+  progress: 0
+  newTodoText: ""
+  onToggleDarkMode: null
+  onNewTodoTextChange: null
+  onAddTodo: null
+}
+
+view {
+  header.header {
+    .title-row {
+      h1 "✨ todos"
+      button.dark-toggle[title="{darkMode ? 'Light mode' : 'Dark mode'}"] @click(onToggleDarkMode && onToggleDarkMode()) "{darkMode ? '☀️' : '🌙'}"
+    }
+    .progress-container {
+      .progress-bar[class="{progress === 100 ? 'complete' : ''}"][style="width: {progress}%"]
+      span.progress-text "{progress}% complete"
+    }
+    input.new-todo[placeholder="What needs to be done?"][autofocus][value={newTodoText}] @input(onNewTodoTextChange && onNewTodoTextChange(event.target.value)) @keydown(event.key === 'Enter' && onAddTodo && onAddTodo())
+  }
+}
+
+style {
+  .header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+
+  .header h1 {
+    margin: 0;
+    font-size: 2em;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--primary), #a855f7);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .dark-toggle {
+    background: none;
+    border: none;
+    font-size: 1.5em;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    transition: background 0.2s;
+  }
+
+  .dark-toggle:hover {
+    background: var(--border);
+  }
+
+  .progress-container {
+    background: var(--border);
+    border-radius: 100px;
+    height: 8px;
+    margin-bottom: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary), #a855f7);
+    border-radius: 100px;
+    transition: width 0.4s ease;
+  }
+
+  .progress-bar.complete {
+    background: linear-gradient(90deg, var(--success), #20c997);
+  }
+
+  .progress-text {
+    position: absolute;
+    right: 0;
+    top: 12px;
+    font-size: 0.75em;
+    color: var(--text-muted);
+  }
+
+  .new-todo {
+    width: 100%;
+    padding: 16px;
+    font-size: 1.1em;
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    background: var(--bg);
+    color: var(--text);
+    transition: border-color 0.2s, background 0.3s;
+  }
+
+  .new-todo:focus {
+    outline: none;
+    border-color: var(--primary);
+  }
+
+  .new-todo::placeholder {
+    color: var(--text-muted);
+  }
+}

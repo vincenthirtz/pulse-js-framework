@@ -1,0 +1,125 @@
+/**
+ * ProductCard Component - Individual product display
+ */
+
+@page ProductCard
+
+props {
+  product: null
+  onClick: null
+  onAddToCart: null
+}
+
+view {
+  .product-card @click(onClick && onClick(product)) {
+    .product-image "{product.image}"
+    .product-info {
+      .product-name "{product.name}"
+      .product-price "${product.price.toFixed(2)}"
+      .product-rating {
+        span.stars "{getStars(product.rating)}"
+        span.rating-value "{product.rating.toFixed(1)}"
+      }
+      .product-stock[class="{product.stock < 10 ? 'low-stock' : ''}"] "{product.stock} in stock"
+    }
+    button.add-to-cart-btn @click(handleAddToCart(event)) "🛒 Add to Cart"
+  }
+}
+
+actions {
+  getStars(rating) {
+    const full = Math.floor(rating)
+    const empty = 5 - full
+    return "★".repeat(full) + "☆".repeat(empty)
+  }
+
+  handleAddToCart(e) {
+    e.stopPropagation()
+    if (onAddToCart) onAddToCart(product)
+  }
+}
+
+style {
+  .product-card {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    padding: 20px;
+    box-shadow: var(--shadow);
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .product-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .product-image {
+    font-size: 4em;
+    text-align: center;
+    padding: 24px;
+    background: var(--bg);
+    border-radius: 8px;
+    margin-bottom: 16px;
+  }
+
+  .product-info {
+    flex: 1;
+  }
+
+  .product-name {
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  .product-price {
+    font-size: 1.3em;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 8px;
+  }
+
+  .product-rating {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .stars {
+    color: var(--warning);
+  }
+
+  .rating-value {
+    font-size: 0.9em;
+    color: var(--text-light);
+  }
+
+  .product-stock {
+    font-size: 0.85em;
+    color: var(--success);
+    margin-bottom: 16px;
+  }
+
+  .product-stock.low-stock {
+    color: var(--warning);
+  }
+
+  .add-to-cart-btn {
+    width: 100%;
+    padding: 12px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1em;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .add-to-cart-btn:hover {
+    background: var(--primary-dark);
+  }
+}

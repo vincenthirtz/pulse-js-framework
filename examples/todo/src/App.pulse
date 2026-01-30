@@ -1,0 +1,269 @@
+/**
+ * Pulse Todo App - Main Application
+ */
+
+import Header from './components/Header.pulse'
+import TodoList from './components/TodoList.pulse'
+import Footer from './components/Footer.pulse'
+
+@page App
+
+state {
+  todos: []
+  filter: "all"
+  newTodoText: ""
+  editingId: null
+  editText: ""
+  darkMode: false
+  nextId: 1
+}
+
+view {
+  section.todoapp {
+    Header(
+      darkMode={darkMode},
+      progress={getProgress()},
+      newTodoText={newTodoText},
+      onToggleDarkMode={toggleDarkMode},
+      onNewTodoTextChange={setNewTodoText},
+      onAddTodo={addTodo}
+    )
+    TodoList(
+      todos={todos},
+      filter={filter},
+      allCompleted={todos.length > 0 && todos.every(t => t.completed)},
+      editingId={editingId},
+      editText={editText},
+      onToggleAll={toggleAll},
+      onToggleTodo={toggleTodo},
+      onDeleteTodo={deleteTodo},
+      onStartEdit={startEdit},
+      onSaveEdit={saveEdit},
+      onCancelEdit={cancelEdit},
+      onEditTextChange={setEditText}
+    )
+    Footer(
+      remainingCount={getRemainingCount()},
+      completedCount={getCompletedCount()},
+      filter={filter},
+      onFilterChange={setFilter},
+      onClearCompleted={clearCompleted}
+    )
+    footer.info {
+      p "Double-click to edit a task • Press \"n\" to add new"
+      p "Built with ✨ Pulse Framework"
+    }
+  }
+}
+
+actions {
+  init() {
+    // Load todos from localStorage
+    try {
+      const saved = localStorage.getItem("pulse-todos")
+      if (saved) {
+        todos = JSON.parse(saved)
+        nextId = Math.max(0, ...todos.map(t => t.id)) + 1
+      } else {
+        todos = [
+          { id: 1, text: "Learn Pulse Framework", completed: true },
+          { id: 2, text: "Build something awesome", completed: false },
+          { id: 3, text: "Share with the world", completed: false }
+        ]
+        nextId = 4
+      }
+    } catch (e) {
+      todos = []
+    }
+
+    // Load dark mode preference
+    darkMode = localStorage.getItem("pulse-dark") === "true"
+    if (darkMode) {
+      document.body.classList.add("dark")
+    }
+
+    // Global keyboard shortcuts
+    document.addEventListener("keydown", handleKeyboard)
+  }
+
+  handleKeyboard(e) {
+    if (e.key === "n" && e.target.tagName !== "INPUT" && e.target.tagName !== "TEXTAREA") {
+      e.preventDefault()
+      const input = document.querySelector(".new-todo")
+      if (input) input.focus()
+    }
+    if (e.key === "Escape") {
+      if (editingId) {
+        editingId = null
+        editText = ""
+      } else {
+        newTodoText = ""
+        document.activeElement?.blur()
+      }
+    }
+  }
+
+  persistTodos() {
+    localStorage.setItem("pulse-todos", JSON.stringify(todos))
+  }
+
+  persistDarkMode() {
+    localStorage.setItem("pulse-dark", darkMode.toString())
+    document.body.classList.toggle("dark", darkMode)
+  }
+
+  getRemainingCount() {
+    return todos.filter(t => !t.completed).length
+  }
+
+  getCompletedCount() {
+    return todos.filter(t => t.completed).length
+  }
+
+  getProgress() {
+    if (todos.length === 0) return 0
+    return Math.round((getCompletedCount() / todos.length) * 100)
+  }
+
+  setNewTodoText(text) {
+    newTodoText = text
+  }
+
+  setEditText(text) {
+    editText = text
+  }
+
+  setFilter(value) {
+    filter = value
+  }
+
+  addTodo() {
+    const text = newTodoText.trim()
+    if (!text) return
+    todos = [...todos, {
+      id: nextId++,
+      text: text,
+      completed: false,
+      createdAt: Date.now()
+    }]
+    newTodoText = ""
+    persistTodos()
+  }
+
+  toggleTodo(id) {
+    todos = todos.map(t => t.id === id ? { ...t, completed: !t.completed } : t)
+    persistTodos()
+  }
+
+  deleteTodo(id) {
+    todos = todos.filter(t => t.id !== id)
+    persistTodos()
+  }
+
+  clearCompleted() {
+    todos = todos.filter(t => !t.completed)
+    persistTodos()
+  }
+
+  toggleAll() {
+    const allCompleted = todos.every(t => t.completed)
+    todos = todos.map(t => ({ ...t, completed: !allCompleted }))
+    persistTodos()
+  }
+
+  startEdit(todo) {
+    editingId = todo.id
+    editText = todo.text
+  }
+
+  saveEdit() {
+    const text = editText.trim()
+    if (text && editingId) {
+      todos = todos.map(t => t.id === editingId ? { ...t, text: text } : t)
+      persistTodos()
+    }
+    editingId = null
+    editText = ""
+  }
+
+  cancelEdit() {
+    editingId = null
+    editText = ""
+  }
+
+  toggleDarkMode() {
+    darkMode = !darkMode
+    persistDarkMode()
+  }
+}
+
+style {
+  :root {
+    --bg: #f5f5f5;
+    --card-bg: #fff;
+    --text: #333;
+    --text-muted: #888;
+    --border: #ededed;
+    --primary: #646cff;
+    --primary-hover: #535bf2;
+    --danger: #ff6b6b;
+    --success: #51cf66;
+    --shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.1), 0 25px 50px 0 rgba(0, 0, 0, 0.08);
+  }
+
+  body.dark {
+    --bg: #1a1a2e;
+    --card-bg: #16213e;
+    --text: #eee;
+    --text-muted: #888;
+    --border: #2a2a4a;
+    --shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.3), 0 25px 50px 0 rgba(0, 0, 0, 0.3);
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    font: 14px 'Segoe UI', system-ui, -apple-system, sans-serif;
+    line-height: 1.5;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    transition: background 0.3s, color 0.3s;
+  }
+
+  .todoapp {
+    background: var(--card-bg);
+    max-width: 550px;
+    margin: 40px auto;
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    transition: background 0.3s, box-shadow 0.3s;
+  }
+
+  .info {
+    padding: 16px;
+    text-align: center;
+    font-size: 0.8em;
+    color: var(--text-muted);
+  }
+
+  .info p {
+    margin: 4px 0;
+  }
+
+  @media (max-width: 550px) {
+    .todoapp {
+      margin: 0;
+      border-radius: 0;
+      min-height: 100vh;
+    }
+  }
+}

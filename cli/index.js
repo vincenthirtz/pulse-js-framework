@@ -11,7 +11,7 @@ import { existsSync, mkdirSync, writeFileSync, readFileSync, cpSync } from 'fs';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const VERSION = '1.2.0';
+const VERSION = '1.4.0';
 
 // Command handlers
 const commands = {

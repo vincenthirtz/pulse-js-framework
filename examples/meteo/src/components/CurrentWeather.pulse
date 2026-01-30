@@ -1,0 +1,223 @@
+/**
+ * CurrentWeather Component - Display current weather data
+ */
+
+@page CurrentWeather
+
+props {
+  weather: null
+  loading: false
+  error: null
+  unit: "celsius"
+  isFavorite: false
+  onToggleUnit: null
+  onToggleFavorite: null
+}
+
+view {
+  .current-weather {
+    @if (loading) {
+      .loading "⏳ Loading..."
+    }
+    @if (error && !loading) {
+      .error "❌ {error}"
+    }
+    @if (!weather && !loading && !error) {
+      .placeholder "🌍 Search for a city to see weather"
+    }
+    @if (weather && !loading && !error) {
+      .weather-header {
+        h2.location "{weather.city}, {weather.country}"
+        button.fav-btn[title="{isFavorite ? 'Remove from favorites' : 'Add to favorites'}"] @click(onToggleFavorite && onToggleFavorite()) "{isFavorite ? '⭐' : '☆'}"
+      }
+      .weather-main {
+        .weather-icon "{getWeatherIcon(weather.code)}"
+        .temp-container {
+          .temperature[title="Click to toggle °C/°F"] @click(onToggleUnit && onToggleUnit()) "{convertTemp(weather.temp)}{getUnitSymbol()}"
+          .weather-desc "{getWeatherDesc(weather.code)}"
+        }
+      }
+      .weather-details {
+        .detail {
+          .detail-icon "🌡️"
+          .detail-label "Feels like"
+          .detail-value "{convertTemp(weather.feelsLike)}{getUnitSymbol()}"
+        }
+        .detail {
+          .detail-icon "💧"
+          .detail-label "Humidity"
+          .detail-value "{weather.humidity}%"
+        }
+        .detail {
+          .detail-icon "💨"
+          .detail-label "Wind"
+          .detail-value "{weather.windSpeed} km/h"
+        }
+        .detail {
+          .detail-icon "🧭"
+          .detail-label "Direction"
+          .detail-value "{weather.windDir}°"
+        }
+      }
+    }
+  }
+}
+
+actions {
+  getWeatherCodes() {
+    return {
+      0: { icon: "☀️", desc: "Clear sky" },
+      1: { icon: "🌤️", desc: "Mainly clear" },
+      2: { icon: "⛅", desc: "Partly cloudy" },
+      3: { icon: "☁️", desc: "Overcast" },
+      45: { icon: "🌫️", desc: "Foggy" },
+      48: { icon: "🌫️", desc: "Depositing rime fog" },
+      51: { icon: "🌧️", desc: "Light drizzle" },
+      53: { icon: "🌧️", desc: "Moderate drizzle" },
+      55: { icon: "🌧️", desc: "Dense drizzle" },
+      61: { icon: "🌧️", desc: "Slight rain" },
+      63: { icon: "🌧️", desc: "Moderate rain" },
+      65: { icon: "🌧️", desc: "Heavy rain" },
+      71: { icon: "❄️", desc: "Slight snow" },
+      73: { icon: "❄️", desc: "Moderate snow" },
+      75: { icon: "❄️", desc: "Heavy snow" },
+      80: { icon: "🌦️", desc: "Slight rain showers" },
+      81: { icon: "🌦️", desc: "Moderate rain showers" },
+      82: { icon: "⛈️", desc: "Violent rain showers" },
+      95: { icon: "⛈️", desc: "Thunderstorm" },
+      96: { icon: "⛈️", desc: "Thunderstorm with slight hail" },
+      99: { icon: "⛈️", desc: "Thunderstorm with heavy hail" }
+    }
+  }
+
+  getWeatherIcon(code) {
+    const codes = getWeatherCodes()
+    return codes[code] ? codes[code].icon : "❓"
+  }
+
+  getWeatherDesc(code) {
+    const codes = getWeatherCodes()
+    return codes[code] ? codes[code].desc : "Unknown"
+  }
+
+  convertTemp(celsius) {
+    if (unit === "fahrenheit") {
+      return Math.round(celsius * 9/5 + 32)
+    }
+    return celsius
+  }
+
+  getUnitSymbol() {
+    return unit === "celsius" ? "°C" : "°F"
+  }
+}
+
+style {
+  .current-weather {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    padding: 32px;
+    box-shadow: var(--shadow);
+    animation: fadeIn 0.4s ease;
+  }
+
+  .loading, .error, .placeholder {
+    text-align: center;
+    padding: 48px;
+    font-size: 1.2em;
+    color: var(--text-light);
+  }
+
+  .error {
+    color: #e74c3c;
+  }
+
+  .weather-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+  }
+
+  .location {
+    font-size: 1.5em;
+  }
+
+  .fav-btn {
+    font-size: 1.5em;
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+
+  .fav-btn:hover {
+    transform: scale(1.2);
+  }
+
+  .weather-main {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    margin-bottom: 32px;
+  }
+
+  .weather-icon {
+    font-size: 5em;
+  }
+
+  .temp-container {
+    flex: 1;
+  }
+
+  .temperature {
+    font-size: 4em;
+    font-weight: 300;
+    cursor: pointer;
+    transition: color 0.2s;
+  }
+
+  .temperature:hover {
+    color: var(--primary);
+  }
+
+  .weather-desc {
+    font-size: 1.2em;
+    color: var(--text-light);
+    margin-top: 4px;
+  }
+
+  .weather-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 16px;
+  }
+
+  .detail {
+    background: #f8f9fa;
+    padding: 16px;
+    border-radius: 12px;
+    text-align: center;
+  }
+
+  .detail-icon {
+    font-size: 1.5em;
+    margin-bottom: 8px;
+  }
+
+  .detail-label {
+    font-size: 0.85em;
+    color: var(--text-light);
+    margin-bottom: 4px;
+  }
+
+  .detail-value {
+    font-size: 1.1em;
+    font-weight: 600;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+}

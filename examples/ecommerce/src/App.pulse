@@ -1,0 +1,375 @@
+/**
+ * Pulse E-Commerce App - Main Application
+ */
+
+import Header from './components/Header.pulse'
+import Sidebar from './components/Sidebar.pulse'
+import ProductCard from './components/ProductCard.pulse'
+import ProductModal from './components/ProductModal.pulse'
+import CartSidebar from './components/CartSidebar.pulse'
+import CheckoutModal from './components/CheckoutModal.pulse'
+import Notification from './components/Notification.pulse'
+
+@page App
+
+state {
+  products: []
+  cart: []
+  category: "all"
+  searchQuery: ""
+  sortBy: "name"
+  selectedProduct: null
+  showCart: false
+  showCheckout: false
+  notification: null
+}
+
+view {
+  .shop-app {
+    Header(
+      cartCount={getCartCount()},
+      onSearch={setSearchQuery},
+      onOpenCart={openCart}
+    )
+    .main-content {
+      Sidebar(
+        categories={getCategories()},
+        currentCategory={category},
+        currentSort={sortBy},
+        onCategoryChange={setCategory},
+        onSortChange={setSortBy}
+      )
+      .product-grid-container {
+        .results-info "{getResultsInfo()}"
+        .product-grid {
+          @if (getFilteredProducts().length === 0) {
+            .empty-results {
+              span.empty-icon "🔍"
+              span.empty-text "No products found"
+              span.empty-hint "Try a different search or category"
+            }
+          }
+          @for (product of getFilteredProducts()) {
+            ProductCard(
+              product={product},
+              onClick={selectProduct},
+              onAddToCart={addToCart}
+            )
+          }
+        }
+      }
+    }
+    ProductModal(
+      product={selectedProduct},
+      onClose={closeProductModal},
+      onAddToCart={addToCart}
+    )
+    CartSidebar(
+      show={showCart},
+      items={cart},
+      total={getCartTotal()},
+      onClose={closeCart},
+      onUpdateQuantity={updateQuantity},
+      onRemove={removeFromCart},
+      onCheckout={checkout},
+      onClear={clearCart}
+    )
+    CheckoutModal(
+      show={showCheckout},
+      items={cart},
+      total={getCartTotal()},
+      onClose={closeCheckout},
+      onPlaceOrder={completeOrder}
+    )
+    Notification(notification={notification})
+    footer.shop-footer "Built with Pulse Framework"
+  }
+}
+
+actions {
+  init() {
+    products = getProductsData()
+    const savedCart = localStorage.getItem("pulse-cart")
+    if (savedCart) {
+      cart = JSON.parse(savedCart)
+    }
+  }
+
+  getProductsData() {
+    return [
+      { id: 1, name: "Wireless Headphones", price: 79.99, category: "electronics", image: "🎧", rating: 4.5, stock: 15, description: "Premium wireless headphones with noise cancellation and 30h battery life." },
+      { id: 2, name: "Smart Watch", price: 199.99, category: "electronics", image: "⌚", rating: 4.8, stock: 8, description: "Track your fitness, receive notifications, and stay connected on the go." },
+      { id: 3, name: "Laptop Stand", price: 49.99, category: "accessories", image: "💻", rating: 4.2, stock: 25, description: "Ergonomic aluminum laptop stand for better posture and cooling." },
+      { id: 4, name: "Mechanical Keyboard", price: 129.99, category: "electronics", image: "⌨️", rating: 4.7, stock: 12, description: "RGB mechanical keyboard with Cherry MX switches." },
+      { id: 5, name: "USB-C Hub", price: 39.99, category: "accessories", image: "🔌", rating: 4.3, stock: 30, description: "7-in-1 USB-C hub with HDMI, SD card, and USB 3.0 ports." },
+      { id: 6, name: "Wireless Mouse", price: 29.99, category: "accessories", image: "🖱️", rating: 4.1, stock: 45, description: "Ergonomic wireless mouse with precision tracking." },
+      { id: 7, name: "Monitor Light Bar", price: 59.99, category: "accessories", image: "💡", rating: 4.6, stock: 18, description: "LED light bar that reduces eye strain during work." },
+      { id: 8, name: "Webcam HD", price: 89.99, category: "electronics", image: "📷", rating: 4.4, stock: 20, description: "1080p webcam with auto-focus and built-in microphone." },
+      { id: 9, name: "Desk Pad", price: 24.99, category: "accessories", image: "📋", rating: 4.0, stock: 50, description: "Large leather desk pad for a clean workspace." },
+      { id: 10, name: "Phone Stand", price: 19.99, category: "accessories", image: "📱", rating: 4.2, stock: 60, description: "Adjustable aluminum phone stand for desk." },
+      { id: 11, name: "Bluetooth Speaker", price: 69.99, category: "electronics", image: "🔊", rating: 4.5, stock: 22, description: "Portable Bluetooth speaker with 360-degree sound." },
+      { id: 12, name: "Gaming Controller", price: 59.99, category: "electronics", image: "🎮", rating: 4.6, stock: 15, description: "Wireless gaming controller compatible with PC and console." }
+    ]
+  }
+
+  getCategories() {
+    return [
+      { id: "all", name: "All Products", icon: "🏪" },
+      { id: "electronics", name: "Electronics", icon: "🔌" },
+      { id: "accessories", name: "Accessories", icon: "🎒" }
+    ]
+  }
+
+  getFilteredProducts() {
+    let items = products
+    const query = searchQuery.toLowerCase()
+
+    if (category !== "all") {
+      items = items.filter(p => p.category === category)
+    }
+
+    if (query) {
+      items = items.filter(p =>
+        p.name.toLowerCase().includes(query) ||
+        p.description.toLowerCase().includes(query)
+      )
+    }
+
+    switch (sortBy) {
+      case "price-asc":
+        items = [...items].sort((a, b) => a.price - b.price)
+        break
+      case "price-desc":
+        items = [...items].sort((a, b) => b.price - a.price)
+        break
+      case "rating":
+        items = [...items].sort((a, b) => b.rating - a.rating)
+        break
+      default:
+        items = [...items].sort((a, b) => a.name.localeCompare(b.name))
+    }
+
+    return items
+  }
+
+  getResultsInfo() {
+    const filtered = getFilteredProducts()
+    let info = filtered.length + " product" + (filtered.length !== 1 ? "s" : "")
+    if (searchQuery) info += " matching \"" + searchQuery + "\""
+    if (category !== "all") {
+      const cat = getCategories().find(c => c.id === category)
+      if (cat) info += " in " + cat.name
+    }
+    return info
+  }
+
+  getCartTotal() {
+    return cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  }
+
+  getCartCount() {
+    return cart.reduce((sum, item) => sum + item.quantity, 0)
+  }
+
+  saveCart() {
+    localStorage.setItem("pulse-cart", JSON.stringify(cart))
+  }
+
+  showNotificationFn(message, type) {
+    notification = { message: message, type: type || "success" }
+    setTimeout(() => { notification = null }, 3000)
+  }
+
+  setSearchQuery(query) {
+    searchQuery = query
+  }
+
+  setCategory(cat) {
+    category = cat
+  }
+
+  setSortBy(sort) {
+    sortBy = sort
+  }
+
+  selectProduct(product) {
+    selectedProduct = product
+  }
+
+  closeProductModal() {
+    selectedProduct = null
+  }
+
+  openCart() {
+    showCart = true
+  }
+
+  closeCart() {
+    showCart = false
+  }
+
+  closeCheckout() {
+    showCheckout = false
+  }
+
+  addToCart(product) {
+    const existing = cart.find(item => item.id === product.id)
+
+    if (existing) {
+      if (existing.quantity >= product.stock) {
+        showNotificationFn("Maximum stock reached!", "error")
+        return
+      }
+      cart = cart.map(item =>
+        item.id === product.id
+          ? { ...item, quantity: item.quantity + 1 }
+          : item
+      )
+    } else {
+      cart = [...cart, { ...product, quantity: 1 }]
+    }
+    saveCart()
+    showNotificationFn(product.name + " added to cart!")
+  }
+
+  removeFromCart(productId) {
+    cart = cart.filter(item => item.id !== productId)
+    saveCart()
+  }
+
+  updateQuantity(productId, delta) {
+    const item = cart.find(i => i.id === productId)
+    if (!item) return
+
+    const newQty = item.quantity + delta
+    if (newQty <= 0) {
+      removeFromCart(productId)
+      return
+    }
+
+    const product = products.find(p => p.id === productId)
+    if (newQty > product.stock) {
+      showNotificationFn("Maximum stock reached!", "error")
+      return
+    }
+
+    cart = cart.map(i =>
+      i.id === productId ? { ...i, quantity: newQty } : i
+    )
+    saveCart()
+  }
+
+  clearCart() {
+    cart = []
+    saveCart()
+  }
+
+  checkout() {
+    showCheckout = true
+    showCart = false
+  }
+
+  completeOrder() {
+    showNotificationFn("Order placed successfully! Thank you for shopping with us.")
+    clearCart()
+    showCheckout = false
+  }
+}
+
+style {
+  :root {
+    --primary: #6366f1;
+    --primary-dark: #4f46e5;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --bg: #f8fafc;
+    --card-bg: #ffffff;
+    --text: #1e293b;
+    --text-light: #64748b;
+    --border: #e2e8f0;
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+    --radius: 12px;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+  }
+
+  .shop-app {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .main-content {
+    display: grid;
+    grid-template-columns: 250px 1fr;
+    gap: 24px;
+    padding: 24px;
+    flex: 1;
+  }
+
+  @media (max-width: 900px) {
+    .main-content {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .product-grid-container {
+    flex: 1;
+  }
+
+  .results-info {
+    margin-bottom: 16px;
+    color: var(--text-light);
+  }
+
+  .product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 24px;
+  }
+
+  .empty-results {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 64px 24px;
+    color: var(--text-light);
+  }
+
+  .empty-icon {
+    font-size: 4em;
+    margin-bottom: 16px;
+  }
+
+  .empty-text {
+    font-size: 1.2em;
+    margin-bottom: 8px;
+  }
+
+  .empty-hint {
+    font-size: 0.9em;
+    opacity: 0.7;
+  }
+
+  .shop-footer {
+    text-align: center;
+    padding: 24px;
+    color: var(--text-light);
+    background: var(--card-bg);
+    border-top: 1px solid var(--border);
+  }
+}

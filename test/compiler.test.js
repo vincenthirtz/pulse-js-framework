@@ -444,6 +444,220 @@ view {
 });
 
 // =============================================================================
+// Router Tests
+// =============================================================================
+
+console.log('\n--- Router Tests ---\n');
+
+test('tokenizes router keywords', () => {
+  const tokens = tokenize('router routes mode base beforeEach afterEach');
+  assert(tokens[0].type === 'ROUTER', 'Expected ROUTER token');
+  assert(tokens[1].type === 'ROUTES', 'Expected ROUTES token');
+  assert(tokens[2].type === 'MODE', 'Expected MODE token');
+  assert(tokens[3].type === 'BASE', 'Expected BASE token');
+  assert(tokens[4].type === 'BEFORE_EACH', 'Expected BEFORE_EACH token');
+  assert(tokens[5].type === 'AFTER_EACH', 'Expected AFTER_EACH token');
+});
+
+test('parses router block', () => {
+  const source = `
+@page App
+
+router {
+  mode: "hash"
+  routes {
+    "/": HomePage
+    "/about": AboutPage
+  }
+}`;
+  const ast = parse(source);
+  assert(ast.router !== null, 'Expected router block');
+  assert(ast.router.mode === 'hash', 'Expected hash mode');
+  assert(ast.router.routes.length === 2, 'Expected 2 routes');
+  assert(ast.router.routes[0].path === '/', 'Expected / path');
+  assert(ast.router.routes[0].handler === 'HomePage', 'Expected HomePage handler');
+});
+
+test('parses router with guards', () => {
+  const source = `
+@page App
+
+router {
+  mode: "history"
+  routes {
+    "/": HomePage
+  }
+  beforeEach(to, from) {
+    console.log(to.path)
+  }
+}`;
+  const ast = parse(source);
+  assert(ast.router.beforeEach !== null, 'Expected beforeEach guard');
+  assert(ast.router.beforeEach.params.length === 2, 'Expected 2 params');
+  assert(ast.router.beforeEach.params[0] === 'to', 'Expected to param');
+  assert(ast.router.beforeEach.params[1] === 'from', 'Expected from param');
+});
+
+test('compiles router block', () => {
+  const source = `
+@page App
+
+router {
+  mode: "hash"
+  routes {
+    "/": HomePage
+  }
+}
+
+view {
+  div "Hello"
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  assert(result.code.includes('createRouter'), 'Expected createRouter import');
+  assert(result.code.includes("mode: 'hash'"), 'Expected hash mode');
+  assert(result.code.includes('router.start()'), 'Expected router start');
+});
+
+// =============================================================================
+// Store Tests
+// =============================================================================
+
+console.log('\n--- Store Tests ---\n');
+
+test('tokenizes store keywords', () => {
+  const tokens = tokenize('store getters persist storageKey plugins');
+  assert(tokens[0].type === 'STORE', 'Expected STORE token');
+  assert(tokens[1].type === 'GETTERS', 'Expected GETTERS token');
+  assert(tokens[2].type === 'PERSIST', 'Expected PERSIST token');
+  assert(tokens[3].type === 'STORAGE_KEY', 'Expected STORAGE_KEY token');
+  assert(tokens[4].type === 'PLUGINS', 'Expected PLUGINS token');
+});
+
+test('parses store block', () => {
+  const source = `
+@page App
+
+store {
+  state {
+    count: 0
+    user: null
+  }
+  persist: true
+  storageKey: "my-store"
+}`;
+  const ast = parse(source);
+  assert(ast.store !== null, 'Expected store block');
+  assert(ast.store.state.properties.length === 2, 'Expected 2 state properties');
+  assert(ast.store.persist === true, 'Expected persist true');
+  assert(ast.store.storageKey === 'my-store', 'Expected storageKey');
+});
+
+test('parses store with getters and actions', () => {
+  const source = `
+@page App
+
+store {
+  state {
+    count: 0
+  }
+  getters {
+    doubled() { return this.count * 2 }
+  }
+  actions {
+    increment() { this.count = this.count + 1 }
+  }
+}`;
+  const ast = parse(source);
+  assert(ast.store.getters.getters.length === 1, 'Expected 1 getter');
+  assert(ast.store.getters.getters[0].name === 'doubled', 'Expected doubled getter');
+  assert(ast.store.actions.functions.length === 1, 'Expected 1 action');
+  assert(ast.store.actions.functions[0].name === 'increment', 'Expected increment action');
+});
+
+test('compiles store block', () => {
+  const source = `
+@page App
+
+store {
+  state {
+    count: 0
+  }
+  actions {
+    increment() { this.count = this.count + 1 }
+  }
+  persist: true
+}
+
+view {
+  div "Hello"
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  assert(result.code.includes('createStore'), 'Expected createStore import');
+  assert(result.code.includes('createActions'), 'Expected createActions import');
+  assert(result.code.includes("persist: true"), 'Expected persist option');
+  assert(result.code.includes('$store'), 'Expected $store combined object');
+});
+
+// =============================================================================
+// Router Directive Tests
+// =============================================================================
+
+console.log('\n--- Router Directive Tests ---\n');
+
+test('tokenizes view directives', () => {
+  const tokens = tokenize('@link @outlet @navigate @back @forward');
+  assert(tokens[0].type === 'AT', 'Expected AT');
+  assert(tokens[1].type === 'LINK', 'Expected LINK');
+  assert(tokens[2].type === 'AT', 'Expected AT');
+  assert(tokens[3].type === 'OUTLET', 'Expected OUTLET');
+  assert(tokens[4].type === 'AT', 'Expected AT');
+  assert(tokens[5].type === 'NAVIGATE', 'Expected NAVIGATE');
+});
+
+test('parses @outlet directive', () => {
+  const source = `
+@page App
+
+view {
+  div {
+    @outlet
+  }
+}`;
+  const ast = parse(source);
+  assert(ast.view !== null, 'Expected view block');
+  // Find the outlet directive in the tree
+  const div = ast.view.children[0];
+  assert(div.children.length > 0, 'Expected children');
+  assert(div.children[0].type === 'OutletDirective', 'Expected OutletDirective');
+});
+
+test('compiles @outlet directive', () => {
+  const source = `
+@page App
+
+router {
+  mode: "hash"
+  routes {
+    "/": HomePage
+  }
+}
+
+view {
+  div {
+    @outlet
+  }
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  assert(result.code.includes('router.outlet'), 'Expected router.outlet call');
+});
+
+// =============================================================================
 // Results
 // =============================================================================
 

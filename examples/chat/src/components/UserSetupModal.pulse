@@ -1,0 +1,194 @@
+/**
+ * UserSetupModal Component - Welcome modal for new users
+ */
+
+@page UserSetupModal
+
+props {
+  show: false
+  onSetup: null
+}
+
+state {
+  selectedAvatar: "😀"
+  nameValue: ""
+  hasError: false
+}
+
+view {
+  .modal-overlay[style="display: {show ? 'flex' : 'none'}"] {
+    @if (show) {
+      .modal.setup-modal {
+        h2 "👋 Welcome to Pulse Chat!"
+        p.setup-subtitle "Choose your name and avatar to get started"
+
+        .avatar-section {
+          label "Choose your avatar:"
+          .avatar-grid {
+            @for (avatar of getAvatars()) {
+              button.avatar-option[class="{selectedAvatar === avatar ? 'selected' : ''}"] @click(selectAvatar(avatar)) "{avatar}"
+            }
+          }
+        }
+
+        .name-section {
+          label "Your name:"
+          input.name-input[type=text][placeholder="{hasError ? 'Name must be at least 2 characters' : 'Enter your name...'}"][maxlength=20][class="{hasError ? 'error' : ''}"][value={nameValue}] @input(setNameValue(event.target.value)) @keydown(handleKeydown(event))
+        }
+
+        button.join-btn @click(handleJoin()) "🚀 Join Chat"
+      }
+    }
+  }
+}
+
+actions {
+  getAvatars() {
+    return ["😀", "😎", "🤓", "😊", "🥳", "🤖", "👨", "👩", "🧑", "👨‍💻", "👩‍💻", "🦊", "🐱", "🐶", "🦁", "🐼"]
+  }
+
+  selectAvatar(avatar) {
+    selectedAvatar = avatar
+  }
+
+  setNameValue(value) {
+    nameValue = value
+    hasError = false
+  }
+
+  handleKeydown(e) {
+    if (e.key === "Enter") handleJoin()
+  }
+
+  handleJoin() {
+    const name = nameValue.trim()
+    if (name.length >= 2) {
+      if (onSetup) onSetup(name, selectedAvatar)
+    } else {
+      hasError = true
+    }
+  }
+}
+
+style {
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+  }
+
+  .modal {
+    background: var(--bg-medium);
+    border-radius: 12px;
+    padding: 32px;
+    max-width: 450px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: scaleIn 0.2s ease;
+  }
+
+  @keyframes scaleIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .setup-modal h2 {
+    text-align: center;
+    margin-bottom: 8px;
+  }
+
+  .setup-subtitle {
+    text-align: center;
+    color: var(--text-muted);
+    margin-bottom: 24px;
+  }
+
+  .avatar-section, .name-section {
+    margin-bottom: 24px;
+  }
+
+  .avatar-section label, .name-section label {
+    display: block;
+    font-size: 0.9em;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+  }
+
+  .avatar-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+    gap: 8px;
+    max-width: 100%;
+  }
+
+  .avatar-option {
+    width: 44px;
+    height: 44px;
+    font-size: 1.4em;
+    padding: 0;
+    background: var(--bg-lighter);
+    border: 2px solid transparent;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .avatar-option:hover {
+    background: var(--bg-light);
+  }
+
+  .avatar-option.selected {
+    border-color: var(--primary);
+    background: rgba(88, 101, 242, 0.2);
+  }
+
+  .name-input {
+    width: 100%;
+    padding: 14px 18px;
+    background: var(--bg-lighter);
+    border: 2px solid transparent;
+    border-radius: var(--radius);
+    color: var(--text);
+    font-size: 1em;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .name-input:focus {
+    border-color: var(--primary);
+  }
+
+  .name-input.error {
+    border-color: #ed4245;
+  }
+
+  .name-input.error::placeholder {
+    color: #ed4245;
+  }
+
+  .join-btn {
+    width: 100%;
+    padding: 16px;
+    background: var(--primary);
+    border: none;
+    border-radius: var(--radius);
+    color: white;
+    font-size: 1.1em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .join-btn:hover {
+    background: var(--primary-dark);
+  }
+}

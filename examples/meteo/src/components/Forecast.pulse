@@ -1,0 +1,128 @@
+/**
+ * Forecast Component - 7-day weather forecast
+ */
+
+@page Forecast
+
+props {
+  forecast: []
+  unit: "celsius"
+}
+
+view {
+  .forecast {
+    h3 "📅 7-Day Forecast"
+    .forecast-list {
+      @for (day of forecast) {
+        .forecast-item {
+          .forecast-day "{formatDay(day.date)}"
+          .forecast-icon "{getWeatherIcon(day.code)}"
+          .forecast-temps "{convertTemp(day.tempMax)}° / {convertTemp(day.tempMin)}°"
+          .forecast-precip "💧 {day.precipitation}%"
+        }
+      }
+    }
+  }
+}
+
+actions {
+  getWeatherCodes() {
+    return {
+      0: { icon: "☀️" },
+      1: { icon: "🌤️" },
+      2: { icon: "⛅" },
+      3: { icon: "☁️" },
+      45: { icon: "🌫️" },
+      48: { icon: "🌫️" },
+      51: { icon: "🌧️" },
+      53: { icon: "🌧️" },
+      55: { icon: "🌧️" },
+      61: { icon: "🌧️" },
+      63: { icon: "🌧️" },
+      65: { icon: "🌧️" },
+      71: { icon: "❄️" },
+      73: { icon: "❄️" },
+      75: { icon: "❄️" },
+      80: { icon: "🌦️" },
+      81: { icon: "🌦️" },
+      82: { icon: "⛈️" },
+      95: { icon: "⛈️" },
+      96: { icon: "⛈️" },
+      99: { icon: "⛈️" }
+    }
+  }
+
+  getWeatherIcon(code) {
+    const codes = getWeatherCodes()
+    return codes[code] ? codes[code].icon : "❓"
+  }
+
+  convertTemp(celsius) {
+    if (unit === "fahrenheit") {
+      return Math.round(celsius * 9/5 + 32)
+    }
+    return celsius
+  }
+
+  formatDay(dateStr) {
+    const date = new Date(dateStr)
+    return date.toLocaleDateString("en", { weekday: "short" })
+  }
+}
+
+style {
+  .forecast {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    padding: 24px;
+    box-shadow: var(--shadow);
+    animation: fadeIn 0.4s ease;
+  }
+
+  .forecast h3 {
+    margin-bottom: 16px;
+  }
+
+  .forecast-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 12px;
+  }
+
+  .forecast-item {
+    background: #f8f9fa;
+    padding: 16px 12px;
+    border-radius: 12px;
+    text-align: center;
+    transition: transform 0.2s;
+  }
+
+  .forecast-item:hover {
+    transform: translateY(-4px);
+  }
+
+  .forecast-day {
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  .forecast-icon {
+    font-size: 2em;
+    margin-bottom: 8px;
+  }
+
+  .forecast-temps {
+    font-size: 0.9em;
+    margin-bottom: 4px;
+  }
+
+  .forecast-precip {
+    font-size: 0.8em;
+    color: var(--text-light);
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+}

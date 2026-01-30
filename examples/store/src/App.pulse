@@ -1,0 +1,732 @@
+/**
+ * Pulse Store Demo - Notes App (.pulse version)
+ */
+
+@page App
+
+state {
+  notes: []
+  selectedNoteId: null
+  searchQuery: ""
+  sortBy: "updated"
+  filterCategory: "all"
+  theme: "dark"
+  nextId: 1
+}
+
+view {
+  .app[class="theme-{theme}"] {
+    header.header {
+      .brand {
+        span.logo "📝"
+        span.title "Pulse Notes"
+      }
+      .search-container {
+        span.search-icon "🔍"
+        input.search-input[type=text][placeholder="Search notes..."][value={searchQuery}] @input(setSearchQuery(event.target.value))
+      }
+      .header-actions {
+        button.icon-btn[title="Toggle theme"] @click(toggleTheme()) "{theme === 'dark' ? '🌙' : '☀️'}"
+        button.btn.primary @click(addNote()) "+ New Note"
+      }
+    }
+
+    .main-content {
+      aside.sidebar {
+        .sidebar-section {
+          h3.section-title "Categories"
+          .category-list {
+            .category-item[class="{filterCategory === 'all' ? 'active' : ''}"] @click(setFilterCategory('all')) {
+              span.cat-icon "📋"
+              span.cat-name "All Notes"
+              span.cat-count "{notes.length}"
+            }
+            @for (cat of getCategories()) {
+              .category-item[class="{filterCategory === cat.id ? 'active' : ''}"] @click(setFilterCategory(cat.id)) {
+                span.cat-icon "{cat.icon}"
+                span.cat-name "{cat.name}"
+                span.cat-count "{getCategoryCount(cat.id)}"
+              }
+            }
+          }
+        }
+
+        .sidebar-section {
+          h3.section-title "Sort By"
+          .sort-options {
+            button.sort-btn[class="{sortBy === 'updated' ? 'active' : ''}"] @click(setSortBy('updated')) "📅 Last Updated"
+            button.sort-btn[class="{sortBy === 'created' ? 'active' : ''}"] @click(setSortBy('created')) "🕐 Date Created"
+            button.sort-btn[class="{sortBy === 'title' ? 'active' : ''}"] @click(setSortBy('title')) "🔤 Title"
+          }
+        }
+
+        .sidebar-section {
+          h3.section-title "Statistics"
+          .stats-content {
+            .stat-item {
+              span.stat-label "Total Notes"
+              span.stat-value "{notes.length}"
+            }
+            .stat-item {
+              span.stat-label "Pinned"
+              span.stat-value "{getPinnedCount()}"
+            }
+          }
+        }
+      }
+
+      .content-area {
+        .notes-list {
+          @if (getFilteredNotes().length === 0) {
+            .empty-state {
+              .empty-icon "📭"
+              p "No notes found"
+              button.btn.primary @click(addNote()) "Create your first note"
+            }
+          }
+          @for (note of getFilteredNotes()) {
+            .note-item[class="{selectedNoteId === note.id ? 'selected' : ''} {note.pinned ? 'pinned' : ''}"] @click(selectNote(note.id)) {
+              .note-header {
+                span.note-category[style="color: {getCategoryColor(note.category)}"] "{getCategoryIcon(note.category)}"
+                span.note-title "{note.title || 'Untitled'}"
+                @if (note.pinned) {
+                  span.pin-indicator "📌"
+                }
+              }
+              .note-preview "{note.content.substring(0, 100) || 'No content'}"
+              .note-meta {
+                span.note-date "{formatDate(note.updated)}"
+              }
+            }
+          }
+        }
+
+        .note-editor {
+          @if (!getSelectedNote()) {
+            .editor-placeholder {
+              .placeholder-icon "📝"
+              p "Select a note to edit"
+              p.hint "or create a new one"
+            }
+          }
+          @if (getSelectedNote()) {
+            .editor-toolbar {
+              select.category-select @change(updateNoteCategory(event.target.value)) {
+                @for (cat of getCategories()) {
+                  option[value={cat.id}][selected={getSelectedNote().category === cat.id}] "{cat.icon} {cat.name}"
+                }
+              }
+              button.toolbar-btn[class="{getSelectedNote().pinned ? 'active' : ''}"] @click(togglePin()) "{getSelectedNote().pinned ? '📌 Pinned' : '📌 Pin'}"
+              button.toolbar-btn.danger @click(deleteNote()) "🗑️ Delete"
+            }
+            input.note-title-input[type=text][placeholder="Note title..."][value={getSelectedNote().title}] @input(updateNoteTitle(event.target.value))
+            textarea.note-content-area[placeholder="Start writing..."] @input(updateNoteContent(event.target.value)) "{getSelectedNote().content}"
+            .editor-footer {
+              span "Created: {formatFullDate(getSelectedNote().created)} • Updated: {formatFullDate(getSelectedNote().updated)}"
+              span.save-status.saved "✓ Saved"
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+actions {
+  init() {
+    const saved = localStorage.getItem("pulse-notes-demo")
+    if (saved) {
+      const data = JSON.parse(saved)
+      notes = data.notes || []
+      nextId = Math.max(0, ...notes.map(n => n.id)) + 1
+    } else {
+      addNote("Welcome to Pulse Notes!", "This is a demo app showcasing Pulse state management.", "ideas")
+      addNote("Store Features", "1. Persistence\n2. Actions\n3. Categories\n4. Sorting", "work")
+      addNote("Keyboard Shortcuts", "• Ctrl+N: New note\n• Right-click: Toggle pin", "tasks")
+    }
+
+    const savedTheme = localStorage.getItem("pulse-notes-theme")
+    if (savedTheme) theme = savedTheme
+  }
+
+  getCategories() {
+    return [
+      { id: "personal", name: "Personal", icon: "👤", color: "#6366f1" },
+      { id: "work", name: "Work", icon: "💼", color: "#10b981" },
+      { id: "ideas", name: "Ideas", icon: "💡", color: "#f59e0b" },
+      { id: "tasks", name: "Tasks", icon: "✅", color: "#ef4444" }
+    ]
+  }
+
+  getCategoryIcon(id) {
+    const cat = getCategories().find(c => c.id === id)
+    return cat ? cat.icon : "📄"
+  }
+
+  getCategoryColor(id) {
+    const cat = getCategories().find(c => c.id === id)
+    return cat ? cat.color : "#666"
+  }
+
+  getCategoryCount(catId) {
+    return notes.filter(n => n.category === catId).length
+  }
+
+  getPinnedCount() {
+    return notes.filter(n => n.pinned).length
+  }
+
+  saveNotes() {
+    localStorage.setItem("pulse-notes-demo", JSON.stringify({ notes: notes }))
+  }
+
+  setSearchQuery(query) {
+    searchQuery = query
+  }
+
+  setSortBy(sort) {
+    sortBy = sort
+  }
+
+  setFilterCategory(cat) {
+    filterCategory = cat
+  }
+
+  toggleTheme() {
+    theme = theme === "dark" ? "light" : "dark"
+    localStorage.setItem("pulse-notes-theme", theme)
+  }
+
+  getFilteredNotes() {
+    let result = notes
+    const search = searchQuery.toLowerCase()
+
+    if (search) {
+      result = result.filter(n =>
+        n.title.toLowerCase().includes(search) ||
+        n.content.toLowerCase().includes(search)
+      )
+    }
+
+    if (filterCategory !== "all") {
+      result = result.filter(n => n.category === filterCategory)
+    }
+
+    result = [...result].sort((a, b) => {
+      if (a.pinned && !b.pinned) return -1
+      if (!a.pinned && b.pinned) return 1
+
+      if (sortBy === "title") return a.title.localeCompare(b.title)
+      if (sortBy === "created") return b.created - a.created
+      return b.updated - a.updated
+    })
+
+    return result
+  }
+
+  getSelectedNote() {
+    if (!selectedNoteId) return null
+    return notes.find(n => n.id === selectedNoteId)
+  }
+
+  selectNote(id) {
+    selectedNoteId = id
+  }
+
+  addNote(title, content, category) {
+    const note = {
+      id: nextId++,
+      title: title || "Untitled Note",
+      content: content || "",
+      category: category || "personal",
+      created: Date.now(),
+      updated: Date.now(),
+      pinned: false
+    }
+    notes = [...notes, note]
+    selectedNoteId = note.id
+    saveNotes()
+  }
+
+  updateNoteTitle(title) {
+    if (!selectedNoteId) return
+    notes = notes.map(n =>
+      n.id === selectedNoteId
+        ? { ...n, title: title, updated: Date.now() }
+        : n
+    )
+    saveNotes()
+  }
+
+  updateNoteContent(content) {
+    if (!selectedNoteId) return
+    notes = notes.map(n =>
+      n.id === selectedNoteId
+        ? { ...n, content: content, updated: Date.now() }
+        : n
+    )
+    saveNotes()
+  }
+
+  updateNoteCategory(category) {
+    if (!selectedNoteId) return
+    notes = notes.map(n =>
+      n.id === selectedNoteId
+        ? { ...n, category: category, updated: Date.now() }
+        : n
+    )
+    saveNotes()
+  }
+
+  togglePin() {
+    if (!selectedNoteId) return
+    notes = notes.map(n =>
+      n.id === selectedNoteId
+        ? { ...n, pinned: !n.pinned }
+        : n
+    )
+    saveNotes()
+  }
+
+  deleteNote() {
+    if (!selectedNoteId) return
+    if (!confirm("Delete this note?")) return
+    notes = notes.filter(n => n.id !== selectedNoteId)
+    selectedNoteId = null
+    saveNotes()
+  }
+
+  formatDate(timestamp) {
+    const diff = Date.now() - timestamp
+    if (diff < 60000) return "Just now"
+    if (diff < 3600000) return Math.floor(diff / 60000) + "m ago"
+    if (diff < 86400000) return Math.floor(diff / 3600000) + "h ago"
+    return Math.floor(diff / 86400000) + "d ago"
+  }
+
+  formatFullDate(timestamp) {
+    return new Date(timestamp).toLocaleString()
+  }
+}
+
+style {
+  .theme-dark {
+    --bg: #0f172a;
+    --bg-light: #1e293b;
+    --bg-lighter: #334155;
+    --text: #e2e8f0;
+    --text-muted: #94a3b8;
+    --border: #334155;
+    --primary: #6366f1;
+    --primary-dark: #4f46e5;
+    --danger: #ef4444;
+    --success: #10b981;
+    --warning: #f59e0b;
+  }
+
+  .theme-light {
+    --bg: #f8fafc;
+    --bg-light: #ffffff;
+    --bg-lighter: #f1f5f9;
+    --text: #1e293b;
+    --text-muted: #64748b;
+    --border: #e2e8f0;
+    --primary: #6366f1;
+    --primary-dark: #4f46e5;
+    --danger: #ef4444;
+    --success: #10b981;
+    --warning: #f59e0b;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  .app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 24px;
+    background: var(--bg-light);
+    border-bottom: 1px solid var(--border);
+    gap: 24px;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+  }
+
+  .brand .logo {
+    font-size: 1.5em;
+  }
+
+  .brand .title {
+    font-size: 1.2em;
+    background: linear-gradient(135deg, var(--primary), #a855f7);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .search-container {
+    flex: 1;
+    max-width: 400px;
+    position: relative;
+  }
+
+  .search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0.5;
+  }
+
+  .search-input {
+    width: 100%;
+    padding: 10px 12px 10px 40px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .icon-btn {
+    width: 40px;
+    height: 40px;
+    border: none;
+    background: var(--bg);
+    border-radius: 8px;
+    font-size: 1.1em;
+    cursor: pointer;
+  }
+
+  .btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.9em;
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  .btn.primary {
+    background: var(--primary);
+    color: white;
+  }
+
+  .main-content {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .sidebar {
+    width: 260px;
+    background: var(--bg-light);
+    border-right: 1px solid var(--border);
+    padding: 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .section-title {
+    font-size: 0.75em;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+  }
+
+  .category-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .category-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+
+  .category-item:hover {
+    background: var(--bg-lighter);
+  }
+
+  .category-item.active {
+    background: rgba(99, 102, 241, 0.15);
+    color: var(--primary);
+  }
+
+  .cat-name {
+    flex: 1;
+    font-size: 0.9em;
+  }
+
+  .cat-count {
+    font-size: 0.8em;
+    color: var(--text-muted);
+    background: var(--bg);
+    padding: 2px 8px;
+    border-radius: 10px;
+  }
+
+  .sort-options {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .sort-btn {
+    padding: 8px 12px;
+    background: none;
+    border: none;
+    border-radius: 6px;
+    color: var(--text-muted);
+    font-size: 0.85em;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .sort-btn.active {
+    background: var(--bg-lighter);
+    color: var(--primary);
+  }
+
+  .stats-content {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .stat-item {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9em;
+  }
+
+  .stat-label {
+    color: var(--text-muted);
+  }
+
+  .stat-value {
+    font-weight: 600;
+  }
+
+  .content-area {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+  }
+
+  .notes-list {
+    width: 320px;
+    background: var(--bg);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .note-item {
+    padding: 16px;
+    background: var(--bg-light);
+    border-radius: 10px;
+    cursor: pointer;
+    border: 2px solid transparent;
+  }
+
+  .note-item:hover {
+    background: var(--bg-lighter);
+  }
+
+  .note-item.selected {
+    border-color: var(--primary);
+    background: rgba(99, 102, 241, 0.1);
+  }
+
+  .note-item.pinned {
+    border-left: 3px solid var(--warning);
+  }
+
+  .note-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .note-title {
+    flex: 1;
+    font-weight: 600;
+    font-size: 0.95em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .note-preview {
+    font-size: 0.85em;
+    color: var(--text-muted);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+
+  .note-meta {
+    font-size: 0.75em;
+    color: var(--text-muted);
+  }
+
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    text-align: center;
+    color: var(--text-muted);
+  }
+
+  .empty-icon {
+    font-size: 4em;
+    margin-bottom: 16px;
+    opacity: 0.5;
+  }
+
+  .note-editor {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 24px;
+    overflow: hidden;
+  }
+
+  .editor-placeholder {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    text-align: center;
+  }
+
+  .placeholder-icon {
+    font-size: 5em;
+    margin-bottom: 16px;
+    opacity: 0.3;
+  }
+
+  .hint {
+    font-size: 0.9em;
+    opacity: 0.7;
+  }
+
+  .editor-toolbar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .category-select {
+    padding: 8px 12px;
+    background: var(--bg-light);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+  }
+
+  .toolbar-btn {
+    padding: 8px 16px;
+    background: var(--bg-light);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    cursor: pointer;
+  }
+
+  .toolbar-btn.active {
+    background: var(--warning);
+    color: white;
+    border-color: var(--warning);
+  }
+
+  .toolbar-btn.danger {
+    color: var(--danger);
+  }
+
+  .note-title-input {
+    width: 100%;
+    padding: 12px 0;
+    background: none;
+    border: none;
+    color: var(--text);
+    font-size: 1.8em;
+    font-weight: 600;
+    margin-bottom: 16px;
+  }
+
+  .note-content-area {
+    flex: 1;
+    width: 100%;
+    padding: 16px;
+    background: var(--bg-light);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.8;
+    resize: none;
+    font-family: inherit;
+  }
+
+  .editor-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 16px;
+    font-size: 0.8em;
+    color: var(--text-muted);
+  }
+
+  .save-status.saved {
+    color: var(--success);
+  }
+}

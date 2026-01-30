@@ -1,0 +1,77 @@
+/**
+ * SearchBar Component - City search input
+ */
+
+@page SearchBar
+
+props {
+  onSearch: null
+}
+
+state {
+  inputValue: ""
+}
+
+view {
+  .search-bar {
+    input[type=text][placeholder="Search city..."][value={inputValue}] @input(setInputValue(event.target.value)) @keydown(handleKeydown(event))
+    button.search-btn @click(handleSearch()) "🔍"
+  }
+}
+
+actions {
+  setInputValue(value) {
+    inputValue = value
+  }
+
+  handleKeydown(e) {
+    if (e.key === "Enter") handleSearch()
+  }
+
+  handleSearch() {
+    const query = inputValue.trim()
+    if (query && onSearch) {
+      onSearch(query)
+      inputValue = ""
+    }
+  }
+}
+
+style {
+  .search-bar {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .search-bar input {
+    flex: 1;
+    padding: 16px 20px;
+    font-size: 1.1em;
+    border: none;
+    border-radius: var(--radius);
+    background: var(--card-bg);
+    box-shadow: var(--shadow);
+    outline: none;
+    transition: transform 0.2s;
+  }
+
+  .search-bar input:focus {
+    transform: scale(1.02);
+  }
+
+  .search-btn {
+    padding: 16px 24px;
+    font-size: 1.2em;
+    border: none;
+    border-radius: var(--radius);
+    background: white;
+    cursor: pointer;
+    box-shadow: var(--shadow);
+    transition: transform 0.2s;
+  }
+
+  .search-btn:hover {
+    transform: scale(1.05);
+  }
+}

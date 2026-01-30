@@ -1,0 +1,64 @@
+/**
+ * EmojiPicker Component - Emoji selection grid
+ */
+
+@page EmojiPicker
+
+props {
+  show: false
+  onSelect: null
+}
+
+view {
+  .emoji-picker[style="display: {show ? 'grid' : 'none'}"] {
+    @for (emoji of getEmojis()) {
+      button.emoji-btn @click(onSelect && onSelect(emoji)) "{emoji}"
+    }
+  }
+}
+
+actions {
+  getEmojis() {
+    return [
+      "😀", "😃", "😄", "😁", "😅", "😂", "🤣", "😊",
+      "😇", "🥰", "😍", "🤩", "😘", "😗", "😚", "😋",
+      "😛", "😜", "🤪", "😝", "🤑", "🤗", "🤭", "🤫",
+      "🤔", "🤐", "🤨", "😐", "😑", "😶", "😏", "😒",
+      "🙄", "😬", "😮", "😯", "😲", "😳", "🥺", "😦",
+      "😧", "😨", "😰", "😥", "😢", "😭", "😱", "😖",
+      "👍", "👎", "👏", "🙌", "🤝", "🙏", "💪", "🎉",
+      "❤️", "🧡", "💛", "💚", "💙", "💜", "🖤", "💯"
+    ]
+  }
+}
+
+style {
+  .emoji-picker {
+    position: absolute;
+    bottom: 100%;
+    left: 20px;
+    background: var(--bg-medium);
+    border-radius: var(--radius);
+    padding: 12px;
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 4px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    max-height: 200px;
+    overflow-y: auto;
+  }
+
+  .emoji-btn {
+    background: none;
+    border: none;
+    font-size: 1.3em;
+    padding: 8px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background 0.2s;
+  }
+
+  .emoji-btn:hover {
+    background: var(--bg-lighter);
+  }
+}

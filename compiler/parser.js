@@ -43,7 +43,23 @@ export const NodeType = {
   AssignmentExpression: 'AssignmentExpression',
   FunctionDeclaration: 'FunctionDeclaration',
   StyleRule: 'StyleRule',
-  StyleProperty: 'StyleProperty'
+  StyleProperty: 'StyleProperty',
+
+  // Router nodes
+  RouterBlock: 'RouterBlock',
+  RoutesBlock: 'RoutesBlock',
+  RouteDefinition: 'RouteDefinition',
+  GuardHook: 'GuardHook',
+
+  // Store nodes
+  StoreBlock: 'StoreBlock',
+  GettersBlock: 'GettersBlock',
+  GetterDeclaration: 'GetterDeclaration',
+
+  // View directives for router
+  LinkDirective: 'LinkDirective',
+  OutletDirective: 'OutletDirective',
+  NavigateDirective: 'NavigateDirective'
 };
 
 /**
@@ -138,7 +154,9 @@ export class Parser {
       state: null,
       view: null,
       actions: null,
-      style: null
+      style: null,
+      router: null,
+      store: null
     });
 
     while (!this.is(TokenType.EOF)) {
@@ -194,11 +212,25 @@ export class Parser {
         }
         program.style = this.parseStyleBlock();
       }
+      // Router block
+      else if (this.is(TokenType.ROUTER)) {
+        if (program.router) {
+          throw this.createError('Duplicate router block - only one router block allowed per file');
+        }
+        program.router = this.parseRouterBlock();
+      }
+      // Store block
+      else if (this.is(TokenType.STORE)) {
+        if (program.store) {
+          throw this.createError('Duplicate store block - only one store block allowed per file');
+        }
+        program.store = this.parseStoreBlock();
+      }
       else {
         const token = this.current();
         throw this.createError(
           `Unexpected token '${token?.value || token?.type}' at line ${token?.line}:${token?.column}. ` +
-          `Expected: import, @page, @route, props, state, view, actions, or style`
+          `Expected: import, @page, @route, props, state, view, actions, style, router, or store`
         );
       }
     }
@@ -536,6 +568,13 @@ export class Parser {
     while (!this.is(TokenType.LBRACE) && !this.is(TokenType.RBRACE) &&
            !this.is(TokenType.SELECTOR) && !this.is(TokenType.EOF)) {
       if (this.is(TokenType.AT)) {
+        // Check if this is a block directive (@if, @for, @each) - if so, break
+        const nextToken = this.peek();
+        if (nextToken && (nextToken.type === TokenType.IF ||
+            nextToken.type === TokenType.FOR ||
+            nextToken.type === TokenType.EACH)) {
+          break;
+        }
         directives.push(this.parseInlineDirective());
       } else if (this.is(TokenType.STRING)) {
         textContent.push(this.parseTextNode());
@@ -662,7 +701,7 @@ export class Parser {
   }
 
   /**
-   * Parse a directive (@if, @for, @each, @click, etc.)
+   * Parse a directive (@if, @for, @each, @click, @link, @outlet, @navigate, etc.)
    */
   parseDirective() {
     this.expect(TokenType.AT);
@@ -677,6 +716,28 @@ export class Parser {
     if (this.is(TokenType.FOR)) {
       this.advance();
       return this.parseEachDirective();
+    }
+
+    // Handle router directives
+    if (this.is(TokenType.LINK)) {
+      this.advance();
+      return this.parseLinkDirective();
+    }
+    if (this.is(TokenType.OUTLET)) {
+      this.advance();
+      return this.parseOutletDirective();
+    }
+    if (this.is(TokenType.NAVIGATE)) {
+      this.advance();
+      return this.parseNavigateDirective();
+    }
+    if (this.is(TokenType.BACK)) {
+      this.advance();
+      return new ASTNode(NodeType.NavigateDirective, { action: 'back' });
+    }
+    if (this.is(TokenType.FORWARD)) {
+      this.advance();
+      return new ASTNode(NodeType.NavigateDirective, { action: 'forward' });
     }
 
     const name = this.expect(TokenType.IDENT).value;
@@ -1228,7 +1289,16 @@ export class Parser {
 
     const params = [];
     while (!this.is(TokenType.RPAREN) && !this.is(TokenType.EOF)) {
-      params.push(this.expect(TokenType.IDENT).value);
+      // Accept IDENT or keyword tokens that can be used as parameter names
+      const paramToken = this.current();
+      if (this.is(TokenType.IDENT) || this.is(TokenType.PAGE) ||
+          this.is(TokenType.ROUTE) || this.is(TokenType.FROM) ||
+          this.is(TokenType.STATE) || this.is(TokenType.VIEW) ||
+          this.is(TokenType.STORE) || this.is(TokenType.ROUTER)) {
+        params.push(this.advance().value);
+      } else {
+        throw this.createError(`Expected parameter name but got ${paramToken?.type}`);
+      }
       if (this.is(TokenType.COMMA)) {
         this.advance();
       }
@@ -1405,6 +1475,295 @@ export class Parser {
     }
 
     return new ASTNode(NodeType.StyleProperty, { name, value });
+  }
+
+  // =============================================================================
+  // Router Parsing
+  // =============================================================================
+
+  /**
+   * Parse router block
+   * router {
+   *   mode: "hash"
+   *   base: "/app"
+   *   routes { "/": HomePage }
+   *   beforeEach(to, from) { ... }
+   *   afterEach(to) { ... }
+   * }
+   */
+  parseRouterBlock() {
+    this.expect(TokenType.ROUTER);
+    this.expect(TokenType.LBRACE);
+
+    const config = {
+      mode: 'history',
+      base: '',
+      routes: [],
+      beforeEach: null,
+      afterEach: null
+    };
+
+    while (!this.is(TokenType.RBRACE) && !this.is(TokenType.EOF)) {
+      // mode: "hash"
+      if (this.is(TokenType.MODE)) {
+        this.advance();
+        this.expect(TokenType.COLON);
+        config.mode = this.expect(TokenType.STRING).value;
+      }
+      // base: "/app"
+      else if (this.is(TokenType.BASE)) {
+        this.advance();
+        this.expect(TokenType.COLON);
+        config.base = this.expect(TokenType.STRING).value;
+      }
+      // routes { ... }
+      else if (this.is(TokenType.ROUTES)) {
+        config.routes = this.parseRoutesBlock();
+      }
+      // beforeEach(to, from) { ... }
+      else if (this.is(TokenType.BEFORE_EACH)) {
+        config.beforeEach = this.parseGuardHook('beforeEach');
+      }
+      // afterEach(to) { ... }
+      else if (this.is(TokenType.AFTER_EACH)) {
+        config.afterEach = this.parseGuardHook('afterEach');
+      }
+      else {
+        throw this.createError(
+          `Unexpected token '${this.current()?.value}' in router block. ` +
+          `Expected: mode, base, routes, beforeEach, or afterEach`
+        );
+      }
+    }
+
+    this.expect(TokenType.RBRACE);
+    return new ASTNode(NodeType.RouterBlock, config);
+  }
+
+  /**
+   * Parse routes block
+   * routes {
+   *   "/": HomePage
+   *   "/users/:id": UserPage
+   * }
+   */
+  parseRoutesBlock() {
+    this.expect(TokenType.ROUTES);
+    this.expect(TokenType.LBRACE);
+
+    const routes = [];
+    while (!this.is(TokenType.RBRACE) && !this.is(TokenType.EOF)) {
+      const path = this.expect(TokenType.STRING).value;
+      this.expect(TokenType.COLON);
+      const handler = this.expect(TokenType.IDENT).value;
+      routes.push(new ASTNode(NodeType.RouteDefinition, { path, handler }));
+    }
+
+    this.expect(TokenType.RBRACE);
+    return routes;
+  }
+
+  /**
+   * Parse guard hook: beforeEach(to, from) { ... }
+   */
+  parseGuardHook(name) {
+    this.advance(); // skip keyword
+    this.expect(TokenType.LPAREN);
+    const params = [];
+    while (!this.is(TokenType.RPAREN) && !this.is(TokenType.EOF)) {
+      // Accept IDENT or FROM (since 'from' is a keyword but valid as parameter name)
+      if (this.is(TokenType.IDENT)) {
+        params.push(this.advance().value);
+      } else if (this.is(TokenType.FROM)) {
+        params.push(this.advance().value);
+      } else {
+        throw this.createError(`Expected parameter name but got ${this.current()?.type}`);
+      }
+      if (this.is(TokenType.COMMA)) this.advance();
+    }
+    this.expect(TokenType.RPAREN);
+    this.expect(TokenType.LBRACE);
+    const body = this.parseFunctionBody();
+    this.expect(TokenType.RBRACE);
+
+    return new ASTNode(NodeType.GuardHook, { name, params, body });
+  }
+
+  // =============================================================================
+  // Store Parsing
+  // =============================================================================
+
+  /**
+   * Parse store block
+   * store {
+   *   state { ... }
+   *   getters { ... }
+   *   actions { ... }
+   *   persist: true
+   *   storageKey: "my-store"
+   * }
+   */
+  parseStoreBlock() {
+    this.expect(TokenType.STORE);
+    this.expect(TokenType.LBRACE);
+
+    const config = {
+      state: null,
+      getters: null,
+      actions: null,
+      persist: false,
+      storageKey: 'pulse-store',
+      plugins: []
+    };
+
+    while (!this.is(TokenType.RBRACE) && !this.is(TokenType.EOF)) {
+      // state { ... }
+      if (this.is(TokenType.STATE)) {
+        config.state = this.parseStateBlock();
+      }
+      // getters { ... }
+      else if (this.is(TokenType.GETTERS)) {
+        config.getters = this.parseGettersBlock();
+      }
+      // actions { ... }
+      else if (this.is(TokenType.ACTIONS)) {
+        config.actions = this.parseActionsBlock();
+      }
+      // persist: true
+      else if (this.is(TokenType.PERSIST)) {
+        this.advance();
+        this.expect(TokenType.COLON);
+        if (this.is(TokenType.TRUE)) {
+          this.advance();
+          config.persist = true;
+        } else if (this.is(TokenType.FALSE)) {
+          this.advance();
+          config.persist = false;
+        } else {
+          throw this.createError('Expected true or false for persist');
+        }
+      }
+      // storageKey: "my-store"
+      else if (this.is(TokenType.STORAGE_KEY)) {
+        this.advance();
+        this.expect(TokenType.COLON);
+        config.storageKey = this.expect(TokenType.STRING).value;
+      }
+      // plugins: [historyPlugin, loggerPlugin]
+      else if (this.is(TokenType.PLUGINS)) {
+        this.advance();
+        this.expect(TokenType.COLON);
+        config.plugins = this.parseArrayLiteral();
+      }
+      else {
+        throw this.createError(
+          `Unexpected token '${this.current()?.value}' in store block. ` +
+          `Expected: state, getters, actions, persist, storageKey, or plugins`
+        );
+      }
+    }
+
+    this.expect(TokenType.RBRACE);
+    return new ASTNode(NodeType.StoreBlock, config);
+  }
+
+  /**
+   * Parse getters block
+   * getters {
+   *   doubled() { return this.count * 2 }
+   * }
+   */
+  parseGettersBlock() {
+    this.expect(TokenType.GETTERS);
+    this.expect(TokenType.LBRACE);
+
+    const getters = [];
+    while (!this.is(TokenType.RBRACE) && !this.is(TokenType.EOF)) {
+      getters.push(this.parseGetterDeclaration());
+    }
+
+    this.expect(TokenType.RBRACE);
+    return new ASTNode(NodeType.GettersBlock, { getters });
+  }
+
+  /**
+   * Parse getter declaration: name() { return ... }
+   */
+  parseGetterDeclaration() {
+    const name = this.expect(TokenType.IDENT).value;
+    this.expect(TokenType.LPAREN);
+    this.expect(TokenType.RPAREN);
+    this.expect(TokenType.LBRACE);
+    const body = this.parseFunctionBody();
+    this.expect(TokenType.RBRACE);
+
+    return new ASTNode(NodeType.GetterDeclaration, { name, body });
+  }
+
+  // =============================================================================
+  // Router View Directives
+  // =============================================================================
+
+  /**
+   * Parse @link directive: @link("/path") "text"
+   */
+  parseLinkDirective() {
+    this.expect(TokenType.LPAREN);
+    const path = this.parseExpression();
+
+    let options = null;
+    if (this.is(TokenType.COMMA)) {
+      this.advance();
+      options = this.parseObjectLiteralExpr();
+    }
+    this.expect(TokenType.RPAREN);
+
+    // Parse link content (text or children)
+    let content = null;
+    if (this.is(TokenType.STRING)) {
+      content = this.parseTextNode();
+    } else if (this.is(TokenType.LBRACE)) {
+      this.advance();
+      content = [];
+      while (!this.is(TokenType.RBRACE) && !this.is(TokenType.EOF)) {
+        content.push(this.parseViewChild());
+      }
+      this.expect(TokenType.RBRACE);
+    }
+
+    return new ASTNode(NodeType.LinkDirective, { path, options, content });
+  }
+
+  /**
+   * Parse @outlet directive
+   */
+  parseOutletDirective() {
+    let container = null;
+    if (this.is(TokenType.LPAREN)) {
+      this.advance();
+      if (this.is(TokenType.STRING)) {
+        container = this.expect(TokenType.STRING).value;
+      }
+      this.expect(TokenType.RPAREN);
+    }
+    return new ASTNode(NodeType.OutletDirective, { container });
+  }
+
+  /**
+   * Parse @navigate directive
+   */
+  parseNavigateDirective() {
+    this.expect(TokenType.LPAREN);
+    const path = this.parseExpression();
+
+    let options = null;
+    if (this.is(TokenType.COMMA)) {
+      this.advance();
+      options = this.parseObjectLiteralExpr();
+    }
+    this.expect(TokenType.RPAREN);
+
+    return new ASTNode(NodeType.NavigateDirective, { path, options });
   }
 
   /**

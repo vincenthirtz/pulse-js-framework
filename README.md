@@ -132,7 +132,72 @@ style {
 - Import statements for component composition
 - Slots for content projection (`slot`, `slot "name"`)
 - CSS scoping (styles are automatically scoped to component)
+- Native `router {}` and `store {}` blocks
 - Detailed error messages with line/column info
+
+### Router & Store DSL (v1.4.0)
+
+Define routing and state management directly in your `.pulse` files:
+
+```pulse
+@page App
+
+router {
+  mode: "hash"
+  base: "/app"
+  routes {
+    "/": HomePage
+    "/users": UsersPage
+    "/users/:id": UserDetailPage
+  }
+  beforeEach(to, from) {
+    if (!store.isAuthenticated) return "/login"
+  }
+}
+
+store {
+  state {
+    user: null
+    theme: "dark"
+  }
+  getters {
+    isAuthenticated() { return this.user !== null }
+  }
+  actions {
+    login(userData) { this.user = userData }
+    logout() { this.user = null }
+    toggleTheme() { this.theme = this.theme === "dark" ? "light" : "dark" }
+  }
+  persist: true
+  storageKey: "my-app"
+}
+
+view {
+  .app {
+    nav {
+      @link("/") "Home"
+      @link("/users") "Users"
+    }
+    main {
+      @outlet
+    }
+  }
+}
+```
+
+**Router DSL Features:**
+- Route definitions with path parameters (`:id`) and wildcards (`*path`)
+- Navigation guards (`beforeEach`, `afterEach`)
+- `@link("/path")` directive for navigation links
+- `@outlet` directive for route content
+- `@navigate`, `@back`, `@forward` directives
+
+**Store DSL Features:**
+- Reactive state with automatic signal creation
+- Getters with `this.x` → `store.x.get()` transformation
+- Actions with `this.x = y` → `store.x.set(y)` transformation
+- Built-in persistence via `persist: true`
+- Custom storage key
 
 ## API Reference
 

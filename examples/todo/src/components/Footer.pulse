@@ -1,0 +1,117 @@
+/**
+ * Footer Component - Stats, filters, and clear completed button
+ */
+
+@page Footer
+
+props {
+  remainingCount: 0
+  completedCount: 0
+  filter: "all"
+  onFilterChange: null
+  onClearCompleted: null
+}
+
+view {
+  footer.footer {
+    .stats {
+      span.todo-count {
+        strong "{remainingCount}"
+        span " task{remainingCount !== 1 ? 's' : ''} left"
+      }
+    }
+    ul.filters {
+      li {
+        a[href="#/"][class="{filter === 'all' ? 'selected' : ''}"] @click(handleFilterClick(event, 'all')) "📋 All"
+      }
+      li {
+        a[href="#/active"][class="{filter === 'active' ? 'selected' : ''}"] @click(handleFilterClick(event, 'active')) "⏳ Active"
+      }
+      li {
+        a[href="#/completed"][class="{filter === 'completed' ? 'selected' : ''}"] @click(handleFilterClick(event, 'completed')) "✅ Done"
+      }
+    }
+    button.clear-completed[style="visibility: {completedCount > 0 ? 'visible' : 'hidden'}"] @click(onClearCompleted && onClearCompleted()) "🗑️ Clear done"
+  }
+}
+
+actions {
+  handleFilterClick(e, value) {
+    e.preventDefault()
+    if (onFilterChange) onFilterChange(value)
+  }
+}
+
+style {
+  .footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    font-size: 0.9em;
+    color: var(--text-muted);
+    border-top: 1px solid var(--border);
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .todo-count strong {
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .filters {
+    display: flex;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    gap: 4px;
+  }
+
+  .filters a {
+    display: block;
+    padding: 6px 12px;
+    text-decoration: none;
+    color: var(--text-muted);
+    border-radius: 8px;
+    transition: all 0.2s;
+  }
+
+  .filters a:hover {
+    background: var(--border);
+  }
+
+  .filters a.selected {
+    background: var(--primary);
+    color: white;
+  }
+
+  .clear-completed {
+    padding: 6px 12px;
+    font-size: 0.9em;
+    color: var(--text-muted);
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .clear-completed:hover {
+    background: var(--danger);
+    border-color: var(--danger);
+    color: white;
+  }
+
+  @media (max-width: 550px) {
+    .footer {
+      justify-content: center;
+    }
+
+    .filters {
+      order: -1;
+      width: 100%;
+      justify-content: center;
+    }
+  }
+}

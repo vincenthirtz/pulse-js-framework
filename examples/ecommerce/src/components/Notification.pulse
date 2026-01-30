@@ -1,0 +1,54 @@
+/**
+ * Notification Component - Toast notifications
+ */
+
+@page Notification
+
+props {
+  notification: null
+}
+
+view {
+  .notification-container {
+    @if (notification) {
+      .notification[class="{notification.type}"] "{notification.message}"
+    }
+  }
+}
+
+style {
+  .notification-container {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 400;
+  }
+
+  .notification {
+    padding: 16px 24px;
+    border-radius: var(--radius);
+    color: white;
+    font-weight: 500;
+    animation: slideUp 0.3s ease;
+    box-shadow: var(--shadow-lg);
+  }
+
+  .notification.success {
+    background: var(--success);
+  }
+
+  .notification.error {
+    background: var(--danger);
+  }
+
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}

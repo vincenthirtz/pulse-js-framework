@@ -1,0 +1,250 @@
+/**
+ * Sidebar Component - User info, rooms list, and online users
+ */
+
+@page Sidebar
+
+props {
+  user: null
+  currentRoom: "general"
+  rooms: []
+  onlineUsers: []
+  messages: {}
+  isOpen: true
+  onChangeRoom: null
+  onLogout: null
+}
+
+view {
+  aside.sidebar[class="{isOpen ? 'open' : 'closed'}"] {
+    @if (user) {
+      .user-section {
+        .user-info {
+          .user-avatar "{user.avatar}"
+          .user-details {
+            .user-name "{user.name}"
+            .user-status.online "● Online"
+          }
+          button.logout-btn[title="Logout"] @click(onLogout && onLogout()) "🚪"
+        }
+      }
+    }
+
+    .rooms-section {
+      h3 "📢 Channels"
+      .rooms-list {
+        @for (room of rooms) {
+          .room-item[class="{currentRoom === room.id ? 'active' : ''}"] @click(onChangeRoom && onChangeRoom(room.id)) {
+            .room-icon "{room.icon}"
+            .room-info {
+              .room-name "{room.name}"
+              @if (hasUnreadMessages(room.id)) {
+                .room-preview "{getLastMessage(room.id)}"
+              }
+            }
+          }
+        }
+      }
+    }
+
+    .users-section {
+      h3 "👥 Online"
+      .users-list {
+        @for (u of onlineUsers) {
+          .online-user {
+            .online-avatar "{u.avatar}"
+            .online-name "{u.name}"
+            .status-dot[class="{u.status}"]
+          }
+        }
+      }
+    }
+  }
+}
+
+actions {
+  hasUnreadMessages(roomId) {
+    const roomMsgs = messages[roomId] || []
+    return roomMsgs.length > 0 && currentRoom !== roomId
+  }
+
+  getLastMessage(roomId) {
+    const roomMsgs = messages[roomId] || []
+    if (roomMsgs.length === 0) return ""
+    const lastMsg = roomMsgs[roomMsgs.length - 1]
+    const text = lastMsg.text || ""
+    return text.slice(0, 30) + "..."
+  }
+}
+
+style {
+  .sidebar {
+    width: 280px;
+    background: var(--bg-medium);
+    display: flex;
+    flex-direction: column;
+    transition: width 0.2s, transform 0.2s;
+    overflow: hidden;
+  }
+
+  .sidebar.closed {
+    width: 0;
+    transform: translateX(-280px);
+  }
+
+  @media (max-width: 768px) {
+    .sidebar {
+      position: absolute;
+      z-index: 100;
+      height: 100%;
+    }
+    .sidebar.closed {
+      transform: translateX(-100%);
+    }
+  }
+
+  .user-section {
+    padding: 16px;
+    background: var(--bg-dark);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .user-avatar {
+    font-size: 2em;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-lighter);
+    border-radius: 50%;
+  }
+
+  .user-details {
+    flex: 1;
+  }
+
+  .user-name {
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+
+  .user-status {
+    font-size: 0.8em;
+    color: var(--text-muted);
+  }
+
+  .user-status.online {
+    color: var(--online);
+  }
+
+  .logout-btn {
+    background: none;
+    border: none;
+    font-size: 1.2em;
+    cursor: pointer;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+  }
+
+  .logout-btn:hover {
+    opacity: 1;
+  }
+
+  .rooms-section, .users-section {
+    padding: 16px;
+  }
+
+  .rooms-section h3, .users-section h3 {
+    font-size: 0.75em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    letter-spacing: 0.5px;
+  }
+
+  .rooms-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .room-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .room-item:hover {
+    background: var(--bg-lighter);
+  }
+
+  .room-item.active {
+    background: var(--bg-lighter);
+    color: var(--text);
+  }
+
+  .room-icon {
+    font-size: 1.3em;
+  }
+
+  .room-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .room-name {
+    font-weight: 500;
+  }
+
+  .room-preview {
+    font-size: 0.8em;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .users-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .online-user {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px;
+    border-radius: var(--radius);
+  }
+
+  .online-avatar {
+    font-size: 1.2em;
+  }
+
+  .online-name {
+    flex: 1;
+    font-size: 0.9em;
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+
+  .status-dot.online { background: var(--online); }
+  .status-dot.away { background: var(--away); }
+  .status-dot.offline { background: var(--offline); }
+}

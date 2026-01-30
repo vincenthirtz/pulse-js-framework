@@ -1,0 +1,87 @@
+/**
+ * ChatHeader Component - Room info and actions
+ */
+
+@page ChatHeader
+
+props {
+  room: null
+  onToggleSidebar: null
+  onClearChat: null
+}
+
+view {
+  .chat-header {
+    button.toggle-sidebar @click(onToggleSidebar && onToggleSidebar()) "☰"
+    .room-info-header {
+      @if (room) {
+        .room-title "{room.icon} {room.name}"
+        .room-description "{room.description}"
+      }
+    }
+    .header-actions {
+      button.action-btn[title="Clear chat"] @click(onClearChat && onClearChat()) "🗑️"
+    }
+  }
+}
+
+style {
+  .chat-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 20px;
+    background: var(--bg-light);
+    border-bottom: 1px solid var(--border);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  }
+
+  .toggle-sidebar {
+    background: none;
+    border: none;
+    font-size: 1.3em;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 8px;
+    border-radius: var(--radius);
+    transition: background 0.2s;
+  }
+
+  .toggle-sidebar:hover {
+    background: var(--bg-lighter);
+    color: var(--text);
+  }
+
+  .room-info-header {
+    flex: 1;
+  }
+
+  .room-title {
+    font-size: 1.1em;
+    font-weight: 600;
+  }
+
+  .room-description {
+    font-size: 0.85em;
+    color: var(--text-muted);
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .action-btn {
+    background: none;
+    border: none;
+    font-size: 1.2em;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: var(--radius);
+    transition: background 0.2s;
+  }
+
+  .action-btn:hover {
+    background: var(--bg-lighter);
+  }
+}

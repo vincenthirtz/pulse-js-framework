@@ -12,6 +12,84 @@ export function ChangelogPage() {
     <p class="intro">Recent updates and improvements to Pulse Framework</p>
 
     <section class="doc-section changelog-section">
+      <h2>v1.4.0 - Native Router & Store DSL</h2>
+      <p class="release-date">January 2026</p>
+
+      <h3>🎯 Router & Store DSL Blocks</h3>
+      <div class="changelog-group">
+        <p>Define routing and state management directly in <code>.pulse</code> files with native DSL syntax:</p>
+
+        <div class="changelog-item">
+          <h4>Router Block</h4>
+          <p>Full router configuration in your component:</p>
+          <div class="code-block">
+            <pre><code>router {
+  mode: "hash"
+  routes {
+    "/": HomePage
+    "/users/:id": UserPage
+  }
+  beforeEach(to, from) {
+    if (!store.isAuthenticated) return "/login"
+  }
+}</code></pre>
+          </div>
+        </div>
+
+        <div class="changelog-item">
+          <h4>Store Block</h4>
+          <p>State management with getters, actions, and persistence:</p>
+          <div class="code-block">
+            <pre><code>store {
+  state {
+    user: null
+    theme: "dark"
+  }
+  getters {
+    isAuthenticated() { return this.user !== null }
+  }
+  actions {
+    login(user) { this.user = user }
+    toggleTheme() { this.theme = this.theme === "dark" ? "light" : "dark" }
+  }
+  persist: true
+  storageKey: "my-app"
+}</code></pre>
+          </div>
+        </div>
+
+        <div class="changelog-item">
+          <h4>Router View Directives</h4>
+          <p>New directives for navigation in views:</p>
+          <ul class="feature-list">
+            <li><code>@link("/path")</code> - Navigation link with active state</li>
+            <li><code>@outlet</code> - Renders current route component</li>
+            <li><code>@navigate("/path")</code> - Programmatic navigation</li>
+            <li><code>@back</code> / <code>@forward</code> - History navigation</li>
+          </ul>
+        </div>
+
+        <div class="changelog-item">
+          <h4>Automatic Transformations</h4>
+          <ul class="feature-list">
+            <li>Store getters: <code>this.x</code> → <code>store.x.get()</code></li>
+            <li>Store actions: <code>this.x = y</code> → <code>store.x.set(y)</code></li>
+            <li>Guard bodies: <code>store.x</code> → <code>$store.x</code></li>
+          </ul>
+        </div>
+      </div>
+
+      <h3>🔧 Parser Improvements</h3>
+      <div class="changelog-group">
+        <ul class="feature-list">
+          <li>Keywords like <code>page</code>, <code>from</code>, <code>route</code> now valid as parameter names</li>
+          <li>Block directives (<code>@if</code>, <code>@for</code>) properly break inline parsing</li>
+          <li>Better error messages for router/store block parsing</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="doc-section changelog-section">
       <h2>v1.3.0 - Router & Compiler Improvements</h2>
       <p class="release-date">January 2026</p>
 

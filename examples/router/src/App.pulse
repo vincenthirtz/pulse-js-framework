@@ -1,0 +1,504 @@
+/**
+ * Pulse Router Demo - Simplified .pulse version
+ * Note: Full routing features require JavaScript integration
+ */
+
+@page App
+
+state {
+  currentPage: "home"
+  users: []
+  posts: []
+  isAuthenticated: false
+  currentUser: null
+  selectedUserId: null
+  searchQuery: ""
+}
+
+view {
+  .app {
+    header {
+      .logo @click(setPage('home')) "🧭 Pulse Router"
+      nav {
+        a.nav-link[class="{currentPage === 'home' ? 'active' : ''}"] @click(setPage('home')) "🏠 Home"
+        a.nav-link[class="{currentPage === 'users' ? 'active' : ''}"] @click(setPage('users')) "👥 Users"
+        a.nav-link[class="{currentPage === 'posts' ? 'active' : ''}"] @click(setPage('posts')) "📝 Posts"
+        a.nav-link[class="{currentPage === 'dashboard' ? 'active' : ''}"] @click(handleDashboardClick()) "📊 Dashboard"
+      }
+      button.auth-btn @click(toggleAuth()) "{isAuthenticated ? '🚪 Logout' : '🔐 Login'}"
+    }
+
+    main {
+      @if (currentPage === 'home') {
+        .page.home {
+          h1 "🏠 Welcome to Pulse Router Demo"
+          p.intro "This example demonstrates the Pulse routing system"
+          ul.features {
+            li "✅ Basic navigation"
+            li "✅ Route parameters"
+            li "✅ Protected routes"
+            li "✅ Active link styling"
+          }
+          .cards {
+            .card @click(setPage('users')) {
+              span.icon "👥"
+              h3 "Users"
+              p "Browse user profiles"
+            }
+            .card @click(setPage('posts')) {
+              span.icon "📝"
+              h3 "Posts"
+              p "Read blog posts"
+            }
+            .card @click(handleDashboardClick()) {
+              span.icon "📊"
+              h3 "Dashboard"
+              p "Protected area"
+            }
+          }
+        }
+      }
+
+      @if (currentPage === 'users') {
+        .page.users {
+          h1 "👥 Users"
+          input.search[type=text][placeholder="Search users..."][value={searchQuery}] @input(setSearchQuery(event.target.value))
+          .user-list {
+            @for (user of getFilteredUsers()) {
+              .user-card @click(selectUser(user.id)) {
+                span.avatar "{user.avatar}"
+                .info {
+                  h3 "{user.name}"
+                  p "{user.role}"
+                }
+              }
+            }
+          }
+        }
+      }
+
+      @if (currentPage === 'user-detail') {
+        .page.user-detail {
+          button.back-btn @click(setPage('users')) "← Back"
+          @if (getSelectedUser()) {
+            .user-profile {
+              span.avatar.large "{getSelectedUser().avatar}"
+              h1 "{getSelectedUser().name}"
+              p.role "{getSelectedUser().role}"
+              .details {
+                p {
+                  strong "Email: "
+                  span "{getSelectedUser().email}"
+                }
+                p {
+                  strong "ID: "
+                  span "{getSelectedUser().id}"
+                }
+              }
+            }
+          }
+        }
+      }
+
+      @if (currentPage === 'posts') {
+        .page.posts {
+          h1 "📝 Blog Posts"
+          .post-list {
+            @for (post of posts) {
+              .post-card {
+                h3 "{post.title}"
+                p.meta "By {post.author} • {post.date}"
+                p.excerpt "{post.excerpt}"
+              }
+            }
+          }
+        }
+      }
+
+      @if (currentPage === 'dashboard') {
+        .page.dashboard {
+          h1 "📊 Dashboard"
+          p.welcome "Welcome back, {currentUser ? currentUser.name : 'User'}!"
+          .stats {
+            .stat {
+              span.value "42"
+              span.label "Projects"
+            }
+            .stat {
+              span.value "128"
+              span.label "Tasks"
+            }
+            .stat {
+              span.value "8"
+              span.label "Team Members"
+            }
+          }
+          p.note "🔒 This is a protected route. Only visible when logged in."
+        }
+      }
+    }
+
+    footer {
+      .route-info {
+        span {
+          strong "Page: "
+          span "{currentPage}"
+        }
+        span {
+          strong "Authenticated: "
+          span "{isAuthenticated ? 'Yes' : 'No'}"
+        }
+      }
+    }
+  }
+}
+
+actions {
+  init() {
+    users = [
+      { id: 1, name: "Alice Johnson", email: "alice@example.com", role: "Admin", avatar: "👩‍💼" },
+      { id: 2, name: "Bob Smith", email: "bob@example.com", role: "Developer", avatar: "👨‍💻" },
+      { id: 3, name: "Carol Williams", email: "carol@example.com", role: "Designer", avatar: "👩‍🎨" },
+      { id: 4, name: "David Brown", email: "david@example.com", role: "Manager", avatar: "👨‍💼" }
+    ]
+
+    posts = [
+      { id: 1, title: "Getting Started with Pulse", author: "Alice", date: "2024-01-15", excerpt: "Learn the basics of Pulse Framework..." },
+      { id: 2, title: "Advanced Routing Techniques", author: "Bob", date: "2024-01-20", excerpt: "Deep dive into SPA routing..." },
+      { id: 3, title: "State Management Patterns", author: "Carol", date: "2024-01-25", excerpt: "Best practices for managing state..." }
+    ]
+  }
+
+  setPage(page) {
+    currentPage = page
+    selectedUserId = null
+  }
+
+  setSearchQuery(query) {
+    searchQuery = query
+  }
+
+  getFilteredUsers() {
+    const query = searchQuery.toLowerCase()
+    if (!query) return users
+    return users.filter(u =>
+      u.name.toLowerCase().includes(query) ||
+      u.role.toLowerCase().includes(query)
+    )
+  }
+
+  selectUser(id) {
+    selectedUserId = id
+    currentPage = "user-detail"
+  }
+
+  getSelectedUser() {
+    return users.find(u => u.id === selectedUserId)
+  }
+
+  handleDashboardClick() {
+    if (isAuthenticated) {
+      currentPage = "dashboard"
+    } else {
+      alert("Please login to access the dashboard")
+    }
+  }
+
+  toggleAuth() {
+    if (isAuthenticated) {
+      isAuthenticated = false
+      currentUser = null
+      currentPage = "home"
+    } else {
+      isAuthenticated = true
+      currentUser = users[0]
+    }
+  }
+}
+
+style {
+  :root {
+    --primary: #6366f1;
+    --primary-dark: #4f46e5;
+    --bg: #0f172a;
+    --bg-light: #1e293b;
+    --card: #1e293b;
+    --text: #e2e8f0;
+    --text-muted: #94a3b8;
+    --border: #334155;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  .app {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+    background: var(--bg-light);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo {
+    font-size: 1.25em;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  nav {
+    display: flex;
+    gap: 8px;
+  }
+
+  .nav-link {
+    padding: 8px 16px;
+    color: var(--text-muted);
+    text-decoration: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .nav-link:hover {
+    color: var(--text);
+    background: var(--bg);
+  }
+
+  .nav-link.active {
+    color: white;
+    background: var(--primary);
+  }
+
+  .auth-btn {
+    padding: 8px 16px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+
+  main {
+    flex: 1;
+    padding: 32px 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  .page {
+    animation: fadeIn 0.3s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .page h1 {
+    font-size: 2em;
+    margin-bottom: 16px;
+  }
+
+  .intro {
+    color: var(--text-muted);
+    margin-bottom: 24px;
+  }
+
+  .features {
+    list-style: none;
+    margin-bottom: 32px;
+  }
+
+  .features li {
+    padding: 8px 0;
+    color: var(--text-muted);
+  }
+
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+  }
+
+  .card {
+    background: var(--card);
+    padding: 24px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s;
+  }
+
+  .card:hover {
+    border-color: var(--primary);
+    transform: translateY(-2px);
+  }
+
+  .card .icon {
+    font-size: 2em;
+    display: block;
+    margin-bottom: 12px;
+  }
+
+  .search {
+    width: 100%;
+    padding: 12px 16px;
+    background: var(--bg-light);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    margin-bottom: 24px;
+  }
+
+  .user-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+  }
+
+  .user-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--card);
+    padding: 16px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .user-card:hover {
+    border-color: var(--primary);
+  }
+
+  .avatar {
+    font-size: 2em;
+  }
+
+  .avatar.large {
+    font-size: 4em;
+  }
+
+  .user-profile {
+    text-align: center;
+    padding: 32px;
+  }
+
+  .user-profile .role {
+    color: var(--primary);
+    margin-bottom: 24px;
+  }
+
+  .user-profile .details {
+    background: var(--bg-light);
+    padding: 24px;
+    border-radius: 12px;
+    text-align: left;
+    max-width: 400px;
+    margin: 0 auto;
+  }
+
+  .post-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .post-card {
+    background: var(--card);
+    padding: 24px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+  }
+
+  .post-card .meta {
+    color: var(--text-muted);
+    font-size: 0.85em;
+    margin-bottom: 12px;
+  }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+
+  .stat {
+    background: var(--card);
+    padding: 24px;
+    border-radius: 12px;
+    text-align: center;
+    border: 1px solid var(--border);
+  }
+
+  .stat .value {
+    font-size: 2.5em;
+    font-weight: 700;
+    color: var(--primary);
+    display: block;
+  }
+
+  .stat .label {
+    color: var(--text-muted);
+  }
+
+  .note {
+    background: rgba(99, 102, 241, 0.1);
+    padding: 16px;
+    border-radius: 8px;
+    border-left: 4px solid var(--primary);
+  }
+
+  .back-btn {
+    background: var(--bg-light);
+    margin-bottom: 24px;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    color: var(--text);
+    cursor: pointer;
+  }
+
+  footer {
+    background: var(--bg-light);
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+  }
+
+  .route-info {
+    display: flex;
+    gap: 24px;
+    font-size: 0.85em;
+    font-family: monospace;
+  }
+
+  .route-info span {
+    color: var(--text-muted);
+  }
+
+  .route-info strong {
+    color: var(--text);
+  }
+}

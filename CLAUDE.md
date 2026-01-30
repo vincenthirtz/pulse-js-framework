@@ -9,7 +9,7 @@ Pulse is a lightweight, declarative JavaScript framework for building reactive S
 - **Custom DSL** (.pulse files) that compile to JavaScript
 - **Zero dependencies** - completely self-contained
 
-**Version:** 1.0.0 | **License:** MIT | **Node.js:** >= 18.0.0
+**Version:** 1.4.0 | **License:** MIT | **Node.js:** >= 18.0.0
 
 ## Quick Commands
 

@@ -18,6 +18,19 @@ export const TokenType = {
   EXPORT: 'EXPORT',
   SLOT: 'SLOT',
 
+  // Router/Store keywords
+  ROUTER: 'ROUTER',
+  STORE: 'STORE',
+  ROUTES: 'ROUTES',
+  GETTERS: 'GETTERS',
+  BEFORE_EACH: 'BEFORE_EACH',
+  AFTER_EACH: 'AFTER_EACH',
+  PERSIST: 'PERSIST',
+  STORAGE_KEY: 'STORAGE_KEY',
+  PLUGINS: 'PLUGINS',
+  MODE: 'MODE',
+  BASE: 'BASE',
+
   // Directives
   AT: 'AT',           // @
   PAGE: 'PAGE',
@@ -28,6 +41,13 @@ export const TokenType = {
   FOR: 'FOR',
   IN: 'IN',
   OF: 'OF',
+
+  // Router view directives
+  LINK: 'LINK',
+  OUTLET: 'OUTLET',
+  NAVIGATE: 'NAVIGATE',
+  BACK: 'BACK',
+  FORWARD: 'FORWARD',
 
   // Punctuation
   LBRACE: 'LBRACE',   // {
@@ -109,6 +129,22 @@ const KEYWORDS = {
   'of': TokenType.OF,
   'page': TokenType.PAGE,
   'route': TokenType.ROUTE,
+  'router': TokenType.ROUTER,
+  'store': TokenType.STORE,
+  'routes': TokenType.ROUTES,
+  'getters': TokenType.GETTERS,
+  'beforeEach': TokenType.BEFORE_EACH,
+  'afterEach': TokenType.AFTER_EACH,
+  'persist': TokenType.PERSIST,
+  'storageKey': TokenType.STORAGE_KEY,
+  'plugins': TokenType.PLUGINS,
+  'mode': TokenType.MODE,
+  'base': TokenType.BASE,
+  'link': TokenType.LINK,
+  'outlet': TokenType.OUTLET,
+  'navigate': TokenType.NAVIGATE,
+  'back': TokenType.BACK,
+  'forward': TokenType.FORWARD,
   'true': TokenType.TRUE,
   'false': TokenType.FALSE,
   'null': TokenType.NULL,
@@ -681,7 +717,11 @@ export class Lexer {
       }
       if (token.type === TokenType.STATE ||
           token.type === TokenType.ACTIONS ||
-          token.type === TokenType.STYLE) {
+          token.type === TokenType.STYLE ||
+          token.type === TokenType.ROUTER ||
+          token.type === TokenType.STORE ||
+          token.type === TokenType.ROUTES ||
+          token.type === TokenType.GETTERS) {
         return false;
       }
     }
