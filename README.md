@@ -13,6 +13,7 @@ A declarative DOM framework with CSS selector-based structure and reactive pulsa
 - **No Build Required** - Works directly in the browser
 - **Lightweight** - Minimal footprint, maximum performance
 - **Router & Store** - Built-in SPA routing and state management
+- **Hot Module Replacement** - Full HMR with state preservation
 - **Mobile Apps** - Build native Android & iOS apps (zero dependencies)
 - **TypeScript Support** - Full type definitions for IDE autocomplete
 
@@ -279,6 +280,36 @@ const store = createStore({
 
 store.user.set({ name: 'John' });
 ```
+
+### HMR (Hot Module Replacement)
+
+Pulse supports full HMR with state preservation during development:
+
+```javascript
+import { createHMRContext } from 'pulse-js-framework/runtime/hmr';
+
+const hmr = createHMRContext(import.meta.url);
+
+// State preserved across HMR updates
+const count = hmr.preservePulse('count', 0);
+const items = hmr.preservePulse('items', []);
+
+// Effects tracked for automatic cleanup
+hmr.setup(() => {
+  effect(() => {
+    document.title = `Count: ${count.get()}`;
+  });
+});
+
+// Accept HMR updates
+hmr.accept();
+```
+
+**HMR Features:**
+- `preservePulse(key, value)` - Create pulses that survive module replacement
+- `setup(callback)` - Execute with effect tracking for cleanup
+- Automatic event listener cleanup (no accumulation)
+- Works with Vite dev server
 
 ### Logger
 
