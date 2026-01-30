@@ -25,10 +25,13 @@
     "LICENSE"
   ],
   "scripts": {
-    "test": "npm run test:compiler && npm run test:pulse && npm run test:dom",
+    "test": "npm run test:compiler && npm run test:pulse && npm run test:dom && npm run test:lint && npm run test:format && npm run test:analyze",
     "test:compiler": "node test/compiler.test.js",
     "test:pulse": "node test/pulse.test.js",
     "test:dom": "node test/dom.test.js",
+    "test:lint": "node test/lint.test.js",
+    "test:format": "node test/format.test.js",
+    "test:analyze": "node test/analyze.test.js",
     "build:netlify": "node scripts/build-netlify.js"
   },
   "keywords": [
@@ -45,7 +48,7 @@
     "spa",
     "signals"
   ],
-  "author": "Your Name <your.email@example.com>",
+  "author": "Vincent Hirtz <hirtzvincent@gmail.com>",
   "license": "MIT",
   "repository": {
     "type": "git",

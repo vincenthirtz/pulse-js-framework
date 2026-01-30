@@ -113,6 +113,33 @@ view {
       </div>
     </section>
 
+    <section class="doc-section">
+      <h2>CLI Commands</h2>
+      <p>Pulse provides a complete CLI for development workflow:</p>
+
+      <h3>Development</h3>
+      <div class="code-block">
+        <pre><code>pulse create &lt;name&gt;   # Create new project
+pulse dev [port]      # Start dev server (default: 3000)
+pulse build           # Build for production
+pulse preview [port]  # Preview production build</code></pre>
+      </div>
+
+      <h3>Code Quality</h3>
+      <div class="code-block">
+        <pre><code>pulse lint [files]    # Validate .pulse files
+pulse lint --fix      # Auto-fix issues
+pulse format [files]  # Format code consistently
+pulse format --check  # Check without writing (CI)
+pulse analyze         # Analyze bundle size
+pulse analyze --json  # JSON output</code></pre>
+      </div>
+
+      <p><strong>Lint checks:</strong> undefined references, unused imports/state, naming conventions, empty blocks, import order.</p>
+      <p><strong>Format rules:</strong> 2-space indent, sorted imports, consistent braces, proper spacing.</p>
+      <p><strong>Analyze output:</strong> file count, component complexity, import graph, dead code detection.</p>
+    </section>
+
     <div class="next-section">
       <button class="btn btn-primary" onclick="window.docs.navigate('/core-concepts')">
         Next: Core Concepts →

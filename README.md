@@ -217,14 +217,75 @@ store.user.set({ name: 'John' });
 ## CLI Commands
 
 ```bash
+# Project Commands
 pulse create <name>    # Create new project
-pulse dev [port]       # Start dev server
+pulse dev [port]       # Start dev server (default: 3000)
 pulse build            # Build for production
-pulse compile <file>   # Compile .pulse file
+pulse preview [port]   # Preview production build (default: 4173)
+pulse compile <file>   # Compile .pulse file to JavaScript
+
+# Code Quality
+pulse lint [files]     # Validate .pulse files for errors and style
+pulse lint --fix       # Auto-fix fixable issues
+pulse format [files]   # Format .pulse files consistently
+pulse format --check   # Check formatting without writing
+pulse analyze          # Analyze bundle size and dependencies
+pulse analyze --json   # Output analysis as JSON
+
+# Mobile
 pulse mobile init      # Initialize mobile platforms
 pulse mobile build android|ios  # Build native app
 pulse mobile run android|ios    # Run on device/emulator
 ```
+
+### Lint Command
+
+Validates `.pulse` files for errors and style issues:
+
+```bash
+pulse lint src/              # Lint all files in src/
+pulse lint "**/*.pulse"      # Lint all .pulse files
+pulse lint --fix             # Auto-fix fixable issues
+```
+
+**Checks performed:**
+- Undefined references (state variables, components)
+- Unused imports and state variables
+- Naming conventions (PascalCase for pages, camelCase for state)
+- Empty blocks
+- Import order
+
+### Format Command
+
+Formats `.pulse` files with consistent style:
+
+```bash
+pulse format                  # Format all .pulse files
+pulse format src/App.pulse    # Format specific file
+pulse format --check          # Check without writing (CI mode)
+```
+
+**Formatting rules:**
+- 2-space indentation
+- Sorted imports (alphabetically)
+- Consistent brace placement
+- Proper spacing around operators
+
+### Analyze Command
+
+Analyzes your Pulse project for bundle insights:
+
+```bash
+pulse analyze                 # Console report
+pulse analyze --json          # JSON output
+pulse analyze --verbose       # Detailed metrics
+```
+
+**Analysis includes:**
+- File count and total size
+- Component complexity scores
+- Import dependency graph
+- Dead code detection (unreachable files)
 
 ## Mobile Apps
 

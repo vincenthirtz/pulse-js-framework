@@ -14,8 +14,8 @@ Pulse is a lightweight, declarative JavaScript framework for building reactive S
 ## Quick Commands
 
 ```bash
-# Run tests (compiler tests)
-npm test
+# Run tests
+npm test                # Run all tests (compiler, lint, format, analyze)
 
 # CLI commands (via pulse binary)
 pulse create <name>     # Create new Pulse project
@@ -23,6 +23,15 @@ pulse dev [port]        # Start dev server (default: 3000)
 pulse build             # Build for production (minified)
 pulse preview [port]    # Preview production build (default: 4173)
 pulse compile <file>    # Compile .pulse file to .js
+
+# Code Quality
+pulse lint [files]      # Validate .pulse files for errors and style
+pulse lint --fix        # Auto-fix fixable issues
+pulse format [files]    # Format .pulse files consistently
+pulse format --check    # Check formatting without writing (CI mode)
+pulse analyze           # Analyze bundle size and dependencies
+pulse analyze --json    # Output analysis as JSON
+pulse analyze --verbose # Show detailed metrics
 ```
 
 ## Development Workflow
@@ -52,7 +61,12 @@ pulse/
 ├── cli/                 # Command-line interface
 │   ├── index.js         # Main CLI, command handlers
 │   ├── dev.js           # Dev server
-│   └── build.js         # Production build
+│   ├── build.js         # Production build
+│   ├── lint.js          # Semantic analyzer (lint command)
+│   ├── format.js        # Code formatter (format command)
+│   ├── analyze.js       # Bundle analyzer (analyze command)
+│   └── utils/
+│       └── file-utils.js  # Shared utilities (glob, parseArgs)
 ├── loader/
 │   └── vite-plugin.js   # Vite integration
 ├── examples/            # Example apps (todo, chat, ecommerce, meteo)
@@ -202,6 +216,10 @@ style {
 | `compiler/parser.js` | AST builder for .pulse syntax |
 | `compiler/transformer.js` | JavaScript code generator |
 | `cli/index.js` | CLI commands implementation |
+| `cli/lint.js` | SemanticAnalyzer, LintRules for code validation |
+| `cli/format.js` | PulseFormatter for consistent code style |
+| `cli/analyze.js` | Bundle analysis, import graph, complexity metrics |
+| `cli/utils/file-utils.js` | findPulseFiles, parseArgs, formatBytes |
 | `examples/todo/src/main.js` | Best reference implementation |
 
 ## Code Conventions

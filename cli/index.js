@@ -22,7 +22,10 @@ const commands = {
   build: runBuild,
   preview: runPreview,
   compile: compileFile,
-  mobile: runMobile
+  mobile: runMobile,
+  lint: runLint,
+  format: runFormat,
+  analyze: runAnalyze
 };
 
 /**
@@ -57,8 +60,22 @@ Commands:
   preview [port]   Preview production build (default: 4173)
   compile <file>   Compile a .pulse file to JavaScript
   mobile <cmd>     Mobile app commands (init, build, run)
+  lint [files]     Validate .pulse files for errors and style
+  format [files]   Format .pulse files consistently
+  analyze          Analyze bundle size and dependencies
   version          Show version number
   help             Show this help message
+
+Lint Options:
+  --fix            Auto-fix fixable issues
+
+Format Options:
+  --check          Check formatting without writing
+  --write          Write formatted output (default)
+
+Analyze Options:
+  --json           Output analysis as JSON
+  --verbose        Show detailed metrics
 
 Examples:
   pulse create my-app
@@ -70,6 +87,12 @@ Examples:
   pulse mobile build android
   pulse mobile run ios
   pulse compile src/App.pulse
+  pulse lint src/
+  pulse lint "**/*.pulse" --fix
+  pulse format --check
+  pulse format src/App.pulse
+  pulse analyze
+  pulse analyze --json
 
 Documentation: https://github.com/vincenthirtz/pulse-js-framework
   `);
@@ -307,6 +330,30 @@ async function runPreview(args) {
 async function runMobile(args) {
   const { handleMobileCommand } = await import('./mobile.js');
   await handleMobileCommand(args);
+}
+
+/**
+ * Run lint command
+ */
+async function runLint(args) {
+  const { runLint } = await import('./lint.js');
+  await runLint(args);
+}
+
+/**
+ * Run format command
+ */
+async function runFormat(args) {
+  const { runFormat } = await import('./format.js');
+  await runFormat(args);
+}
+
+/**
+ * Run analyze command
+ */
+async function runAnalyze(args) {
+  const { runAnalyze } = await import('./analyze.js');
+  await runAnalyze(args);
 }
 
 /**
