@@ -925,6 +925,7 @@ export class Transformer {
    * div -> div.p123abc
    * .a .b -> .a.p123abc .b.p123abc
    * @media (max-width: 900px) -> @media (max-width: 900px) (unchanged)
+   * :root, body, *, html -> unchanged (global selectors)
    */
   scopeStyleSelector(selector) {
     if (!this.scopeId) return selector;
@@ -934,20 +935,36 @@ export class Transformer {
       return selector;
     }
 
+    // Global selectors that should not be scoped
+    const globalSelectors = new Set([':root', 'body', 'html', '*']);
+
+    // Check if entire selector is a global selector (possibly with classes like body.dark)
+    const trimmed = selector.trim();
+    const baseSelector = trimmed.split(/[.#\[:\s]/)[0];
+    if (globalSelectors.has(baseSelector) || globalSelectors.has(trimmed)) {
+      return selector;
+    }
+
     // Split by comma for multiple selectors
     return selector.split(',').map(part => {
       part = part.trim();
 
       // Split by space for descendant selectors
       return part.split(/\s+/).map(segment => {
+        // Check if this segment is a global selector
+        const segmentBase = segment.split(/[.#\[]/)[0];
+        if (globalSelectors.has(segmentBase) || globalSelectors.has(segment)) {
+          return segment;
+        }
+
         // Skip pseudo-elements and pseudo-classes at the end
         const pseudoMatch = segment.match(/^([^:]+)(:.+)?$/);
         if (pseudoMatch) {
           const base = pseudoMatch[1];
           const pseudo = pseudoMatch[2] || '';
 
-          // Skip if it's just a pseudo selector
-          if (!base) return segment;
+          // Skip if it's just a pseudo selector (like :root)
+          if (!base || globalSelectors.has(`:${pseudo.slice(1)}`)) return segment;
 
           // Add scope class
           return `${base}.${this.scopeId}${pseudo}`;

@@ -86,83 +86,83 @@ function cancelForm() {
 // View
 function render() {
   return (
-    el('.po9cwtk.blog-app',
-      el('header.po9cwtk.header',
-        el('nav.po9cwtk.nav',
-on(          el('.po9cwtk.logo',
-            el('span.po9cwtk.logo-icon',
+    el('.ptasj7u.blog-app',
+      el('header.ptasj7u.header',
+        el('nav.ptasj7u.nav',
+on(          el('.ptasj7u.logo',
+            el('span.ptasj7u.logo-icon',
               "📰"),
-            el('span.po9cwtk',
+            el('span.ptasj7u',
               "Pulse Blog")), 'click', () => { showList(); }),
-          el('.po9cwtk.search-box',
-on(            el('input.po9cwtk.search-input[type=text][placeholder="Search posts..."]'), 'input', () => { handleSearch(event); })),
-          el('.po9cwtk.nav-actions',
-on(            el('button.po9cwtk.btn.btn-primary',
+          el('.ptasj7u.search-box',
+on(            el('input.ptasj7u.search-input[type=text][placeholder="Search posts..."]'), 'input', () => { handleSearch(event); })),
+          el('.ptasj7u.nav-actions',
+on(            el('button.ptasj7u.btn.btn-primary',
               "+ New Post"), 'click', () => { showCreateForm(); }),
-on(            el('button.po9cwtk.dark-toggle',
+on(            el('button.ptasj7u.dark-toggle',
               text(() => `${darkMode.get() ? '☀️' : '🌙'}`)), 'click', () => { toggleDarkMode(); })))),
-      el('main.po9cwtk.main-content',
+      el('main.ptasj7u.main-content',
         when(
           () => (currentView.get() === "list"),
           () => (
-          el('.po9cwtk.content-wrapper',
-            el('.po9cwtk.post-list',
+          el('.ptasj7u.content-wrapper',
+            el('.ptasj7u.post-list',
               list(
                 () => getFilteredPosts(),
                 (post, _index) => (
-on(                el('.po9cwtk.post-card',
-                  el('.po9cwtk.post-meta',
-                    el('span.po9cwtk.category',
+on(                el('.ptasj7u.post-card',
+                  el('.ptasj7u.post-meta',
+                    el('span.ptasj7u.category',
                       text(() => `${post.category}`)),
-                    el('span.po9cwtk.separator',
+                    el('span.ptasj7u.separator',
                       "•"),
-                    el('span.po9cwtk.read-time',
+                    el('span.ptasj7u.read-time',
                       text(() => `${post.readTime}" min read"`))),
-                  el('h3.po9cwtk.post-title',
+                  el('h3.ptasj7u.post-title',
                     text(() => `${post.title}`)),
-                  el('p.po9cwtk.post-excerpt',
+                  el('p.ptasj7u.post-excerpt',
                     text(() => `${post.excerpt}`)),
-                  el('.po9cwtk.post-footer',
-                    el('.po9cwtk.author',
-                      el('span.po9cwtk.author-avatar',
+                  el('.ptasj7u.post-footer',
+                    el('.ptasj7u.author',
+                      el('span.ptasj7u.author-avatar',
                         text(() => `${post.author.charAt(0)}`)),
-                      el('span.po9cwtk.author-name',
+                      el('span.ptasj7u.author-name',
                         text(() => `${post.author}`))),
-                    el('span.po9cwtk.date',
+                    el('span.ptasj7u.date',
                       text(() => `${post.publishedAt}`)))), 'click', () => { viewPost(post.id); })
                 )
               )),
-            el('aside.po9cwtk.sidebar',
-              el('.po9cwtk.sidebar-section',
-                el('h3.po9cwtk.section-title',
+            el('aside.ptasj7u.sidebar',
+              el('.ptasj7u.sidebar-section',
+                el('h3.ptasj7u.section-title',
                   "Categories"),
-                el('.po9cwtk.category-list',
-on(                  el('button.po9cwtk.category-item',
-                    el('span.po9cwtk.category-name',
+                el('.ptasj7u.category-list',
+on(                  el('button.ptasj7u.category-item',
+                    el('span.ptasj7u.category-name',
                       "All Posts"),
-                    el('span.po9cwtk.category-count',
+                    el('span.ptasj7u.category-count',
                       text(() => `${posts.get()?.length}`))), 'click', () => { clearFilter(); }),
                   list(
                     () => getCategories(),
                     (cat, _index) => (
-on(                    el('button.po9cwtk.category-item',
-                      el('span.po9cwtk.category-name',
+on(                    el('button.ptasj7u.category-item',
+                      el('span.ptasj7u.category-name',
                         text(() => `${cat}`)),
-                      el('span.po9cwtk.category-count',
+                      el('span.ptasj7u.category-count',
                         text(() => `${posts.get()?.filter(p => p.category === cat)?.length}`))), 'click', () => { filterByCategory(cat); })
                     )
                   ))),
-              el('.po9cwtk.sidebar-section',
-                el('h3.po9cwtk.section-title',
+              el('.ptasj7u.sidebar-section',
+                el('h3.ptasj7u.section-title',
                   "Recent Posts"),
-                el('.po9cwtk.recent-posts',
+                el('.ptasj7u.recent-posts',
                   list(
                     () => posts.get().slice(0, 3),
                     (post, _index) => (
-on(                    el('.po9cwtk.recent-post',
-                      el('h4.po9cwtk.recent-title',
+on(                    el('.ptasj7u.recent-post',
+                      el('h4.ptasj7u.recent-title',
                         text(() => `${post.title}`)),
-                      el('span.po9cwtk.recent-date',
+                      el('span.ptasj7u.recent-date',
                         text(() => `${post.publishedAt}`))), 'click', () => { viewPost(post.id); })
                     )
                   )))))
@@ -171,44 +171,44 @@ on(                    el('.po9cwtk.recent-post',
         when(
           () => (currentView.get() === "view"),
           () => (
-          el('.po9cwtk.post-view',
-            el('.po9cwtk.post-header',
-on(              el('button.po9cwtk.back-btn',
-                el('span.po9cwtk.arrow',
+          el('.ptasj7u.post-view',
+            el('.ptasj7u.post-header',
+on(              el('button.ptasj7u.back-btn',
+                el('span.ptasj7u.arrow',
                   "←"),
-                el('span.po9cwtk',
+                el('span.ptasj7u',
                   "Back to posts")), 'click', () => { showList(); }),
-              el('.po9cwtk.post-actions',
-on(                el('button.po9cwtk.btn.btn-secondary',
+              el('.ptasj7u.post-actions',
+on(                el('button.ptasj7u.btn.btn-secondary',
                   "Edit"), 'click', () => { showEditForm(selectedPostId.get()); }),
-on(                el('button.po9cwtk.btn.btn-danger',
+on(                el('button.ptasj7u.btn.btn-danger',
                   "Delete"), 'click', () => { deletePost(selectedPostId.get()); }))),
             when(
               () => getSelectedPost(),
               () => (
-              el('article.po9cwtk.post-content',
-                el('.po9cwtk.post-meta',
-                  el('span.po9cwtk.category',
+              el('article.ptasj7u.post-content',
+                el('.ptasj7u.post-meta',
+                  el('span.ptasj7u.category',
                     text(() => `${getSelectedPost()?.category}`)),
-                  el('span.po9cwtk.separator',
+                  el('span.ptasj7u.separator',
                     "|"),
-                  el('span.po9cwtk.read-time',
+                  el('span.ptasj7u.read-time',
                     text(() => `${getSelectedPost()?.readTime}" min read"`)),
-                  el('span.po9cwtk.separator',
+                  el('span.ptasj7u.separator',
                     "|"),
-                  el('span.po9cwtk.date',
+                  el('span.ptasj7u.date',
                     text(() => `${getSelectedPost()?.publishedAt}`))),
-                el('h1.po9cwtk.post-title',
+                el('h1.ptasj7u.post-title',
                   text(() => `${getSelectedPost()?.title}`)),
-                el('.po9cwtk.author-info',
-                  el('.po9cwtk.author-avatar',
+                el('.ptasj7u.author-info',
+                  el('.ptasj7u.author-avatar',
                     text(() => `${getSelectedPost()?.author.charAt(0)}`)),
-                  el('.po9cwtk.author-details',
-                    el('span.po9cwtk.author-name',
+                  el('.ptasj7u.author-details',
+                    el('span.ptasj7u.author-name',
                       text(() => `${getSelectedPost()?.author}`)),
-                    el('span.po9cwtk.author-role',
+                    el('span.ptasj7u.author-role',
                       "Author"))),
-                el('.po9cwtk.post-body',
+                el('.ptasj7u.post-body',
                   text(() => `${getSelectedPost()?.content}`)))
               )
             ))
@@ -217,59 +217,59 @@ on(                el('button.po9cwtk.btn.btn-danger',
         when(
           () => ((currentView.get() === "create") || (currentView.get() === "edit")),
           () => (
-          el('.po9cwtk.post-form',
-            el('.po9cwtk.form-header',
-              el('h2.po9cwtk',
+          el('.ptasj7u.post-form',
+            el('.ptasj7u.form-header',
+              el('h2.ptasj7u',
                 text(() => `${currentView.get() === 'edit' ? 'Edit Post' : 'Create New Post'}`)),
-              el('p.po9cwtk.form-subtitle',
+              el('p.ptasj7u.form-subtitle',
                 text(() => `${currentView.get() === 'edit' ? 'Update your blog post' : 'Share your thoughts'}`))),
-on(            el('form.po9cwtk.form',
-              el('.po9cwtk.form-group',
-                el('label.po9cwtk.form-label',
+on(            el('form.ptasj7u.form',
+              el('.ptasj7u.form-group',
+                el('label.ptasj7u.form-label',
                   "Title"),
-                el('input.po9cwtk#form-title.form-input[type=text][placeholder="Enter post title..."]')),
-              el('.po9cwtk.form-group',
-                el('label.po9cwtk.form-label',
+                el('input.ptasj7u#form-title.form-input[type=text][placeholder="Enter post title..."]')),
+              el('.ptasj7u.form-group',
+                el('label.ptasj7u.form-label',
                   "Excerpt"),
-                el('textarea.po9cwtk#form-excerpt.form-textarea[placeholder="Brief summary..."][rows=2]')),
-              el('.po9cwtk.form-group',
-                el('label.po9cwtk.form-label',
+                el('textarea.ptasj7u#form-excerpt.form-textarea[placeholder="Brief summary..."][rows=2]')),
+              el('.ptasj7u.form-group',
+                el('label.ptasj7u.form-label',
                   "Content"),
-                el('textarea.po9cwtk#form-content.form-textarea.large[placeholder="Write your post..."][rows=8]')),
-              el('.po9cwtk.form-row',
-                el('.po9cwtk.form-group',
-                  el('label.po9cwtk.form-label',
+                el('textarea.ptasj7u#form-content.form-textarea.large[placeholder="Write your post..."][rows=8]')),
+              el('.ptasj7u.form-row',
+                el('.ptasj7u.form-group',
+                  el('label.ptasj7u.form-label',
                     "Author"),
-                  el('input.po9cwtk#form-author.form-input[type=text][placeholder="Your name"]')),
-                el('.po9cwtk.form-group',
-                  el('label.po9cwtk.form-label',
+                  el('input.ptasj7u#form-author.form-input[type=text][placeholder="Your name"]')),
+                el('.ptasj7u.form-group',
+                  el('label.ptasj7u.form-label',
                     "Category"),
-                  el('select.po9cwtk#form-category.form-select',
-                    el('option[value="Tutorial"].po9cwtk',
+                  el('select.ptasj7u#form-category.form-select',
+                    el('option[value="Tutorial"].ptasj7u',
                       "Tutorial"),
-                    el('option[value="Deep Dive"].po9cwtk',
+                    el('option[value="Deep Dive"].ptasj7u',
                       "Deep Dive"),
-                    el('option[value="Mobile"].po9cwtk',
+                    el('option[value="Mobile"].ptasj7u',
                       "Mobile"),
-                    el('option[value="News"].po9cwtk',
+                    el('option[value="News"].ptasj7u',
                       "News")))),
-              el('.po9cwtk.form-actions',
-on(                el('button.po9cwtk.btn.btn-secondary[type=button]',
+              el('.ptasj7u.form-actions',
+on(                el('button.ptasj7u.btn.btn-secondary[type=button]',
                   "Cancel"), 'click', () => { cancelForm(); }),
-                el('button.po9cwtk.btn.btn-primary[type=submit]',
+                el('button.ptasj7u.btn.btn-primary[type=submit]',
                   text(() => `${currentView.get() === 'edit' ? 'Update Post' : 'Publish Post'}`)))), 'submit', () => { handleSubmit(event); }))
           )
         )),
-      el('footer.po9cwtk.footer',
-        el('p.po9cwtk',
+      el('footer.ptasj7u.footer',
+        el('p.ptasj7u',
           "Built with Pulse Framework")))
   );
 }
 
 // Styles
-const SCOPE_ID = 'po9cwtk';
+const SCOPE_ID = 'ptasj7u';
 const styles = `
-:root.po9cwtk {
+:root {
   --bg: #f8fafc;
   --card-bg: #ffffff;
   --text: #1e293b;
@@ -281,30 +281,30 @@ const styles = `
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   --radius: 12px;
 }
-body.dark.po9cwtk {
+body.dark {
   --bg: #0f172a;
   --card-bg: #1e293b;
   --text: #f1f5f9;
   --text-muted: #94a3b8;
   --border: #334155;
 }
-*.po9cwtk {
+* {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
-body.po9cwtk {
+body {
   font-family: system-ui, sans-serif;
   background: var(--bg);
   color: var(--text);
   line-height: 1.6;
 }
-.blog-app.po9cwtk {
+.blog-app.ptasj7u {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
 }
-.header.po9cwtk {
+.header.ptasj7u {
   background: var(--card-bg);
   border-bottom: 1px solid var(--border);
   padding: 16px 24px;
@@ -312,14 +312,14 @@ body.po9cwtk {
   top: 0;
   z-index: 100;
 }
-.nav.po9cwtk {
+.nav.ptasj7u {
   max-width: 1200px;
   margin: 0 auto;
   display: flex;
   align-items: center;
   gap: 24px;
 }
-.logo.po9cwtk {
+.logo.ptasj7u {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -327,11 +327,11 @@ body.po9cwtk {
   font-weight: 700;
   cursor: pointer;
 }
-.search-box.po9cwtk {
+.search-box.ptasj7u {
   flex: 1;
   max-width: 400px;
 }
-.search-input.po9cwtk {
+.search-input.ptasj7u {
   width: 100%;
   padding: 10px 16px;
   border: 1px solid var(--border);
@@ -339,34 +339,34 @@ body.po9cwtk {
   background: var(--bg);
   color: var(--text);
 }
-.nav-actions.po9cwtk {
+.nav-actions.ptasj7u {
   display: flex;
   gap: 12px;
 }
-.dark-toggle.po9cwtk {
+.dark-toggle.ptasj7u {
   background: none;
   border: none;
   font-size: 1.25rem;
   cursor: pointer;
   padding: 8px;
 }
-.main-content.po9cwtk {
+.main-content.ptasj7u {
   flex: 1;
   max-width: 1200px;
   margin: 0 auto;
   padding: 32px 24px;
   width: 100%;
 }
-.content-wrapper.po9cwtk {
+.content-wrapper.ptasj7u {
   display: grid;
   grid-template-columns: 1fr 300px;
   gap: 32px;
 }
-.post-list.po9cwtk {
+.post-list.ptasj7u {
   display: grid;
   gap: 24px;
 }
-.post-card.po9cwtk {
+.post-card.ptasj7u {
   background: var(--card-bg);
   border-radius: var(--radius);
   padding: 24px;
@@ -374,42 +374,42 @@ body.po9cwtk {
   cursor: pointer;
   transition: transform 0.2s;
 }
-.post-card.po9cwtk:hover {
+.post-card.ptasj7u:hover {
   transform: translateY(-2px);
 }
-.post-meta.po9cwtk {
+.post-meta.ptasj7u {
   display: flex;
   align-items: center;
   gap: 8px;
   margin-bottom: 12px;
   font-size: 0.75rem;
 }
-.category.po9cwtk {
+.category.ptasj7u {
   padding: 4px 10px;
   background: var(--primary);
   color: white;
   border-radius: 20px;
   font-weight: 600;
 }
-.post-title.po9cwtk {
+.post-title.ptasj7u {
   font-size: 1.25rem;
   margin-bottom: 8px;
 }
-.post-excerpt.po9cwtk {
+.post-excerpt.ptasj7u {
   color: var(--text-muted);
   margin-bottom: 16px;
 }
-.post-footer.po9cwtk {
+.post-footer.ptasj7u {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
-.author.po9cwtk {
+.author.ptasj7u {
   display: flex;
   align-items: center;
   gap: 8px;
 }
-.author-avatar.po9cwtk {
+.author-avatar.ptasj7u {
   width: 32px;
   height: 32px;
   background: var(--primary);
@@ -420,29 +420,29 @@ body.po9cwtk {
   justify-content: center;
   font-weight: 600;
 }
-.sidebar.po9cwtk {
+.sidebar.ptasj7u {
   display: flex;
   flex-direction: column;
   gap: 24px;
 }
-.sidebar-section.po9cwtk {
+.sidebar-section.ptasj7u {
   background: var(--card-bg);
   border-radius: var(--radius);
   padding: 20px;
 }
-.section-title.po9cwtk {
+.section-title.ptasj7u {
   font-size: 0.875rem;
   font-weight: 600;
   text-transform: uppercase;
   color: var(--text-muted);
   margin-bottom: 16px;
 }
-.category-list.po9cwtk {
+.category-list.ptasj7u {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
-.category-item.po9cwtk {
+.category-item.ptasj7u {
   display: flex;
   justify-content: space-between;
   padding: 10px 12px;
@@ -454,35 +454,35 @@ body.po9cwtk {
   text-align: left;
   width: 100%;
 }
-.category-item.po9cwtk:hover {
+.category-item.ptasj7u:hover {
   background: var(--bg);
 }
-.recent-posts.po9cwtk {
+.recent-posts.ptasj7u {
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
-.recent-post.po9cwtk {
+.recent-post.ptasj7u {
   cursor: pointer;
 }
-.recent-title.po9cwtk {
+.recent-title.ptasj7u {
   font-size: 0.875rem;
   margin-bottom: 4px;
 }
-.recent-date.po9cwtk {
+.recent-date.ptasj7u {
   font-size: 0.75rem;
   color: var(--text-muted);
 }
-.post-view.po9cwtk {
+.post-view.ptasj7u {
   max-width: 800px;
   margin: 0 auto;
 }
-.post-header.po9cwtk {
+.post-header.ptasj7u {
   display: flex;
   justify-content: space-between;
   margin-bottom: 32px;
 }
-.back-btn.po9cwtk {
+.back-btn.ptasj7u {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -493,16 +493,16 @@ body.po9cwtk {
   cursor: pointer;
   color: var(--text);
 }
-.post-actions.po9cwtk {
+.post-actions.ptasj7u {
   display: flex;
   gap: 12px;
 }
-.post-content.po9cwtk {
+.post-content.ptasj7u {
   background: var(--card-bg);
   border-radius: var(--radius);
   padding: 40px;
 }
-.author-info.po9cwtk {
+.author-info.ptasj7u {
   display: flex;
   align-items: center;
   gap: 16px;
@@ -510,50 +510,50 @@ body.po9cwtk {
   margin-bottom: 24px;
   border-bottom: 1px solid var(--border);
 }
-.author-details.po9cwtk {
+.author-details.ptasj7u {
   display: flex;
   flex-direction: column;
 }
-.author-role.po9cwtk {
+.author-role.ptasj7u {
   font-size: 0.875rem;
   color: var(--text-muted);
 }
-.post-body.po9cwtk {
+.post-body.ptasj7u {
   font-size: 1.125rem;
   line-height: 1.8;
 }
-.post-form.po9cwtk {
+.post-form.ptasj7u {
   max-width: 800px;
   margin: 0 auto;
   background: var(--card-bg);
   border-radius: var(--radius);
   padding: 40px;
 }
-.form-header.po9cwtk {
+.form-header.ptasj7u {
   margin-bottom: 32px;
 }
-.form-subtitle.po9cwtk {
+.form-subtitle.ptasj7u {
   color: var(--text-muted);
 }
-.form.po9cwtk {
+.form.ptasj7u {
   display: flex;
   flex-direction: column;
   gap: 24px;
 }
-.form-row.po9cwtk {
+.form-row.ptasj7u {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 24px;
 }
-.form-group.po9cwtk {
+.form-group.ptasj7u {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
-.form-label.po9cwtk {
+.form-label.ptasj7u {
   font-weight: 500;
 }
-.form-input.po9cwtk, .form-textarea.po9cwtk, .form-select.po9cwtk {
+.form-input.ptasj7u, .form-textarea.ptasj7u, .form-select.ptasj7u {
   padding: 12px 16px;
   border: 2px solid var(--border);
   border-radius: 8px;
@@ -561,25 +561,25 @@ body.po9cwtk {
   color: var(--text);
   font-size: 1rem;
 }
-.form-input.po9cwtk:focus, .form-textarea.po9cwtk:focus {
+.form-input.ptasj7u:focus, .form-textarea.ptasj7u:focus {
   outline: none;
   border-color: var(--primary);
 }
-.form-textarea.po9cwtk {
+.form-textarea.ptasj7u {
   resize: vertical;
   min-height: 100px;
 }
-.form-textarea.large.po9cwtk {
+.form-textarea.large.ptasj7u {
   min-height: 200px;
 }
-.form-actions.po9cwtk {
+.form-actions.ptasj7u {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
   padding-top: 16px;
   border-top: 1px solid var(--border);
 }
-.btn.po9cwtk {
+.btn.ptasj7u {
   padding: 10px 20px;
   font-size: 0.875rem;
   font-weight: 500;
@@ -587,35 +587,35 @@ body.po9cwtk {
   border-radius: 8px;
   cursor: pointer;
 }
-.btn-primary.po9cwtk {
+.btn-primary.ptasj7u {
   background: var(--primary);
   color: white;
 }
-.btn-primary.po9cwtk:hover {
+.btn-primary.ptasj7u:hover {
   background: var(--primary-hover);
 }
-.btn-secondary.po9cwtk {
+.btn-secondary.ptasj7u {
   background: var(--border);
   color: var(--text);
 }
-.btn-danger.po9cwtk {
+.btn-danger.ptasj7u {
   background: var(--danger);
   color: white;
 }
-.footer.po9cwtk {
+.footer.ptasj7u {
   text-align: center;
   padding: 24px;
   color: var(--text-muted);
   border-top: 1px solid var(--border);
 }
 @media(max-width:900px) {
-  .content-wrapper.po9cwtk {
+  .content-wrapper.ptasj7u {
     grid-template-columns: 1fr;
   }
-  .sidebar.po9cwtk {
+  .sidebar.ptasj7u {
     order: -1;
   }
-  .form-row.po9cwtk {
+  .form-row.ptasj7u {
     grid-template-columns: 1fr;
   }
 }
