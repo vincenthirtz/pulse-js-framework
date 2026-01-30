@@ -14,7 +14,7 @@ import { compile } from '../compiler/index.js';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..');
 
-const EXAMPLES = ['blog', 'todo', 'chat', 'ecommerce', 'meteo', 'router', 'store', 'dashboard'];
+const EXAMPLES = ['hmr', 'blog', 'todo', 'chat', 'ecommerce', 'meteo', 'router', 'store', 'dashboard'];
 
 console.log('🚀 Building Pulse for Netlify...\n');
 
@@ -214,6 +214,12 @@ const examplesIndexHtml = `<!DOCTYPE html>
     <p class="subtitle">Interactive demos built with Pulse Framework</p>
 
     <div class="examples">
+      <a href="/examples/hmr/" class="example">
+        <span class="arrow">→</span>
+        <h2>🔥 HMR Demo</h2>
+        <p>Hot Module Replacement with state preservation. See changes instantly!</p>
+      </a>
+
       <a href="/examples/blog/" class="example">
         <span class="arrow">→</span>
         <h2>📰 Blog</h2>
