@@ -35,6 +35,11 @@ export const NodeType = {
   UnaryExpression: 'UnaryExpression',
   UpdateExpression: 'UpdateExpression',
   Literal: 'Literal',
+  TemplateLiteral: 'TemplateLiteral',
+  ConditionalExpression: 'ConditionalExpression',
+  ArrowFunction: 'ArrowFunction',
+  SpreadElement: 'SpreadElement',
+  AssignmentExpression: 'AssignmentExpression',
   FunctionDeclaration: 'FunctionDeclaration',
   StyleRule: 'StyleRule',
   StyleProperty: 'StyleProperty'
@@ -687,10 +692,42 @@ export class Parser {
   }
 
   /**
-   * Parse expression (simplified)
+   * Parse expression
    */
   parseExpression() {
-    return this.parseOrExpression();
+    return this.parseAssignmentExpression();
+  }
+
+  /**
+   * Parse assignment expression (a = b)
+   */
+  parseAssignmentExpression() {
+    const left = this.parseConditionalExpression();
+
+    if (this.is(TokenType.EQ)) {
+      this.advance();
+      const right = this.parseAssignmentExpression();
+      return new ASTNode(NodeType.AssignmentExpression, { left, right });
+    }
+
+    return left;
+  }
+
+  /**
+   * Parse conditional (ternary) expression
+   */
+  parseConditionalExpression() {
+    const test = this.parseOrExpression();
+
+    if (this.is(TokenType.QUESTION)) {
+      this.advance();
+      const consequent = this.parseAssignmentExpression();
+      this.expect(TokenType.COLON);
+      const alternate = this.parseAssignmentExpression();
+      return new ASTNode(NodeType.ConditionalExpression, { test, consequent, alternate });
+    }
+
+    return test;
   }
 
   /**
@@ -760,7 +797,7 @@ export class Parser {
   parseMultiplicativeExpression() {
     let left = this.parseUnaryExpression();
 
-    while (this.isAny(TokenType.STAR, TokenType.SLASH)) {
+    while (this.isAny(TokenType.STAR, TokenType.SLASH, TokenType.PERCENT)) {
       const operator = this.advance().value;
       const right = this.parseUnaryExpression();
       left = new ASTNode(NodeType.BinaryExpression, { operator, left, right });
@@ -809,11 +846,52 @@ export class Parser {
    * Parse primary expression
    */
   parsePrimaryExpression() {
+    // Check for arrow function: (params) => expr or () => expr
     if (this.is(TokenType.LPAREN)) {
+      // Try to parse as arrow function by looking ahead
+      const savedPos = this.pos;
+      if (this.tryParseArrowFunction()) {
+        this.pos = savedPos;
+        return this.parseArrowFunction();
+      }
+      // Not an arrow function, parse as grouped expression
       this.advance();
       const expr = this.parseExpression();
       this.expect(TokenType.RPAREN);
+      // Check if this grouped expression is actually arrow function params
+      if (this.is(TokenType.ARROW)) {
+        this.pos = savedPos;
+        return this.parseArrowFunction();
+      }
       return expr;
+    }
+
+    // Single param arrow function: x => expr
+    if ((this.is(TokenType.IDENT) || this.is(TokenType.SELECTOR)) && this.peek()?.type === TokenType.ARROW) {
+      return this.parseArrowFunction();
+    }
+
+    // Array literal
+    if (this.is(TokenType.LBRACKET)) {
+      return this.parseArrayLiteralExpr();
+    }
+
+    // Object literal in expression context
+    if (this.is(TokenType.LBRACE)) {
+      return this.parseObjectLiteralExpr();
+    }
+
+    // Template literal
+    if (this.is(TokenType.TEMPLATE)) {
+      const token = this.advance();
+      return new ASTNode(NodeType.TemplateLiteral, { value: token.value, raw: token.raw });
+    }
+
+    // Spread operator
+    if (this.is(TokenType.SPREAD)) {
+      this.advance();
+      const argument = this.parseAssignmentExpression();
+      return new ASTNode(NodeType.SpreadElement, { argument });
     }
 
     if (this.is(TokenType.NUMBER)) {
@@ -850,6 +928,136 @@ export class Parser {
     throw new Error(
       `Unexpected token ${this.current()?.type} in expression at line ${this.current()?.line}`
     );
+  }
+
+  /**
+   * Try to determine if we're looking at an arrow function
+   */
+  tryParseArrowFunction() {
+    if (!this.is(TokenType.LPAREN)) return false;
+
+    let depth = 0;
+    let i = 0;
+
+    while (this.peek(i)) {
+      const token = this.peek(i);
+      if (token.type === TokenType.LPAREN) depth++;
+      else if (token.type === TokenType.RPAREN) {
+        depth--;
+        if (depth === 0) {
+          // Check if next token is =>
+          const next = this.peek(i + 1);
+          return next?.type === TokenType.ARROW;
+        }
+      }
+      i++;
+    }
+    return false;
+  }
+
+  /**
+   * Parse arrow function: (params) => expr or param => expr
+   */
+  parseArrowFunction() {
+    const params = [];
+
+    // Single param without parens: x => expr
+    if ((this.is(TokenType.IDENT) || this.is(TokenType.SELECTOR)) && this.peek()?.type === TokenType.ARROW) {
+      params.push(this.advance().value);
+    } else {
+      // Params in parens: (a, b) => expr or () => expr
+      this.expect(TokenType.LPAREN);
+      while (!this.is(TokenType.RPAREN) && !this.is(TokenType.EOF)) {
+        if (this.is(TokenType.SPREAD)) {
+          this.advance();
+          params.push('...' + this.expect(TokenType.IDENT).value);
+        } else {
+          params.push(this.expect(TokenType.IDENT).value);
+        }
+        if (this.is(TokenType.COMMA)) {
+          this.advance();
+        }
+      }
+      this.expect(TokenType.RPAREN);
+    }
+
+    this.expect(TokenType.ARROW);
+
+    // Body can be expression or block
+    let body;
+    if (this.is(TokenType.LBRACE)) {
+      // Block body - collect tokens
+      this.advance();
+      body = this.parseFunctionBody();
+      this.expect(TokenType.RBRACE);
+      return new ASTNode(NodeType.ArrowFunction, { params, body, block: true });
+    } else {
+      // Expression body
+      body = this.parseAssignmentExpression();
+      return new ASTNode(NodeType.ArrowFunction, { params, body, block: false });
+    }
+  }
+
+  /**
+   * Parse array literal in expression context
+   */
+  parseArrayLiteralExpr() {
+    this.expect(TokenType.LBRACKET);
+    const elements = [];
+
+    while (!this.is(TokenType.RBRACKET) && !this.is(TokenType.EOF)) {
+      if (this.is(TokenType.SPREAD)) {
+        this.advance();
+        elements.push(new ASTNode(NodeType.SpreadElement, {
+          argument: this.parseAssignmentExpression()
+        }));
+      } else {
+        elements.push(this.parseAssignmentExpression());
+      }
+      if (this.is(TokenType.COMMA)) {
+        this.advance();
+      }
+    }
+
+    this.expect(TokenType.RBRACKET);
+    return new ASTNode(NodeType.ArrayLiteral, { elements });
+  }
+
+  /**
+   * Parse object literal in expression context
+   */
+  parseObjectLiteralExpr() {
+    this.expect(TokenType.LBRACE);
+    const properties = [];
+
+    while (!this.is(TokenType.RBRACE) && !this.is(TokenType.EOF)) {
+      if (this.is(TokenType.SPREAD)) {
+        this.advance();
+        properties.push(new ASTNode(NodeType.SpreadElement, {
+          argument: this.parseAssignmentExpression()
+        }));
+      } else {
+        const key = this.expect(TokenType.IDENT);
+        if (this.is(TokenType.COLON)) {
+          this.advance();
+          const value = this.parseAssignmentExpression();
+          properties.push(new ASTNode(NodeType.Property, { name: key.value, value }));
+        } else {
+          // Shorthand property: { x } is same as { x: x }
+          properties.push(new ASTNode(NodeType.Property, {
+            name: key.value,
+            value: new ASTNode(NodeType.Identifier, { name: key.value }),
+            shorthand: true
+          }));
+        }
+      }
+      if (this.is(TokenType.COMMA)) {
+        this.advance();
+      }
+    }
+
+    this.expect(TokenType.RBRACE);
+    return new ASTNode(NodeType.ObjectLiteral, { properties });
   }
 
   /**

@@ -46,6 +46,7 @@ export const TokenType = {
   MINUS: 'MINUS',
   STAR: 'STAR',
   SLASH: 'SLASH',
+  PERCENT: 'PERCENT', // %
   EQ: 'EQ',           // =
   EQEQ: 'EQEQ',       // ==
   EQEQEQ: 'EQEQEQ',   // ===
@@ -60,9 +61,13 @@ export const TokenType = {
   NOT: 'NOT',         // !
   PLUSPLUS: 'PLUSPLUS', // ++
   MINUSMINUS: 'MINUSMINUS', // --
+  QUESTION: 'QUESTION', // ?
+  ARROW: 'ARROW',     // =>
+  SPREAD: 'SPREAD',   // ...
 
   // Literals
   STRING: 'STRING',
+  TEMPLATE: 'TEMPLATE', // Template literal `...`
   NUMBER: 'NUMBER',
   TRUE: 'TRUE',
   FALSE: 'FALSE',
@@ -106,7 +111,13 @@ const KEYWORDS = {
   'false': TokenType.FALSE,
   'null': TokenType.NULL,
   'async': TokenType.IDENT,
-  'await': TokenType.IDENT
+  'await': TokenType.IDENT,
+  'let': TokenType.IDENT,
+  'const': TokenType.IDENT,
+  'return': TokenType.IDENT,
+  'new': TokenType.IDENT,
+  'function': TokenType.IDENT,
+  'this': TokenType.IDENT
 };
 
 /**
@@ -266,6 +277,50 @@ export class Lexer {
   }
 
   /**
+   * Read a template literal (backtick string)
+   */
+  readTemplateLiteral() {
+    const startLine = this.line;
+    const startColumn = this.column;
+    this.advance(); // opening backtick
+    let value = '';
+    let raw = '`';
+
+    while (!this.isEOF() && this.current() !== '`') {
+      if (this.current() === '\\') {
+        raw += this.advance();
+        if (!this.isEOF()) {
+          const escaped = this.advance();
+          raw += escaped;
+          value += escaped === 'n' ? '\n' : escaped === 't' ? '\t' : escaped;
+        }
+      } else if (this.current() === '$' && this.peek() === '{') {
+        // Template expression ${...}
+        value += this.current();
+        raw += this.advance();
+        value += this.current();
+        raw += this.advance();
+        let braceCount = 1;
+        while (!this.isEOF() && braceCount > 0) {
+          if (this.current() === '{') braceCount++;
+          else if (this.current() === '}') braceCount--;
+          value += this.current();
+          raw += this.advance();
+        }
+      } else {
+        value += this.current();
+        raw += this.advance();
+      }
+    }
+
+    if (!this.isEOF()) {
+      raw += this.advance(); // closing backtick
+    }
+
+    return new Token(TokenType.TEMPLATE, value, startLine, startColumn, raw);
+  }
+
+  /**
    * Read a number literal
    */
   readNumber() {
@@ -377,9 +432,24 @@ export class Lexer {
       const startColumn = this.column;
       const char = this.current();
 
+      // Template literals
+      if (char === '`') {
+        this.tokens.push(this.readTemplateLiteral());
+        continue;
+      }
+
       // String literals
       if (char === '"' || char === "'") {
         this.tokens.push(this.readString());
+        continue;
+      }
+
+      // Spread operator
+      if (char === '.' && this.peek() === '.' && this.peek(2) === '.') {
+        this.advance();
+        this.advance();
+        this.advance();
+        this.tokens.push(new Token(TokenType.SPREAD, '...', startLine, startColumn));
         continue;
       }
 
@@ -472,9 +542,20 @@ export class Lexer {
             } else {
               this.tokens.push(new Token(TokenType.EQEQ, '==', startLine, startColumn));
             }
+          } else if (this.current() === '>') {
+            this.advance();
+            this.tokens.push(new Token(TokenType.ARROW, '=>', startLine, startColumn));
           } else {
             this.tokens.push(new Token(TokenType.EQ, '=', startLine, startColumn));
           }
+          continue;
+        case '?':
+          this.advance();
+          this.tokens.push(new Token(TokenType.QUESTION, '?', startLine, startColumn));
+          continue;
+        case '%':
+          this.advance();
+          this.tokens.push(new Token(TokenType.PERCENT, '%', startLine, startColumn));
           continue;
         case '!':
           this.advance();
@@ -572,11 +653,27 @@ export class Lexer {
    * Check if we're in a view context where selectors are expected
    */
   isViewContext() {
-    // Look back through tokens for 'view' keyword followed by '{'
+    // Look back through tokens for 'view' keyword
+    let inView = false;
+    let parenDepth = 0;
+
     for (let i = this.tokens.length - 1; i >= 0; i--) {
       const token = this.tokens[i];
+
+      // Track parentheses depth (backwards)
+      if (token.type === TokenType.RPAREN) {
+        parenDepth++;
+      } else if (token.type === TokenType.LPAREN) {
+        parenDepth--;
+        // If we go negative, we're inside parentheses (expression context)
+        if (parenDepth < 0) {
+          return false;  // Inside expression, not selector context
+        }
+      }
+
       if (token.type === TokenType.VIEW) {
-        return true;
+        inView = true;
+        break;
       }
       if (token.type === TokenType.STATE ||
           token.type === TokenType.ACTIONS ||
@@ -584,7 +681,8 @@ export class Lexer {
         return false;
       }
     }
-    return false;
+
+    return inView;
   }
 
   /**

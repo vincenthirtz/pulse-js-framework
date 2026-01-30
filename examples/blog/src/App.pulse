@@ -1,0 +1,818 @@
+/**
+ * Pulse Blog - Complete blog example in .pulse format
+ * Demonstrates: ternary operators, arrow functions, array methods, complex state
+ */
+
+@page BlogApp
+
+state {
+  currentView: "list"
+  selectedPostId: null
+  selectedCategory: null
+  searchQuery: ""
+  darkMode: false
+  nextId: 6
+  posts: [
+    {
+      id: 1,
+      title: "Getting Started with Pulse Framework",
+      excerpt: "Learn how to build reactive web applications with Pulse.",
+      content: "Pulse is a lightweight framework for building reactive SPAs.",
+      author: "Vincent Hirtz",
+      category: "Tutorial",
+      tags: ["pulse", "framework", "javascript"],
+      publishedAt: "2024-01-15",
+      readTime: 5
+    },
+    {
+      id: 2,
+      title: "Understanding Reactive State",
+      excerpt: "Deep dive into signals, effects, and computed values.",
+      content: "State management is at the heart of any reactive framework.",
+      author: "Vincent Hirtz",
+      category: "Deep Dive",
+      tags: ["state", "reactivity", "signals"],
+      publishedAt: "2024-01-20",
+      readTime: 8
+    },
+    {
+      id: 3,
+      title: "Building Components with .pulse Files",
+      excerpt: "Discover the elegant .pulse file format.",
+      content: "The .pulse format provides a clean way to write components.",
+      author: "Vincent Hirtz",
+      category: "Tutorial",
+      tags: ["components", "pulse-files", "dsl"],
+      publishedAt: "2024-01-25",
+      readTime: 6
+    },
+    {
+      id: 4,
+      title: "Routing in Pulse Applications",
+      excerpt: "Build SPAs with Pulse's built-in router.",
+      content: "Pulse includes a full-featured router for building SPAs.",
+      author: "Vincent Hirtz",
+      category: "Deep Dive",
+      tags: ["router", "spa", "navigation"],
+      publishedAt: "2024-02-01",
+      readTime: 7
+    },
+    {
+      id: 5,
+      title: "Mobile Apps with Pulse",
+      excerpt: "Build native apps using Pulse Mobile.",
+      content: "Pulse Mobile lets you build native mobile apps.",
+      author: "Vincent Hirtz",
+      category: "Mobile",
+      tags: ["mobile", "android", "ios"],
+      publishedAt: "2024-02-10",
+      readTime: 6
+    }
+  ]
+}
+
+view {
+  .blog-app {
+    header.header {
+      nav.nav {
+        .logo @click(showList()) {
+          span.logo-icon "📰"
+          span "Pulse Blog"
+        }
+        .search-box {
+          input.search-input[type=text][placeholder="Search posts..."] @input(handleSearch(event))
+        }
+        .nav-actions {
+          button.btn.btn-primary @click(showCreateForm()) "+ New Post"
+          button.dark-toggle @click(toggleDarkMode()) "{darkMode ? '☀️' : '🌙'}"
+        }
+      }
+    }
+
+    main.main-content {
+      @if (currentView === "list") {
+        .content-wrapper {
+          .post-list {
+            @for (post of getFilteredPosts()) {
+              .post-card @click(viewPost(post.id)) {
+                .post-meta {
+                  span.category "{post.category}"
+                  span.separator "•"
+                  span.read-time "{post.readTime} min read"
+                }
+                h3.post-title "{post.title}"
+                p.post-excerpt "{post.excerpt}"
+                .post-footer {
+                  .author {
+                    span.author-avatar "{post.author.charAt(0)}"
+                    span.author-name "{post.author}"
+                  }
+                  span.date "{post.publishedAt}"
+                }
+              }
+            }
+          }
+
+          aside.sidebar {
+            .sidebar-section {
+              h3.section-title "Categories"
+              .category-list {
+                button.category-item @click(clearFilter()) {
+                  span.category-name "All Posts"
+                  span.category-count "{posts.length}"
+                }
+                @for (cat of getCategories()) {
+                  button.category-item @click(filterByCategory(cat)) {
+                    span.category-name "{cat}"
+                    span.category-count "{posts.filter(p => p.category === cat).length}"
+                  }
+                }
+              }
+            }
+
+            .sidebar-section {
+              h3.section-title "Recent Posts"
+              .recent-posts {
+                @for (post of posts.slice(0, 3)) {
+                  .recent-post @click(viewPost(post.id)) {
+                    h4.recent-title "{post.title}"
+                    span.recent-date "{post.publishedAt}"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      @if (currentView === "view") {
+        .post-view {
+          .post-header {
+            button.back-btn @click(showList()) {
+              span.arrow "←"
+              span "Back to posts"
+            }
+            .post-actions {
+              button.btn.btn-secondary @click(showEditForm(selectedPostId)) "Edit"
+              button.btn.btn-danger @click(deletePost(selectedPostId)) "Delete"
+            }
+          }
+
+          @if (getSelectedPost()) {
+            article.post-content {
+              .post-meta {
+                span.category "{getSelectedPost().category}"
+                span.separator "|"
+                span.read-time "{getSelectedPost().readTime} min read"
+                span.separator "|"
+                span.date "{getSelectedPost().publishedAt}"
+              }
+              h1.post-title "{getSelectedPost().title}"
+              .author-info {
+                .author-avatar "{getSelectedPost().author.charAt(0)}"
+                .author-details {
+                  span.author-name "{getSelectedPost().author}"
+                  span.author-role "Author"
+                }
+              }
+              .post-body "{getSelectedPost().content}"
+            }
+          }
+        }
+      }
+
+      @if (currentView === "create" || currentView === "edit") {
+        .post-form {
+          .form-header {
+            h2 "{currentView === 'edit' ? 'Edit Post' : 'Create New Post'}"
+            p.form-subtitle "{currentView === 'edit' ? 'Update your blog post' : 'Share your thoughts'}"
+          }
+
+          form.form @submit(handleSubmit(event)) {
+            .form-group {
+              label.form-label "Title"
+              input#form-title.form-input[type=text][placeholder="Enter post title..."]
+            }
+
+            .form-group {
+              label.form-label "Excerpt"
+              textarea#form-excerpt.form-textarea[placeholder="Brief summary..."][rows=2]
+            }
+
+            .form-group {
+              label.form-label "Content"
+              textarea#form-content.form-textarea.large[placeholder="Write your post..."][rows=8]
+            }
+
+            .form-row {
+              .form-group {
+                label.form-label "Author"
+                input#form-author.form-input[type=text][placeholder="Your name"]
+              }
+              .form-group {
+                label.form-label "Category"
+                select#form-category.form-select {
+                  option[value="Tutorial"] "Tutorial"
+                  option[value="Deep Dive"] "Deep Dive"
+                  option[value="Mobile"] "Mobile"
+                  option[value="News"] "News"
+                }
+              }
+            }
+
+            .form-actions {
+              button.btn.btn-secondary[type=button] @click(cancelForm()) "Cancel"
+              button.btn.btn-primary[type=submit] "{currentView === 'edit' ? 'Update Post' : 'Publish Post'}"
+            }
+          }
+        }
+      }
+    }
+
+    footer.footer {
+      p "Built with Pulse Framework"
+    }
+  }
+}
+
+actions {
+  // Computed helpers
+  getFilteredPosts() {
+    let filtered = posts
+    const category = selectedCategory
+    const query = searchQuery.toLowerCase()
+
+    if (category) {
+      filtered = filtered.filter(p => p.category === category)
+    }
+    if (query) {
+      filtered = filtered.filter(p =>
+        p.title.toLowerCase().includes(query) ||
+        p.excerpt.toLowerCase().includes(query)
+      )
+    }
+    return filtered
+  }
+
+  getSelectedPost() {
+    const id = selectedPostId
+    return posts.find(p => p.id === id) || null
+  }
+
+  getCategories() {
+    return [...new Set(posts.map(p => p.category))]
+  }
+
+  // Navigation actions
+  showList() {
+    currentView = "list"
+    selectedPostId = null
+  }
+
+  viewPost(id) {
+    currentView = "view"
+    selectedPostId = id
+  }
+
+  showCreateForm() {
+    currentView = "create"
+    selectedPostId = null
+    setTimeout(() => clearForm(), 0)
+  }
+
+  showEditForm(id) {
+    currentView = "edit"
+    selectedPostId = id
+    setTimeout(() => populateForm(id), 0)
+  }
+
+  // CRUD actions
+  createPost(data) {
+    const newPost = {
+      ...data,
+      id: nextId,
+      publishedAt: new Date().toISOString().split('T')[0],
+      readTime: Math.ceil(data.content.split(' ').length / 200),
+      tags: []
+    }
+    posts = [...posts, newPost]
+    nextId = nextId + 1
+    viewPost(newPost.id)
+  }
+
+  updatePost(id, updates) {
+    posts = posts.map(p => p.id === id ? { ...p, ...updates } : p)
+    viewPost(id)
+  }
+
+  deletePost(id) {
+    if (confirm('Delete this post?')) {
+      posts = posts.filter(p => p.id !== id)
+      showList()
+    }
+  }
+
+  // Filter actions
+  filterByCategory(category) {
+    selectedCategory = category
+    currentView = "list"
+  }
+
+  clearFilter() {
+    selectedCategory = null
+    searchQuery = ""
+  }
+
+  handleSearch(event) {
+    searchQuery = event.target.value
+  }
+
+  // Theme toggle
+  toggleDarkMode() {
+    darkMode = !darkMode
+    document.body.classList.toggle('dark', darkMode)
+  }
+
+  // Form helpers
+  clearForm() {
+    const title = document.getElementById('form-title')
+    const excerpt = document.getElementById('form-excerpt')
+    const content = document.getElementById('form-content')
+    const author = document.getElementById('form-author')
+
+    if (title) title.value = ''
+    if (excerpt) excerpt.value = ''
+    if (content) content.value = ''
+    if (author) author.value = ''
+  }
+
+  populateForm(id) {
+    const post = posts.find(p => p.id === id)
+    if (!post) return
+
+    const title = document.getElementById('form-title')
+    const excerpt = document.getElementById('form-excerpt')
+    const content = document.getElementById('form-content')
+    const author = document.getElementById('form-author')
+    const category = document.getElementById('form-category')
+
+    if (title) title.value = post.title
+    if (excerpt) excerpt.value = post.excerpt
+    if (content) content.value = post.content
+    if (author) author.value = post.author
+    if (category) category.value = post.category
+  }
+
+  handleSubmit(event) {
+    event.preventDefault()
+
+    const title = document.getElementById('form-title')?.value?.trim()
+    const excerpt = document.getElementById('form-excerpt')?.value?.trim()
+    const content = document.getElementById('form-content')?.value?.trim()
+    const author = document.getElementById('form-author')?.value?.trim()
+    const category = document.getElementById('form-category')?.value
+
+    if (!title || !content || !author) {
+      alert('Please fill in all required fields')
+      return
+    }
+
+    const data = {
+      title,
+      excerpt: excerpt || content.substring(0, 150) + '...',
+      content,
+      author,
+      category
+    }
+
+    if (currentView === 'edit' && selectedPostId) {
+      updatePost(selectedPostId, data)
+    } else {
+      createPost(data)
+    }
+  }
+
+  cancelForm() {
+    if (currentView === 'edit' && selectedPostId) {
+      viewPost(selectedPostId)
+    } else {
+      showList()
+    }
+  }
+}
+
+style {
+  :root {
+    --bg: #f8fafc;
+    --card-bg: #ffffff;
+    --text: #1e293b;
+    --text-muted: #64748b;
+    --border: #e2e8f0;
+    --primary: #6366f1;
+    --primary-hover: #4f46e5;
+    --danger: #ef4444;
+    --shadow: 0 1px 3px rgba(0,0,0,0.1);
+    --radius: 12px;
+  }
+
+  body.dark {
+    --bg: #0f172a;
+    --card-bg: #1e293b;
+    --text: #f1f5f9;
+    --text-muted: #94a3b8;
+    --border: #334155;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    font-family: system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+  }
+
+  .blog-app {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .header {
+    background: var(--card-bg);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 24px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .nav {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1.25rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .search-box {
+    flex: 1;
+    max-width: 400px;
+  }
+
+  .search-input {
+    width: 100%;
+    padding: 10px 16px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  .nav-actions {
+    display: flex;
+    gap: 12px;
+  }
+
+  .dark-toggle {
+    background: none;
+    border: none;
+    font-size: 1.25rem;
+    cursor: pointer;
+    padding: 8px;
+  }
+
+  .main-content {
+    flex: 1;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 32px 24px;
+    width: 100%;
+  }
+
+  .content-wrapper {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 32px;
+  }
+
+  .post-list {
+    display: grid;
+    gap: 24px;
+  }
+
+  .post-card {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    padding: 24px;
+    box-shadow: var(--shadow);
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+
+  .post-card:hover {
+    transform: translateY(-2px);
+  }
+
+  .post-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    font-size: 0.75rem;
+  }
+
+  .category {
+    padding: 4px 10px;
+    background: var(--primary);
+    color: white;
+    border-radius: 20px;
+    font-weight: 600;
+  }
+
+  .post-title {
+    font-size: 1.25rem;
+    margin-bottom: 8px;
+  }
+
+  .post-excerpt {
+    color: var(--text-muted);
+    margin-bottom: 16px;
+  }
+
+  .post-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .author {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .author-avatar {
+    width: 32px;
+    height: 32px;
+    background: var(--primary);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+  }
+
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .sidebar-section {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    padding: 20px;
+  }
+
+  .section-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+  }
+
+  .category-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .category-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 12px;
+    background: none;
+    border: none;
+    border-radius: 8px;
+    color: var(--text);
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+  }
+
+  .category-item:hover {
+    background: var(--bg);
+  }
+
+  .recent-posts {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .recent-post {
+    cursor: pointer;
+  }
+
+  .recent-title {
+    font-size: 0.875rem;
+    margin-bottom: 4px;
+  }
+
+  .recent-date {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+
+  .post-view {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .post-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 32px;
+  }
+
+  .back-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: var(--border);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--text);
+  }
+
+  .post-actions {
+    display: flex;
+    gap: 12px;
+  }
+
+  .post-content {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    padding: 40px;
+  }
+
+  .author-info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding-bottom: 24px;
+    margin-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .author-details {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .author-role {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+  }
+
+  .post-body {
+    font-size: 1.125rem;
+    line-height: 1.8;
+  }
+
+  .post-form {
+    max-width: 800px;
+    margin: 0 auto;
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    padding: 40px;
+  }
+
+  .form-header {
+    margin-bottom: 32px;
+  }
+
+  .form-subtitle {
+    color: var(--text-muted);
+  }
+
+  .form {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .form-label {
+    font-weight: 500;
+  }
+
+  .form-input, .form-textarea, .form-select {
+    padding: 12px 16px;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 1rem;
+  }
+
+  .form-input:focus, .form-textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+  }
+
+  .form-textarea {
+    resize: vertical;
+    min-height: 100px;
+  }
+
+  .form-textarea.large {
+    min-height: 200px;
+  }
+
+  .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+
+  .btn {
+    padding: 10px 20px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+
+  .btn-primary {
+    background: var(--primary);
+    color: white;
+  }
+
+  .btn-primary:hover {
+    background: var(--primary-hover);
+  }
+
+  .btn-secondary {
+    background: var(--border);
+    color: var(--text);
+  }
+
+  .btn-danger {
+    background: var(--danger);
+    color: white;
+  }
+
+  .footer {
+    text-align: center;
+    padding: 24px;
+    color: var(--text-muted);
+    border-top: 1px solid var(--border);
+  }
+
+  @media (max-width: 900px) {
+    .content-wrapper {
+      grid-template-columns: 1fr;
+    }
+
+    .sidebar {
+      order: -1;
+    }
+
+    .form-row {
+      grid-template-columns: 1fr;
+    }
+  }
+}

@@ -578,6 +578,10 @@ export class Transformer {
         }
         return String(node.value);
 
+      case NodeType.TemplateLiteral:
+        // Transform state vars in template literal
+        return '`' + this.transformExpressionString(node.value) + '`';
+
       case NodeType.MemberExpression: {
         const obj = this.transformExpression(node.object);
         if (node.computed) {
@@ -617,6 +621,62 @@ export class Transformer {
           ? `${node.operator}${argument}`
           : `${argument}${node.operator}`;
       }
+
+      case NodeType.ConditionalExpression: {
+        const test = this.transformExpression(node.test);
+        const consequent = this.transformExpression(node.consequent);
+        const alternate = this.transformExpression(node.alternate);
+        return `(${test} ? ${consequent} : ${alternate})`;
+      }
+
+      case NodeType.ArrowFunction: {
+        const params = node.params.join(', ');
+        if (node.block) {
+          // Block body - transform tokens
+          const body = this.transformFunctionBody(node.body);
+          return `(${params}) => { ${body} }`;
+        } else {
+          // Expression body
+          const body = this.transformExpression(node.body);
+          return `(${params}) => ${body}`;
+        }
+      }
+
+      case NodeType.AssignmentExpression: {
+        const left = this.transformExpression(node.left);
+        const right = this.transformExpression(node.right);
+        // For state variables, convert to .set()
+        if (node.left.type === NodeType.Identifier &&
+            this.stateVars.has(node.left.name)) {
+          return `${node.left.name}.set(${right})`;
+        }
+        return `(${left} = ${right})`;
+      }
+
+      case NodeType.ArrayLiteral: {
+        const elements = node.elements.map(e => this.transformExpression(e)).join(', ');
+        return `[${elements}]`;
+      }
+
+      case NodeType.ObjectLiteral: {
+        const props = node.properties.map(p => {
+          if (p.type === NodeType.SpreadElement) {
+            return `...${this.transformExpression(p.argument)}`;
+          }
+          if (p.shorthand) {
+            // Check if it's a state var
+            if (this.stateVars.has(p.name)) {
+              return `${p.name}: ${p.name}.get()`;
+            }
+            return p.name;
+          }
+          return `${p.name}: ${this.transformExpression(p.value)}`;
+        }).join(', ');
+        return `{ ${props} }`;
+      }
+
+      case NodeType.SpreadElement:
+        return `...${this.transformExpression(node.argument)}`;
 
       default:
         return '/* unknown expression */';
