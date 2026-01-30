@@ -22,17 +22,41 @@ import { loggers } from './logger.js';
 
 const log = loggers.pulse;
 
-// Current tracking context for automatic dependency collection
-/** @type {EffectFn|null} */
-let currentEffect = null;
-/** @type {number} */
-let batchDepth = 0;
-/** @type {Set<EffectFn>} */
-let pendingEffects = new Set();
-/** @type {boolean} */
-let isRunningEffects = false;
-/** @type {Array<Function>} */
-let cleanupQueue = [];
+/**
+ * @typedef {Object} ReactiveContext
+ * @property {EffectFn|null} currentEffect - Currently executing effect for dependency tracking
+ * @property {number} batchDepth - Nesting depth of batch() calls
+ * @property {Set<EffectFn>} pendingEffects - Effects queued during batch
+ * @property {boolean} isRunningEffects - Flag to prevent recursive effect flushing
+ */
+
+/**
+ * Global reactive context - holds all tracking state.
+ * Exported for testing purposes (use resetContext() to reset).
+ * @type {ReactiveContext}
+ */
+export const context = {
+  currentEffect: null,
+  batchDepth: 0,
+  pendingEffects: new Set(),
+  isRunningEffects: false
+};
+
+/**
+ * Reset the reactive context to initial state.
+ * Use this in tests to ensure isolation between test cases.
+ * @returns {void}
+ * @example
+ * // In test setup/teardown
+ * import { resetContext } from 'pulse-js-framework/runtime/pulse';
+ * beforeEach(() => resetContext());
+ */
+export function resetContext() {
+  context.currentEffect = null;
+  context.batchDepth = 0;
+  context.pendingEffects.clear();
+  context.isRunningEffects = false;
+}
 
 /**
  * @typedef {Object} EffectFn
@@ -88,8 +112,8 @@ let cleanupQueue = [];
  * });
  */
 export function onCleanup(fn) {
-  if (currentEffect) {
-    currentEffect.cleanups.push(fn);
+  if (context.currentEffect) {
+    context.currentEffect.cleanups.push(fn);
   }
 }
 
@@ -126,9 +150,9 @@ export class Pulse {
    * });
    */
   get() {
-    if (currentEffect) {
-      this.#subscribers.add(currentEffect);
-      currentEffect.dependencies.add(this);
+    if (context.currentEffect) {
+      this.#subscribers.add(context.currentEffect);
+      context.currentEffect.dependencies.add(this);
     }
     return this.#value;
   }
@@ -199,8 +223,8 @@ export class Pulse {
     const subs = [...this.#subscribers];
 
     for (const subscriber of subs) {
-      if (batchDepth > 0 || isRunningEffects) {
-        pendingEffects.add(subscriber);
+      if (context.batchDepth > 0 || context.isRunningEffects) {
+        context.pendingEffects.add(subscriber);
       } else {
         runEffect(subscriber);
       }
@@ -292,17 +316,17 @@ function runEffect(effectFn) {
  * @returns {void}
  */
 function flushEffects() {
-  if (isRunningEffects) return;
+  if (context.isRunningEffects) return;
 
-  isRunningEffects = true;
+  context.isRunningEffects = true;
   let iterations = 0;
   const maxIterations = 100; // Prevent infinite loops
 
   try {
-    while (pendingEffects.size > 0 && iterations < maxIterations) {
+    while (context.pendingEffects.size > 0 && iterations < maxIterations) {
       iterations++;
-      const effects = [...pendingEffects];
-      pendingEffects.clear();
+      const effects = [...context.pendingEffects];
+      context.pendingEffects.clear();
 
       for (const effect of effects) {
         runEffect(effect);
@@ -311,10 +335,10 @@ function flushEffects() {
 
     if (iterations >= maxIterations) {
       log.warn('Maximum effect iterations reached. Possible infinite loop.');
-      pendingEffects.clear();
+      context.pendingEffects.clear();
     }
   } finally {
-    isRunningEffects = false;
+    context.isRunningEffects = false;
   }
 }
 
@@ -371,13 +395,13 @@ export function computed(fn, options = {}) {
     p.get = function() {
       if (dirty) {
         // Run computation
-        const prevEffect = currentEffect;
+        const prevEffect = context.currentEffect;
         const tempEffect = {
           run: () => {},
           dependencies: new Set(),
           cleanups: []
         };
-        currentEffect = tempEffect;
+        context.currentEffect = tempEffect;
 
         try {
           cachedValue = fn();
@@ -400,14 +424,14 @@ export function computed(fn, options = {}) {
 
           p._init(cachedValue);
         } finally {
-          currentEffect = prevEffect;
+          context.currentEffect = prevEffect;
         }
       }
 
       // Track dependency on this computed
-      if (currentEffect) {
-        p._addSubscriber(currentEffect);
-        currentEffect.dependencies.add(p);
+      if (context.currentEffect) {
+        p._addSubscriber(context.currentEffect);
+        context.currentEffect.dependencies.add(p);
       }
 
       return cachedValue;
@@ -486,15 +510,15 @@ export function effect(fn) {
       effectFn.dependencies.clear();
 
       // Set as current effect for dependency tracking
-      const prevEffect = currentEffect;
-      currentEffect = effectFn;
+      const prevEffect = context.currentEffect;
+      context.currentEffect = effectFn;
 
       try {
         fn();
       } catch (error) {
         log.error('Effect execution error:', error);
       } finally {
-        currentEffect = prevEffect;
+        context.currentEffect = prevEffect;
       }
     },
     dependencies: new Set(),
@@ -511,7 +535,7 @@ export function effect(fn) {
       try {
         cleanup();
       } catch (e) {
-        console.error('Cleanup error:', e);
+        log.error('Cleanup error:', e);
       }
     }
     effectFn.cleanups = [];
@@ -545,12 +569,12 @@ export function effect(fn) {
  * });
  */
 export function batch(fn) {
-  batchDepth++;
+  context.batchDepth++;
   try {
     return fn();
   } finally {
-    batchDepth--;
-    if (batchDepth === 0) {
+    context.batchDepth--;
+    if (context.batchDepth === 0) {
       flushEffects();
     }
   }
@@ -831,12 +855,12 @@ export function fromPromise(promise, initialValue = undefined) {
  * // Effect only re-runs when aSignal changes, not bSignal
  */
 export function untrack(fn) {
-  const prevEffect = currentEffect;
-  currentEffect = null;
+  const prevEffect = context.currentEffect;
+  context.currentEffect = null;
   try {
     return fn();
   } finally {
-    currentEffect = prevEffect;
+    context.currentEffect = prevEffect;
   }
 }
 
@@ -852,5 +876,7 @@ export default {
   untrack,
   onCleanup,
   memo,
-  memoComputed
+  memoComputed,
+  context,
+  resetContext
 };

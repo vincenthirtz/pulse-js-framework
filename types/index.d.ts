@@ -13,6 +13,8 @@ export {
   EqualsFn,
   ReactiveState,
   PromiseState,
+  EffectFn,
+  ReactiveContext,
   pulse,
   computed,
   effect,
@@ -23,7 +25,9 @@ export {
   memoComputed,
   fromPromise,
   untrack,
-  onCleanup
+  onCleanup,
+  context,
+  resetContext
 } from './pulse';
 
 // DOM Helpers

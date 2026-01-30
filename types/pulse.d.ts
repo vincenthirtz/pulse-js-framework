@@ -147,3 +147,36 @@ export declare function untrack<T>(fn: () => T): T;
  * Register cleanup function for current effect
  */
 export declare function onCleanup(fn: () => void): void;
+
+/** Effect function with dependency tracking */
+export interface EffectFn {
+  run: () => void;
+  dependencies: Set<Pulse>;
+  cleanups: (() => void)[];
+}
+
+/**
+ * Reactive context - holds global tracking state.
+ * Exposed for testing and advanced use cases.
+ */
+export interface ReactiveContext {
+  /** Currently executing effect for dependency tracking */
+  currentEffect: EffectFn | null;
+  /** Nesting depth of batch() calls */
+  batchDepth: number;
+  /** Effects queued during batch */
+  pendingEffects: Set<EffectFn>;
+  /** Flag to prevent recursive effect flushing */
+  isRunningEffects: boolean;
+}
+
+/**
+ * Global reactive context
+ */
+export declare const context: ReactiveContext;
+
+/**
+ * Reset the reactive context to initial state.
+ * Use this in tests to ensure isolation between test cases.
+ */
+export declare function resetContext(): void;
