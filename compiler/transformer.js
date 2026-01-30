@@ -290,6 +290,13 @@ export class Transformer {
       // Statement keywords (let, const, var, return, etc.)
       if (statementKeywords.includes(token.value)) return true;
 
+      // State variable assignment (stateVar = value)
+      // These need semicolons BEFORE them when following a statement end
+      // The regex adds semicolons AFTER, but not before
+      if (this.stateVars.has(token.value) && nextToken?.type === 'EQ') {
+        return true;
+      }
+
       // Builtin function call or action call (not state var assignment)
       if (nextToken?.type === 'LPAREN') {
         if (builtinFunctions.includes(token.value)) return true;
@@ -300,9 +307,6 @@ export class Transformer {
       if (nextToken?.type === 'DOT' && builtinFunctions.includes(token.value)) {
         return true;
       }
-
-      // NOTE: State variable assignments are NOT included here
-      // because they are handled by the regex replacement which adds semicolons
 
       return false;
     };

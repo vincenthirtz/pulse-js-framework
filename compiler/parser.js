@@ -1247,10 +1247,63 @@ export class Parser {
 
     this.expect(TokenType.COLON);
 
+    // Tokens that should not have space after them in CSS values
+    const noSpaceAfter = new Set(['#', '(', '.', '/', 'rgba', 'rgb', 'hsl', 'hsla', 'var', 'calc', 'url', 'linear-gradient', 'radial-gradient']);
+    // Tokens that should not have space before them
+    const noSpaceBefore = new Set([')', ',', '%', 'px', 'em', 'rem', 'vh', 'vw', 's', 'ms']);
+
     let value = '';
+    let lastTokenValue = '';
+    let afterHash = false;  // Track if we're collecting a hex color
+    let inCssVar = false;   // Track if we're inside var(--...)
+
     while (!this.is(TokenType.SEMICOLON) && !this.is(TokenType.RBRACE) &&
            !this.is(TokenType.EOF) && !this.isPropertyStart()) {
-      value += this.advance().value + ' ';
+      const token = this.advance();
+      // Use raw value if available to preserve original representation
+      // This is important for numbers that might be parsed as scientific notation
+      let tokenValue = token.raw || String(token.value);
+
+      // Track CSS var() context - no spaces in var(--name)
+      if (lastTokenValue === 'var' && tokenValue === '(') {
+        inCssVar = true;
+      } else if (inCssVar && tokenValue === ')') {
+        inCssVar = false;
+      }
+
+      // For hex colors (#abc123), collect tokens without spacing after #
+      if (tokenValue === '#') {
+        afterHash = true;
+      } else if (afterHash) {
+        // Still collecting hex color - no space
+        // Stop collecting when we hit a space-requiring character
+        if (tokenValue === ' ' || tokenValue === ';' || tokenValue === ')') {
+          afterHash = false;
+        }
+      }
+
+      // Add space before this token unless:
+      // - It's the first token
+      // - Last token was in noSpaceAfter
+      // - This token is in noSpaceBefore
+      // - We're collecting a hex color (afterHash and last was #)
+      // - We're inside var(--...) and this is part of the variable name
+      // - Last was '-' and current is an identifier (hyphenated name)
+      const skipSpace = noSpaceAfter.has(lastTokenValue) ||
+                        noSpaceBefore.has(tokenValue) ||
+                        (afterHash && lastTokenValue === '#') ||
+                        (afterHash && /^[0-9a-fA-F]+$/.test(tokenValue)) ||
+                        inCssVar ||
+                        (lastTokenValue === '-' || lastTokenValue === '--') ||
+                        (tokenValue === '-' && /^[a-zA-Z]/.test(this.current()?.value || ''));
+
+      if (value.length > 0 && !skipSpace) {
+        value += ' ';
+        afterHash = false;  // Space ends hex collection
+      }
+
+      value += tokenValue;
+      lastTokenValue = tokenValue;
     }
     value = value.trim();
 
