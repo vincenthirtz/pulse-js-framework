@@ -19,6 +19,11 @@
 
 # Examples SPA fallbacks
 [[redirects]]
+  from = "/examples/blog/*"
+  to = "/examples/blog/index.html"
+  status = 200
+
+[[redirects]]
   from = "/examples/todo/*"
   to = "/examples/todo/index.html"
   status = 200

@@ -1,0 +1,184 @@
+@page Sidebar
+
+view {
+  aside.sidebar {
+    .sidebar-section {
+      h3.section-title "Categories"
+
+      .category-list {
+        button.category-item @click(onClearFilter) {
+          @class(selectedCategory === null ? "active" : "")
+          span.category-name "All Posts"
+          span.category-count "{posts.length}"
+        }
+
+        @for (category of [...new Set(posts.map(p => p.category))]) {
+          button.category-item @click(onSelectCategory(category)) {
+            @class(selectedCategory === category ? "active" : "")
+            span.category-name "{category}"
+            span.category-count "{posts.filter(p => p.category === category).length}"
+          }
+        }
+      }
+    }
+
+    .sidebar-section {
+      h3.section-title "Popular Tags"
+
+      .tag-cloud {
+        @for (tag of [...new Set(posts.flatMap(p => p.tags))].slice(0, 10)) {
+          span.tag "#{tag}"
+        }
+      }
+    }
+
+    .sidebar-section {
+      h3.section-title "Recent Posts"
+
+      .recent-posts {
+        @for (post of posts.slice(0, 3)) {
+          .recent-post {
+            h4.recent-title "{post.title}"
+            span.recent-date "{post.publishedAt}"
+          }
+        }
+      }
+    }
+  }
+}
+
+style {
+  .sidebar {
+    display: flex
+    flex-direction: column
+    gap: 24px
+  }
+
+  .sidebar-section {
+    background: var(--card-bg)
+    border-radius: var(--radius)
+    padding: 20px
+    border: 1px solid var(--border)
+  }
+
+  .section-title {
+    font-size: 0.875rem
+    font-weight: 600
+    text-transform: uppercase
+    letter-spacing: 0.5px
+    color: var(--text-muted)
+    margin-bottom: 16px
+  }
+
+  .category-list {
+    display: flex
+    flex-direction: column
+    gap: 4px
+  }
+
+  .category-item {
+    display: flex
+    justify-content: space-between
+    align-items: center
+    padding: 10px 12px
+    background: none
+    border: none
+    border-radius: 8px
+    color: var(--text)
+    font-size: 0.875rem
+    cursor: pointer
+    transition: all 0.2s
+    text-align: left
+    width: 100%
+  }
+
+  .category-item:hover {
+    background: var(--bg)
+  }
+
+  .category-item.active {
+    background: var(--primary)
+    color: white
+  }
+
+  .category-name {
+    font-weight: 500
+  }
+
+  .category-count {
+    background: var(--bg)
+    padding: 2px 8px
+    border-radius: 10px
+    font-size: 0.75rem
+    color: var(--text-muted)
+  }
+
+  .category-item.active .category-count {
+    background: rgba(255,255,255,0.2)
+    color: white
+  }
+
+  .tag-cloud {
+    display: flex
+    flex-wrap: wrap
+    gap: 8px
+  }
+
+  .tag {
+    padding: 6px 12px
+    background: var(--bg)
+    color: var(--text-muted)
+    border-radius: 20px
+    font-size: 0.75rem
+    font-weight: 500
+    cursor: pointer
+    transition: all 0.2s
+  }
+
+  .tag:hover {
+    background: var(--primary)
+    color: white
+  }
+
+  .recent-posts {
+    display: flex
+    flex-direction: column
+    gap: 16px
+  }
+
+  .recent-post {
+    padding-bottom: 16px
+    border-bottom: 1px solid var(--border)
+  }
+
+  .recent-post:last-child {
+    padding-bottom: 0
+    border-bottom: none
+  }
+
+  .recent-title {
+    font-size: 0.875rem
+    font-weight: 500
+    color: var(--text)
+    margin-bottom: 4px
+    line-height: 1.4
+    cursor: pointer
+  }
+
+  .recent-title:hover {
+    color: var(--primary)
+  }
+
+  .recent-date {
+    font-size: 0.75rem
+    color: var(--text-muted)
+  }
+
+  @media (max-width: 900px) {
+    .sidebar {
+      display: grid
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr))
+      gap: 16px
+    }
+  }
+}

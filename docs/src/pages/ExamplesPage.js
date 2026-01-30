@@ -12,6 +12,22 @@ export function ExamplesPage() {
     <p class="intro">Explore live examples built with Pulse Framework</p>
 
     <div class="examples-grid">
+      <div class="example-card featured">
+        <div class="example-icon">📰</div>
+        <h3>Blog</h3>
+        <p>Full blog built entirely with .pulse components showcasing the DSL syntax.</p>
+        <ul class="example-features">
+          <li>✓ .pulse file components</li>
+          <li>✓ CRUD operations</li>
+          <li>✓ Category filtering</li>
+          <li>✓ Search functionality</li>
+          <li>✓ Dark/light mode</li>
+        </ul>
+        <a href="/examples/blog/" class="btn btn-primary">
+          View Demo →
+        </a>
+      </div>
+
       <div class="example-card">
         <div class="example-icon">📝</div>
         <h3>Todo App</h3>
@@ -129,33 +145,37 @@ export function ExamplesPage() {
       <h2>Run Examples Locally</h2>
       <p>To run the example projects on your machine:</p>
       <div class="code-block">
-        <pre><code># Todo App (port 3001)
-cd pulse/examples/todo
+        <pre><code># Blog (port 3001) - .pulse components
+cd pulse/examples/blog
 npm run dev -- 3001
 
-# Weather App (port 3002)
-cd pulse/examples/meteo
+# Todo App (port 3002)
+cd pulse/examples/todo
 npm run dev -- 3002
 
-# E-commerce (port 3003)
-cd pulse/examples/ecommerce
+# Weather App (port 3003)
+cd pulse/examples/meteo
 npm run dev -- 3003
 
-# Chat App (port 3004)
-cd pulse/examples/chat
+# E-commerce (port 3004)
+cd pulse/examples/ecommerce
 npm run dev -- 3004
 
-# Router Demo (port 3005)
-cd pulse/examples/router
+# Chat App (port 3005)
+cd pulse/examples/chat
 npm run dev -- 3005
 
-# Store Demo (port 3006)
-cd pulse/examples/store
+# Router Demo (port 3006)
+cd pulse/examples/router
 npm run dev -- 3006
 
-# Admin Dashboard (port 3007)
-cd pulse/examples/dashboard
+# Store Demo (port 3007)
+cd pulse/examples/store
 npm run dev -- 3007
+
+# Admin Dashboard (port 3008)
+cd pulse/examples/dashboard
+npm run dev -- 3008
 
 # Documentation (port 3000)
 cd pulse/docs

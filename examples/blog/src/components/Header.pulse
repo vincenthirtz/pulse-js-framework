@@ -1,0 +1,205 @@
+@page Header
+
+state {
+  searchOpen: false
+  localSearch: ""
+}
+
+actions {
+  toggleSearch() {
+    searchOpen = !searchOpen
+    if (!searchOpen) {
+      localSearch = ""
+    }
+  }
+
+  handleSearch(e) {
+    localSearch = e.target.value
+    onSearch(localSearch)
+  }
+
+  handleKeydown(e) {
+    if (e.key === "Escape") {
+      searchOpen = false
+      localSearch = ""
+    }
+  }
+}
+
+view {
+  header.header {
+    .header-content {
+      .logo @click(onHome) {
+        span.logo-icon "P"
+        span.logo-text "Pulse Blog"
+      }
+
+      nav.nav {
+        @if (searchOpen) {
+          .search-box {
+            input.search-input[type="text"][placeholder="Search posts..."][autofocus] {
+              @value(localSearch)
+              @input(handleSearch)
+              @keydown(handleKeydown)
+            }
+            button.search-close @click(toggleSearch) "x"
+          }
+        }
+
+        @if (!searchOpen) {
+          button.nav-btn @click(toggleSearch) {
+            span.icon "S"
+          }
+        }
+
+        button.nav-btn.new-post @click(onNewPost) {
+          span.icon "+"
+          span.btn-text "New Post"
+        }
+
+        button.nav-btn.theme-toggle @click(onToggleDark) {
+          @if (darkMode) {
+            span.icon "L"
+          }
+          @if (!darkMode) {
+            span.icon "D"
+          }
+        }
+      }
+    }
+  }
+}
+
+style {
+  .header {
+    background: var(--card-bg)
+    border-bottom: 1px solid var(--border)
+    padding: 16px 24px
+    position: sticky
+    top: 0
+    z-index: 100
+    backdrop-filter: blur(8px)
+  }
+
+  .header-content {
+    max-width: 1200px
+    margin: 0 auto
+    display: flex
+    justify-content: space-between
+    align-items: center
+  }
+
+  .logo {
+    display: flex
+    align-items: center
+    gap: 12px
+    cursor: pointer
+    font-weight: 700
+    font-size: 1.25rem
+    color: var(--text)
+    text-decoration: none
+  }
+
+  .logo:hover {
+    color: var(--primary)
+  }
+
+  .logo-icon {
+    width: 40px
+    height: 40px
+    background: linear-gradient(135deg, var(--primary), var(--accent))
+    color: white
+    border-radius: 10px
+    display: flex
+    align-items: center
+    justify-content: center
+    font-weight: 700
+    font-size: 1.25rem
+  }
+
+  .nav {
+    display: flex
+    align-items: center
+    gap: 12px
+  }
+
+  .nav-btn {
+    display: flex
+    align-items: center
+    gap: 8px
+    padding: 10px 16px
+    background: var(--border)
+    border: none
+    border-radius: 8px
+    color: var(--text)
+    font-size: 0.875rem
+    font-weight: 500
+    cursor: pointer
+    transition: all 0.2s
+  }
+
+  .nav-btn:hover {
+    background: var(--primary)
+    color: white
+  }
+
+  .nav-btn .icon {
+    font-weight: 700
+  }
+
+  .nav-btn.new-post {
+    background: var(--primary)
+    color: white
+  }
+
+  .nav-btn.new-post:hover {
+    background: var(--primary-hover)
+  }
+
+  .search-box {
+    display: flex
+    align-items: center
+    gap: 8px
+  }
+
+  .search-input {
+    padding: 10px 16px
+    border: 2px solid var(--border)
+    border-radius: 8px
+    background: var(--bg)
+    color: var(--text)
+    font-size: 0.875rem
+    width: 250px
+    transition: border-color 0.2s
+  }
+
+  .search-input:focus {
+    outline: none
+    border-color: var(--primary)
+  }
+
+  .search-close {
+    padding: 10px 14px
+    background: var(--border)
+    border: none
+    border-radius: 8px
+    color: var(--text)
+    cursor: pointer
+    font-weight: 500
+  }
+
+  .search-close:hover {
+    background: var(--text-muted)
+    color: white
+  }
+
+  @media (max-width: 600px) {
+    .btn-text {
+      display: none
+    }
+
+    .search-input {
+      width: 150px
+    }
+  }
+}

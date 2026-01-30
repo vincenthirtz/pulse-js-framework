@@ -572,6 +572,18 @@ body {
   border-color: var(--border);
 }
 
+.example-card.featured {
+  border: 2px solid var(--primary);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.05), rgba(168, 85, 247, 0.05));
+}
+
+.example-card.featured .example-icon {
+  background: linear-gradient(135deg, var(--primary), #a855f7);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
 .example-icon {
   font-size: 3em;
   margin-bottom: 16px;

@@ -1,0 +1,185 @@
+@page PostList
+
+view {
+  .post-list {
+    @if (posts.length === 0) {
+      .empty-state {
+        .empty-icon "E"
+        h3 "No posts found"
+        p "Try adjusting your search or filter."
+      }
+    }
+
+    @if (posts.length > 0) {
+      @for (post of posts) {
+        article.post-card @click(onSelectPost(post.id)) {
+          .post-card-header {
+            span.category "{post.category}"
+            span.read-time "{post.readTime} min read"
+          }
+
+          h2.post-title "{post.title}"
+
+          p.post-excerpt "{post.excerpt}"
+
+          .post-card-footer {
+            .author {
+              .author-avatar "{post.author.charAt(0)}"
+              span.author-name "{post.author}"
+            }
+
+            span.post-date "{post.publishedAt}"
+          }
+
+          .post-tags {
+            @for (tag of post.tags) {
+              span.tag "#{tag}"
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+style {
+  .post-list {
+    display: flex
+    flex-direction: column
+    gap: 24px
+  }
+
+  .post-card {
+    background: var(--card-bg)
+    border-radius: var(--radius)
+    padding: 24px
+    box-shadow: var(--shadow)
+    cursor: pointer
+    transition: all 0.2s
+    border: 1px solid var(--border)
+  }
+
+  .post-card:hover {
+    box-shadow: var(--shadow-lg)
+    transform: translateY(-2px)
+  }
+
+  .post-card-header {
+    display: flex
+    justify-content: space-between
+    align-items: center
+    margin-bottom: 12px
+  }
+
+  .category {
+    display: inline-block
+    padding: 4px 12px
+    background: linear-gradient(135deg, var(--primary), var(--accent))
+    color: white
+    border-radius: 20px
+    font-size: 0.75rem
+    font-weight: 600
+    text-transform: uppercase
+    letter-spacing: 0.5px
+  }
+
+  .read-time {
+    color: var(--text-muted)
+    font-size: 0.875rem
+  }
+
+  .post-title {
+    font-size: 1.5rem
+    font-weight: 700
+    margin-bottom: 12px
+    line-height: 1.3
+    color: var(--text)
+  }
+
+  .post-card:hover .post-title {
+    color: var(--primary)
+  }
+
+  .post-excerpt {
+    color: var(--text-muted)
+    margin-bottom: 16px
+    line-height: 1.6
+  }
+
+  .post-card-footer {
+    display: flex
+    justify-content: space-between
+    align-items: center
+    padding-top: 16px
+    border-top: 1px solid var(--border)
+  }
+
+  .author {
+    display: flex
+    align-items: center
+    gap: 10px
+  }
+
+  .author-avatar {
+    width: 36px
+    height: 36px
+    background: linear-gradient(135deg, var(--primary), var(--accent))
+    color: white
+    border-radius: 50%
+    display: flex
+    align-items: center
+    justify-content: center
+    font-weight: 600
+    font-size: 0.875rem
+  }
+
+  .author-name {
+    font-weight: 500
+    color: var(--text)
+  }
+
+  .post-date {
+    color: var(--text-muted)
+    font-size: 0.875rem
+  }
+
+  .post-tags {
+    display: flex
+    flex-wrap: wrap
+    gap: 8px
+    margin-top: 16px
+  }
+
+  .tag {
+    padding: 4px 10px
+    background: var(--bg)
+    color: var(--text-muted)
+    border-radius: 6px
+    font-size: 0.75rem
+    font-weight: 500
+  }
+
+  .empty-state {
+    text-align: center
+    padding: 60px 24px
+    background: var(--card-bg)
+    border-radius: var(--radius)
+    border: 1px solid var(--border)
+  }
+
+  .empty-icon {
+    font-size: 3rem
+    margin-bottom: 16px
+    display: block
+  }
+
+  .empty-state h3 {
+    font-size: 1.25rem
+    margin-bottom: 8px
+    color: var(--text)
+  }
+
+  .empty-state p {
+    color: var(--text-muted)
+  }
+}

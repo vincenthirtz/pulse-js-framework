@@ -1,0 +1,249 @@
+@page PostView
+
+view {
+  .post-view {
+    @if (post) {
+      .post-header {
+        button.back-btn @click(onBack) {
+          span.arrow "<-"
+          span "Back to posts"
+        }
+
+        .post-actions {
+          button.btn.btn-secondary @click(onEdit(post.id)) {
+            span "Edit"
+          }
+          button.btn.btn-danger @click(onDelete(post.id)) {
+            span "Delete"
+          }
+        }
+      }
+
+      article.post-content {
+        .post-meta {
+          span.category "{post.category}"
+          span.separator "|"
+          span.read-time "{post.readTime} min read"
+          span.separator "|"
+          span.date "{post.publishedAt}"
+        }
+
+        h1.post-title "{post.title}"
+
+        .author-info {
+          .author-avatar "{post.author.charAt(0)}"
+          .author-details {
+            span.author-name "{post.author}"
+            span.author-role "Author"
+          }
+        }
+
+        .post-body {
+          p "{post.content}"
+        }
+
+        .post-tags {
+          @for (tag of post.tags) {
+            span.tag "#{tag}"
+          }
+        }
+      }
+    }
+
+    @if (!post) {
+      .not-found {
+        h2 "Post not found"
+        p "The post you're looking for doesn't exist."
+        button.btn.btn-primary @click(onBack) "Back to posts"
+      }
+    }
+  }
+}
+
+style {
+  .post-view {
+    max-width: 800px
+    margin: 0 auto
+  }
+
+  .post-header {
+    display: flex
+    justify-content: space-between
+    align-items: center
+    margin-bottom: 32px
+  }
+
+  .back-btn {
+    display: flex
+    align-items: center
+    gap: 8px
+    padding: 10px 16px
+    background: var(--border)
+    border: none
+    border-radius: 8px
+    color: var(--text)
+    font-size: 0.875rem
+    font-weight: 500
+    cursor: pointer
+    transition: all 0.2s
+  }
+
+  .back-btn:hover {
+    background: var(--primary)
+    color: white
+  }
+
+  .arrow {
+    font-weight: 700
+  }
+
+  .post-actions {
+    display: flex
+    gap: 12px
+  }
+
+  .post-content {
+    background: var(--card-bg)
+    border-radius: var(--radius)
+    padding: 40px
+    box-shadow: var(--shadow)
+    border: 1px solid var(--border)
+  }
+
+  .post-meta {
+    display: flex
+    align-items: center
+    gap: 12px
+    margin-bottom: 16px
+    font-size: 0.875rem
+  }
+
+  .category {
+    padding: 4px 12px
+    background: linear-gradient(135deg, var(--primary), var(--accent))
+    color: white
+    border-radius: 20px
+    font-weight: 600
+    text-transform: uppercase
+    letter-spacing: 0.5px
+    font-size: 0.75rem
+  }
+
+  .separator {
+    color: var(--border)
+  }
+
+  .read-time, .date {
+    color: var(--text-muted)
+  }
+
+  .post-title {
+    font-family: var(--font-serif)
+    font-size: 2.5rem
+    font-weight: 700
+    line-height: 1.2
+    margin-bottom: 24px
+    color: var(--text)
+  }
+
+  .author-info {
+    display: flex
+    align-items: center
+    gap: 16px
+    padding-bottom: 24px
+    margin-bottom: 32px
+    border-bottom: 1px solid var(--border)
+  }
+
+  .author-avatar {
+    width: 48px
+    height: 48px
+    background: linear-gradient(135deg, var(--primary), var(--accent))
+    color: white
+    border-radius: 50%
+    display: flex
+    align-items: center
+    justify-content: center
+    font-weight: 700
+    font-size: 1.25rem
+  }
+
+  .author-details {
+    display: flex
+    flex-direction: column
+  }
+
+  .author-name {
+    font-weight: 600
+    color: var(--text)
+  }
+
+  .author-role {
+    font-size: 0.875rem
+    color: var(--text-muted)
+  }
+
+  .post-body {
+    font-family: var(--font-serif)
+    font-size: 1.125rem
+    line-height: 1.8
+    color: var(--text)
+    white-space: pre-wrap
+  }
+
+  .post-body p {
+    margin-bottom: 1.5em
+  }
+
+  .post-tags {
+    display: flex
+    flex-wrap: wrap
+    gap: 8px
+    margin-top: 32px
+    padding-top: 24px
+    border-top: 1px solid var(--border)
+  }
+
+  .tag {
+    padding: 6px 14px
+    background: var(--bg)
+    color: var(--text-muted)
+    border-radius: 20px
+    font-size: 0.875rem
+    font-weight: 500
+  }
+
+  .not-found {
+    text-align: center
+    padding: 60px 24px
+    background: var(--card-bg)
+    border-radius: var(--radius)
+    border: 1px solid var(--border)
+  }
+
+  .not-found h2 {
+    margin-bottom: 8px
+    color: var(--text)
+  }
+
+  .not-found p {
+    color: var(--text-muted)
+    margin-bottom: 24px
+  }
+
+  @media (max-width: 600px) {
+    .post-content {
+      padding: 24px
+    }
+
+    .post-title {
+      font-size: 1.75rem
+    }
+
+    .post-header {
+      flex-direction: column
+      gap: 16px
+      align-items: flex-start
+    }
+  }
+}
