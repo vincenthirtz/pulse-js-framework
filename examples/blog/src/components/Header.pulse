@@ -1,0 +1,104 @@
+/**
+ * Header Component - Navigation bar with logo, search, and actions
+ */
+
+@page Header
+
+props {
+  darkMode: false
+  onLogoClick: null
+  onSearch: null
+  onNewPost: null
+  onToggleDarkMode: null
+}
+
+view {
+  header.header {
+    nav.nav {
+      .logo @click(onLogoClick && onLogoClick()) {
+        span.logo-icon "📰"
+        span "Pulse Blog"
+      }
+      .search-box {
+        input.search-input[type=text][placeholder="Search posts..."] @input(onSearch && onSearch(event))
+      }
+      .nav-actions {
+        button.btn.btn-primary @click(onNewPost && onNewPost()) "+ New Post"
+        button.dark-toggle @click(onToggleDarkMode && onToggleDarkMode()) "{darkMode ? '☀️' : '🌙'}"
+      }
+    }
+  }
+}
+
+style {
+  .header {
+    background: var(--card-bg);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 24px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .nav {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1.25rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .search-box {
+    flex: 1;
+    max-width: 400px;
+  }
+
+  .search-input {
+    width: 100%;
+    padding: 10px 16px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  .nav-actions {
+    display: flex;
+    gap: 12px;
+  }
+
+  .dark-toggle {
+    background: none;
+    border: none;
+    font-size: 1.25rem;
+    cursor: pointer;
+    padding: 8px;
+  }
+
+  .btn {
+    padding: 10px 20px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+
+  .btn-primary {
+    background: var(--primary);
+    color: white;
+  }
+
+  .btn-primary:hover {
+    background: var(--primary-hover);
+  }
+}

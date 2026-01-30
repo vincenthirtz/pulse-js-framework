@@ -1,0 +1,165 @@
+/**
+ * PostView Component - Full post view with actions
+ */
+
+@page PostView
+
+props {
+  post: null
+  onBack: null
+  onEdit: null
+  onDelete: null
+}
+
+view {
+  .post-view {
+    .post-header {
+      button.back-btn @click(onBack && onBack()) {
+        span.arrow "←"
+        span "Back to posts"
+      }
+      .post-actions {
+        button.btn.btn-secondary @click(onEdit && onEdit()) "Edit"
+        button.btn.btn-danger @click(onDelete && onDelete()) "Delete"
+      }
+    }
+
+    @if (post) {
+      article.post-content {
+        .post-meta {
+          span.category "{post.category}"
+          span.separator "|"
+          span.read-time "{post.readTime} min read"
+          span.separator "|"
+          span.date "{post.publishedAt}"
+        }
+        h1.post-title "{post.title}"
+        .author-info {
+          .author-avatar "{post.author.charAt(0)}"
+          .author-details {
+            span.author-name "{post.author}"
+            span.author-role "Author"
+          }
+        }
+        .post-body "{post.content}"
+      }
+    }
+  }
+}
+
+style {
+  .post-view {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .post-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 32px;
+  }
+
+  .back-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: var(--border);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--text);
+  }
+
+  .post-actions {
+    display: flex;
+    gap: 12px;
+  }
+
+  .post-content {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    padding: 40px;
+  }
+
+  .post-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    font-size: 0.75rem;
+  }
+
+  .category {
+    padding: 4px 10px;
+    background: var(--primary);
+    color: white;
+    border-radius: 20px;
+    font-weight: 600;
+  }
+
+  .post-title {
+    font-size: 2rem;
+    margin-bottom: 24px;
+  }
+
+  .author-info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding-bottom: 24px;
+    margin-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .author-avatar {
+    width: 48px;
+    height: 48px;
+    background: var(--primary);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 1.25rem;
+  }
+
+  .author-details {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .author-name {
+    font-weight: 600;
+  }
+
+  .author-role {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+  }
+
+  .post-body {
+    font-size: 1.125rem;
+    line-height: 1.8;
+  }
+
+  .btn {
+    padding: 10px 20px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+
+  .btn-secondary {
+    background: var(--border);
+    color: var(--text);
+  }
+
+  .btn-danger {
+    background: var(--danger);
+    color: white;
+  }
+}

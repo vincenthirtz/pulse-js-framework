@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="boltGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#8B5CF6"/>
+      <stop offset="100%" style="stop-color:#F97316"/>
+    </linearGradient>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f0f1a"/>
+      <stop offset="100%" style="stop-color:#1a1a2e"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bgGradient)"/>
+
+  <!-- Lightning bolt classique (centré) -->
+  <polygon points="620,100 500,250 550,250 460,400 640,220 580,220 680,100" fill="url(#boltGradient)"/>
+
+  <!-- Pulse text -->
+  <text x="600" y="500" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="120" font-weight="700" fill="white">Pulse</text>
+
+  <!-- Tagline -->
+  <text x="600" y="560" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="28" fill="#a0a0a0">Zero-dependency reactive framework</text>
+</svg>

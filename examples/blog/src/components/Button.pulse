@@ -1,0 +1,27 @@
+/**
+ * Button Component - Reusable button with variants
+ */
+
+@page Button
+
+props {
+  text: ""
+  variant: "primary"
+  type: "button"
+  onClick: null
+}
+
+view {
+  button.btn @click(onClick && onClick()) "{text}"
+}
+
+style {
+  .btn {
+    padding: 10px 20px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+}

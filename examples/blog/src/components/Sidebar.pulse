@@ -1,0 +1,112 @@
+/**
+ * Sidebar Component - Categories filter and recent posts
+ */
+
+@page Sidebar
+
+props {
+  categories: []
+  recentPosts: []
+  totalPosts: 0
+  onCategoryClick: null
+  onClearFilter: null
+  onPostClick: null
+  getCategoryCount: null
+}
+
+view {
+  aside.sidebar {
+    .sidebar-section {
+      h3.section-title "Categories"
+      .category-list {
+        button.category-item @click(onClearFilter && onClearFilter()) {
+          span.category-name "All Posts"
+          span.category-count "{totalPosts}"
+        }
+        @for (cat of categories) {
+          button.category-item @click(onCategoryClick && onCategoryClick(cat)) {
+            span.category-name "{cat}"
+            span.category-count "{getCategoryCount ? getCategoryCount(cat) : 0}"
+          }
+        }
+      }
+    }
+
+    .sidebar-section {
+      h3.section-title "Recent Posts"
+      .recent-posts {
+        @for (post of recentPosts) {
+          .recent-post @click(onPostClick && onPostClick(post.id)) {
+            h4.recent-title "{post.title}"
+            span.recent-date "{post.publishedAt}"
+          }
+        }
+      }
+    }
+  }
+}
+
+style {
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .sidebar-section {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    padding: 20px;
+  }
+
+  .section-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+  }
+
+  .category-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .category-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 12px;
+    background: none;
+    border: none;
+    border-radius: 8px;
+    color: var(--text);
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+  }
+
+  .category-item:hover {
+    background: var(--bg);
+  }
+
+  .recent-posts {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .recent-post {
+    cursor: pointer;
+  }
+
+  .recent-title {
+    font-size: 0.875rem;
+    margin-bottom: 4px;
+  }
+
+  .recent-date {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+}

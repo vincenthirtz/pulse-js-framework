@@ -31,6 +31,8 @@ export class Transformer {
       ...options
     };
     this.stateVars = new Set();
+    this.propVars = new Set(); // Track prop names
+    this.propDefaults = new Map(); // Track prop default values
     this.actionNames = new Set();
     this.importedComponents = new Map(); // Map of local name -> import info
     this.scopeId = this.options.scopeStyles ? generateScopeId() : null;
@@ -49,6 +51,11 @@ export class Transformer {
 
     // Imports (runtime + user imports)
     parts.push(this.generateImports());
+
+    // Extract prop variables
+    if (this.ast.props) {
+      this.extractPropVars(this.ast.props);
+    }
 
     // Extract state variables
     if (this.ast.state) {
@@ -164,6 +171,16 @@ export class Transformer {
     }
 
     return lines.join('\n');
+  }
+
+  /**
+   * Extract prop variable names and defaults
+   */
+  extractPropVars(propsBlock) {
+    for (const prop of propsBlock.properties) {
+      this.propVars.add(prop.name);
+      this.propDefaults.set(prop.name, prop.value);
+    }
   }
 
   /**
@@ -445,7 +462,20 @@ export class Transformer {
    */
   transformView(viewBlock) {
     const lines = ['// View'];
-    lines.push('function render() {');
+
+    // Generate render function with props parameter
+    lines.push('function render({ props = {}, slots = {} } = {}) {');
+
+    // Destructure props with defaults if component has props
+    if (this.propVars.size > 0) {
+      const propsDestructure = [...this.propVars].map(name => {
+        const defaultValue = this.propDefaults.get(name);
+        const defaultCode = defaultValue ? this.transformValue(defaultValue) : 'undefined';
+        return `${name} = ${defaultCode}`;
+      }).join(', ');
+      lines.push(`  const { ${propsDestructure} } = props;`);
+    }
+
     lines.push('  return (');
 
     const children = viewBlock.children.map(child =>
@@ -614,14 +644,26 @@ export class Transformer {
     // Build component call
     let code = `${pad}${componentName}.render({ `;
 
+    const renderArgs = [];
+
+    // Add props if any
+    if (node.props && node.props.length > 0) {
+      const propsCode = node.props.map(prop => {
+        const valueCode = this.transformExpression(prop.value);
+        return `${prop.name}: ${valueCode}`;
+      }).join(', ');
+      renderArgs.push(`props: { ${propsCode} }`);
+    }
+
     // Add slots if any
     if (Object.keys(slots).length > 0) {
       const slotCode = Object.entries(slots).map(([name, content]) => {
         return `${name}: () => ${content.length === 1 ? content[0] : `[${content.join(', ')}]`}`;
       }).join(', ');
-      code += `slots: { ${slotCode} }`;
+      renderArgs.push(`slots: { ${slotCode} }`);
     }
 
+    code += renderArgs.join(', ');
     code += ' })';
     return code;
   }
@@ -723,6 +765,7 @@ export class Transformer {
         if (this.stateVars.has(node.name)) {
           return `${node.name}.get()`;
         }
+        // Props are accessed directly (already destructured)
         return node.name;
 
       case NodeType.Literal:

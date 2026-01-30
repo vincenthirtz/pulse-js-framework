@@ -13,6 +13,7 @@ export const NodeType = {
   ImportSpecifier: 'ImportSpecifier',
   PageDeclaration: 'PageDeclaration',
   RouteDeclaration: 'RouteDeclaration',
+  PropsBlock: 'PropsBlock',
   StateBlock: 'StateBlock',
   ViewBlock: 'ViewBlock',
   ActionsBlock: 'ActionsBlock',
@@ -133,6 +134,7 @@ export class Parser {
       imports: [],
       page: null,
       route: null,
+      props: null,
       state: null,
       view: null,
       actions: null,
@@ -156,6 +158,13 @@ export class Parser {
             `Expected 'page' or 'route' after '@', got '${this.current()?.value}'`
           );
         }
+      }
+      // Props block
+      else if (this.is(TokenType.PROPS)) {
+        if (program.props) {
+          throw this.createError('Duplicate props block - only one props block allowed per file');
+        }
+        program.props = this.parsePropsBlock();
       }
       // State block
       else if (this.is(TokenType.STATE)) {
@@ -189,7 +198,7 @@ export class Parser {
         const token = this.current();
         throw this.createError(
           `Unexpected token '${token?.value || token?.type}' at line ${token?.line}:${token?.column}. ` +
-          `Expected: import, @page, @route, state, view, actions, or style`
+          `Expected: import, @page, @route, props, state, view, actions, or style`
         );
       }
     }
@@ -285,6 +294,36 @@ export class Parser {
     this.expect(TokenType.ROUTE);
     const path = this.expect(TokenType.STRING);
     return new ASTNode(NodeType.RouteDeclaration, { path: path.value });
+  }
+
+  /**
+   * Parse props block
+   * props {
+   *   label: "Default"
+   *   disabled: false
+   * }
+   */
+  parsePropsBlock() {
+    this.expect(TokenType.PROPS);
+    this.expect(TokenType.LBRACE);
+
+    const properties = [];
+    while (!this.is(TokenType.RBRACE) && !this.is(TokenType.EOF)) {
+      properties.push(this.parsePropsProperty());
+    }
+
+    this.expect(TokenType.RBRACE);
+    return new ASTNode(NodeType.PropsBlock, { properties });
+  }
+
+  /**
+   * Parse a props property (name: defaultValue)
+   */
+  parsePropsProperty() {
+    const name = this.expect(TokenType.IDENT);
+    this.expect(TokenType.COLON);
+    const value = this.parseValue();
+    return new ASTNode(NodeType.Property, { name: name.value, value });
   }
 
   /**
@@ -479,6 +518,19 @@ export class Parser {
     const directives = [];
     const textContent = [];
     const children = [];
+    const props = []; // Props passed to component
+
+    // Check if this is a component with props: Component(prop=value, ...)
+    if (this.is(TokenType.LPAREN)) {
+      this.advance(); // consume (
+      while (!this.is(TokenType.RPAREN) && !this.is(TokenType.EOF)) {
+        props.push(this.parseComponentProp());
+        if (this.is(TokenType.COMMA)) {
+          this.advance();
+        }
+      }
+      this.expect(TokenType.RPAREN);
+    }
 
     // Parse inline directives and text
     while (!this.is(TokenType.LBRACE) && !this.is(TokenType.RBRACE) &&
@@ -507,8 +559,49 @@ export class Parser {
       selector,
       directives,
       textContent,
-      children
+      children,
+      props
     });
+  }
+
+  /**
+   * Parse a component prop: name=value or name={expression}
+   */
+  parseComponentProp() {
+    const name = this.expect(TokenType.IDENT);
+    this.expect(TokenType.EQ);
+
+    let value;
+    if (this.is(TokenType.LBRACE)) {
+      // Expression prop: name={expression}
+      this.advance(); // consume {
+      value = this.parseExpression();
+      this.expect(TokenType.RBRACE);
+    } else if (this.is(TokenType.STRING)) {
+      // String prop: name="value"
+      const token = this.advance();
+      value = new ASTNode(NodeType.Literal, { value: token.value, raw: token.raw });
+    } else if (this.is(TokenType.NUMBER)) {
+      // Number prop: name=123
+      const token = this.advance();
+      value = new ASTNode(NodeType.Literal, { value: token.value });
+    } else if (this.is(TokenType.TRUE)) {
+      this.advance();
+      value = new ASTNode(NodeType.Literal, { value: true });
+    } else if (this.is(TokenType.FALSE)) {
+      this.advance();
+      value = new ASTNode(NodeType.Literal, { value: false });
+    } else if (this.is(TokenType.NULL)) {
+      this.advance();
+      value = new ASTNode(NodeType.Literal, { value: null });
+    } else if (this.is(TokenType.IDENT)) {
+      // Identifier prop: name=someVar
+      value = this.parseIdentifierOrExpression();
+    } else {
+      throw this.createError(`Unexpected token in prop value: ${this.current()?.type}`);
+    }
+
+    return new ASTNode(NodeType.Property, { name: name.value, value });
   }
 
   /**

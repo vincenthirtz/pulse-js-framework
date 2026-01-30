@@ -1,0 +1,158 @@
+/**
+ * PostForm Component - Create/Edit form for posts
+ */
+
+@page PostForm
+
+props {
+  isEdit: false
+  onSubmit: null
+  onCancel: null
+}
+
+view {
+  .post-form {
+    .form-header {
+      h2 "{isEdit ? 'Edit Post' : 'Create New Post'}"
+      p.form-subtitle "{isEdit ? 'Update your blog post' : 'Share your thoughts'}"
+    }
+
+    form.form @submit(onSubmit && onSubmit(event)) {
+      .form-group {
+        label.form-label "Title"
+        input#form-title.form-input[type=text][placeholder="Enter post title..."]
+      }
+
+      .form-group {
+        label.form-label "Excerpt"
+        textarea#form-excerpt.form-textarea[placeholder="Brief summary..."][rows=2]
+      }
+
+      .form-group {
+        label.form-label "Content"
+        textarea#form-content.form-textarea.large[placeholder="Write your post..."][rows=8]
+      }
+
+      .form-row {
+        .form-group {
+          label.form-label "Author"
+          input#form-author.form-input[type=text][placeholder="Your name"]
+        }
+        .form-group {
+          label.form-label "Category"
+          select#form-category.form-select {
+            option[value="Tutorial"] "Tutorial"
+            option[value="Deep Dive"] "Deep Dive"
+            option[value="Mobile"] "Mobile"
+            option[value="News"] "News"
+          }
+        }
+      }
+
+      .form-actions {
+        button.btn.btn-secondary[type=button] @click(onCancel && onCancel()) "Cancel"
+        button.btn.btn-primary[type=submit] "{isEdit ? 'Update Post' : 'Publish Post'}"
+      }
+    }
+  }
+}
+
+style {
+  .post-form {
+    max-width: 800px;
+    margin: 0 auto;
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    padding: 40px;
+  }
+
+  .form-header {
+    margin-bottom: 32px;
+  }
+
+  .form-subtitle {
+    color: var(--text-muted);
+  }
+
+  .form {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .form-label {
+    font-weight: 500;
+  }
+
+  .form-input, .form-textarea, .form-select {
+    padding: 12px 16px;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 1rem;
+  }
+
+  .form-input:focus, .form-textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+  }
+
+  .form-textarea {
+    resize: vertical;
+    min-height: 100px;
+  }
+
+  .form-textarea.large {
+    min-height: 200px;
+  }
+
+  .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+
+  .btn {
+    padding: 10px 20px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+
+  .btn-primary {
+    background: var(--primary);
+    color: white;
+  }
+
+  .btn-primary:hover {
+    background: var(--primary-hover);
+  }
+
+  .btn-secondary {
+    background: var(--border);
+    color: var(--text);
+  }
+
+  @media (max-width: 900px) {
+    .form-row {
+      grid-template-columns: 1fr;
+    }
+  }
+}

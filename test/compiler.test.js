@@ -197,6 +197,54 @@ view {
   assert(slot.fallback.length === 1, 'Expected fallback content');
 });
 
+test('parses props block', () => {
+  const source = `
+props {
+  label: "Default"
+  disabled: false
+  count: 0
+}`;
+  const ast = parse(source);
+  assert(ast.props !== null, 'Expected props block');
+  assert(ast.props.properties.length === 3, 'Expected 3 props');
+  assert(ast.props.properties[0].name === 'label', 'Expected label prop');
+  assert(ast.props.properties[1].name === 'disabled', 'Expected disabled prop');
+  assert(ast.props.properties[2].name === 'count', 'Expected count prop');
+});
+
+test('parses component with props', () => {
+  const source = `
+import Button from './Button.pulse'
+
+view {
+  Button(label="Click me", disabled=false)
+}`;
+  const ast = parse(source);
+  assert(ast.view !== null, 'Expected view block');
+  const button = ast.view.children[0];
+  assert(button.props.length === 2, 'Expected 2 props');
+  assert(button.props[0].name === 'label', 'Expected label prop');
+  assert(button.props[1].name === 'disabled', 'Expected disabled prop');
+});
+
+test('parses component props with expressions', () => {
+  const source = `
+import Button from './Button.pulse'
+
+state {
+  myLabel: "Test"
+}
+
+view {
+  Button(label={myLabel}, count={5 + 3})
+}`;
+  const ast = parse(source);
+  const button = ast.view.children[0];
+  assert(button.props.length === 2, 'Expected 2 props');
+  assert(button.props[0].value.type === 'Identifier', 'Expected Identifier for label');
+  assert(button.props[1].value.type === 'BinaryExpression', 'Expected BinaryExpression for count');
+});
+
 // =============================================================================
 // Compiler Integration Tests
 // =============================================================================
@@ -355,6 +403,44 @@ view {
   if (!result.success && result.errors.length > 0) {
     assert(result.errors[0].line !== undefined, 'Expected line number in error');
   }
+});
+
+test('compiles component with props', () => {
+  const source = `
+@page Button
+
+props {
+  label: "Click"
+  disabled: false
+}
+
+view {
+  button "{label}"
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  assert(result.code.includes('props'), 'Expected props parameter');
+  assert(result.code.includes('label = "Click"'), 'Expected label default');
+  assert(result.code.includes('disabled = false'), 'Expected disabled default');
+});
+
+test('compiles component call with props', () => {
+  const source = `
+import Button from './Button.pulse'
+
+@page App
+
+view {
+  Button(label="Submit", disabled=true)
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  assert(result.code.includes('Button.render'), 'Expected Button.render call');
+  assert(result.code.includes('props:'), 'Expected props in render call');
+  assert(result.code.includes('label: "Submit"'), 'Expected label prop');
+  assert(result.code.includes('disabled: true'), 'Expected disabled prop');
 });
 
 // =============================================================================

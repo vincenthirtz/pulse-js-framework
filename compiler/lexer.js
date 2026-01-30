@@ -8,6 +8,7 @@
 export const TokenType = {
   // Keywords
   STATE: 'STATE',
+  PROPS: 'PROPS',
   VIEW: 'VIEW',
   ACTIONS: 'ACTIONS',
   STYLE: 'STYLE',
@@ -91,6 +92,7 @@ export const TokenType = {
 // Keywords map
 const KEYWORDS = {
   'state': TokenType.STATE,
+  'props': TokenType.PROPS,
   'view': TokenType.VIEW,
   'actions': TokenType.ACTIONS,
   'style': TokenType.STYLE,
