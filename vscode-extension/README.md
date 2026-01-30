@@ -22,13 +22,20 @@ Syntax highlighting, snippets, and language support for Pulse framework `.pulse`
 
 ### Option 2: Using VSIX Package
 
-1. Package the extension:
+1. Convert the icon for marketplace (requires ImageMagick or similar):
+   ```bash
+   # Using ImageMagick
+   magick icons/pulse-icon.svg -resize 128x128 icons/pulse-icon.png
+   ```
+   Then add `"icon": "icons/pulse-icon.png"` to package.json.
+
+2. Package the extension:
    ```bash
    cd vscode-extension
    npx vsce package
    ```
 
-2. Install from VSIX:
+3. Install from VSIX:
    - Open VSCode
    - Press `Ctrl+Shift+P` (Cmd+Shift+P on macOS)
    - Type "Install from VSIX"
@@ -54,6 +61,13 @@ Syntax highlighting, snippets, and language support for Pulse framework `.pulse`
 | `button` | Button with click handler |
 | `input` | Input with model binding |
 | `form` | Form with submit handler |
+
+## Icons
+
+The extension includes lightning bolt icons for `.pulse` files:
+- `icons/pulse-light.svg` - File icon for light themes
+- `icons/pulse-dark.svg` - File icon for dark themes
+- `icons/pulse-icon.svg` - Extension marketplace icon (convert to PNG for publishing)
 
 ## Syntax Highlighting
 
