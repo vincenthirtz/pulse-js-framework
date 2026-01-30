@@ -67,12 +67,13 @@
     "LICENSE"
   ],
   "scripts": {
-    "test": "npm run test:compiler && npm run test:pulse && npm run test:dom && npm run test:router && npm run test:store && npm run test:lint && npm run test:format && npm run test:analyze",
+    "test": "npm run test:compiler && npm run test:pulse && npm run test:dom && npm run test:router && npm run test:store && npm run test:hmr && npm run test:lint && npm run test:format && npm run test:analyze",
     "test:compiler": "node test/compiler.test.js",
     "test:pulse": "node test/pulse.test.js",
     "test:dom": "node test/dom.test.js",
     "test:router": "node test/router.test.js",
     "test:store": "node test/store.test.js",
+    "test:hmr": "node test/hmr.test.js",
     "test:lint": "node test/lint.test.js",
     "test:format": "node test/format.test.js",
     "test:analyze": "node test/analyze.test.js",

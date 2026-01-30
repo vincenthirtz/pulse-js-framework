@@ -18,7 +18,13 @@ import {
   untrack,
   onCleanup,
   memo,
-  memoComputed
+  memoComputed,
+  // HMR support
+  context,
+  resetContext,
+  setCurrentModule,
+  clearCurrentModule,
+  disposeModule
 } from '../runtime/pulse.js';
 
 import {
@@ -766,6 +772,134 @@ testAsync('fromPromise uses initial value', async () => {
 
   assertEqual(value.get(), 'initial');
   assert(loading.get() === true);
+});
+
+// =============================================================================
+// HMR Support Tests
+// =============================================================================
+
+printSection('HMR Support Tests');
+
+test('context has HMR properties', () => {
+  assert(context.currentModuleId === null, 'currentModuleId should be null initially');
+  assert(context.effectRegistry instanceof Map, 'effectRegistry should be a Map');
+});
+
+test('setCurrentModule and clearCurrentModule', () => {
+  setCurrentModule('test-module');
+  assertEqual(context.currentModuleId, 'test-module');
+
+  clearCurrentModule();
+  assertEqual(context.currentModuleId, null);
+});
+
+test('effect registers with current module', () => {
+  resetContext();
+
+  setCurrentModule('module-a');
+  const dispose1 = effect(() => {});
+  const dispose2 = effect(() => {});
+  clearCurrentModule();
+
+  const moduleEffects = context.effectRegistry.get('module-a');
+  assert(moduleEffects instanceof Set, 'Module should have effect set');
+  assertEqual(moduleEffects.size, 2, 'Should have 2 effects registered');
+
+  // Cleanup
+  dispose1();
+  dispose2();
+  resetContext();
+});
+
+test('effect dispose removes from registry', () => {
+  resetContext();
+
+  setCurrentModule('module-b');
+  const dispose = effect(() => {});
+  clearCurrentModule();
+
+  assertEqual(context.effectRegistry.get('module-b').size, 1);
+
+  dispose();
+  assertEqual(context.effectRegistry.get('module-b').size, 0);
+
+  resetContext();
+});
+
+test('disposeModule cleans up all effects', () => {
+  resetContext();
+
+  const p = pulse(0);
+  let runCount = 0;
+
+  setCurrentModule('module-c');
+  effect(() => {
+    p.get();
+    runCount++;
+  });
+  effect(() => {
+    p.get();
+    runCount++;
+  });
+  clearCurrentModule();
+
+  assertEqual(runCount, 2, 'Both effects should run initially');
+
+  p.set(1);
+  assertEqual(runCount, 4, 'Both effects should re-run on change');
+
+  // Dispose all effects for the module
+  disposeModule('module-c');
+
+  p.set(2);
+  assertEqual(runCount, 4, 'Effects should not run after module dispose');
+
+  assert(!context.effectRegistry.has('module-c'), 'Module should be removed from registry');
+
+  resetContext();
+});
+
+test('disposeModule runs cleanup functions', () => {
+  resetContext();
+
+  let cleanupRan = false;
+
+  setCurrentModule('module-d');
+  effect(() => {
+    onCleanup(() => {
+      cleanupRan = true;
+    });
+  });
+  clearCurrentModule();
+
+  assert(!cleanupRan, 'Cleanup should not run yet');
+
+  disposeModule('module-d');
+  assert(cleanupRan, 'Cleanup should run on disposeModule');
+
+  resetContext();
+});
+
+test('effects without module are not registered', () => {
+  resetContext();
+
+  // Create effect without setCurrentModule
+  const dispose = effect(() => {});
+
+  assertEqual(context.effectRegistry.size, 0, 'No module should be in registry');
+
+  dispose();
+  resetContext();
+});
+
+test('resetContext clears HMR state', () => {
+  setCurrentModule('test-module');
+  context.effectRegistry.set('some-module', new Set());
+
+  resetContext();
+
+  assertEqual(context.currentModuleId, null);
+  assertEqual(context.effectRegistry.size, 0);
 });
 
 // =============================================================================
