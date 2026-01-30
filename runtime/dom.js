@@ -10,6 +10,10 @@ import { loggers } from './logger.js';
 
 const log = loggers.dom;
 
+// Selector cache for parseSelector
+const selectorCache = new Map();
+const SELECTOR_CACHE_MAX = 500;
+
 // Lifecycle tracking
 let mountCallbacks = [];
 let unmountCallbacks = [];
@@ -41,6 +45,7 @@ export function onUnmount(fn) {
 /**
  * Parse a CSS selector-like string into element configuration
  * Supports: tag, #id, .class, [attr=value]
+ * Results are cached for performance.
  *
  * Examples:
  *   "div" -> { tag: "div" }
@@ -50,6 +55,22 @@ export function onUnmount(fn) {
  *   "input[type=text][placeholder=Name]" -> { tag: "input", attrs: { type: "text", placeholder: "Name" } }
  */
 export function parseSelector(selector) {
+  if (!selector || selector === '') {
+    return { tag: 'div', id: null, classes: [], attrs: {} };
+  }
+
+  // Check cache first
+  const cached = selectorCache.get(selector);
+  if (cached) {
+    // Return a shallow copy to prevent mutation
+    return {
+      tag: cached.tag,
+      id: cached.id,
+      classes: [...cached.classes],
+      attrs: { ...cached.attrs }
+    };
+  }
+
   const config = {
     tag: 'div',
     id: null,
@@ -57,30 +78,30 @@ export function parseSelector(selector) {
     attrs: {}
   };
 
-  if (!selector || selector === '') return config;
+  let remaining = selector;
 
   // Match tag name at the start
-  const tagMatch = selector.match(/^([a-zA-Z][a-zA-Z0-9-]*)/);
+  const tagMatch = remaining.match(/^([a-zA-Z][a-zA-Z0-9-]*)/);
   if (tagMatch) {
     config.tag = tagMatch[1];
-    selector = selector.slice(tagMatch[0].length);
+    remaining = remaining.slice(tagMatch[0].length);
   }
 
   // Match ID
-  const idMatch = selector.match(/#([a-zA-Z][a-zA-Z0-9-_]*)/);
+  const idMatch = remaining.match(/#([a-zA-Z][a-zA-Z0-9-_]*)/);
   if (idMatch) {
     config.id = idMatch[1];
-    selector = selector.replace(idMatch[0], '');
+    remaining = remaining.replace(idMatch[0], '');
   }
 
   // Match classes
-  const classMatches = selector.matchAll(/\.([a-zA-Z][a-zA-Z0-9-_]*)/g);
+  const classMatches = remaining.matchAll(/\.([a-zA-Z][a-zA-Z0-9-_]*)/g);
   for (const match of classMatches) {
     config.classes.push(match[1]);
   }
 
   // Match attributes
-  const attrMatches = selector.matchAll(/\[([a-zA-Z][a-zA-Z0-9-_]*)(?:=([^\]]+))?\]/g);
+  const attrMatches = remaining.matchAll(/\[([a-zA-Z][a-zA-Z0-9-_]*)(?:=([^\]]+))?\]/g);
   for (const match of attrMatches) {
     const key = match[1];
     let value = match[2] || '';
@@ -92,7 +113,21 @@ export function parseSelector(selector) {
     config.attrs[key] = value;
   }
 
-  return config;
+  // Cache the result (with size limit to prevent memory leaks)
+  if (selectorCache.size >= SELECTOR_CACHE_MAX) {
+    // Remove oldest entry (first key)
+    const firstKey = selectorCache.keys().next().value;
+    selectorCache.delete(firstKey);
+  }
+  selectorCache.set(selector, config);
+
+  // Return a copy
+  return {
+    tag: config.tag,
+    id: config.id,
+    classes: [...config.classes],
+    attrs: { ...config.attrs }
+  };
 }
 
 /**
