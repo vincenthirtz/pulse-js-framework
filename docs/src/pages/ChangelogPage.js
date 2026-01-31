@@ -12,6 +12,42 @@ export function ChangelogPage() {
     <p class="intro">Recent updates and improvements to Pulse Framework</p>
 
     <section class="doc-section changelog-section">
+      <h2>v1.4.8 - IntelliJ IDEA Plugin</h2>
+      <p class="release-date">January 2026</p>
+
+      <h3>🧠 JetBrains IDE Support</h3>
+      <div class="changelog-group">
+        <p>Full IntelliJ IDEA plugin for <code>.pulse</code> file support:</p>
+
+        <div class="changelog-item">
+          <h4>Syntax Highlighting</h4>
+          <p>Complete syntax highlighting with custom lexer for all Pulse DSL elements: keywords, directives, components, selectors, and more.</p>
+        </div>
+
+        <div class="changelog-item">
+          <h4>Live Templates</h4>
+          <p>17 code snippets matching the VS Code extension: <code>page</code>, <code>component</code>, <code>state</code>, <code>view</code>, <code>@click</code>, <code>@if</code>, <code>@for</code>, etc.</p>
+        </div>
+
+        <div class="changelog-item">
+          <h4>IDE Features</h4>
+          <ul class="feature-list">
+            <li>Code folding for state, view, style blocks</li>
+            <li>Bracket matching and auto-closing</li>
+            <li>Comment toggling (Ctrl+/)</li>
+            <li>Customizable color scheme</li>
+            <li>File icons for .pulse files</li>
+          </ul>
+        </div>
+
+        <div class="changelog-item">
+          <h4>Compatibility</h4>
+          <p>Works with IntelliJ IDEA 2023.3+, WebStorm, PyCharm, and all JetBrains IDEs.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="doc-section changelog-section">
       <h2>v1.4.7 - HMR with .pulse Components</h2>
       <p class="release-date">January 2026</p>
 

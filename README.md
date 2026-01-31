@@ -451,11 +451,11 @@ onNativeReady(({ platform }) => {
 
 **Available APIs:** Storage, Device Info, Network Status, Toast, Vibration, Clipboard, App Lifecycle
 
-## VSCode Extension
+## IDE Extensions
 
-Pulse includes a VSCode extension for `.pulse` files with syntax highlighting and snippets.
+Pulse provides extensions for popular IDEs with syntax highlighting and snippets.
 
-### Installation
+### VS Code
 
 ```bash
 # Windows (PowerShell)
@@ -467,11 +467,29 @@ cd vscode-extension
 bash install.sh
 ```
 
-Then restart VSCode. You'll get:
+Then restart VS Code. You'll get:
 - Syntax highlighting for `.pulse` files
 - Code snippets (`page`, `state`, `view`, `@click`, etc.)
 - Bracket matching and auto-closing
 - Comment toggling (Ctrl+/)
+
+### IntelliJ IDEA / WebStorm
+
+```bash
+cd intellij-plugin
+./gradlew buildPlugin
+```
+
+Then install the plugin from `build/distributions/pulse-language-1.0.0.zip`:
+1. Open **Settings** > **Plugins**
+2. Click gear icon > **Install Plugin from Disk...**
+3. Select the `.zip` file and restart
+
+Features:
+- Syntax highlighting for `.pulse` files
+- 17 Live Templates (snippets)
+- Code folding for blocks
+- Customizable color scheme
 
 ## TypeScript Support
 

@@ -1,0 +1,374 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Pulse",
+  "scopeName": "source.pulse",
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#imports" },
+    { "include": "#page-declaration" },
+    { "include": "#route-declaration" },
+    { "include": "#blocks" },
+    { "include": "#directives" },
+    { "include": "#strings" },
+    { "include": "#numbers" },
+    { "include": "#operators" },
+    { "include": "#identifiers" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash.pulse",
+          "match": "//.*$"
+        },
+        {
+          "name": "comment.block.pulse",
+          "begin": "/\\*",
+          "end": "\\*/"
+        }
+      ]
+    },
+    "imports": {
+      "patterns": [
+        {
+          "name": "meta.import.pulse",
+          "begin": "\\b(import)\\b",
+          "beginCaptures": {
+            "1": { "name": "keyword.control.import.pulse" }
+          },
+          "end": "$",
+          "patterns": [
+            {
+              "name": "keyword.control.from.pulse",
+              "match": "\\b(from)\\b"
+            },
+            {
+              "name": "keyword.control.as.pulse",
+              "match": "\\b(as)\\b"
+            },
+            {
+              "name": "variable.other.alias.pulse",
+              "match": "(?<=as\\s+)\\w+"
+            },
+            {
+              "name": "entity.name.type.module.pulse",
+              "match": "\\b[A-Z][a-zA-Z0-9]*\\b"
+            },
+            { "include": "#strings" }
+          ]
+        }
+      ]
+    },
+    "page-declaration": {
+      "patterns": [
+        {
+          "name": "meta.page.pulse",
+          "match": "(@page)\\s+([A-Z][a-zA-Z0-9]*)",
+          "captures": {
+            "1": { "name": "keyword.control.page.pulse" },
+            "2": { "name": "entity.name.type.class.pulse" }
+          }
+        }
+      ]
+    },
+    "route-declaration": {
+      "patterns": [
+        {
+          "name": "meta.route.pulse",
+          "match": "(@route)\\s+(\"[^\"]*\"|'[^']*')",
+          "captures": {
+            "1": { "name": "keyword.control.route.pulse" },
+            "2": { "name": "string.quoted.pulse" }
+          }
+        }
+      ]
+    },
+    "blocks": {
+      "patterns": [
+        {
+          "name": "meta.block.state.pulse",
+          "begin": "\\b(state)\\s*\\{",
+          "beginCaptures": {
+            "1": { "name": "keyword.other.state.pulse" }
+          },
+          "end": "\\}",
+          "patterns": [
+            { "include": "#comments" },
+            { "include": "#state-property" },
+            { "include": "#strings" },
+            { "include": "#numbers" }
+          ]
+        },
+        {
+          "name": "meta.block.props.pulse",
+          "begin": "\\b(props)\\s*\\{",
+          "beginCaptures": {
+            "1": { "name": "keyword.other.props.pulse" }
+          },
+          "end": "\\}",
+          "patterns": [
+            { "include": "#comments" },
+            { "include": "#state-property" }
+          ]
+        },
+        {
+          "name": "meta.block.view.pulse",
+          "begin": "\\b(view)\\s*\\{",
+          "beginCaptures": {
+            "1": { "name": "keyword.other.view.pulse" }
+          },
+          "end": "\\}",
+          "patterns": [
+            { "include": "#comments" },
+            { "include": "#directives" },
+            { "include": "#element-selector" },
+            { "include": "#component-reference" },
+            { "include": "#strings" },
+            { "include": "#interpolation" },
+            { "include": "#blocks" }
+          ]
+        },
+        {
+          "name": "meta.block.actions.pulse",
+          "begin": "\\b(actions)\\s*\\{",
+          "beginCaptures": {
+            "1": { "name": "keyword.other.actions.pulse" }
+          },
+          "end": "\\}",
+          "patterns": [
+            { "include": "#comments" },
+            { "include": "#function-declaration" },
+            { "include": "#strings" },
+            { "include": "#numbers" }
+          ]
+        },
+        {
+          "name": "meta.block.style.pulse",
+          "begin": "\\b(style)\\s*\\{",
+          "beginCaptures": {
+            "1": { "name": "keyword.other.style.pulse" }
+          },
+          "end": "\\}",
+          "contentName": "source.css.embedded.pulse",
+          "patterns": [
+            { "include": "source.css" }
+          ]
+        },
+        {
+          "name": "meta.block.router.pulse",
+          "begin": "\\b(router)\\s*\\{",
+          "beginCaptures": {
+            "1": { "name": "keyword.other.router.pulse" }
+          },
+          "end": "\\}",
+          "patterns": [
+            { "include": "#comments" },
+            { "include": "#router-keywords" },
+            { "include": "#strings" },
+            { "include": "#blocks" }
+          ]
+        },
+        {
+          "name": "meta.block.store.pulse",
+          "begin": "\\b(store)\\s*\\{",
+          "beginCaptures": {
+            "1": { "name": "keyword.other.store.pulse" }
+          },
+          "end": "\\}",
+          "patterns": [
+            { "include": "#comments" },
+            { "include": "#store-keywords" },
+            { "include": "#strings" },
+            { "include": "#blocks" }
+          ]
+        },
+        {
+          "name": "meta.block.routes.pulse",
+          "begin": "\\b(routes)\\s*\\{",
+          "beginCaptures": {
+            "1": { "name": "keyword.other.routes.pulse" }
+          },
+          "end": "\\}",
+          "patterns": [
+            { "include": "#comments" },
+            { "include": "#strings" },
+            { "include": "#component-reference" }
+          ]
+        },
+        {
+          "name": "meta.block.getters.pulse",
+          "begin": "\\b(getters)\\s*\\{",
+          "beginCaptures": {
+            "1": { "name": "keyword.other.getters.pulse" }
+          },
+          "end": "\\}",
+          "patterns": [
+            { "include": "#comments" },
+            { "include": "#function-declaration" }
+          ]
+        }
+      ]
+    },
+    "directives": {
+      "patterns": [
+        {
+          "name": "entity.other.attribute-name.directive.pulse",
+          "match": "@(click|change|input|submit|keydown|keyup|keypress|focus|blur|mouseover|mouseout|mouseenter|mouseleave)\\b"
+        },
+        {
+          "name": "entity.other.attribute-name.directive.pulse",
+          "match": "@(if|else|for|each|show|hide|bind|model|ref)\\b"
+        },
+        {
+          "name": "entity.other.attribute-name.directive.pulse",
+          "match": "@(link|outlet|navigate|back|forward)\\b"
+        },
+        {
+          "name": "keyword.control.slot.pulse",
+          "match": "\\b(slot)\\b"
+        }
+      ]
+    },
+    "element-selector": {
+      "patterns": [
+        {
+          "name": "entity.name.tag.pulse",
+          "match": "\\b(div|span|p|a|button|input|form|label|select|option|textarea|img|ul|ol|li|table|tr|td|th|thead|tbody|h1|h2|h3|h4|h5|h6|header|footer|nav|main|section|article|aside|figure|figcaption|video|audio|canvas|svg)\\b"
+        },
+        {
+          "name": "entity.other.attribute-name.class.pulse",
+          "match": "\\.[a-zA-Z][a-zA-Z0-9_-]*"
+        },
+        {
+          "name": "entity.other.attribute-name.id.pulse",
+          "match": "#[a-zA-Z][a-zA-Z0-9_-]*"
+        },
+        {
+          "name": "entity.other.attribute-name.attribute.pulse",
+          "begin": "\\[",
+          "end": "\\]",
+          "patterns": [
+            { "include": "#strings" }
+          ]
+        }
+      ]
+    },
+    "component-reference": {
+      "patterns": [
+        {
+          "name": "entity.name.type.component.pulse",
+          "match": "\\b[A-Z][a-zA-Z0-9]*\\b"
+        }
+      ]
+    },
+    "state-property": {
+      "patterns": [
+        {
+          "name": "meta.property.pulse",
+          "match": "([a-zA-Z_][a-zA-Z0-9_]*)\\s*:",
+          "captures": {
+            "1": { "name": "variable.other.property.pulse" }
+          }
+        }
+      ]
+    },
+    "function-declaration": {
+      "patterns": [
+        {
+          "name": "meta.function.pulse",
+          "match": "([a-zA-Z_][a-zA-Z0-9_]*)\\s*\\(",
+          "captures": {
+            "1": { "name": "entity.name.function.pulse" }
+          }
+        }
+      ]
+    },
+    "router-keywords": {
+      "patterns": [
+        {
+          "name": "keyword.other.router.pulse",
+          "match": "\\b(mode|base|beforeEach|afterEach|beforeEnter)\\b"
+        }
+      ]
+    },
+    "store-keywords": {
+      "patterns": [
+        {
+          "name": "keyword.other.store.pulse",
+          "match": "\\b(persist|storageKey)\\b"
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.pulse",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            { "include": "#interpolation" },
+            {
+              "name": "constant.character.escape.pulse",
+              "match": "\\\\."
+            }
+          ]
+        },
+        {
+          "name": "string.quoted.single.pulse",
+          "begin": "'",
+          "end": "'",
+          "patterns": [
+            {
+              "name": "constant.character.escape.pulse",
+              "match": "\\\\."
+            }
+          ]
+        }
+      ]
+    },
+    "interpolation": {
+      "patterns": [
+        {
+          "name": "meta.interpolation.pulse",
+          "begin": "\\{",
+          "beginCaptures": {
+            "0": { "name": "punctuation.definition.interpolation.begin.pulse" }
+          },
+          "end": "\\}",
+          "endCaptures": {
+            "0": { "name": "punctuation.definition.interpolation.end.pulse" }
+          },
+          "contentName": "variable.other.interpolation.pulse"
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.pulse",
+          "match": "\\b\\d+(\\.\\d+)?\\b"
+        }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        {
+          "name": "keyword.operator.pulse",
+          "match": "(\\+\\+|--|\\+|-|\\*|/|%|===|!==|==|!=|<=|>=|<|>|&&|\\|\\||!|=)"
+        }
+      ]
+    },
+    "identifiers": {
+      "patterns": [
+        {
+          "name": "constant.language.pulse",
+          "match": "\\b(true|false|null|undefined)\\b"
+        },
+        {
+          "name": "keyword.control.pulse",
+          "match": "\\b(if|else|return|this)\\b"
+        }
+      ]
+    }
+  }
+}

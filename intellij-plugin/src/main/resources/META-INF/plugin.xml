@@ -1,0 +1,75 @@
+<idea-plugin>
+    <id>com.pulse.language</id>
+    <name>Pulse Language</name>
+    <vendor email="support@pulse-framework.dev" url="https://github.com/vincenthirtz/pulse-js-framework">
+        Pulse Framework
+    </vendor>
+
+    <description><![CDATA[
+    <h2>Pulse Language Support</h2>
+    <p>Provides comprehensive support for the Pulse framework (.pulse files):</p>
+    <ul>
+        <li><b>Syntax Highlighting</b> - Full highlighting for Pulse DSL</li>
+        <li><b>Live Templates</b> - Code snippets for common patterns</li>
+        <li><b>File Icons</b> - Custom icons for .pulse files</li>
+        <li><b>Code Folding</b> - Fold state, view, style blocks</li>
+        <li><b>Comment Support</b> - Line and block comments</li>
+        <li><b>Bracket Matching</b> - Auto-closing pairs</li>
+    </ul>
+    ]]></description>
+
+    <!-- Compatibility: IntelliJ 2023.3+ -->
+    <idea-version since-build="233" until-build="243.*"/>
+
+    <!-- Required plugins -->
+    <depends>com.intellij.modules.platform</depends>
+    <depends>org.jetbrains.plugins.textmate</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- File Type Registration -->
+        <fileType
+                name="Pulse"
+                implementationClass="com.pulse.intellij.PulseFileType"
+                fieldName="INSTANCE"
+                language="Pulse"
+                extensions="pulse"/>
+
+        <!-- Language Registration -->
+        <lang.parserDefinition
+                language="Pulse"
+                implementationClass="com.pulse.intellij.PulseParserDefinition"/>
+
+        <!-- Syntax Highlighter -->
+        <lang.syntaxHighlighterFactory
+                language="Pulse"
+                implementationClass="com.pulse.intellij.PulseSyntaxHighlighterFactory"/>
+
+        <!-- Commenter for Ctrl+/ -->
+        <lang.commenter
+                language="Pulse"
+                implementationClass="com.pulse.intellij.PulseCommenter"/>
+
+        <!-- Bracket Matcher -->
+        <lang.bracketMatcher
+                language="Pulse"
+                implementationClass="com.pulse.intellij.PulseBracketMatcher"/>
+
+        <!-- Code Folding -->
+        <lang.foldingBuilder
+                language="Pulse"
+                implementationClass="com.pulse.intellij.PulseFoldingBuilder"/>
+
+        <!-- Live Templates context -->
+        <defaultLiveTemplates file="/liveTemplates/Pulse.xml"/>
+        <liveTemplateContext
+                contextId="PULSE"
+                implementation="com.pulse.intellij.PulseLiveTemplateContext"/>
+
+        <!-- Color Settings Page -->
+        <colorSettingsPage implementation="com.pulse.intellij.PulseColorSettingsPage"/>
+    </extensions>
+
+    <actions>
+        <!-- Future: Add actions like "New Pulse Component" -->
+    </actions>
+</idea-plugin>
