@@ -1,0 +1,14 @@
+{
+  "name": "android-pulse",
+  "version": "1.0.0",
+  "description": "Pulse app for Android WebView with hot-reload",
+  "type": "module",
+  "scripts": {
+    "dev": "pulse dev 3000",
+    "build": "pulse build",
+    "build:android": "pulse build && node scripts/copy-to-android.js"
+  },
+  "devDependencies": {
+    "pulse-js-framework": "file:../.."
+  }
+}

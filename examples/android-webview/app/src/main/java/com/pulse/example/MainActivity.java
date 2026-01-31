@@ -11,6 +11,13 @@ public class MainActivity extends AppCompatActivity {
 
     private WebView webView;
 
+    // URL du serveur de dev Pulse (10.0.2.2 = localhost depuis l'émulateur)
+    // Pour un appareil physique, utilisez l'IP de votre machine
+    private static final String DEV_SERVER_URL = "http://10.0.2.2:3000";
+
+    // Passer à true pour le hot-reload pendant le développement
+    private static final boolean USE_DEV_SERVER = BuildConfig.DEBUG;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -19,8 +26,13 @@ public class MainActivity extends AppCompatActivity {
         webView = findViewById(R.id.webview);
         setupWebView();
 
-        // Charge l'app Pulse depuis les assets
-        webView.loadUrl("file:///android_asset/index.html");
+        // En dev: charge depuis le serveur Pulse (hot-reload)
+        // En prod: charge depuis les assets
+        if (USE_DEV_SERVER) {
+            webView.loadUrl(DEV_SERVER_URL);
+        } else {
+            webView.loadUrl("file:///android_asset/index.html");
+        }
     }
 
     private void setupWebView() {
@@ -36,12 +48,20 @@ public class MainActivity extends AppCompatActivity {
         settings.setAllowFileAccess(true);
         settings.setAllowContentAccess(true);
 
+        // Mixed content pour le dev server
+        settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+
         // Améliore les performances
-        settings.setCacheMode(WebSettings.LOAD_DEFAULT);
+        settings.setCacheMode(USE_DEV_SERVER ? WebSettings.LOAD_NO_CACHE : WebSettings.LOAD_DEFAULT);
 
         // Clients pour gérer la navigation
         webView.setWebViewClient(new WebViewClient());
         webView.setWebChromeClient(new WebChromeClient());
+
+        // Debug WebView en mode dev
+        if (BuildConfig.DEBUG) {
+            WebView.setWebContentsDebuggingEnabled(true);
+        }
     }
 
     @Override

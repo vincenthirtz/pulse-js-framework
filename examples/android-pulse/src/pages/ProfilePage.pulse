@@ -1,0 +1,85 @@
+/**
+ * Profile Page
+ */
+
+@page ProfilePage
+
+props {
+  darkMode: false
+  onToggleDark: null
+}
+
+state {
+  userName: "Utilisateur"
+  userEmail: "user@example.com"
+  editing: false
+}
+
+view {
+  .page.active {
+    .card {
+      .profile-header {
+        .profile-avatar "{userName.charAt(0).toUpperCase()}"
+        h2.profile-name "{userName}"
+      }
+    }
+
+    .card {
+      h2.card-title "Informations"
+
+      @if (editing) {
+        .profile-field {
+          label.profile-label "Nom"
+          input.todo-input[type="text"] @input(handleNameInput)
+        }
+        .profile-field {
+          label.profile-label "Email"
+          input.todo-input[type="email"] @input(handleEmailInput)
+        }
+        button.btn.btn-primary @click(saveProfile()) "Enregistrer"
+      }
+
+      @if (!editing) {
+        .profile-field {
+          .profile-label "Nom"
+          p "{userName}"
+        }
+        .profile-field {
+          .profile-label "Email"
+          p "{userEmail}"
+        }
+        button.btn.btn-secondary @click(startEdit()) "Modifier"
+      }
+    }
+
+    .card {
+      h2.card-title "Preferences"
+      .theme-toggle {
+        span "Mode sombre"
+        input[type="checkbox"] @change(handleToggleDark)
+      }
+    }
+  }
+}
+
+actions {
+  handleNameInput(event) {
+    userName = event.target.value
+  }
+
+  handleEmailInput(event) {
+    userEmail = event.target.value
+  }
+
+  startEdit() {
+    editing = true
+  }
+
+  saveProfile() {
+    editing = false
+  }
+
+  handleToggleDark() {
+    onToggleDark()
+  }
+}

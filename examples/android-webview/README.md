@@ -1,132 +1,93 @@
-# Pulse Android WebView Example
+# Pulse Android WebView
 
 Application Android qui encapsule une app Pulse dans une WebView native.
 
-## Fonctionnalités de la démo
+## 🔥 Développement avec Hot-Reload
 
-L'application démontre les capacités de Pulse sur mobile :
+Utilisez le projet **android-pulse** pour le développement avec fichiers `.pulse` et hot-reload :
 
-- **Compteur réactif** - Démonstration de `pulse()`, `effect()` et valeurs dérivées
-- **Liste de tâches** - CRUD complet avec `list()`, persistance localStorage
-- **Profil utilisateur** - Édition en place, thème sombre
+```bash
+# Terminal 1 : Lancer le serveur Pulse
+cd examples/android-pulse
+npm install
+npm run dev
+
+# Terminal 2 : Lancer l'app Android (émulateur)
+# Ouvrir examples/android-webview dans Android Studio → Run (Debug)
+```
+
+**En mode Debug**, l'app charge automatiquement `http://10.0.2.2:3000` et bénéficie du hot-reload !
+
+## 📦 Build Production
+
+```bash
+# Build l'app Pulse et copie dans assets/
+cd examples/android-pulse
+npm run build:android
+
+# Puis build l'APK release dans Android Studio
+```
+
+## Structure
+
+```
+examples/
+├── android-pulse/           ← Projet Pulse avec .pulse files
+│   ├── src/
+│   │   ├── App.pulse
+│   │   └── pages/*.pulse
+│   └── package.json
+│
+└── android-webview/         ← Projet Android Studio
+    └── app/src/main/
+        ├── assets/          ← Build Pulse copié ici
+        └── java/.../MainActivity.java
+```
 
 ## Prérequis
 
 - Android Studio (Arctic Fox ou plus récent)
-- JDK 17
+- JDK 17+
 - Android SDK 34
+- Node.js 18+
 
-## Installation
+## Configuration
 
-### Option 1 : Ouvrir directement dans Android Studio
+### Mode Debug vs Release
 
-1. Ouvrir Android Studio
-2. **File** → **Open**
-3. Sélectionner le dossier `examples/android-webview`
-4. Attendre la synchronisation Gradle
-5. Cliquer sur **Run** (▶️)
-
-### Option 2 : Build en ligne de commande
-
-```bash
-cd examples/android-webview
-
-# Build debug APK
-./gradlew assembleDebug
-
-# L'APK sera dans app/build/outputs/apk/debug/
-```
-
-## Structure du projet
-
-```
-android-webview/
-├── app/
-│   ├── src/main/
-│   │   ├── assets/
-│   │   │   └── index.html      # App Pulse complète
-│   │   ├── java/.../
-│   │   │   └── MainActivity.java
-│   │   ├── res/
-│   │   │   ├── layout/
-│   │   │   └── values/
-│   │   └── AndroidManifest.xml
-│   └── build.gradle
-├── build.gradle
-├── settings.gradle
-└── README.md
-```
-
-## Comment ça marche
-
-1. `MainActivity` crée une WebView plein écran
-2. La WebView charge `file:///android_asset/index.html`
-3. L'app Pulse s'exécute entièrement dans la WebView
-4. JavaScript est activé pour la réactivité Pulse
-5. DOM Storage est activé pour localStorage
-
-## Personnalisation
-
-### Modifier l'app Pulse
-
-Éditez `app/src/main/assets/index.html` pour modifier l'application web.
-
-### Charger depuis un serveur
-
-Pour le développement, vous pouvez charger depuis un serveur local :
+Dans `MainActivity.java` :
 
 ```java
-// Dans MainActivity.java
-webView.loadUrl("http://10.0.2.2:3000"); // Émulateur
-// ou
-webView.loadUrl("http://192.168.x.x:3000"); // Appareil physique
+// Mode debug : charge depuis le serveur de dev (hot-reload)
+// Mode release : charge depuis assets/
+private static final boolean USE_DEV_SERVER = BuildConfig.DEBUG;
 ```
 
-### Ajouter une interface JavaScript
+### Appareil Physique
 
-Pour communiquer entre Java et Pulse :
+Pour tester sur un appareil physique, modifiez l'IP dans `MainActivity.java` :
 
 ```java
-// MainActivity.java
-webView.addJavascriptInterface(new Object() {
-    @JavascriptInterface
-    public void showToast(String message) {
-        Toast.makeText(MainActivity.this, message, Toast.LENGTH_SHORT).show();
-    }
-}, "Android");
+private static final String DEV_SERVER_URL = "http://192.168.x.x:3000";
 ```
 
-```javascript
-// Dans index.html
-Android.showToast("Hello from Pulse!");
-```
+## Debug WebView
 
-## Fonctionnalités Android supportées
+En mode Debug, le WebView debugging est activé automatiquement :
 
-- ✅ Navigation arrière dans l'app
-- ✅ Mode sombre (thème)
-- ✅ Persistance localStorage
-- ✅ Touch events optimisés
-- ✅ Safe area (status bar)
+1. Connectez l'appareil/émulateur
+2. Ouvrez `chrome://inspect` dans Chrome
+3. Cliquez **inspect** sur votre app
 
-## Debug
+## Fonctionnalités
 
-Pour déboguer la WebView avec Chrome DevTools :
-
-1. Activer le mode développeur sur l'appareil
-2. Ajouter dans `MainActivity`:
-   ```java
-   WebView.setWebContentsDebuggingEnabled(true);
-   ```
-3. Ouvrir `chrome://inspect` dans Chrome desktop
-4. Cliquer sur **inspect** sous votre appareil
-
-## Alternatives
-
-- **PWA** : Ajouter manifest.json et service worker pour une installation web
-- **Capacitor** : Package avec accès aux APIs natives (caméra, GPS, etc.)
-- **React Native** : Pour une expérience 100% native (nécessite réécriture)
+- ✅ Hot-reload en développement
+- ✅ Fichiers `.pulse` compilés
+- ✅ Navigation arrière Android
+- ✅ Mode sombre
+- ✅ localStorage persistant
+- ✅ Debug Chrome DevTools
 
 ## Licence
 
-MIT - Voir le fichier LICENSE à la racine du projet Pulse.
+MIT - Voir LICENSE à la racine du projet Pulse.
