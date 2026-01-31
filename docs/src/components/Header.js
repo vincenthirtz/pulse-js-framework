@@ -3,7 +3,7 @@
  */
 
 import { effect, el } from '/runtime/index.js';
-import { mobileMenuOpen, theme, toggleTheme, navigation, router, version } from '../state.js';
+import { mobileMenuOpen, theme, toggleTheme, navigation, navigationFlat, router, version } from '../state.js';
 
 export function Header() {
   const header = el('header.header');
@@ -51,13 +51,73 @@ export function Header() {
 
   header.appendChild(logoContainer);
 
+  // Desktop navigation with dropdowns
   const nav = el('nav.nav');
+
   for (const item of navigation) {
-    // Use router.link() for automatic active class handling
-    const link = router.link(item.path, item.label, { activeClass: 'active' });
-    link.className = 'nav-link';
-    nav.appendChild(link);
+    if (item.children) {
+      // Dropdown menu
+      const dropdown = el('.nav-dropdown');
+
+      const trigger = el('button.nav-link.nav-dropdown-trigger');
+      trigger.innerHTML = `${item.label} <span class="dropdown-arrow">▾</span>`;
+      dropdown.appendChild(trigger);
+
+      const menu = el('.dropdown-menu');
+      for (const child of item.children) {
+        const menuItem = el('a.dropdown-item');
+        menuItem.href = child.path;
+        menuItem.innerHTML = `
+          <span class="dropdown-item-label">${child.label}</span>
+          ${child.desc ? `<span class="dropdown-item-desc">${child.desc}</span>` : ''}
+        `;
+        menuItem.addEventListener('click', (e) => {
+          e.preventDefault();
+          router.navigate(child.path);
+          dropdown.classList.remove('open');
+        });
+
+        // Update active state
+        effect(() => {
+          const currentPath = router.path.get();
+          if (currentPath === child.path) {
+            menuItem.classList.add('active');
+            trigger.classList.add('has-active');
+          } else {
+            menuItem.classList.remove('active');
+            // Check if any child is active
+            const anyActive = item.children.some(c => router.path.get() === c.path);
+            if (!anyActive) trigger.classList.remove('has-active');
+          }
+        });
+
+        menu.appendChild(menuItem);
+      }
+      dropdown.appendChild(menu);
+
+      // Toggle dropdown on click (for touch devices)
+      trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = dropdown.classList.contains('open');
+        // Close all other dropdowns
+        nav.querySelectorAll('.nav-dropdown.open').forEach(d => d.classList.remove('open'));
+        if (!isOpen) dropdown.classList.add('open');
+      });
+
+      nav.appendChild(dropdown);
+    } else {
+      // Simple link
+      const link = router.link(item.path, item.label, { activeClass: 'active' });
+      link.className = 'nav-link';
+      nav.appendChild(link);
+    }
   }
+
+  // Close dropdowns when clicking outside
+  document.addEventListener('click', () => {
+    nav.querySelectorAll('.nav-dropdown.open').forEach(d => d.classList.remove('open'));
+  });
+
   header.appendChild(nav);
 
   // Theme toggle button
@@ -74,12 +134,12 @@ export function Header() {
   menuBtn.addEventListener('click', () => mobileMenuOpen.update(v => !v));
   header.appendChild(menuBtn);
 
-  // Mobile nav
+  // Mobile nav (flat structure)
   const mobileNav = el('nav.mobile-nav');
   effect(() => {
     mobileNav.className = `mobile-nav ${mobileMenuOpen.get() ? 'open' : ''}`;
   });
-  for (const item of navigation) {
+  for (const item of navigationFlat) {
     const link = router.link(item.path, item.label, { activeClass: 'active' });
     link.className = 'nav-link';
     mobileNav.appendChild(link);

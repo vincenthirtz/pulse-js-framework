@@ -35,7 +35,8 @@ export const mobileMenuOpen = pulse(false);
 // Navigation Data
 // =============================================================================
 
-export const navigation = [
+// Flat navigation for mobile menu
+export const navigationFlat = [
   { path: '/', label: '🏠 Home' },
   { path: '/getting-started', label: '🚀 Getting Started' },
   { path: '/core-concepts', label: '💡 Core Concepts' },
@@ -44,6 +45,33 @@ export const navigation = [
   { path: '/mobile', label: '📱 Mobile' },
   { path: '/examples', label: '✨ Examples' },
   { path: '/playground', label: '🎮 Playground' }
+];
+
+// Grouped navigation for desktop with dropdowns
+export const navigation = [
+  { path: '/', label: '🏠 Home' },
+  {
+    label: '📚 Learn',
+    children: [
+      { path: '/getting-started', label: '🚀 Getting Started', desc: 'Installation & first steps' },
+      { path: '/core-concepts', label: '💡 Core Concepts', desc: 'Reactivity, DOM, routing' }
+    ]
+  },
+  {
+    label: '📖 Reference',
+    children: [
+      { path: '/api-reference', label: '📖 API Reference', desc: 'Complete API documentation' },
+      { path: '/debugging', label: '🔍 Debugging', desc: 'Tools & troubleshooting' },
+      { path: '/mobile', label: '📱 Mobile', desc: 'Android & iOS apps' }
+    ]
+  },
+  {
+    label: '✨ Examples',
+    children: [
+      { path: '/examples', label: '✨ Examples', desc: 'Sample applications' },
+      { path: '/playground', label: '🎮 Playground', desc: 'Interactive sandbox' }
+    ]
+  }
 ];
 
 // Current version - automatically updated by npm version script

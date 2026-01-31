@@ -20,6 +20,7 @@ export function ApiReferencePage() {
     <div class="api-filters" id="api-filters">
       <span class="filter-label">Filter:</span>
       <button class="filter-btn active" data-filter="all">All</button>
+      <button class="filter-btn" data-filter="types">Types</button>
       <button class="filter-btn" data-filter="reactivity">Reactivity</button>
       <button class="filter-btn" data-filter="dom">DOM</button>
       <button class="filter-btn" data-filter="router">Router</button>
@@ -27,7 +28,7 @@ export function ApiReferencePage() {
       <button class="filter-btn" data-filter="hmr">HMR</button>
     </div>
 
-    <section class="doc-section">
+    <section class="doc-section" data-category="types">
       <h2>TypeScript Support</h2>
       <p>Pulse includes full TypeScript definitions for IDE autocomplete. Types are automatically detected:</p>
       <div class="code-block">
