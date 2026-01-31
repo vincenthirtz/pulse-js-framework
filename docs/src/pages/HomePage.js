@@ -16,7 +16,7 @@ export function HomePage() {
       <span class="feature feature-highlight">0️⃣ Zero Dependencies</span>
       <span class="feature">🎯 Unique Syntax</span>
       <span class="feature">⚡ Reactive</span>
-      <span class="feature">📦 ~8kb</span>
+      <span class="feature">📦 ~4kb core</span>
       <span class="feature">🔧 No Build Required</span>
       <span class="feature">📱 Mobile Apps</span>
     </div>
@@ -69,7 +69,7 @@ export function HomePage() {
             <td>~45kb</td>
             <td>~35kb</td>
             <td>~2kb</td>
-            <td><strong>~8kb</strong></td>
+            <td><strong>~4kb</strong></td>
           </tr>
           <tr>
             <td>Dependencies</td>

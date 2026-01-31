@@ -15,6 +15,7 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
 import { createInterface } from 'readline';
+import https from 'https';
 import { log } from './logger.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -358,6 +359,104 @@ function escapeHtml(str) {
 }
 
 /**
+ * Send release notification to Discord webhook
+ * @param {string} webhookUrl - Discord webhook URL
+ * @param {string} version - Release version
+ * @param {string} title - Release title
+ * @param {Object} changes - Changelog entries
+ * @returns {Promise<void>}
+ */
+function sendDiscordNotification(webhookUrl, version, title, changes) {
+  return new Promise((resolve, reject) => {
+    // Build embed fields from changes
+    const fields = [];
+
+    if (changes.added?.length > 0) {
+      fields.push({
+        name: '✨ Added',
+        value: changes.added.map(c => `• ${c}`).join('\n').slice(0, 1024),
+        inline: false
+      });
+    }
+
+    if (changes.changed?.length > 0) {
+      fields.push({
+        name: '🔄 Changed',
+        value: changes.changed.map(c => `• ${c}`).join('\n').slice(0, 1024),
+        inline: false
+      });
+    }
+
+    if (changes.fixed?.length > 0) {
+      fields.push({
+        name: '🐛 Fixed',
+        value: changes.fixed.map(c => `• ${c}`).join('\n').slice(0, 1024),
+        inline: false
+      });
+    }
+
+    if (changes.removed?.length > 0) {
+      fields.push({
+        name: '🗑️ Removed',
+        value: changes.removed.map(c => `• ${c}`).join('\n').slice(0, 1024),
+        inline: false
+      });
+    }
+
+    // Discord webhook payload with rich embed
+    const payload = {
+      embeds: [{
+        title: `🚀 Pulse Framework v${version}`,
+        description: title || 'New release available!',
+        color: 0x5865F2, // Discord blurple
+        fields,
+        footer: {
+          text: 'Pulse JS Framework'
+        },
+        timestamp: new Date().toISOString(),
+        url: `https://github.com/vincenthirtz/pulse-js-framework/releases/tag/v${version}`
+      }]
+    };
+
+    const data = JSON.stringify(payload);
+    const url = new URL(webhookUrl);
+
+    const options = {
+      hostname: url.hostname,
+      port: 443,
+      path: url.pathname + url.search,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(data)
+      }
+    };
+
+    const req = https.request(options, (res) => {
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        log.info('  Discord notification sent successfully');
+        resolve();
+      } else {
+        let body = '';
+        res.on('data', chunk => body += chunk);
+        res.on('end', () => {
+          log.error(`  Discord notification failed: ${res.statusCode} - ${body}`);
+          reject(new Error(`Discord webhook failed: ${res.statusCode}`));
+        });
+      }
+    });
+
+    req.on('error', (error) => {
+      log.error(`  Discord notification error: ${error.message}`);
+      reject(error);
+    });
+
+    req.write(data);
+    req.end();
+  });
+}
+
+/**
  * Update CLAUDE.md if needed
  */
 function updateClaudeMd(newVersion) {
@@ -470,6 +569,7 @@ Options:
   --added <items>  Comma-separated list of added features
   --changed <items> Comma-separated list of changes
   --fixed <items>  Comma-separated list of fixes
+  --discord-webhook <url>  Send release notification to Discord channel
 
 Examples:
   pulse release patch
@@ -478,6 +578,7 @@ Examples:
   pulse release patch --from-commits --title "Bug Fixes" -y
   pulse release patch --title "Security" --fixed "XSS vulnerability,SQL injection" -y
   pulse release patch --title "New API" --added "Feature A,Feature B" --fixed "Bug X" -y
+  pulse release patch --discord-webhook "https://discord.com/api/webhooks/..."
   `);
 }
 
@@ -503,6 +604,13 @@ export async function runRelease(args) {
   const titleIndex = args.indexOf('--title');
   if (titleIndex !== -1 && args[titleIndex + 1]) {
     title = args[titleIndex + 1];
+  }
+
+  // Parse --discord-webhook option
+  let discordWebhook = null;
+  const discordIndex = args.indexOf('--discord-webhook');
+  if (discordIndex !== -1 && args[discordIndex + 1]) {
+    discordWebhook = args[discordIndex + 1];
   }
 
   // Parse --changes JSON option
@@ -696,6 +804,19 @@ export async function runRelease(args) {
   log.info('');
   log.info(`Release v${newVersion} complete!`);
   log.info('');
+
+  // Send Discord notification if webhook URL provided
+  if (discordWebhook && !dryRun) {
+    log.info('Sending Discord notification...');
+    try {
+      await sendDiscordNotification(discordWebhook, newVersion, title, changes);
+    } catch (error) {
+      log.warn(`Discord notification failed: ${error.message}`);
+      log.warn('Release was successful, but notification could not be sent.');
+    }
+  } else if (discordWebhook && dryRun) {
+    log.info('  [dry-run] Would send Discord notification to webhook');
+  }
 
   if (!dryRun && !noPush) {
     log.info('Next steps:');

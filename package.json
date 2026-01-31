@@ -1,6 +1,6 @@
 {
   "name": "pulse-js-framework",
-  "version": "1.5.3",
+  "version": "1.6.0",
   "description": "A declarative DOM framework with CSS selector-based structure and reactive pulsations",
   "type": "module",
   "main": "index.js",
@@ -16,6 +16,10 @@
     "./runtime": {
       "types": "./types/index.d.ts",
       "default": "./runtime/index.js"
+    },
+    "./runtime/lite": {
+      "types": "./types/lite.d.ts",
+      "default": "./runtime/lite.js"
     },
     "./runtime/pulse": {
       "types": "./types/pulse.d.ts",
@@ -41,6 +45,7 @@
       "types": "./types/logger.d.ts",
       "default": "./runtime/logger.js"
     },
+    "./runtime/logger/prod": "./runtime/logger.prod.js",
     "./runtime/hmr": {
       "types": "./types/hmr.d.ts",
       "default": "./runtime/hmr.js"
