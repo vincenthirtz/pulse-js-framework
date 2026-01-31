@@ -1,6 +1,6 @@
 {
   "name": "pulse-js-framework",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "description": "A declarative DOM framework with CSS selector-based structure and reactive pulsations",
   "type": "module",
   "main": "index.js",
@@ -75,7 +75,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "test": "npm run test:compiler && npm run test:sourcemap && npm run test:pulse && npm run test:dom && npm run test:router && npm run test:store && npm run test:hmr && npm run test:lint && npm run test:format && npm run test:analyze",
+    "test": "npm run test:compiler && npm run test:sourcemap && npm run test:pulse && npm run test:dom && npm run test:router && npm run test:store && npm run test:hmr && npm run test:lint && npm run test:format && npm run test:analyze && npm run test:lru-cache && npm run test:utils && npm run test:docs",
     "test:compiler": "node test/compiler.test.js",
     "test:sourcemap": "node test/sourcemap.test.js",
     "test:pulse": "node test/pulse.test.js",
@@ -86,6 +86,9 @@
     "test:lint": "node test/lint.test.js",
     "test:format": "node test/format.test.js",
     "test:analyze": "node test/analyze.test.js",
+    "test:lru-cache": "node test/lru-cache.test.js",
+    "test:utils": "node test/utils.test.js",
+    "test:docs": "node test/docs.test.js",
     "build:netlify": "node scripts/build-netlify.js",
     "version": "node scripts/sync-version.js",
     "docs": "node cli/index.js dev docs"

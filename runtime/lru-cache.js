@@ -8,15 +8,10 @@
 
 /**
  * LRU Cache implementation
+ * Uses Map's insertion order for O(1) operations.
  * @template K, V
  */
 export class LRUCache {
-  /** @type {number} */
-  #capacity;
-
-  /** @type {Map<K, V>} */
-  #cache = new Map();
-
   /**
    * Create an LRU cache
    * @param {number} capacity - Maximum number of items to store
@@ -25,7 +20,8 @@ export class LRUCache {
     if (capacity <= 0) {
       throw new Error('LRU cache capacity must be greater than 0');
     }
-    this.#capacity = capacity;
+    this._capacity = capacity;
+    this._cache = new Map();
   }
 
   /**
@@ -35,14 +31,14 @@ export class LRUCache {
    * @returns {V|undefined} The cached value or undefined if not found
    */
   get(key) {
-    if (!this.#cache.has(key)) {
+    if (!this._cache.has(key)) {
       return undefined;
     }
 
     // Move to end (most recently used) by re-inserting
-    const value = this.#cache.get(key);
-    this.#cache.delete(key);
-    this.#cache.set(key, value);
+    const value = this._cache.get(key);
+    this._cache.delete(key);
+    this._cache.set(key, value);
     return value;
   }
 
@@ -55,15 +51,15 @@ export class LRUCache {
    */
   set(key, value) {
     // If key exists, delete first to update position
-    if (this.#cache.has(key)) {
-      this.#cache.delete(key);
-    } else if (this.#cache.size >= this.#capacity) {
+    if (this._cache.has(key)) {
+      this._cache.delete(key);
+    } else if (this._cache.size >= this._capacity) {
       // Remove oldest (first item in Map)
-      const oldest = this.#cache.keys().next().value;
-      this.#cache.delete(oldest);
+      const oldest = this._cache.keys().next().value;
+      this._cache.delete(oldest);
     }
 
-    this.#cache.set(key, value);
+    this._cache.set(key, value);
     return this;
   }
 
@@ -74,7 +70,7 @@ export class LRUCache {
    * @returns {boolean} True if key exists
    */
   has(key) {
-    return this.#cache.has(key);
+    return this._cache.has(key);
   }
 
   /**
@@ -83,14 +79,14 @@ export class LRUCache {
    * @returns {boolean} True if item was deleted
    */
   delete(key) {
-    return this.#cache.delete(key);
+    return this._cache.delete(key);
   }
 
   /**
    * Clear all items from the cache
    */
   clear() {
-    this.#cache.clear();
+    this._cache.clear();
   }
 
   /**
@@ -98,7 +94,7 @@ export class LRUCache {
    * @returns {number} Current size
    */
   get size() {
-    return this.#cache.size;
+    return this._cache.size;
   }
 
   /**
@@ -106,7 +102,7 @@ export class LRUCache {
    * @returns {number} Maximum capacity
    */
   get capacity() {
-    return this.#capacity;
+    return this._capacity;
   }
 
   /**
@@ -114,7 +110,7 @@ export class LRUCache {
    * @returns {IterableIterator<K>} Iterator of keys
    */
   keys() {
-    return this.#cache.keys();
+    return this._cache.keys();
   }
 
   /**
@@ -122,7 +118,7 @@ export class LRUCache {
    * @returns {IterableIterator<V>} Iterator of values
    */
   values() {
-    return this.#cache.values();
+    return this._cache.values();
   }
 
   /**
@@ -130,7 +126,7 @@ export class LRUCache {
    * @returns {IterableIterator<[K, V]>} Iterator of [key, value] pairs
    */
   entries() {
-    return this.#cache.entries();
+    return this._cache.entries();
   }
 
   /**
@@ -138,7 +134,7 @@ export class LRUCache {
    * @param {function(V, K, LRUCache): void} callback - Called for each entry
    */
   forEach(callback) {
-    this.#cache.forEach((value, key) => callback(value, key, this));
+    this._cache.forEach((value, key) => callback(value, key, this));
   }
 }
 

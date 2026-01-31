@@ -191,9 +191,9 @@ export function sanitizeUrl(url, options = {}) {
     return null;
   }
 
-  // Check for data: protocol unless explicitly allowed
-  if (!allowData && lowerUrl.startsWith('data:')) {
-    return null;
+  // Check for data: protocol
+  if (lowerUrl.startsWith('data:')) {
+    return allowData ? trimmed : null;
   }
 
   // Allow relative URLs
