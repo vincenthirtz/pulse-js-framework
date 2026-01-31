@@ -42,6 +42,7 @@
       "default": "./runtime/logger.js"
     },
     "./runtime/hmr": {
+      "types": "./types/hmr.d.ts",
       "default": "./runtime/hmr.js"
     },
     "./compiler": {

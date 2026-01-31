@@ -16,6 +16,102 @@ import { pulse, effect, batch } from './pulse.js';
 import { el } from './dom.js';
 
 /**
+ * Radix Trie for efficient route matching
+ * Provides O(path length) lookup instead of O(routes count)
+ */
+class RouteTrie {
+  constructor() {
+    this.root = { children: new Map(), route: null, paramName: null, isWildcard: false };
+  }
+
+  /**
+   * Insert a route into the trie
+   */
+  insert(pattern, route) {
+    const segments = pattern === '/' ? [''] : pattern.split('/').filter(Boolean);
+    let node = this.root;
+
+    for (const segment of segments) {
+      let key;
+      let paramName = null;
+      let isWildcard = false;
+
+      if (segment.startsWith(':')) {
+        // Dynamic segment - :param
+        key = ':';
+        paramName = segment.slice(1);
+      } else if (segment.startsWith('*')) {
+        // Wildcard segment - *path
+        key = '*';
+        paramName = segment.slice(1) || 'wildcard';
+        isWildcard = true;
+      } else {
+        // Static segment
+        key = segment;
+      }
+
+      if (!node.children.has(key)) {
+        node.children.set(key, {
+          children: new Map(),
+          route: null,
+          paramName,
+          isWildcard
+        });
+      }
+      node = node.children.get(key);
+    }
+
+    node.route = route;
+  }
+
+  /**
+   * Find a matching route for a path
+   */
+  find(path) {
+    const segments = path === '/' ? [''] : path.split('/').filter(Boolean);
+    return this._findRecursive(this.root, segments, 0, {});
+  }
+
+  _findRecursive(node, segments, index, params) {
+    // End of path
+    if (index === segments.length) {
+      if (node.route) {
+        return { route: node.route, params };
+      }
+      return null;
+    }
+
+    const segment = segments[index];
+
+    // Try static match first (most specific)
+    if (node.children.has(segment)) {
+      const result = this._findRecursive(node.children.get(segment), segments, index + 1, params);
+      if (result) return result;
+    }
+
+    // Try dynamic param match
+    if (node.children.has(':')) {
+      const paramNode = node.children.get(':');
+      const newParams = { ...params, [paramNode.paramName]: decodeURIComponent(segment) };
+      const result = this._findRecursive(paramNode, segments, index + 1, newParams);
+      if (result) return result;
+    }
+
+    // Try wildcard match (catches all remaining segments)
+    if (node.children.has('*')) {
+      const wildcardNode = node.children.get('*');
+      const remaining = segments.slice(index).map(decodeURIComponent).join('/');
+      return {
+        route: wildcardNode.route,
+        params: { ...params, [wildcardNode.paramName]: remaining }
+      };
+    }
+
+    return null;
+  }
+}
+
+/**
  * Parse a route pattern into a regex and extract param names
  * Supports: /users/:id, /posts/:id/comments, /files/*path, * (catch-all)
  */
@@ -140,6 +236,9 @@ export function createRouter(options = {}) {
   // Scroll positions for history
   const scrollPositions = new Map();
 
+  // Route trie for O(path length) lookups
+  const routeTrie = new RouteTrie();
+
   // Compile routes (supports nested routes)
   const compiledRoutes = [];
 
@@ -148,11 +247,16 @@ export function createRouter(options = {}) {
       const normalized = normalizeRoute(pattern, config);
       const fullPattern = parentPath + pattern;
 
-      compiledRoutes.push({
+      const route = {
         ...normalized,
         pattern: fullPattern,
         ...parsePattern(fullPattern)
-      });
+      };
+
+      compiledRoutes.push(route);
+
+      // Insert into trie for fast lookup
+      routeTrie.insert(fullPattern, route);
 
       // Compile children (nested routes)
       if (normalized.children) {
@@ -183,15 +287,22 @@ export function createRouter(options = {}) {
   }
 
   /**
-   * Find matching route
+   * Find matching route using trie for O(path length) lookup
    */
   function findRoute(path) {
+    // Use trie for efficient lookup
+    const result = routeTrie.find(path);
+    if (result) {
+      return result;
+    }
+
+    // Fallback to catch-all route if exists
     for (const route of compiledRoutes) {
-      const params = matchRoute(route.pattern, path);
-      if (params !== null) {
-        return { route, params };
+      if (route.pattern === '*') {
+        return { route, params: {} };
       }
     }
+
     return null;
   }
 
@@ -427,7 +538,7 @@ export function createRouter(options = {}) {
       // Cleanup previous view
       if (cleanup) cleanup();
       if (currentView) {
-        container.innerHTML = '';
+        container.replaceChildren();
       }
 
       if (route && route.handler) {

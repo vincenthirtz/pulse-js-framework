@@ -137,3 +137,9 @@ export {
   logger,
   loggers
 } from './logger';
+
+// HMR (Hot Module Replacement)
+export {
+  HMRContext,
+  createHMRContext
+} from './hmr';

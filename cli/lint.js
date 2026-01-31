@@ -14,6 +14,9 @@ export const LintRules = {
   'undefined-reference': { severity: 'error', fixable: false },
   'duplicate-declaration': { severity: 'error', fixable: false },
 
+  // Security rules (warnings)
+  'xss-vulnerability': { severity: 'warning', fixable: false },
+
   // Usage rules (warnings)
   'unused-import': { severity: 'warning', fixable: true },
   'unused-state': { severity: 'warning', fixable: false },
@@ -126,6 +129,9 @@ export class SemanticAnalyzer {
 
     // Phase 4: Style checks
     this.checkStyle();
+
+    // Phase 5: Security checks (XSS detection)
+    this.checkSecurity();
 
     return this.diagnostics;
   }
@@ -516,6 +522,117 @@ export class SemanticAnalyzer {
           'Imports should be sorted alphabetically',
           this.ast.imports[0].line || 1, this.ast.imports[0].column || 1);
       }
+    }
+  }
+
+  /**
+   * Check for security vulnerabilities (XSS patterns)
+   */
+  checkSecurity() {
+    // Check actions for dangerous DOM manipulation
+    if (this.ast.actions && this.ast.actions.functions) {
+      for (const fn of this.ast.actions.functions) {
+        if (fn.body) {
+          this.checkForXSS(fn.body, fn.name, fn.line, fn.column);
+        }
+      }
+    }
+
+    // Check view for dangerous patterns in directives
+    if (this.ast.view) {
+      this.checkViewForXSS(this.ast.view);
+    }
+  }
+
+  /**
+   * Check code string for XSS vulnerabilities
+   */
+  checkForXSS(code, context, line, column) {
+    if (typeof code !== 'string') return;
+
+    // Dangerous DOM manipulation patterns
+    const xssPatterns = [
+      {
+        pattern: /\.innerHTML\s*=\s*(?!['"]\s*['"])/,
+        message: 'Assigning dynamic content to innerHTML can lead to XSS. Use textContent or sanitize input.'
+      },
+      {
+        pattern: /\.outerHTML\s*=\s*(?!['"]\s*['"])/,
+        message: 'Assigning dynamic content to outerHTML can lead to XSS. Consider safer alternatives.'
+      },
+      {
+        pattern: /document\.write\s*\(/,
+        message: 'document.write() can execute scripts and lead to XSS. Use DOM methods instead.'
+      },
+      {
+        pattern: /\.insertAdjacentHTML\s*\(/,
+        message: 'insertAdjacentHTML with unsanitized input can lead to XSS. Sanitize HTML or use DOM methods.'
+      },
+      {
+        pattern: /eval\s*\(/,
+        message: 'eval() executes arbitrary code and is a security risk. Avoid using eval().'
+      },
+      {
+        pattern: /new\s+Function\s*\(/,
+        message: 'new Function() can execute arbitrary code like eval(). Avoid dynamic function creation.'
+      },
+      {
+        pattern: /setTimeout\s*\(\s*['"`]/,
+        message: 'setTimeout with string argument executes code like eval(). Use a function instead.'
+      },
+      {
+        pattern: /setInterval\s*\(\s*['"`]/,
+        message: 'setInterval with string argument executes code like eval(). Use a function instead.'
+      }
+    ];
+
+    for (const { pattern, message } of xssPatterns) {
+      if (pattern.test(code)) {
+        this.addDiagnostic('warning', 'xss-vulnerability',
+          `Potential XSS in action '${context}': ${message}`,
+          line || 1, column || 1);
+      }
+    }
+  }
+
+  /**
+   * Check view nodes for XSS vulnerabilities
+   */
+  checkViewForXSS(node) {
+    if (!node) return;
+
+    const children = node.children || [];
+    for (const child of children) {
+      if (!child) continue;
+
+      // Check for @html directive (if exists in DSL)
+      if (child.directives) {
+        for (const directive of child.directives) {
+          if (directive.name === 'html') {
+            this.addDiagnostic('warning', 'xss-vulnerability',
+              '@html directive renders raw HTML and can lead to XSS if used with user input. Ensure content is sanitized.',
+              directive.line || child.line || 1, directive.column || child.column || 1);
+          }
+        }
+      }
+
+      // Check directive expressions for dangerous patterns
+      if (child.directives) {
+        for (const directive of child.directives) {
+          const expr = directive.handler || directive.expression || '';
+          if (typeof expr === 'string') {
+            // Check for innerHTML in expressions
+            if (/innerHTML|outerHTML/.test(expr)) {
+              this.addDiagnostic('warning', 'xss-vulnerability',
+                `Using innerHTML/outerHTML in directive expression can lead to XSS. Use safer alternatives.`,
+                directive.line || child.line || 1, directive.column || child.column || 1);
+            }
+          }
+        }
+      }
+
+      // Recurse into children
+      this.checkViewForXSS(child);
     }
   }
 
