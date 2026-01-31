@@ -83,7 +83,8 @@
     "test:format": "node test/format.test.js",
     "test:analyze": "node test/analyze.test.js",
     "build:netlify": "node scripts/build-netlify.js",
-    "version": "node scripts/sync-version.js"
+    "version": "node scripts/sync-version.js",
+    "docs": "node cli/index.js dev docs"
   },
   "keywords": [
     "framework",

@@ -13,9 +13,10 @@ export function HomePage() {
     <h1>⚡ Pulse Framework</h1>
     <p class="tagline">A declarative DOM framework with CSS selector-based structure</p>
     <div class="hero-features">
+      <span class="feature feature-highlight">0️⃣ Zero Dependencies</span>
       <span class="feature">🎯 Unique Syntax</span>
       <span class="feature">⚡ Reactive</span>
-      <span class="feature">📦 Lightweight</span>
+      <span class="feature">📦 ~8kb</span>
       <span class="feature">🔧 No Build Required</span>
       <span class="feature">📱 Mobile Apps</span>
     </div>

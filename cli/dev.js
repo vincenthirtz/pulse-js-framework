@@ -31,8 +31,22 @@ const clients = new Set();
  * Start the development server
  */
 export async function startDevServer(args) {
-  const port = parseInt(args[0]) || 3000;
-  const root = process.cwd();
+  // Parse args: can be [port], [dir], or [dir, port]
+  let port = 3000;
+  let root = process.cwd();
+
+  if (args.length >= 1) {
+    if (/^\d+$/.test(args[0])) {
+      // First arg is a port number
+      port = parseInt(args[0]);
+    } else {
+      // First arg is a directory
+      root = resolve(process.cwd(), args[0]);
+      if (args[1] && /^\d+$/.test(args[1])) {
+        port = parseInt(args[1]);
+      }
+    }
+  }
 
   // Check if vite is available, use it if so
   try {

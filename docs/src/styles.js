@@ -87,6 +87,22 @@ body {
   -webkit-text-fill-color: transparent;
 }
 
+/* Logo pulse animation on hover */
+@keyframes logoPulse {
+  0%, 100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 0 transparent);
+  }
+  50% {
+    transform: scale(1.05);
+    filter: drop-shadow(0 0 12px rgba(99, 102, 241, 0.6));
+  }
+}
+
+.logo:hover {
+  animation: logoPulse 0.8s ease-in-out infinite;
+}
+
 .logo-container {
   display: flex;
   align-items: center;
@@ -401,6 +417,22 @@ body {
   background: var(--bg-light);
   border-radius: 100px;
   font-size: 0.9em;
+}
+
+.feature-highlight {
+  background: linear-gradient(135deg, var(--primary), #a855f7);
+  color: white;
+  font-weight: 600;
+  animation: featurePulse 2s ease-in-out infinite;
+}
+
+@keyframes featurePulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 20px 4px rgba(99, 102, 241, 0.3);
+  }
 }
 
 .hero-buttons {
