@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#6366F1">
+  <title>Pulse Mobile Demo</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --primary: #6366F1;
+      --primary-dark: #4F46E5;
+      --secondary: #10B981;
+      --danger: #EF4444;
+      --bg: #F9FAFB;
+      --card: #FFFFFF;
+      --text: #1F2937;
+      --text-light: #6B7280;
+      --border: #E5E7EB;
+      --shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Navigation */
+    .nav {
+      display: flex;
+      background: var(--primary);
+      padding: 0;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .nav-item {
+      flex: 1;
+      padding: 16px 8px;
+      text-align: center;
+      color: rgba(255,255,255,0.7);
+      font-weight: 500;
+      font-size: 14px;
+      border: none;
+      background: none;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .nav-item.active {
+      color: white;
+      background: rgba(255,255,255,0.1);
+    }
+
+    .nav-item:active {
+      background: rgba(255,255,255,0.2);
+    }
+
+    /* Pages */
+    .page {
+      padding: 16px;
+      display: none;
+      animation: fadeIn 0.2s ease;
+    }
+
+    .page.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Cards */
+    .card {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow);
+    }
+
+    .card-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: var(--text);
+    }
+
+    /* Counter */
+    .counter-display {
+      font-size: 64px;
+      font-weight: 700;
+      text-align: center;
+      color: var(--primary);
+      padding: 24px 0;
+    }
+
+    .counter-buttons {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+    }
+
+    /* Buttons */
+    .btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-primary:active {
+      background: var(--primary-dark);
+      transform: scale(0.98);
+    }
+
+    .btn-secondary {
+      background: var(--border);
+      color: var(--text);
+    }
+
+    .btn-danger {
+      background: var(--danger);
+      color: white;
+    }
+
+    .btn-icon {
+      width: 48px;
+      height: 48px;
+      padding: 0;
+      border-radius: 50%;
+      font-size: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Todo */
+    .todo-input-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .todo-input {
+      flex: 1;
+      padding: 12px 16px;
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      font-size: 16px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .todo-input:focus {
+      border-color: var(--primary);
+    }
+
+    .todo-list {
+      list-style: none;
+    }
+
+    .todo-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.2s;
+    }
+
+    .todo-item:last-child {
+      border-bottom: none;
+    }
+
+    .todo-item.completed .todo-text {
+      text-decoration: line-through;
+      color: var(--text-light);
+    }
+
+    .todo-checkbox {
+      width: 24px;
+      height: 24px;
+      accent-color: var(--secondary);
+    }
+
+    .todo-text {
+      flex: 1;
+      font-size: 16px;
+    }
+
+    .todo-delete {
+      color: var(--danger);
+      background: none;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      padding: 4px 8px;
+    }
+
+    .todo-stats {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+      color: var(--text-light);
+      font-size: 14px;
+    }
+
+    /* Profile */
+    .profile-header {
+      text-align: center;
+      padding: 24px 0;
+    }
+
+    .profile-avatar {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: white;
+      font-size: 32px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+    }
+
+    .profile-name {
+      font-size: 24px;
+      font-weight: 600;
+    }
+
+    .profile-field {
+      margin-bottom: 16px;
+    }
+
+    .profile-label {
+      font-size: 14px;
+      color: var(--text-light);
+      margin-bottom: 4px;
+    }
+
+    .profile-value {
+      font-size: 16px;
+    }
+
+    .theme-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 0;
+      border-top: 1px solid var(--border);
+    }
+
+    /* Dark mode */
+    body.dark {
+      --bg: #111827;
+      --card: #1F2937;
+      --text: #F9FAFB;
+      --text-light: #9CA3AF;
+      --border: #374151;
+    }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 32px;
+      color: var(--text-light);
+    }
+
+    .empty-state-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+
+  <script type="module">
+    // ============================================
+    // Pulse Runtime (inline pour Android assets)
+    // ============================================
+
+    // Context réactif global
+    const context = {
+      currentEffect: null,
+      batchDepth: 0,
+      pendingEffects: new Set(),
+      isRunningEffects: false
+    };
+
+    // Pulse - valeur réactive
+    class Pulse {
+      #value;
+      #subscribers = new Set();
+      #equals;
+
+      constructor(value, options = {}) {
+        this.#value = value;
+        this.#equals = options.equals ?? Object.is;
+      }
+
+      get() {
+        if (context.currentEffect) {
+          this.#subscribers.add(context.currentEffect);
+          context.currentEffect.dependencies.add(this);
+        }
+        return this.#value;
+      }
+
+      set(newValue) {
+        if (this.#equals(this.#value, newValue)) return;
+        this.#value = newValue;
+        this.#notify();
+      }
+
+      update(fn) {
+        this.set(fn(this.#value));
+      }
+
+      peek() {
+        return this.#value;
+      }
+
+      #notify() {
+        const subs = [...this.#subscribers];
+        for (const subscriber of subs) {
+          if (context.batchDepth > 0 || context.isRunningEffects) {
+            context.pendingEffects.add(subscriber);
+          } else {
+            runEffect(subscriber);
+          }
+        }
+      }
+
+      _unsubscribe(subscriber) {
+        this.#subscribers.delete(subscriber);
+      }
+    }
+
+    function pulse(value, options) {
+      return new Pulse(value, options);
+    }
+
+    function runEffect(effectFn) {
+      if (!effectFn || !effectFn.run) return;
+      try {
+        effectFn.run();
+      } catch (error) {
+        console.error('Effect error:', error);
+      }
+    }
+
+    function flushEffects() {
+      if (context.isRunningEffects) return;
+      context.isRunningEffects = true;
+      let iterations = 0;
+
+      try {
+        while (context.pendingEffects.size > 0 && iterations < 100) {
+          iterations++;
+          const effects = [...context.pendingEffects];
+          context.pendingEffects.clear();
+          for (const effect of effects) {
+            runEffect(effect);
+          }
+        }
+      } finally {
+        context.isRunningEffects = false;
+      }
+    }
+
+    function effect(fn) {
+      const effectFn = {
+        run: () => {
+          for (const dep of effectFn.dependencies) {
+            dep._unsubscribe(effectFn);
+          }
+          effectFn.dependencies.clear();
+
+          const prevEffect = context.currentEffect;
+          context.currentEffect = effectFn;
+          try {
+            fn();
+          } finally {
+            context.currentEffect = prevEffect;
+          }
+        },
+        dependencies: new Set()
+      };
+
+      effectFn.run();
+      return () => {
+        for (const dep of effectFn.dependencies) {
+          dep._unsubscribe(effectFn);
+        }
+        effectFn.dependencies.clear();
+      };
+    }
+
+    function computed(fn) {
+      const p = new Pulse(undefined);
+      let initialized = false;
+
+      effect(() => {
+        const newValue = fn();
+        if (!initialized) {
+          p._value = newValue;
+          initialized = true;
+        } else {
+          p.set(newValue);
+        }
+      });
+
+      const originalSet = p.set;
+      p.set = () => {
+        throw new Error('Cannot set a computed value directly');
+      };
+
+      return p;
+    }
+
+    function batch(fn) {
+      context.batchDepth++;
+      try {
+        return fn();
+      } finally {
+        context.batchDepth--;
+        if (context.batchDepth === 0) {
+          flushEffects();
+        }
+      }
+    }
+
+    // DOM helpers
+    function el(selector, ...children) {
+      const config = parseSelector(selector);
+      const element = document.createElement(config.tag);
+
+      if (config.id) element.id = config.id;
+      if (config.classes.length > 0) element.className = config.classes.join(' ');
+      for (const [key, value] of Object.entries(config.attrs)) {
+        element.setAttribute(key, value);
+      }
+
+      for (const child of children) {
+        appendChild(element, child);
+      }
+
+      return element;
+    }
+
+    function parseSelector(selector) {
+      if (!selector) return { tag: 'div', id: null, classes: [], attrs: {} };
+
+      const config = { tag: 'div', id: null, classes: [], attrs: {} };
+      let remaining = selector;
+
+      const tagMatch = remaining.match(/^([a-zA-Z][a-zA-Z0-9-]*)/);
+      if (tagMatch) {
+        config.tag = tagMatch[1];
+        remaining = remaining.slice(tagMatch[0].length);
+      }
+
+      const idMatch = remaining.match(/#([a-zA-Z_-][a-zA-Z0-9-_]*)/);
+      if (idMatch) {
+        config.id = idMatch[1];
+        remaining = remaining.replace(idMatch[0], '');
+      }
+
+      const classMatches = remaining.matchAll(/\.([a-zA-Z_-][a-zA-Z0-9-_]*)/g);
+      for (const match of classMatches) {
+        config.classes.push(match[1]);
+      }
+
+      const attrRegex = /\[([a-zA-Z_][a-zA-Z0-9-_]*)(?:=(?:"([^"]*)"|'([^']*)'|([^\]]*)))?\]/g;
+      const attrMatches = remaining.matchAll(attrRegex);
+      for (const match of attrMatches) {
+        config.attrs[match[1]] = match[2] ?? match[3] ?? match[4] ?? '';
+      }
+
+      return config;
+    }
+
+    function appendChild(parent, child) {
+      if (child == null || child === false) return;
+
+      if (typeof child === 'string' || typeof child === 'number') {
+        parent.appendChild(document.createTextNode(String(child)));
+      } else if (child instanceof Node) {
+        parent.appendChild(child);
+      } else if (Array.isArray(child)) {
+        for (const c of child) appendChild(parent, c);
+      } else if (typeof child === 'function') {
+        const placeholder = document.createComment('pulse');
+        parent.appendChild(placeholder);
+        let currentNodes = [];
+
+        effect(() => {
+          const result = child();
+          for (const node of currentNodes) node.remove();
+          currentNodes = [];
+
+          if (result != null && result !== false) {
+            const fragment = document.createDocumentFragment();
+            if (typeof result === 'string' || typeof result === 'number') {
+              const textNode = document.createTextNode(String(result));
+              fragment.appendChild(textNode);
+              currentNodes.push(textNode);
+            } else if (result instanceof Node) {
+              fragment.appendChild(result);
+              currentNodes.push(result);
+            } else if (Array.isArray(result)) {
+              for (const r of result) {
+                if (r instanceof Node) {
+                  fragment.appendChild(r);
+                  currentNodes.push(r);
+                } else if (r != null && r !== false) {
+                  const textNode = document.createTextNode(String(r));
+                  fragment.appendChild(textNode);
+                  currentNodes.push(textNode);
+                }
+              }
+            }
+            placeholder.parentNode?.insertBefore(fragment, placeholder.nextSibling);
+          }
+        });
+      }
+    }
+
+    function text(getValue) {
+      if (typeof getValue === 'function') {
+        const node = document.createTextNode('');
+        effect(() => { node.textContent = String(getValue()); });
+        return node;
+      }
+      return document.createTextNode(String(getValue));
+    }
+
+    function on(element, event, handler) {
+      element.addEventListener(event, handler);
+      return element;
+    }
+
+    function model(element, pulseValue) {
+      const type = element.type?.toLowerCase();
+      if (type === 'checkbox') {
+        effect(() => { element.checked = pulseValue.get(); });
+        element.addEventListener('change', () => pulseValue.set(element.checked));
+      } else {
+        effect(() => {
+          if (element.value !== pulseValue.get()) {
+            element.value = pulseValue.get();
+          }
+        });
+        element.addEventListener('input', () => pulseValue.set(element.value));
+      }
+      return element;
+    }
+
+    function cls(element, className, condition) {
+      if (typeof condition === 'function') {
+        effect(() => {
+          if (condition()) element.classList.add(className);
+          else element.classList.remove(className);
+        });
+      } else if (condition) {
+        element.classList.add(className);
+      }
+      return element;
+    }
+
+    function list(getItems, template, keyFn = (item, i) => i) {
+      const container = document.createDocumentFragment();
+      const startMarker = document.createComment('list-start');
+      const endMarker = document.createComment('list-end');
+      container.appendChild(startMarker);
+      container.appendChild(endMarker);
+
+      let itemNodes = new Map();
+
+      effect(() => {
+        const items = typeof getItems === 'function' ? getItems() : getItems.get();
+        const itemsArray = Array.isArray(items) ? items : Array.from(items);
+
+        const newKeys = [];
+        const newItemNodes = new Map();
+
+        itemsArray.forEach((item, index) => {
+          const key = keyFn(item, index);
+          newKeys.push(key);
+
+          if (itemNodes.has(key)) {
+            newItemNodes.set(key, itemNodes.get(key));
+          } else {
+            const result = template(item, index);
+            const nodes = Array.isArray(result) ? result : [result];
+            newItemNodes.set(key, { nodes, item });
+          }
+        });
+
+        for (const [key, entry] of itemNodes) {
+          if (!newItemNodes.has(key)) {
+            for (const node of entry.nodes) node.remove();
+          }
+        }
+
+        let prevNode = startMarker;
+        for (const key of newKeys) {
+          const entry = newItemNodes.get(key);
+          const firstNode = entry.nodes[0];
+
+          if (prevNode.nextSibling !== firstNode) {
+            for (const node of entry.nodes) {
+              prevNode.parentNode?.insertBefore(node, prevNode.nextSibling);
+              prevNode = node;
+            }
+          } else {
+            prevNode = entry.nodes[entry.nodes.length - 1];
+          }
+        }
+
+        itemNodes = newItemNodes;
+      });
+
+      return container;
+    }
+
+    function when(condition, thenFn, elseFn = null) {
+      const container = document.createDocumentFragment();
+      const marker = document.createComment('when');
+      container.appendChild(marker);
+      let currentNodes = [];
+
+      effect(() => {
+        const show = typeof condition === 'function' ? condition() : condition.get();
+        for (const node of currentNodes) node.remove();
+        currentNodes = [];
+
+        const template = show ? thenFn : elseFn;
+        if (template) {
+          const result = typeof template === 'function' ? template() : template;
+          if (result) {
+            const nodes = Array.isArray(result) ? result : [result];
+            const fragment = document.createDocumentFragment();
+            for (const node of nodes) {
+              if (node instanceof Node) {
+                fragment.appendChild(node);
+                currentNodes.push(node);
+              }
+            }
+            marker.parentNode?.insertBefore(fragment, marker.nextSibling);
+          }
+        }
+      });
+
+      return container;
+    }
+
+    function mount(target, element) {
+      const container = typeof target === 'string' ? document.querySelector(target) : target;
+      container.appendChild(element);
+    }
+
+    // ============================================
+    // Application Pulse Mobile
+    // ============================================
+
+    // État global
+    const currentPage = pulse('counter');
+    const darkMode = pulse(localStorage.getItem('darkMode') === 'true');
+
+    // Appliquer le dark mode
+    effect(() => {
+      if (darkMode.get()) {
+        document.body.classList.add('dark');
+      } else {
+        document.body.classList.remove('dark');
+      }
+      localStorage.setItem('darkMode', darkMode.get());
+    });
+
+    // ========== Counter Page ==========
+    function CounterPage() {
+      const count = pulse(0);
+
+      return el('.page',
+        el('.card',
+          el('h2.card-title', 'Compteur Réactif'),
+          el('.counter-display', () => count.get()),
+          el('.counter-buttons',
+            on(el('button.btn.btn-primary.btn-icon', '−'), 'click', () => count.update(n => n - 1)),
+            on(el('button.btn.btn-secondary', 'Reset'), 'click', () => count.set(0)),
+            on(el('button.btn.btn-primary.btn-icon', '+'), 'click', () => count.update(n => n + 1))
+          )
+        ),
+        el('.card',
+          el('h2.card-title', 'Valeurs Dérivées'),
+          el('p', () => `Double: ${count.get() * 2}`),
+          el('p', () => `Carré: ${count.get() ** 2}`),
+          el('p', () => `Pair: ${count.get() % 2 === 0 ? 'Oui ✓' : 'Non ✗'}`)
+        )
+      );
+    }
+
+    // ========== Todo Page ==========
+    function TodoPage() {
+      const todos = pulse(JSON.parse(localStorage.getItem('todos') || '[]'));
+      const newTodo = pulse('');
+
+      // Sauvegarder les todos
+      effect(() => {
+        localStorage.setItem('todos', JSON.stringify(todos.get()));
+      });
+
+      const addTodo = () => {
+        const text = newTodo.get().trim();
+        if (text) {
+          todos.update(list => [...list, {
+            id: Date.now(),
+            text,
+            completed: false
+          }]);
+          newTodo.set('');
+        }
+      };
+
+      const toggleTodo = (id) => {
+        todos.update(list =>
+          list.map(t => t.id === id ? { ...t, completed: !t.completed } : t)
+        );
+      };
+
+      const deleteTodo = (id) => {
+        todos.update(list => list.filter(t => t.id !== id));
+      };
+
+      const remaining = computed(() => todos.get().filter(t => !t.completed).length);
+      const total = computed(() => todos.get().length);
+
+      return el('.page',
+        el('.card',
+          el('h2.card-title', 'Liste de Tâches'),
+          el('.todo-input-row',
+            on(
+              model(el('input.todo-input[type=text][placeholder=Nouvelle tâche...]'), newTodo),
+              'keypress',
+              (e) => e.key === 'Enter' && addTodo()
+            ),
+            on(el('button.btn.btn-primary', '+'), 'click', addTodo)
+          ),
+          when(
+            () => todos.get().length === 0,
+            () => el('.empty-state',
+              el('.empty-state-icon', '📝'),
+              el('p', 'Aucune tâche pour le moment')
+            ),
+            () => el('ul.todo-list',
+              list(
+                todos,
+                (todo) => {
+                  const item = el('li.todo-item');
+                  cls(item, 'completed', () => todo.completed);
+
+                  appendChild(item, [
+                    on(
+                      el(`input.todo-checkbox[type=checkbox]${todo.completed ? '[checked]' : ''}`),
+                      'change',
+                      () => toggleTodo(todo.id)
+                    ),
+                    el('span.todo-text', todo.text),
+                    on(el('button.todo-delete', '×'), 'click', () => deleteTodo(todo.id))
+                  ]);
+
+                  return item;
+                },
+                todo => todo.id
+              )
+            )
+          ),
+          when(
+            () => todos.get().length > 0,
+            () => el('.todo-stats',
+              el('span', () => `${remaining.get()} restante(s)`),
+              el('span', () => `${total.get()} total`)
+            )
+          )
+        )
+      );
+    }
+
+    // ========== Profile Page ==========
+    function ProfilePage() {
+      const name = pulse(localStorage.getItem('userName') || 'Utilisateur');
+      const email = pulse(localStorage.getItem('userEmail') || 'user@example.com');
+      const editing = pulse(false);
+
+      effect(() => {
+        localStorage.setItem('userName', name.get());
+        localStorage.setItem('userEmail', email.get());
+      });
+
+      return el('.page',
+        el('.card',
+          el('.profile-header',
+            el('.profile-avatar', () => name.get().charAt(0).toUpperCase()),
+            el('h2.profile-name', () => name.get())
+          )
+        ),
+        el('.card',
+          el('h2.card-title', 'Informations'),
+          when(
+            editing,
+            () => el('div',
+              el('.profile-field',
+                el('label.profile-label', 'Nom'),
+                model(el('input.todo-input[type=text]'), name)
+              ),
+              el('.profile-field',
+                el('label.profile-label', 'Email'),
+                model(el('input.todo-input[type=email]'), email)
+              ),
+              on(el('button.btn.btn-primary', 'Enregistrer'), 'click', () => editing.set(false))
+            ),
+            () => el('div',
+              el('.profile-field',
+                el('.profile-label', 'Nom'),
+                el('.profile-value', () => name.get())
+              ),
+              el('.profile-field',
+                el('.profile-label', 'Email'),
+                el('.profile-value', () => email.get())
+              ),
+              on(el('button.btn.btn-secondary', 'Modifier'), 'click', () => editing.set(true))
+            )
+          )
+        ),
+        el('.card',
+          el('h2.card-title', 'Préférences'),
+          el('.theme-toggle',
+            el('span', 'Mode sombre'),
+            on(
+              el(`input[type=checkbox]${darkMode.get() ? '[checked]' : ''}`),
+              'change',
+              (e) => darkMode.set(e.target.checked)
+            )
+          )
+        )
+      );
+    }
+
+    // ========== Navigation ==========
+    function NavBar() {
+      const pages = [
+        { id: 'counter', label: 'Compteur', icon: '🔢' },
+        { id: 'todo', label: 'Tâches', icon: '✓' },
+        { id: 'profile', label: 'Profil', icon: '👤' }
+      ];
+
+      return el('nav.nav',
+        pages.map(page => {
+          const btn = el('button.nav-item', `${page.icon} ${page.label}`);
+          cls(btn, 'active', () => currentPage.get() === page.id);
+          on(btn, 'click', () => currentPage.set(page.id));
+          return btn;
+        })
+      );
+    }
+
+    // ========== App Principal ==========
+    function App() {
+      const counterPage = CounterPage();
+      const todoPage = TodoPage();
+      const profilePage = ProfilePage();
+
+      // Gérer la visibilité des pages
+      effect(() => {
+        const page = currentPage.get();
+        counterPage.classList.toggle('active', page === 'counter');
+        todoPage.classList.toggle('active', page === 'todo');
+        profilePage.classList.toggle('active', page === 'profile');
+      });
+
+      return el('div',
+        NavBar(),
+        counterPage,
+        todoPage,
+        profilePage
+      );
+    }
+
+    // Mount l'application
+    mount('#app', App());
+
+    // Log pour debug
+    console.log('🚀 Pulse Mobile Demo chargée !');
+  </script>
+</body>
+</html>

@@ -213,6 +213,15 @@ npm install
 npm run dev</code></pre>
       </div>
     </section>
+
+    <section class="doc-section">
+      <h2>📱 Mobile Examples</h2>
+      <p>Pulse can also run on mobile platforms via WebView:</p>
+      <ul>
+        <li><strong>Android WebView</strong> - Native Android app wrapping a Pulse web app (<code>examples/android-webview</code>)</li>
+      </ul>
+      <p class="text-muted" style="font-size: 0.9em; opacity: 0.7;">Open the project in Android Studio to build and run.</p>
+    </section>
   `;
 
   return page;
