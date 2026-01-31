@@ -2,15 +2,15 @@
  * Pulse DOM Tests
  *
  * Tests for runtime/dom.js - DOM creation and reactive bindings
- * Requires linkedom for DOM simulation
+ * Uses minimal mock-dom (zero external dependencies)
  *
  * @module test/dom
  */
 
-import { parseHTML } from 'linkedom';
+import { createDOM } from './mock-dom.js';
 
 // Set up DOM environment before importing dom.js
-const { document, HTMLElement, Node, DocumentFragment, Comment, Event } = parseHTML('<!DOCTYPE html><html><body></body></html>');
+const { document, HTMLElement, Node, DocumentFragment, Comment, Event } = createDOM();
 globalThis.document = document;
 globalThis.HTMLElement = HTMLElement;
 globalThis.Node = Node;

@@ -2,23 +2,23 @@
  * Pulse Router Tests
  *
  * Tests for runtime/router.js - SPA routing system
+ * Uses minimal mock-dom (zero external dependencies)
  *
  * @module test/router
  */
 
-import { parseHTML } from 'linkedom';
-import { createMockWindow } from './utils.js';
+import { createDOM, createMockWindow } from './mock-dom.js';
 
 // Setup DOM environment first
-const { document: linkedomDocument } = parseHTML('<!DOCTYPE html><html><body><div id="app"></div></body></html>');
+const { document: mockDocument, Node } = createDOM('<!DOCTYPE html><html><body><div id="app"></div></body></html>');
 
 // Create mock window with history API
-const { window: mockWindow, resetHistory } = createMockWindow(linkedomDocument);
+const { window: mockWindow, resetHistory } = createMockWindow(mockDocument);
 
 // Set globals before importing router
 global.window = mockWindow;
-global.document = linkedomDocument;
-global.Node = mockWindow.Node;
+global.document = mockDocument;
+global.Node = Node;
 
 // Import router after mocks are set up
 import { createRouter, simpleRouter, lazy, preload } from '../runtime/router.js';
