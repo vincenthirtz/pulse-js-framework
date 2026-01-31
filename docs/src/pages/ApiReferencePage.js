@@ -17,6 +17,16 @@ export function ApiReferencePage() {
       <div class="api-search-results" id="api-search-results"></div>
     </div>
 
+    <div class="api-filters" id="api-filters">
+      <span class="filter-label">Filter:</span>
+      <button class="filter-btn active" data-filter="all">All</button>
+      <button class="filter-btn" data-filter="reactivity">Reactivity</button>
+      <button class="filter-btn" data-filter="dom">DOM</button>
+      <button class="filter-btn" data-filter="router">Router</button>
+      <button class="filter-btn" data-filter="store">Store</button>
+      <button class="filter-btn" data-filter="hmr">HMR</button>
+    </div>
+
     <section class="doc-section">
       <h2>TypeScript Support</h2>
       <p>Pulse includes full TypeScript definitions for IDE autocomplete. Types are automatically detected:</p>
@@ -30,7 +40,7 @@ const doubled = computed(() => count.get() * 2);</code></pre>
       </div>
     </section>
 
-    <section class="doc-section">
+    <section class="doc-section" data-category="reactivity">
       <h2>Reactivity</h2>
 
       <div class="api-item">
@@ -152,7 +162,7 @@ state.items$filter(x => x !== 'b');</code></pre>
       </div>
     </section>
 
-    <section class="doc-section">
+    <section class="doc-section" data-category="dom">
       <h2>DOM</h2>
 
       <div class="api-item">
@@ -277,7 +287,7 @@ portal(
       </div>
     </section>
 
-    <section class="doc-section">
+    <section class="doc-section" data-category="router">
       <h2>Router</h2>
 
       <div class="api-item">
@@ -360,9 +370,74 @@ router.loading.get() // Loading state for async routes</code></pre>
 router.isActive('/admin', true) // true only if exact match</code></pre>
         </div>
       </div>
+
+      <div class="api-item">
+        <h3><code>lazy(importFn, options?)</code></h3>
+        <p>Creates a lazy-loaded route handler. Component is loaded on first navigation and cached.</p>
+        <div class="code-block">
+          <pre><code>import { lazy } from 'pulse-js-framework/runtime/router';
+
+const routes = {
+  '/dashboard': lazy(() => import('./Dashboard.js')),
+  '/settings': lazy(() => import('./Settings.js'), {
+    loading: () => el('div.spinner', 'Loading...'),
+    error: (err) => el('div.error', \`Failed: \${err.message}\`),
+    timeout: 5000,  // Fail after 5 seconds
+    delay: 200      // Show loading after 200ms delay
+  })
+};</code></pre>
+        </div>
+        <p><strong>Options:</strong> <code>loading</code>, <code>error</code>, <code>timeout</code> (default: 10000), <code>delay</code> (default: 200)</p>
+      </div>
+
+      <div class="api-item">
+        <h3><code>preload(lazyHandler)</code></h3>
+        <p>Prefetch a lazy component without rendering. Useful for preloading on hover.</p>
+        <div class="code-block">
+          <pre><code>import { lazy, preload } from 'pulse-js-framework/runtime/router';
+
+const DashboardLazy = lazy(() => import('./Dashboard.js'));
+
+// Preload on link hover
+link.addEventListener('mouseenter', () => preload(DashboardLazy));</code></pre>
+        </div>
+      </div>
+
+      <div class="api-item">
+        <h3><code>router.use(middleware)</code></h3>
+        <p>Add middleware dynamically. Returns an unsubscribe function.</p>
+        <div class="code-block">
+          <pre><code>const unsubscribe = router.use(async (ctx, next) => {
+  console.log('Navigating to:', ctx.to.path);
+  await next();
+});
+
+// Later: remove middleware
+unsubscribe();</code></pre>
+        </div>
+      </div>
+
+      <div class="api-item">
+        <h3>Middleware</h3>
+        <p>Koa-style middleware pipeline. Runs before guards, can redirect or abort navigation.</p>
+        <div class="code-block">
+          <pre><code>const router = createRouter({
+  routes,
+  middleware: [
+    async (ctx, next) => {
+      if (ctx.to.meta.requiresAuth && !isLoggedIn()) {
+        return ctx.redirect('/login');
+      }
+      await next();
+    }
+  ]
+});</code></pre>
+        </div>
+        <p><strong>Context:</strong> <code>ctx.to</code>, <code>ctx.from</code>, <code>ctx.meta</code>, <code>ctx.redirect(path)</code>, <code>ctx.abort()</code></p>
+      </div>
     </section>
 
-    <section class="doc-section">
+    <section class="doc-section" data-category="store">
       <h2>Store</h2>
 
       <div class="api-item">
@@ -384,7 +459,7 @@ store.$reset();</code></pre>
       </div>
     </section>
 
-    <section class="doc-section">
+    <section class="doc-section" data-category="hmr">
       <h2>HMR (Hot Module Replacement)</h2>
 
       <div class="api-item">
@@ -471,16 +546,19 @@ console.log(hmr.data.myCustomState); // { x: 1, y: 2 }</code></pre>
     </div>
   `;
 
-  // Setup search functionality after DOM is ready
+  // Setup search and filter functionality after DOM is ready
   setTimeout(() => {
     const input = page.querySelector('#api-search-input');
     const clearBtn = page.querySelector('#api-search-clear');
     const kbdHint = page.querySelector('#api-search-kbd');
     const resultsDiv = page.querySelector('#api-search-results');
-    const sections = page.querySelectorAll('.doc-section');
+    const sections = page.querySelectorAll('.doc-section[data-category]');
     const apiItems = page.querySelectorAll('.api-item');
+    const filterBtns = page.querySelectorAll('.filter-btn');
 
     if (!input) return;
+
+    let activeFilter = 'all';
 
     // Build search index for api-items
     const searchIndex = [];
@@ -513,21 +591,32 @@ console.log(hmr.data.myCustomState); // { x: 1, y: 2 }</code></pre>
       }
     });
 
-    function performSearch(query) {
-      const q = query.toLowerCase().trim();
+    function applyFilter() {
+      const q = input.value.toLowerCase().trim();
 
       // Toggle kbd hint visibility
       if (kbdHint) {
         kbdHint.style.display = q ? 'none' : '';
       }
 
-      if (!q) {
-        // Show all
-        sections.forEach(s => s.style.display = '');
-        apiItems.forEach(item => {
-          item.style.display = '';
-          item.classList.remove('search-highlight');
+      // Reset visibility
+      sections.forEach(s => s.style.display = '');
+      apiItems.forEach(item => {
+        item.style.display = '';
+        item.classList.remove('search-highlight');
+      });
+
+      // Apply category filter
+      if (activeFilter !== 'all') {
+        sections.forEach(section => {
+          if (section.dataset.category !== activeFilter) {
+            section.style.display = 'none';
+          }
         });
+      }
+
+      // Apply search filter
+      if (!q) {
         resultsDiv.textContent = '';
         clearBtn.style.opacity = '0';
         return;
@@ -540,14 +629,17 @@ console.log(hmr.data.myCustomState); // { x: 1, y: 2 }</code></pre>
 
       // Search api-items
       searchIndex.forEach(entry => {
-        const matches = entry.text.includes(q) ||
-                        entry.title.includes(q) ||
-                        entry.code.includes(q);
+        const section = entry.element.closest('.doc-section');
+        const categoryMatch = activeFilter === 'all' || section?.dataset.category === activeFilter;
 
-        if (matches) {
+        const textMatch = entry.text.includes(q) ||
+                          entry.title.includes(q) ||
+                          entry.code.includes(q);
+
+        if (categoryMatch && textMatch) {
           entry.element.style.display = '';
           entry.element.classList.add('search-highlight');
-          visibleSections.add(entry.element.closest('.doc-section'));
+          visibleSections.add(section);
           matchCount++;
         } else {
           entry.element.style.display = 'none';
@@ -557,7 +649,8 @@ console.log(hmr.data.myCustomState); // { x: 1, y: 2 }</code></pre>
 
       // Search sections without api-items
       sectionIndex.forEach(entry => {
-        if (entry.text.includes(q)) {
+        const categoryMatch = activeFilter === 'all' || entry.element.dataset.category === activeFilter;
+        if (categoryMatch && entry.text.includes(q)) {
           visibleSections.add(entry.element);
           matchCount++;
         }
@@ -565,9 +658,10 @@ console.log(hmr.data.myCustomState); // { x: 1, y: 2 }</code></pre>
 
       // Show/hide sections based on visible items
       sections.forEach(section => {
-        if (visibleSections.has(section)) {
+        const categoryMatch = activeFilter === 'all' || section.dataset.category === activeFilter;
+        if (categoryMatch && visibleSections.has(section)) {
           section.style.display = '';
-        } else {
+        } else if (!categoryMatch || (q && !visibleSections.has(section))) {
           section.style.display = 'none';
         }
       });
@@ -575,6 +669,20 @@ console.log(hmr.data.myCustomState); // { x: 1, y: 2 }</code></pre>
       resultsDiv.textContent = matchCount > 0
         ? `${matchCount} result${matchCount !== 1 ? 's' : ''} found`
         : 'No results found';
+    }
+
+    // Filter button click handlers
+    filterBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        filterBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        activeFilter = btn.dataset.filter;
+        applyFilter();
+      });
+    });
+
+    function performSearch() {
+      applyFilter();
     }
 
     input.addEventListener('input', (e) => performSearch(e.target.value));

@@ -21,6 +21,7 @@ import { MobilePage } from './pages/MobilePage.js';
 import { ExamplesPage } from './pages/ExamplesPage.js';
 import { PlaygroundPage } from './pages/PlaygroundPage.js';
 import { ChangelogPage } from './pages/ChangelogPage.js';
+import { DebuggingPage } from './pages/DebuggingPage.js';
 
 // Styles & Utilities
 import { injectStyles } from './styles.js';
@@ -35,6 +36,7 @@ const routes = {
   '/getting-started': GettingStartedPage,
   '/core-concepts': CoreConceptsPage,
   '/api-reference': ApiReferencePage,
+  '/debugging': DebuggingPage,
   '/mobile': MobilePage,
   '/examples': ExamplesPage,
   '/playground': PlaygroundPage,

@@ -1009,6 +1009,141 @@ body {
   margin-bottom: 16px;
   opacity: 0.5;
 }
+
+/* API Filters */
+.api-filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.filter-label {
+  font-size: 0.9em;
+  color: var(--text-muted);
+  margin-right: 8px;
+}
+
+.filter-btn {
+  padding: 6px 14px;
+  font-size: 0.85em;
+  background: var(--bg-light);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filter-btn:hover {
+  border-color: var(--primary);
+  color: var(--text);
+}
+
+.filter-btn.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+}
+
+/* FAQ Section */
+.faq-section {
+  margin-top: 48px;
+}
+
+.faq-item {
+  background: var(--bg-light);
+  padding: 20px 24px;
+  border-radius: var(--radius);
+  margin-bottom: 16px;
+  border-left: 3px solid var(--primary);
+}
+
+.faq-item h3 {
+  font-size: 1.1em;
+  margin: 0 0 12px 0;
+  color: var(--text);
+}
+
+.faq-item p {
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.faq-item a {
+  color: var(--primary);
+  text-decoration: none;
+}
+
+.faq-item a:hover {
+  text-decoration: underline;
+}
+
+.faq-item .code-block {
+  margin-top: 12px;
+  margin-bottom: 0;
+}
+
+/* Debugging Page */
+.error-item {
+  background: var(--bg-light);
+  padding: 24px;
+  border-radius: var(--radius);
+  margin-bottom: 20px;
+  border-left: 3px solid #ef4444;
+}
+
+.error-item h3 {
+  font-size: 1.1em;
+  margin: 0 0 12px 0;
+  color: #ef4444;
+  font-family: 'Fira Code', monospace;
+}
+
+.error-item p {
+  margin: 0 0 12px 0;
+  color: var(--text-muted);
+}
+
+.error-item .code-block {
+  margin-top: 12px;
+  margin-bottom: 0;
+}
+
+/* Doc Table */
+.doc-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+}
+
+.doc-table th,
+.doc-table td {
+  padding: 12px 16px;
+  text-align: left;
+  border: 1px solid var(--border);
+}
+
+.doc-table th {
+  background: var(--bg-light);
+  font-weight: 600;
+}
+
+.doc-table td code {
+  background: var(--code-bg);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+/* Intro text */
+.intro {
+  font-size: 1.15em;
+  color: var(--text-muted);
+  margin-bottom: 32px;
+}
 `;
 
 export function injectStyles() {

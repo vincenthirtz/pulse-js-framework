@@ -140,6 +140,78 @@ pulse analyze --json  # JSON output</code></pre>
       <p><strong>Analyze output:</strong> file count, component complexity, import graph, dead code detection.</p>
     </section>
 
+    <section class="doc-section faq-section">
+      <h2>FAQ</h2>
+
+      <div class="faq-item">
+        <h3>Do I need a build step?</h3>
+        <p>No! Pulse works directly in the browser. However, for <code>.pulse</code> files and production optimization, we recommend using Vite with the Pulse plugin.</p>
+      </div>
+
+      <div class="faq-item">
+        <h3>How does Pulse compare to React/Vue?</h3>
+        <p>Pulse is much lighter (~8kb vs 35-45kb) and uses signals instead of virtual DOM. It has zero dependencies and an optional build step. The CSS selector syntax is unique to Pulse.</p>
+      </div>
+
+      <div class="faq-item">
+        <h3>Can I use TypeScript?</h3>
+        <p>Yes! Pulse includes full TypeScript definitions. Just import types from <code>pulse-js-framework/runtime</code> and your IDE will provide autocomplete.</p>
+      </div>
+
+      <div class="faq-item">
+        <h3>How do I handle forms?</h3>
+        <p>Use the <code>model()</code> helper for two-way binding:</p>
+        <div class="code-block">
+          <pre><code>const name = pulse('');
+const input = el('input[type=text]');
+model(input, name);  // Two-way binding</code></pre>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <h3>Can I use Pulse with existing projects?</h3>
+        <p>Yes! Pulse can be mounted to any DOM element. Use <code>mount('#my-widget', MyComponent())</code> to embed Pulse components anywhere.</p>
+      </div>
+
+      <div class="faq-item">
+        <h3>How do I fetch data?</h3>
+        <p>Use standard <code>fetch()</code> with effects:</p>
+        <div class="code-block">
+          <pre><code>const users = pulse([]);
+const loading = pulse(true);
+
+effect(() => {
+  fetch('/api/users')
+    .then(r => r.json())
+    .then(data => {
+      users.set(data);
+      loading.set(false);
+    });
+});</code></pre>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <h3>Does Pulse support SSR?</h3>
+        <p>Not yet, but it's on the roadmap. Currently Pulse is optimized for client-side SPAs and mobile apps.</p>
+      </div>
+
+      <div class="faq-item">
+        <h3>How do I debug my app?</h3>
+        <p>Pulse v1.4.9+ supports source maps for <code>.pulse</code> files. Use the Logger API for structured output. See the <a href="#" onclick="window.docs.navigate('/debugging'); return false;">Debugging Guide</a> for more.</p>
+      </div>
+
+      <div class="faq-item">
+        <h3>Can I build mobile apps?</h3>
+        <p>Yes! Use <code>pulse mobile init</code> to set up Android/iOS projects. Pulse includes native APIs for storage, device info, and more. See the <a href="#" onclick="window.docs.navigate('/mobile'); return false;">Mobile Guide</a>.</p>
+      </div>
+
+      <div class="faq-item">
+        <h3>Where can I get help?</h3>
+        <p>Open an issue on <a href="https://github.com/vincenthirtz/pulse-js-framework/issues" target="_blank">GitHub</a> or check the <a href="#" onclick="window.docs.navigate('/examples'); return false;">Examples</a> for reference implementations.</p>
+      </div>
+    </section>
+
     <div class="next-section">
       <button class="btn btn-primary" onclick="window.docs.navigate('/core-concepts')">
         Next: Core Concepts →

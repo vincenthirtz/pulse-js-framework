@@ -40,13 +40,14 @@ export const navigation = [
   { path: '/getting-started', label: '🚀 Getting Started' },
   { path: '/core-concepts', label: '💡 Core Concepts' },
   { path: '/api-reference', label: '📖 API Reference' },
+  { path: '/debugging', label: '🔍 Debugging' },
   { path: '/mobile', label: '📱 Mobile' },
   { path: '/examples', label: '✨ Examples' },
   { path: '/playground', label: '🎮 Playground' }
 ];
 
 // Current version - automatically updated by npm version script
-export const version = '1.4.8';
+export const version = '1.4.9';
 
 // =============================================================================
 // Router

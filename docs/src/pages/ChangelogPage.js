@@ -12,6 +12,159 @@ export function ChangelogPage() {
     <p class="intro">Recent updates and improvements to Pulse Framework</p>
 
     <section class="doc-section changelog-section">
+      <h2>v1.4.9 - Lazy Loading, Middleware & Source Maps</h2>
+      <p class="release-date">January 2026</p>
+
+      <h3>🚀 Lazy Loading Routes</h3>
+      <div class="changelog-group">
+        <p>Load route components on demand for faster initial page loads:</p>
+
+        <div class="changelog-item">
+          <h4>lazy() Function</h4>
+          <p>Wrap dynamic imports with loading states and error handling:</p>
+          <div class="code-block">
+            <pre><code>import { createRouter, lazy } from 'pulse-js-framework/runtime/router';
+
+const routes = {
+  '/': HomePage,
+  '/dashboard': lazy(() => import('./Dashboard.js')),
+  '/settings': lazy(() => import('./Settings.js'), {
+    loading: () => el('div.spinner', 'Loading...'),
+    error: (err) => el('div.error', \`Failed: \${err.message}\`),
+    timeout: 5000,  // Fail after 5s
+    delay: 200      // Show loading after 200ms
+  })
+};</code></pre>
+          </div>
+        </div>
+
+        <div class="changelog-item">
+          <h4>preload() Function</h4>
+          <p>Prefetch components without rendering - perfect for hover preloading:</p>
+          <div class="code-block">
+            <pre><code>import { preload } from 'pulse-js-framework/runtime/router';
+
+const DashboardLazy = lazy(() => import('./Dashboard.js'));
+
+// Preload on hover
+link.addEventListener('mouseenter', () => preload(DashboardLazy));</code></pre>
+          </div>
+        </div>
+
+        <div class="changelog-item">
+          <h4>Component Caching</h4>
+          <p>Once loaded, components are cached for instant re-navigation. No redundant network requests.</p>
+        </div>
+      </div>
+
+      <h3>🔗 Router Middleware</h3>
+      <div class="changelog-group">
+        <p>Koa-style middleware pipeline for flexible navigation control:</p>
+
+        <div class="changelog-item">
+          <h4>Middleware Configuration</h4>
+          <p>Add middleware via the <code>middleware</code> option:</p>
+          <div class="code-block">
+            <pre><code>const router = createRouter({
+  routes,
+  middleware: [
+    // Logger middleware
+    async (ctx, next) => {
+      console.log('Navigating to:', ctx.to.path);
+      const start = Date.now();
+      await next();
+      console.log(\`Navigation took \${Date.now() - start}ms\`);
+    },
+    // Auth middleware
+    async (ctx, next) => {
+      if (ctx.to.meta.requiresAuth && !isLoggedIn()) {
+        return ctx.redirect('/login');
+      }
+      await next();
+    }
+  ]
+});</code></pre>
+          </div>
+        </div>
+
+        <div class="changelog-item">
+          <h4>Middleware Context</h4>
+          <p>Each middleware receives a context object with:</p>
+          <ul class="feature-list">
+            <li><code>ctx.to</code> - Target route (path, params, query, meta)</li>
+            <li><code>ctx.from</code> - Source route</li>
+            <li><code>ctx.meta</code> - Shared metadata between middlewares</li>
+            <li><code>ctx.redirect(path)</code> - Redirect to another path</li>
+            <li><code>ctx.abort()</code> - Cancel navigation</li>
+          </ul>
+        </div>
+
+        <div class="changelog-item">
+          <h4>Dynamic Middleware</h4>
+          <p>Add middleware at runtime with <code>router.use()</code>:</p>
+          <div class="code-block">
+            <pre><code>// Add middleware dynamically
+const unsubscribe = router.use(async (ctx, next) => {
+  ctx.meta.startTime = Date.now();
+  await next();
+});
+
+// Remove later
+unsubscribe();</code></pre>
+          </div>
+        </div>
+      </div>
+
+      <h3>🗺️ Source Maps</h3>
+      <div class="changelog-group">
+        <p>V3 source map generation for debugging original <code>.pulse</code> code:</p>
+
+        <div class="changelog-item">
+          <h4>Compiler Options</h4>
+          <div class="code-block">
+            <pre><code>import { compile } from 'pulse-js-framework/compiler';
+
+const result = compile(source, {
+  sourceMap: true,           // Generate source map
+  sourceFileName: 'App.pulse',
+  inlineSourceMap: true      // Embed in output
+});
+
+console.log(result.sourceMap);  // V3 source map object</code></pre>
+          </div>
+        </div>
+
+        <div class="changelog-item">
+          <h4>Source Map APIs</h4>
+          <p>Low-level APIs for custom tooling:</p>
+          <ul class="feature-list">
+            <li><code>SourceMapGenerator</code> - Create source maps with VLQ encoding</li>
+            <li><code>SourceMapConsumer</code> - Parse and query source maps</li>
+            <li><code>encodeVLQ()</code> - Variable Length Quantity encoding</li>
+          </ul>
+        </div>
+      </div>
+
+      <h3>🧪 Test Suite</h3>
+      <div class="changelog-group">
+        <p>53 new tests added:</p>
+        <ul class="feature-list">
+          <li>15 lazy loading tests</li>
+          <li>9 middleware tests</li>
+          <li>29 source map tests (VLQ encoding, generator, consumer, compiler integration)</li>
+        </ul>
+      </div>
+
+      <h3>⚡ Performance</h3>
+      <div class="changelog-group">
+        <ul class="feature-list">
+          <li>Router now uses radix trie for O(path length) route matching</li>
+          <li>Lazy components are cached after first load</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="doc-section changelog-section">
       <h2>v1.4.8 - IntelliJ IDEA Plugin</h2>
       <p class="release-date">January 2026</p>
 

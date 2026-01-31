@@ -223,6 +223,63 @@ style {
       </div>
     </section>
 
+    <section class="doc-section">
+      <h2>Advanced Routing</h2>
+      <p>Pulse router supports lazy loading, middleware, and code splitting for optimal performance.</p>
+
+      <h3>Lazy Loading</h3>
+      <p>Load route components on demand to reduce initial bundle size:</p>
+      <div class="code-block">
+        <pre><code>import { createRouter, lazy, preload } from 'pulse-js-framework/runtime/router';
+
+const routes = {
+  '/': HomePage,
+  // Lazy load heavy components
+  '/dashboard': lazy(() => import('./Dashboard.js')),
+  '/settings': lazy(() => import('./Settings.js'), {
+    loading: () => el('div.spinner', 'Loading...'),
+    error: (err) => el('div.error', \`Error: \${err.message}\`),
+    timeout: 5000
+  })
+};
+
+// Preload on hover for instant navigation
+link.addEventListener('mouseenter', () => preload(routes['/dashboard']));</code></pre>
+      </div>
+
+      <h3>Middleware</h3>
+      <p>Koa-style middleware for flexible navigation control:</p>
+      <div class="code-block">
+        <pre><code>const router = createRouter({
+  routes,
+  middleware: [
+    // Authentication check
+    async (ctx, next) => {
+      if (ctx.to.meta.requiresAuth && !isLoggedIn()) {
+        return ctx.redirect('/login');
+      }
+      await next();
+    },
+    // Analytics logging
+    async (ctx, next) => {
+      const start = Date.now();
+      await next();
+      analytics.track('navigation', {
+        path: ctx.to.path,
+        duration: Date.now() - start
+      });
+    }
+  ]
+});
+
+// Add/remove middleware dynamically
+const unsubscribe = router.use(async (ctx, next) => {
+  ctx.meta.timestamp = Date.now();
+  await next();
+});</code></pre>
+      </div>
+    </section>
+
     <div class="next-section">
       <button class="btn btn-primary" onclick="window.docs.navigate('/api-reference')">
         Next: API Reference →
