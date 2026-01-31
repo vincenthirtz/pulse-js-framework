@@ -70,6 +70,14 @@ const log = loggers.pulse;
  */
 
 /**
+ * Maximum number of effect re-run iterations before aborting.
+ * Prevents infinite loops when effects trigger each other cyclically.
+ * Set to 100 to allow deep chain reactions while catching most real loops.
+ * @type {number}
+ */
+const MAX_EFFECT_ITERATIONS = 100;
+
+/**
  * Global reactive context - holds all tracking state.
  * Exported for testing purposes (use resetContext() to reset).
  * @type {ReactiveContext}
@@ -515,10 +523,9 @@ function flushEffects() {
 
   context.isRunningEffects = true;
   let iterations = 0;
-  const maxIterations = 100; // Prevent infinite loops
 
   try {
-    while (context.pendingEffects.size > 0 && iterations < maxIterations) {
+    while (context.pendingEffects.size > 0 && iterations < MAX_EFFECT_ITERATIONS) {
       iterations++;
       const effects = [...context.pendingEffects];
       context.pendingEffects.clear();
@@ -528,8 +535,8 @@ function flushEffects() {
       }
     }
 
-    if (iterations >= maxIterations) {
-      log.warn('Maximum effect iterations reached. Possible infinite loop.');
+    if (iterations >= MAX_EFFECT_ITERATIONS) {
+      log.warn(`Maximum effect iterations (${MAX_EFFECT_ITERATIONS}) reached. Possible infinite loop.`);
       context.pendingEffects.clear();
     }
   } finally {
@@ -586,6 +593,8 @@ export function computed(fn, options = {}) {
 
     // Track which pulses this depends on
     let trackedDeps = new Set();
+    // Track subscription cleanup functions to prevent memory leaks
+    let subscriptionCleanups = [];
 
     p.get = function() {
       if (dirty) {
@@ -603,18 +612,21 @@ export function computed(fn, options = {}) {
           dirty = false;
 
           // Cleanup old subscriptions
-          for (const dep of trackedDeps) {
-            dep._unsubscribe(markDirty);
+          for (const unsubscribe of subscriptionCleanups) {
+            unsubscribe();
           }
+          subscriptionCleanups = [];
+          trackedDeps.clear();
 
           // Set up new subscriptions
           trackedDeps = tempEffect.dependencies;
           for (const dep of trackedDeps) {
-            dep.subscribe(() => {
+            const unsubscribe = dep.subscribe(() => {
               dirty = true;
               // Notify our own subscribers
               p._triggerNotify();
             });
+            subscriptionCleanups.push(unsubscribe);
           }
 
           p._init(cachedValue);
@@ -632,7 +644,14 @@ export function computed(fn, options = {}) {
       return cachedValue;
     };
 
-    const markDirty = { run: () => { dirty = true; }, dependencies: new Set(), cleanups: [] };
+    // Cleanup function for lazy computed
+    cleanup = () => {
+      for (const unsubscribe of subscriptionCleanups) {
+        unsubscribe();
+      }
+      subscriptionCleanups = [];
+      trackedDeps.clear();
+    };
   } else {
     // Eager computed - updates immediately when dependencies change
     cleanup = effect(() => {

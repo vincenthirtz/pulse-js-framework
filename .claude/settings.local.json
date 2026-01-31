@@ -9,7 +9,8 @@
       "Bash(npm test)",
       "Bash(node -e:*)",
       "Bash(node test/lint.test.js:*)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(wc:*)"
     ]
   }
 }

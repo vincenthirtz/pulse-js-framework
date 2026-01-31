@@ -15,13 +15,21 @@ export class LRUCache {
   /**
    * Create an LRU cache
    * @param {number} capacity - Maximum number of items to store
+   * @param {Object} [options] - Configuration options
+   * @param {boolean} [options.trackMetrics=false] - Enable hit/miss/eviction tracking
    */
-  constructor(capacity) {
+  constructor(capacity, options = {}) {
     if (capacity <= 0) {
       throw new Error('LRU cache capacity must be greater than 0');
     }
     this._capacity = capacity;
     this._cache = new Map();
+
+    // Metrics tracking
+    this._trackMetrics = options.trackMetrics || false;
+    this._hits = 0;
+    this._misses = 0;
+    this._evictions = 0;
   }
 
   /**
@@ -32,8 +40,11 @@ export class LRUCache {
    */
   get(key) {
     if (!this._cache.has(key)) {
+      if (this._trackMetrics) this._misses++;
       return undefined;
     }
+
+    if (this._trackMetrics) this._hits++;
 
     // Move to end (most recently used) by re-inserting
     const value = this._cache.get(key);
@@ -57,6 +68,7 @@ export class LRUCache {
       // Remove oldest (first item in Map)
       const oldest = this._cache.keys().next().value;
       this._cache.delete(oldest);
+      if (this._trackMetrics) this._evictions++;
     }
 
     this._cache.set(key, value);
@@ -135,6 +147,46 @@ export class LRUCache {
    */
   forEach(callback) {
     this._cache.forEach((value, key) => callback(value, key, this));
+  }
+
+  /**
+   * Get cache performance metrics
+   * Only available if trackMetrics option was enabled
+   * @returns {{hits: number, misses: number, evictions: number, hitRate: number, size: number, capacity: number}}
+   * @example
+   * const cache = new LRUCache(100, { trackMetrics: true });
+   * // ... use cache ...
+   * const stats = cache.getMetrics();
+   * console.log(`Hit rate: ${(stats.hitRate * 100).toFixed(1)}%`);
+   */
+  getMetrics() {
+    const total = this._hits + this._misses;
+    return {
+      hits: this._hits,
+      misses: this._misses,
+      evictions: this._evictions,
+      hitRate: total > 0 ? this._hits / total : 0,
+      size: this._cache.size,
+      capacity: this._capacity
+    };
+  }
+
+  /**
+   * Reset all metrics counters to zero
+   * Useful for measuring metrics over specific time periods
+   */
+  resetMetrics() {
+    this._hits = 0;
+    this._misses = 0;
+    this._evictions = 0;
+  }
+
+  /**
+   * Enable or disable metrics tracking
+   * @param {boolean} enabled - Whether to track metrics
+   */
+  setMetricsTracking(enabled) {
+    this._trackMetrics = enabled;
   }
 }
 

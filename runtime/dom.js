@@ -28,6 +28,38 @@ const log = loggers.dom;
 // Cache hit returns a shallow copy to prevent mutation of cached config
 const selectorCache = new LRUCache(500);
 
+/**
+ * Safely insert a node before a reference node
+ * Returns false if the parent is detached (no parentNode)
+ * @private
+ * @param {Node} newNode - Node to insert
+ * @param {Node} refNode - Reference node (insert before this)
+ * @returns {boolean} True if insertion succeeded
+ */
+function safeInsertBefore(newNode, refNode) {
+  if (!refNode.parentNode) {
+    log.warn('Cannot insert node: reference node has no parent (may be detached)');
+    return false;
+  }
+  refNode.parentNode.insertBefore(newNode, refNode);
+  return true;
+}
+
+/**
+ * Resolve a selector string or element to a DOM element
+ * @private
+ * @param {string|HTMLElement} target - CSS selector or DOM element
+ * @param {string} context - Context name for error messages
+ * @returns {{element: HTMLElement|null, selector: string}} Resolved element and original selector
+ */
+function resolveSelector(target, context = 'target') {
+  if (typeof target === 'string') {
+    const element = document.querySelector(target);
+    return { element, selector: target };
+  }
+  return { element: target, selector: '(element)' };
+}
+
 // Lifecycle tracking
 let mountCallbacks = [];
 let unmountCallbacks = [];
@@ -58,8 +90,13 @@ export function onUnmount(fn) {
 
 /**
  * Parse a CSS selector-like string into element configuration
- * Supports: tag, #id, .class, [attr=value]
- * Results are cached for performance.
+ * Results are cached for performance using LRU cache.
+ *
+ * Supported syntax:
+ * - Tag: `div`, `span`, `custom-element`
+ * - ID: `#app`, `#my-id`, `#_private`
+ * - Classes: `.class`, `.my-class`, `.-modifier`
+ * - Attributes: `[attr]`, `[attr=value]`, `[attr="quoted value"]`, `[attr='single quoted']`
  *
  * Examples:
  *   "div" -> { tag: "div" }
@@ -67,6 +104,10 @@ export function onUnmount(fn) {
  *   ".container" -> { tag: "div", classes: ["container"] }
  *   "button.primary.large" -> { tag: "button", classes: ["primary", "large"] }
  *   "input[type=text][placeholder=Name]" -> { tag: "input", attrs: { type: "text", placeholder: "Name" } }
+ *   "div[data-id=\"complex-123\"]" -> { tag: "div", attrs: { "data-id": "complex-123" } }
+ *
+ * @param {string} selector - CSS selector-like string
+ * @returns {{tag: string, id: string|null, classes: string[], attrs: Object}} Parsed configuration
  */
 export function parseSelector(selector) {
   if (!selector || selector === '') {
@@ -101,30 +142,41 @@ export function parseSelector(selector) {
     remaining = remaining.slice(tagMatch[0].length);
   }
 
-  // Match ID
-  const idMatch = remaining.match(/#([a-zA-Z][a-zA-Z0-9-_]*)/);
+  // Match ID (supports starting with letter, underscore, or hyphen followed by valid chars)
+  const idMatch = remaining.match(/#([a-zA-Z_-][a-zA-Z0-9-_]*)/);
   if (idMatch) {
     config.id = idMatch[1];
     remaining = remaining.replace(idMatch[0], '');
   }
 
-  // Match classes
-  const classMatches = remaining.matchAll(/\.([a-zA-Z][a-zA-Z0-9-_]*)/g);
+  // Match classes (supports starting with letter, underscore, or hyphen)
+  const classMatches = remaining.matchAll(/\.([a-zA-Z_-][a-zA-Z0-9-_]*)/g);
   for (const match of classMatches) {
     config.classes.push(match[1]);
   }
 
-  // Match attributes
-  const attrMatches = remaining.matchAll(/\[([a-zA-Z][a-zA-Z0-9-_]*)(?:=([^\]]+))?\]/g);
+  // Match attributes - improved regex handles quoted values with special characters
+  // Matches: [attr], [attr=value], [attr="quoted value"], [attr='quoted value']
+  const attrRegex = /\[([a-zA-Z_][a-zA-Z0-9-_]*)(?:=(?:"([^"]*)"|'([^']*)'|([^\]]*)))?\]/g;
+  const attrMatches = remaining.matchAll(attrRegex);
   for (const match of attrMatches) {
     const key = match[1];
-    let value = match[2] || '';
-    // Remove quotes if present
-    if ((value.startsWith('"') && value.endsWith('"')) ||
-        (value.startsWith("'") && value.endsWith("'"))) {
-      value = value.slice(1, -1);
-    }
+    // Value can be in match[2] (double-quoted), match[3] (single-quoted), or match[4] (unquoted)
+    const value = match[2] ?? match[3] ?? match[4] ?? '';
     config.attrs[key] = value;
+  }
+
+  // Validate: check for unparsed content (malformed selector parts)
+  // Remove all parsed parts to see if anything remains
+  let unparsed = remaining
+    .replace(/#[a-zA-Z_-][a-zA-Z0-9-_]*/g, '')  // Remove IDs
+    .replace(/\.[a-zA-Z_-][a-zA-Z0-9-_]*/g, '') // Remove classes
+    .replace(/\[([a-zA-Z_][a-zA-Z0-9-_]*)(?:=(?:"[^"]*"|'[^']*'|[^\]]*))?\]/g, '') // Remove attrs
+    .trim();
+
+  if (unparsed) {
+    log.warn(`Selector "${selector}" contains unrecognized parts: "${unparsed}". ` +
+      'Supported syntax: tag#id.class[attr=value]');
   }
 
   // Cache the result (LRU cache handles eviction automatically)
@@ -217,7 +269,11 @@ function appendChild(parent, child) {
             }
           }
         }
-        placeholder.parentNode.insertBefore(fragment, placeholder.nextSibling);
+        if (placeholder.parentNode) {
+          placeholder.parentNode.insertBefore(fragment, placeholder.nextSibling);
+        } else {
+          log.warn('Cannot insert reactive children: placeholder has no parent node');
+        }
       }
     });
   }
@@ -552,12 +608,8 @@ export function model(element, pulseValue) {
  * @throws {Error} If target element is not found
  */
 export function mount(target, element) {
-  const originalTarget = target;
-  if (typeof target === 'string') {
-    target = document.querySelector(target);
-  }
-  if (!target) {
-    const selector = typeof originalTarget === 'string' ? originalTarget : '(element)';
+  const { element: resolved, selector } = resolveSelector(target, 'mount');
+  if (!resolved) {
     throw new Error(
       `[Pulse] Mount target not found: "${selector}". ` +
       `Ensure the element exists in the DOM before mounting. ` +
@@ -565,7 +617,7 @@ export function mount(target, element) {
       `or place your script at the end of <body>.`
     );
   }
-  target.appendChild(element);
+  resolved.appendChild(element);
   return () => {
     element.remove();
   };
@@ -649,12 +701,10 @@ export function show(condition, element) {
  * Portal - render children into a different DOM location
  */
 export function portal(children, target) {
-  const resolvedTarget = typeof target === 'string'
-    ? document.querySelector(target)
-    : target;
+  const { element: resolvedTarget, selector } = resolveSelector(target, 'portal');
 
   if (!resolvedTarget) {
-    log.warn('Portal target not found:', target);
+    log.warn(`Portal target not found: "${selector}"`);
     return document.createComment('portal-target-not-found');
   }
 

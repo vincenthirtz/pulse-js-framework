@@ -371,6 +371,36 @@ test('list removes items', () => {
   assertEqual(container.querySelectorAll('li').length, 1);
 });
 
+test('list handles rapid empty/non-empty transitions', () => {
+  const items = pulse([{ id: 1, name: 'a' }]);
+  const container = el('ul');
+
+  const fragment = list(
+    items,
+    (item) => el('li', item.name),
+    (item) => item.id
+  );
+
+  container.appendChild(fragment);
+  assertEqual(container.querySelectorAll('li').length, 1);
+
+  // Transition to empty
+  items.set([]);
+  assertEqual(container.querySelectorAll('li').length, 0);
+
+  // Transition back to non-empty
+  items.set([{ id: 2, name: 'b' }, { id: 3, name: 'c' }]);
+  assertEqual(container.querySelectorAll('li').length, 2);
+
+  // Empty again
+  items.set([]);
+  assertEqual(container.querySelectorAll('li').length, 0);
+
+  // Single item again
+  items.set([{ id: 4, name: 'd' }]);
+  assertEqual(container.querySelectorAll('li').length, 1);
+});
+
 // =============================================================================
 // when() Tests
 // =============================================================================

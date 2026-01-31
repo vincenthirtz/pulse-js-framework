@@ -225,8 +225,14 @@ function createMiddlewareRunner(middlewares) {
       if (aborted || redirectPath) return;
       if (index >= middlewares.length) return;
 
+      const middlewareIndex = index;
       const middleware = middlewares[index++];
-      await middleware(ctx, next);
+      try {
+        await middleware(ctx, next);
+      } catch (error) {
+        log.error(`Middleware error at index ${middlewareIndex}:`, error);
+        throw error; // Re-throw to halt navigation
+      }
     }
 
     await next();
@@ -417,23 +423,58 @@ function matchRoute(pattern, path) {
   return params;
 }
 
+// Query string validation limits
+const QUERY_LIMITS = {
+  maxTotalLength: 2048,     // 2KB max for entire query string
+  maxValueLength: 1024,     // 1KB max per individual value
+  maxParams: 50             // Maximum number of query parameters
+};
+
 /**
- * Parse query string into object
+ * Parse query string into object with validation
+ * @param {string} search - Query string (with or without leading ?)
+ * @returns {Object} Parsed query parameters
  */
 function parseQuery(search) {
-  const params = new URLSearchParams(search);
+  if (!search) return {};
+
+  // Remove leading ? if present
+  const queryStr = search.startsWith('?') ? search.slice(1) : search;
+
+  // Validate total length
+  if (queryStr.length > QUERY_LIMITS.maxTotalLength) {
+    log.warn(`Query string exceeds maximum length (${QUERY_LIMITS.maxTotalLength} chars). Truncating.`);
+  }
+
+  const params = new URLSearchParams(queryStr.slice(0, QUERY_LIMITS.maxTotalLength));
   const query = {};
+  let paramCount = 0;
+
   for (const [key, value] of params) {
+    // Check parameter count limit
+    if (paramCount >= QUERY_LIMITS.maxParams) {
+      log.warn(`Query string exceeds maximum parameters (${QUERY_LIMITS.maxParams}). Ignoring excess.`);
+      break;
+    }
+
+    // Validate and potentially truncate value length
+    let safeValue = value;
+    if (value.length > QUERY_LIMITS.maxValueLength) {
+      log.warn(`Query parameter "${key}" exceeds maximum length. Truncating.`);
+      safeValue = value.slice(0, QUERY_LIMITS.maxValueLength);
+    }
+
     if (key in query) {
       // Multiple values for same key
       if (Array.isArray(query[key])) {
-        query[key].push(value);
+        query[key].push(safeValue);
       } else {
-        query[key] = [query[key], value];
+        query[key] = [query[key], safeValue];
       }
     } else {
-      query[key] = value;
+      query[key] = safeValue;
     }
+    paramCount++;
   }
   return query;
 }
@@ -460,6 +501,10 @@ export function createRouter(options = {}) {
   const currentQuery = pulse({});
   const currentMeta = pulse({});
   const isLoading = pulse(false);
+  const routeError = pulse(null);
+
+  // Route error handler (configurable)
+  let onRouteError = options.onRouteError || null;
 
   // Scroll positions for history
   const scrollPositions = new Map();
@@ -793,25 +838,65 @@ export function createRouter(options = {}) {
           router
         };
 
-        // Call handler and render result
-        const result = typeof route.handler === 'function'
-          ? route.handler(ctx)
-          : route.handler;
+        // Helper to handle errors
+        const handleError = (error) => {
+          routeError.set(error);
+          log.error('Route component error:', error);
+
+          if (onRouteError) {
+            try {
+              const errorView = onRouteError(error, ctx);
+              if (errorView instanceof Node) {
+                container.replaceChildren(errorView);
+                currentView = errorView;
+                return true;
+              }
+            } catch (handlerError) {
+              log.error('Route error handler threw:', handlerError);
+            }
+          }
+
+          const errorEl = el('div.route-error', [
+            el('h2', 'Route Error'),
+            el('p', error.message || 'Failed to load route component')
+          ]);
+          container.replaceChildren(errorEl);
+          currentView = errorEl;
+          return true;
+        };
+
+        // Call handler and render result (with error handling)
+        let result;
+        try {
+          result = typeof route.handler === 'function'
+            ? route.handler(ctx)
+            : route.handler;
+        } catch (error) {
+          handleError(error);
+          return;
+        }
 
         if (result instanceof Node) {
           container.appendChild(result);
           currentView = result;
+          routeError.set(null);
         } else if (result && typeof result.then === 'function') {
           // Async component
           isLoading.set(true);
-          result.then(component => {
-            isLoading.set(false);
-            const view = typeof component === 'function' ? component(ctx) : component;
-            if (view instanceof Node) {
-              container.appendChild(view);
-              currentView = view;
-            }
-          });
+          routeError.set(null);
+          result
+            .then(component => {
+              isLoading.set(false);
+              const view = typeof component === 'function' ? component(ctx) : component;
+              if (view instanceof Node) {
+                container.appendChild(view);
+                currentView = view;
+              }
+            })
+            .catch(error => {
+              isLoading.set(false);
+              handleError(error);
+            });
         }
       }
     });
@@ -868,6 +953,17 @@ export function createRouter(options = {}) {
   /**
    * Check if a route matches the given path
    */
+  /**
+   * Check if a path matches the current route
+   * @param {string} path - Path to check
+   * @param {boolean} [exact=false] - If true, requires exact match; if false, matches prefixes
+   * @returns {boolean} True if path is active
+   * @example
+   * // Current path: /users/123
+   * router.isActive('/users');      // true (prefix match)
+   * router.isActive('/users', true); // false (not exact)
+   * router.isActive('/users/123', true); // true (exact match)
+   */
   function isActive(path, exact = false) {
     const current = currentPath.get();
     if (exact) {
@@ -877,7 +973,12 @@ export function createRouter(options = {}) {
   }
 
   /**
-   * Get all matched routes (for nested routes)
+   * Get all routes that match a given path (useful for nested routes)
+   * @param {string} path - Path to match against routes
+   * @returns {Array<{route: Object, params: Object}>} Array of matched routes with extracted params
+   * @example
+   * const matches = router.getMatchedRoutes('/admin/users/123');
+   * // Returns: [{route: adminRoute, params: {}}, {route: userRoute, params: {id: '123'}}]
    */
   function getMatchedRoutes(path) {
     const matches = [];
@@ -891,53 +992,107 @@ export function createRouter(options = {}) {
   }
 
   /**
-   * Go back in history
+   * Navigate back in browser history
+   * Equivalent to browser back button
+   * @returns {void}
+   * @example
+   * router.back(); // Go to previous page
    */
   function back() {
     window.history.back();
   }
 
   /**
-   * Go forward in history
+   * Navigate forward in browser history
+   * Equivalent to browser forward button
+   * @returns {void}
+   * @example
+   * router.forward(); // Go to next page (if available)
    */
   function forward() {
     window.history.forward();
   }
 
   /**
-   * Go to specific history entry
+   * Navigate to a specific position in browser history
+   * @param {number} delta - Number of entries to move (negative = back, positive = forward)
+   * @returns {void}
+   * @example
+   * router.go(-2); // Go back 2 pages
+   * router.go(1);  // Go forward 1 page
    */
   function go(delta) {
     window.history.go(delta);
   }
 
+  /**
+   * Set route error handler
+   * @param {function} handler - Error handler (error, ctx) => Node
+   * @returns {function} Previous handler
+   */
+  function setErrorHandler(handler) {
+    const prev = onRouteError;
+    onRouteError = handler;
+    return prev;
+  }
+
+  /**
+   * Router instance with reactive state and navigation methods.
+   *
+   * Reactive properties (use .get() to read value, auto-updates in effects):
+   * - path: Current URL path as string
+   * - route: Current matched route object or null
+   * - params: Route params object, e.g., {id: '123'}
+   * - query: Query params object, e.g., {page: '1'}
+   * - meta: Route meta data object
+   * - loading: Boolean indicating async route loading
+   * - error: Current route error or null
+   *
+   * @example
+   * // Read reactive state
+   * router.path.get();   // '/users/123'
+   * router.params.get(); // {id: '123'}
+   *
+   * // Subscribe to changes
+   * effect(() => {
+   *   console.log('Path changed:', router.path.get());
+   * });
+   *
+   * // Navigate
+   * router.navigate('/users/456');
+   * router.back();
+   */
   const router = {
-    // Reactive state (read-only)
+    // Reactive state (read-only) - use .get() to read, subscribe with effects
     path: currentPath,
     route: currentRoute,
     params: currentParams,
     query: currentQuery,
     meta: currentMeta,
     loading: isLoading,
+    error: routeError,
 
-    // Methods
+    // Navigation methods
     navigate,
     start,
     link,
     outlet,
+    back,
+    forward,
+    go,
+
+    // Guards and middleware
     use,
     beforeEach,
     beforeResolve,
     afterEach,
-    back,
-    forward,
-    go,
+    setErrorHandler,
 
     // Route inspection
     isActive,
     getMatchedRoutes,
 
-    // Utils
+    // Utility functions
     matchRoute,
     parseQuery
   };

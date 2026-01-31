@@ -11,7 +11,18 @@ export function ChangelogPage() {
     <h1>📋 Changelog</h1>
     <p class="intro">Recent updates and improvements to Pulse Framework</p>
 
+    
     <section class="doc-section changelog-section">
+      <h2>v1.5.3 - Security, errors handling, nested objects, routes async, memory leaks, tests</h2>
+      <p class="release-date">January 2026</p>
+
+      <div class="changelog-group">
+        <ul class="feature-list">
+          <li><strong>Added:</strong> Add non-interactive options to pulse release</li>
+        </ul>
+      </div>
+    </section>
+<section class="doc-section changelog-section">
       <h2>v1.5.1 - CLI Improvements</h2>
       <p class="release-date">January 2026</p>
 

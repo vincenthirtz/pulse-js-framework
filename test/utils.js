@@ -31,6 +31,13 @@ const stats = {
 };
 
 /**
+ * Test output symbols
+ * @private
+ */
+const PASS_MARK = '\u2713'; // ✓
+const FAIL_MARK = '\u2717'; // ✗
+
+/**
  * Collection of async tests to be run after sync tests
  * @type {Array<{name: string, fn: Function}>}
  */
@@ -90,10 +97,10 @@ class TestContext {
     if (this.beforeEachFn) this.beforeEachFn();
     try {
       fn();
-      console.log(`\u2713 ${name}`);
+      console.log(`${PASS_MARK} ${name}`);
       this.passed++;
     } catch (error) {
-      console.log(`\u2717 ${name}`);
+      console.log(`${FAIL_MARK} ${name}`);
       console.log(`  Error: ${error.message}`);
       this.failed++;
     }
@@ -117,10 +124,10 @@ class TestContext {
       if (this.beforeEachFn) this.beforeEachFn();
       try {
         await fn();
-        console.log(`\u2713 ${name}`);
+        console.log(`${PASS_MARK} ${name}`);
         this.passed++;
       } catch (error) {
-        console.log(`\u2717 ${name}`);
+        console.log(`${FAIL_MARK} ${name}`);
         console.log(`  Error: ${error.message}`);
         this.failed++;
       }
@@ -174,10 +181,10 @@ export function test(name, fn) {
   if (beforeEachFn) beforeEachFn();
   try {
     fn();
-    console.log(`\u2713 ${name}`);
+    console.log(`${PASS_MARK} ${name}`);
     stats.passed++;
   } catch (error) {
-    console.log(`\u2717 ${name}`);
+    console.log(`${FAIL_MARK} ${name}`);
     console.log(`  Error: ${error.message}`);
     stats.failed++;
   }
@@ -218,10 +225,10 @@ export async function runAsyncTests() {
     if (beforeEachFn) beforeEachFn();
     try {
       await fn();
-      console.log(`\u2713 ${name}`);
+      console.log(`${PASS_MARK} ${name}`);
       stats.passed++;
     } catch (error) {
-      console.log(`\u2717 ${name}`);
+      console.log(`${FAIL_MARK} ${name}`);
       console.log(`  Error: ${error.message}`);
       stats.failed++;
     }

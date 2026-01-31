@@ -40,6 +40,13 @@ let globalLevel = LogLevel.INFO;
 let globalFormatter = null;
 
 /**
+ * Namespace formatting helpers
+ * @private
+ */
+const NAMESPACE_SEPARATOR = ':';
+const formatNamespace = (ns) => `[${ns}]`;
+
+/**
  * @callback LogFormatter
  * @param {'error'|'warn'|'info'|'debug'} level - The log level
  * @param {string|null} namespace - The logger namespace
@@ -97,13 +104,14 @@ export function setFormatter(formatter) {
 function formatArgs(namespace, args) {
   if (!namespace) return args;
 
+  const prefix = formatNamespace(namespace);
   // If first arg is a string, prepend namespace
   if (typeof args[0] === 'string') {
-    return [`[${namespace}] ${args[0]}`, ...args.slice(1)];
+    return [`${prefix} ${args[0]}`, ...args.slice(1)];
   }
 
   // Otherwise, add namespace as first arg
-  return [`[${namespace}]`, ...args];
+  return [prefix, ...args];
 }
 
 /**
@@ -217,7 +225,7 @@ export function createLogger(namespace = null, options = {}) {
      */
     group(label) {
       if (shouldLog(LogLevel.DEBUG)) {
-        console.group(namespace ? `[${namespace}] ${label}` : label);
+        console.group(namespace ? `${formatNamespace(namespace)} ${label}` : label);
       }
     },
 
@@ -264,7 +272,7 @@ export function createLogger(namespace = null, options = {}) {
      */
     child(childNamespace) {
       const combined = namespace
-        ? `${namespace}:${childNamespace}`
+        ? `${namespace}${NAMESPACE_SEPARATOR}${childNamespace}`
         : childNamespace;
       return createLogger(combined, options);
     }

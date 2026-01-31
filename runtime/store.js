@@ -59,6 +59,56 @@ const MAX_NESTING_DEPTH = 10;
 const DANGEROUS_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 
 /**
+ * Invalid value types that cannot be stored in state
+ * @type {Set<string>}
+ */
+const INVALID_TYPES = new Set(['function', 'symbol']);
+
+/**
+ * Validate state values, rejecting functions, symbols, and circular references
+ * @private
+ * @param {*} value - Value to validate
+ * @param {string} path - Current path for error messages
+ * @param {WeakSet} seen - Set of objects already visited (for circular detection)
+ * @throws {TypeError} If value contains invalid types or circular references
+ */
+function validateStateValue(value, path = 'state', seen = new WeakSet()) {
+  const valueType = typeof value;
+
+  // Check for invalid types
+  if (INVALID_TYPES.has(valueType)) {
+    throw new TypeError(
+      `Invalid state value at "${path}": ${valueType}s cannot be stored in state. ` +
+      `State values must be primitives, arrays, or plain objects.`
+    );
+  }
+
+  // Check objects for circular references and nested invalid types
+  if (value !== null && valueType === 'object') {
+    // Check for circular reference
+    if (seen.has(value)) {
+      throw new TypeError(
+        `Circular reference detected at "${path}". ` +
+        `State must not contain circular references.`
+      );
+    }
+    seen.add(value);
+
+    // Validate array elements
+    if (Array.isArray(value)) {
+      for (let i = 0; i < value.length; i++) {
+        validateStateValue(value[i], `${path}[${i}]`, seen);
+      }
+    } else {
+      // Validate object properties
+      for (const [key, val] of Object.entries(value)) {
+        validateStateValue(val, `${path}.${key}`, seen);
+      }
+    }
+  }
+}
+
+/**
  * Safely deserialize persisted state, preventing prototype pollution
  * and property injection attacks.
  * @private
@@ -121,6 +171,9 @@ function safeDeserialize(savedState, schema) {
  */
 export function createStore(initialState = {}, options = {}) {
   const { persist = false, storageKey = 'pulse-store' } = options;
+
+  // Validate initial state
+  validateStateValue(initialState, 'initialState');
 
   // Load persisted state if enabled
   let state = initialState;

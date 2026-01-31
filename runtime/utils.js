@@ -22,10 +22,10 @@ const HTML_ESCAPES = {
 };
 
 /**
- * Regex for HTML special characters
+ * Regex for HTML special characters (auto-generated from HTML_ESCAPES keys)
  * @private
  */
-const HTML_ESCAPE_REGEX = /[&<>"']/g;
+const HTML_ESCAPE_REGEX = new RegExp(`[${Object.keys(HTML_ESCAPES).join('')}]`, 'g');
 
 /**
  * Escape HTML special characters to prevent XSS attacks.
