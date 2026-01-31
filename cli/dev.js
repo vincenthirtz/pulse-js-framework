@@ -25,8 +25,28 @@ const MIME_TYPES = {
   '.woff2': 'font/woff2'
 };
 
-// Connected clients for HMR
+// Connected clients for LiveReload (Server-Sent Events)
 const clients = new Set();
+
+// LiveReload client script injected into HTML
+const LIVERELOAD_SCRIPT = `
+<script>
+(function() {
+  var es = new EventSource('/__pulse_livereload');
+  es.onmessage = function(e) {
+    if (e.data === 'reload') {
+      console.log('[Pulse] Reloading...');
+      location.reload();
+    }
+  };
+  es.onerror = function() {
+    console.log('[Pulse] Connection lost, reconnecting...');
+    es.close();
+    setTimeout(function() { location.reload(); }, 2000);
+  };
+})();
+</script>
+</body>`;
 
 /**
  * Start the development server
@@ -72,11 +92,18 @@ export async function startDevServer(args) {
     const url = new URL(req.url, `http://localhost:${port}`);
     let pathname = url.pathname;
 
-    // Handle HMR WebSocket upgrade
-    if (pathname === '/__pulse_hmr') {
-      // This would need WebSocket support
-      res.writeHead(200);
-      res.end();
+    // Handle LiveReload SSE endpoint
+    if (pathname === '/__pulse_livereload') {
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'Access-Control-Allow-Origin': '*'
+      });
+      res.write('data: connected\n\n');
+
+      clients.add(res);
+      req.on('close', () => clients.delete(res));
       return;
     }
 
@@ -188,8 +215,15 @@ export async function startDevServer(args) {
       const ext = extname(filePath);
       const mimeType = MIME_TYPES[ext] || 'application/octet-stream';
 
+      let content = readFileSync(filePath);
+
+      // Inject LiveReload script into HTML files
+      if (ext === '.html') {
+        content = content.toString().replace('</body>', LIVERELOAD_SCRIPT);
+      }
+
       res.writeHead(200, { 'Content-Type': mimeType });
-      res.end(readFileSync(filePath));
+      res.end(content);
       return;
     }
 
@@ -213,57 +247,39 @@ export async function startDevServer(args) {
 }
 
 /**
- * Watch files for changes
+ * Watch files for changes and trigger LiveReload
  */
 function watchFiles(root) {
   const srcDir = join(root, 'src');
+  let debounceTimer = null;
 
   if (existsSync(srcDir)) {
     watch(srcDir, { recursive: true }, (eventType, filename) => {
-      if (filename && filename.endsWith('.pulse')) {
-        log.debug(`File changed: ${filename}`);
-        // Notify HMR clients (simplified)
-        notifyClients({ type: 'update', path: `/src/${filename}` });
+      if (filename && (filename.endsWith('.pulse') || filename.endsWith('.js') || filename.endsWith('.css'))) {
+        // Debounce to avoid multiple reloads
+        if (debounceTimer) clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+          log.info(`File changed: ${filename}`);
+          notifyClients('reload');
+        }, 100);
       }
     });
+    log.debug('Watching src/ for changes...');
   }
 }
 
 /**
- * Notify connected HMR clients
+ * Notify connected LiveReload clients
  */
-function notifyClients(message) {
+function notifyClients(type = 'reload') {
+  log.info(`[LiveReload] Notifying ${clients.size} client(s)...`);
   for (const client of clients) {
     try {
-      client.send(JSON.stringify(message));
+      client.write(`data: ${type}\n\n`);
     } catch (e) {
       clients.delete(client);
     }
   }
-}
-
-/**
- * Get HMR client code
- */
-function getHMRClient() {
-  return `
-(function() {
-  const ws = new WebSocket('ws://' + location.host + '/__pulse_hmr');
-
-  ws.onmessage = function(event) {
-    const data = JSON.parse(event.data);
-    if (data.type === 'update') {
-      console.log('[Pulse HMR] Update:', data.path);
-      location.reload();
-    }
-  };
-
-  ws.onclose = function() {
-    console.log('[Pulse HMR] Connection lost, reconnecting...');
-    setTimeout(() => location.reload(), 1000);
-  };
-})();
-`;
 }
 
 export default { startDevServer };

@@ -819,8 +819,7 @@ export async function runRelease(args) {
   }
 
   if (!dryRun && !noPush) {
-    log.info('Next steps:');
-    log.info(`  1. Create GitHub release: https://github.com/vincenthirtz/pulse-js-framework/releases/new?tag=v${newVersion}`);
-    log.info('  2. Publish to npm: npm publish');
+    log.info('Next step:');
+    log.info(`  Create GitHub release: https://github.com/vincenthirtz/pulse-js-framework/releases/new?tag=v${newVersion}`);
   }
 }
