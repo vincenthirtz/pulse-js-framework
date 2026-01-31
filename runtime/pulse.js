@@ -103,6 +103,63 @@ export function resetContext() {
 }
 
 /**
+ * Counter for generating unique effect IDs
+ * @type {number}
+ */
+let effectIdCounter = 0;
+
+/**
+ * Global effect error handler
+ * @type {Function|null}
+ */
+let globalEffectErrorHandler = null;
+
+/**
+ * Custom error class for effect-related errors with context information.
+ * Provides details about which effect failed, in what phase, and its dependencies.
+ */
+export class EffectError extends Error {
+  /**
+   * Create an EffectError with context information
+   * @param {string} message - Error message
+   * @param {Object} options - Error context
+   * @param {string} [options.effectId] - Effect identifier
+   * @param {string} [options.phase] - Phase when error occurred ('cleanup' | 'execution')
+   * @param {number} [options.dependencyCount] - Number of dependencies
+   * @param {Error} [options.cause] - Original error that caused this
+   */
+  constructor(message, options = {}) {
+    super(message);
+    this.name = 'EffectError';
+    this.effectId = options.effectId || null;
+    this.phase = options.phase || 'unknown';
+    this.dependencyCount = options.dependencyCount ?? 0;
+    this.cause = options.cause || null;
+  }
+}
+
+/**
+ * Set a global error handler for effect errors.
+ * The handler receives an EffectError with full context about the failure.
+ * @param {Function|null} handler - Error handler (effectError) => void, or null to clear
+ * @returns {Function|null} Previous handler (for restoration)
+ * @example
+ * // Set up global error tracking
+ * const prevHandler = onEffectError((err) => {
+ *   console.error(`Effect ${err.effectId} failed during ${err.phase}:`, err.cause);
+ *   reportToErrorService(err);
+ * });
+ *
+ * // Later, restore previous handler
+ * onEffectError(prevHandler);
+ */
+export function onEffectError(handler) {
+  const prev = globalEffectErrorHandler;
+  globalEffectErrorHandler = handler;
+  return prev;
+}
+
+/**
  * Set the current module ID for HMR effect tracking.
  * Effects created while a module ID is set will be registered for cleanup.
  * @param {string} moduleId - The module identifier (typically import.meta.url)
@@ -387,6 +444,52 @@ export class Pulse {
 }
 
 /**
+ * Handle an effect error with full context information.
+ * Tries effect-specific handler, then global handler, then logs.
+ * @private
+ * @param {Error} error - The original error
+ * @param {EffectFn} effectFn - The effect that errored
+ * @param {string} phase - Phase when error occurred ('cleanup' | 'execution')
+ */
+function handleEffectError(error, effectFn, phase) {
+  const effectError = new EffectError(
+    `Effect [${effectFn.id}] error during ${phase}: ${error.message}`,
+    {
+      effectId: effectFn.id,
+      phase,
+      dependencyCount: effectFn.dependencies?.size ?? 0,
+      cause: error
+    }
+  );
+
+  // Try effect-specific handler first
+  if (effectFn.onError) {
+    try {
+      effectFn.onError(effectError);
+      return;
+    } catch (handlerError) {
+      log.error('Effect onError handler threw:', handlerError);
+    }
+  }
+
+  // Try global handler
+  if (globalEffectErrorHandler) {
+    try {
+      globalEffectErrorHandler(effectError);
+      return;
+    } catch (handlerError) {
+      log.error('Global effect error handler threw:', handlerError);
+    }
+  }
+
+  // Default: log with context
+  log.error(`[${effectError.effectId}] ${effectError.message}`, {
+    phase: effectError.phase,
+    dependencies: effectError.dependencyCount
+  });
+}
+
+/**
  * Run a single effect safely
  * @private
  * @param {EffectFn} effectFn - The effect to run
@@ -398,7 +501,7 @@ function runEffect(effectFn) {
   try {
     effectFn.run();
   } catch (error) {
-    log.error('Effect error:', error);
+    handleEffectError(error, effectFn, 'execution');
   }
 }
 
@@ -569,8 +672,15 @@ export function computed(fn, options = {}) {
 }
 
 /**
+ * @typedef {Object} EffectOptions
+ * @property {string} [id] - Custom effect identifier for debugging
+ * @property {function(EffectError): void} [onError] - Error handler for this effect
+ */
+
+/**
  * Create an effect that runs when its dependencies change
  * @param {function(): void|function(): void} fn - Effect function, may return a cleanup function
+ * @param {EffectOptions} [options={}] - Effect configuration options
  * @returns {function(): void} Dispose function to stop the effect
  * @example
  * const count = pulse(0);
@@ -588,19 +698,32 @@ export function computed(fn, options = {}) {
  *   const timer = setInterval(() => tick(), 1000);
  *   return () => clearInterval(timer); // Cleanup on re-run or dispose
  * });
+ *
+ * // With custom ID and error handler
+ * effect(() => {
+ *   // Effect logic that might fail
+ * }, {
+ *   id: 'data-sync',
+ *   onError: (err) => console.error('Data sync failed:', err.cause)
+ * });
  */
-export function effect(fn) {
+export function effect(fn, options = {}) {
+  const { id: customId, onError } = options;
+  const effectId = customId || `effect_${++effectIdCounter}`;
+
   // Capture module ID at creation time for HMR tracking
   const moduleId = context.currentModuleId;
 
   const effectFn = {
+    id: effectId,
+    onError,
     run: () => {
       // Run cleanup functions from previous run
       for (const cleanup of effectFn.cleanups) {
         try {
           cleanup();
         } catch (e) {
-          log.error('Cleanup error:', e);
+          handleEffectError(e, effectFn, 'cleanup');
         }
       }
       effectFn.cleanups = [];
@@ -618,7 +741,7 @@ export function effect(fn) {
       try {
         fn();
       } catch (error) {
-        log.error('Effect execution error:', error);
+        handleEffectError(error, effectFn, 'execution');
       } finally {
         context.currentEffect = prevEffect;
       }
@@ -645,7 +768,7 @@ export function effect(fn) {
       try {
         cleanup();
       } catch (e) {
-        log.error('Cleanup error:', e);
+        handleEffectError(e, effectFn, 'cleanup');
       }
     }
     effectFn.cleanups = [];
@@ -994,6 +1117,9 @@ export default {
   memoComputed,
   context,
   resetContext,
+  // Error handling
+  EffectError,
+  onEffectError,
   // HMR support
   setCurrentModule,
   clearCurrentModule,

@@ -114,6 +114,85 @@ function getCurrentMonthYear() {
 }
 
 /**
+ * Get the last git tag
+ */
+function getLastTag() {
+  try {
+    return execSync('git describe --tags --abbrev=0', { cwd: root, encoding: 'utf-8' }).trim();
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Get commits since the last tag (or all commits if no tag exists)
+ */
+function getCommitsSinceLastTag() {
+  const lastTag = getLastTag();
+  const range = lastTag ? `${lastTag}..HEAD` : 'HEAD';
+
+  try {
+    const output = execSync(`git log ${range} --pretty=format:"%s"`, {
+      cwd: root,
+      encoding: 'utf-8'
+    });
+    return output.split('\n').filter(line => line.trim());
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Parse commit messages into changelog categories
+ * Supports conventional commits: feat:, fix:, docs:, chore:, refactor:, perf:, test:, style:
+ */
+function parseCommitMessages(commits) {
+  const changes = { added: [], changed: [], fixed: [], removed: [] };
+
+  for (const commit of commits) {
+    const lowerCommit = commit.toLowerCase();
+
+    // Skip version commits (e.g., "v1.5.0")
+    if (/^v?\d+\.\d+\.\d+/.test(commit)) continue;
+
+    // Skip merge commits
+    if (lowerCommit.startsWith('merge ')) continue;
+
+    // Parse conventional commits
+    if (lowerCommit.startsWith('feat:') || lowerCommit.startsWith('feat(')) {
+      changes.added.push(cleanCommitMessage(commit, 'feat'));
+    } else if (lowerCommit.startsWith('fix:') || lowerCommit.startsWith('fix(')) {
+      changes.fixed.push(cleanCommitMessage(commit, 'fix'));
+    } else if (lowerCommit.startsWith('remove') || lowerCommit.startsWith('deprecate')) {
+      changes.removed.push(commit);
+    } else if (
+      lowerCommit.startsWith('refactor:') ||
+      lowerCommit.startsWith('perf:') ||
+      lowerCommit.startsWith('chore:') ||
+      lowerCommit.startsWith('docs:') ||
+      lowerCommit.startsWith('style:') ||
+      lowerCommit.startsWith('test:')
+    ) {
+      changes.changed.push(cleanCommitMessage(commit, commit.split(':')[0]));
+    } else {
+      // Default: treat as a change
+      changes.changed.push(commit);
+    }
+  }
+
+  return changes;
+}
+
+/**
+ * Clean commit message by removing the conventional commit prefix
+ */
+function cleanCommitMessage(message, prefix) {
+  // Remove "prefix:" or "prefix(scope):"
+  const regex = new RegExp(`^${prefix}(\\([^)]+\\))?:\\s*`, 'i');
+  return message.replace(regex, '').trim();
+}
+
+/**
  * Update package.json version
  */
 function updatePackageJson(newVersion) {
@@ -296,30 +375,76 @@ function updateReadme(newVersion) {
 }
 
 /**
- * Execute git commands
+ * Build commit message from version, title, and changes
  */
-function gitCommitTagPush(newVersion, dryRun = false) {
-  const commands = [
-    'git add -A',
-    `git commit -m "$(cat <<'EOF'\nv${newVersion}\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n)"`,
-    `git tag -a v${newVersion} -m "Release v${newVersion}"`,
-    'git push',
-    'git push --tags'
+function buildCommitMessage(newVersion, title, changes) {
+  // Build header: "v1.5.2 - Title" or just "v1.5.2"
+  let message = `v${newVersion}`;
+  if (title) {
+    message += ` - ${title}`;
+  }
+  message += '\n\n';
+
+  // Add change items as bullet points
+  const allChanges = [
+    ...(changes.added || []),
+    ...(changes.changed || []),
+    ...(changes.fixed || []),
+    ...(changes.removed || [])
   ];
 
-  for (const cmd of commands) {
-    if (dryRun) {
-      log.info(`  [dry-run] ${cmd}`);
-    } else {
-      log.info(`  Running: ${cmd.split('\n')[0]}...`);
-      try {
-        execSync(cmd, { cwd: root, stdio: 'inherit', shell: '/bin/bash' });
-      } catch (error) {
-        log.error(`  Failed: ${error.message}`);
-        throw error;
-      }
+  if (allChanges.length > 0) {
+    for (const change of allChanges) {
+      message += `- ${change}\n`;
     }
+    message += '\n';
   }
+
+  // Add co-author
+  message += 'Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>';
+
+  return message;
+}
+
+/**
+ * Execute git commands
+ */
+function gitCommitTagPush(newVersion, title, changes, dryRun = false) {
+  const commitMessage = buildCommitMessage(newVersion, title, changes);
+
+  if (dryRun) {
+    log.info('  [dry-run] git add -A');
+    log.info('  [dry-run] git commit with message:');
+    log.info('  ' + commitMessage.split('\n').join('\n  '));
+    log.info(`  [dry-run] git tag -a v${newVersion} -m "Release v${newVersion}"`);
+    log.info('  [dry-run] git push');
+    log.info('  [dry-run] git push --tags');
+    return;
+  }
+
+  // git add
+  log.info('  Running: git add -A...');
+  execSync('git add -A', { cwd: root, stdio: 'inherit' });
+
+  // git commit with heredoc for proper message formatting
+  log.info('  Running: git commit...');
+  const escapedMessage = commitMessage.replace(/'/g, "'\\''");
+  execSync(`git commit -m $'${escapedMessage.replace(/\n/g, '\\n')}'`, {
+    cwd: root,
+    stdio: 'inherit',
+    shell: '/bin/bash'
+  });
+
+  // git tag
+  log.info(`  Running: git tag v${newVersion}...`);
+  execSync(`git tag -a v${newVersion} -m "Release v${newVersion}"`, { cwd: root, stdio: 'inherit' });
+
+  // git push
+  log.info('  Running: git push...');
+  execSync('git push', { cwd: root, stdio: 'inherit' });
+
+  log.info('  Running: git push --tags...');
+  execSync('git push --tags', { cwd: root, stdio: 'inherit' });
 }
 
 /**
@@ -339,11 +464,13 @@ Options:
   --no-push       Create commit and tag but don't push
   --title <text>  Release title (e.g., "Performance Improvements")
   --skip-prompt   Use empty changelog (for automated releases)
+  --from-commits  Auto-extract changelog from git commits since last tag
 
 Examples:
   pulse release patch
   pulse release minor --title "New Features"
   pulse release major --dry-run
+  pulse release patch --from-commits --title "Bug Fixes"
   `);
 }
 
@@ -362,6 +489,7 @@ export async function runRelease(args) {
   const dryRun = args.includes('--dry-run');
   const noPush = args.includes('--no-push');
   const skipPrompt = args.includes('--skip-prompt');
+  const fromCommits = args.includes('--from-commits');
 
   let title = '';
   const titleIndex = args.indexOf('--title');
@@ -403,7 +531,33 @@ export async function runRelease(args) {
   // Collect changelog entries
   let changes = { added: [], changed: [], fixed: [], removed: [] };
 
-  if (!skipPrompt) {
+  if (fromCommits) {
+    // Auto-extract from git commits since last tag
+    const lastTag = getLastTag();
+    const commits = getCommitsSinceLastTag();
+
+    if (commits.length === 0) {
+      log.warn('No commits found since last tag');
+    } else {
+      log.info(`Found ${commits.length} commits since ${lastTag || 'beginning'}`);
+      changes = parseCommitMessages(commits);
+
+      // Show extracted changes
+      const totalChanges = Object.values(changes).flat().length;
+      if (totalChanges > 0) {
+        log.info('');
+        log.info('Extracted changelog entries:');
+        if (changes.added.length) log.info(`  Added: ${changes.added.length} items`);
+        if (changes.changed.length) log.info(`  Changed: ${changes.changed.length} items`);
+        if (changes.fixed.length) log.info(`  Fixed: ${changes.fixed.length} items`);
+        if (changes.removed.length) log.info(`  Removed: ${changes.removed.length} items`);
+      }
+    }
+
+    if (!title) {
+      title = await prompt('Release title (e.g., "Performance Improvements"): ');
+    }
+  } else if (!skipPrompt) {
     if (!title) {
       title = await prompt('Release title (e.g., "Performance Improvements"): ');
     }
@@ -466,8 +620,10 @@ export async function runRelease(args) {
   if (!dryRun) {
     if (noPush) {
       // Only commit and tag, no push
+      const commitMessage = buildCommitMessage(newVersion, title, changes);
       execSync('git add -A', { cwd: root, stdio: 'inherit' });
-      execSync(`git commit -m "v${newVersion}\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"`, {
+      const escapedMessage = commitMessage.replace(/'/g, "'\\''");
+      execSync(`git commit -m $'${escapedMessage.replace(/\n/g, '\\n')}'`, {
         cwd: root,
         stdio: 'inherit',
         shell: '/bin/bash'
@@ -475,10 +631,10 @@ export async function runRelease(args) {
       execSync(`git tag -a v${newVersion} -m "Release v${newVersion}"`, { cwd: root, stdio: 'inherit' });
       log.info('  Created commit and tag (--no-push specified)');
     } else {
-      gitCommitTagPush(newVersion, false);
+      gitCommitTagPush(newVersion, title, changes, false);
     }
   } else {
-    gitCommitTagPush(newVersion, true);
+    gitCommitTagPush(newVersion, title, changes, true);
   }
 
   log.info('');

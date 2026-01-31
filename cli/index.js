@@ -87,6 +87,7 @@ Release Options:
   --no-push        Create commit and tag but don't push
   --title <text>   Release title for changelog
   --skip-prompt    Use empty changelog (for automation)
+  --from-commits   Auto-extract changelog from git commits since last tag
 
 Examples:
   pulse create my-app
@@ -107,6 +108,7 @@ Examples:
   pulse release patch
   pulse release minor --title "New Features"
   pulse release major --dry-run
+  pulse release patch --from-commits
 
 Documentation: https://github.com/vincenthirtz/pulse-js-framework
   `);

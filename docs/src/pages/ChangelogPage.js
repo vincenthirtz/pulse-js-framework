@@ -12,6 +12,51 @@ export function ChangelogPage() {
     <p class="intro">Recent updates and improvements to Pulse Framework</p>
 
     <section class="doc-section changelog-section">
+      <h2>v1.5.1 - CLI Improvements</h2>
+      <p class="release-date">January 2026</p>
+
+      <h3>🔧 Release Automation</h3>
+      <div class="changelog-group">
+        <div class="changelog-item">
+          <h4>Automatic Changelog from Commits</h4>
+          <p>New <code>--from-commits</code> option for the release command:</p>
+          <div class="code-block">
+            <pre><code>pulse release patch --from-commits --title "Bug Fixes"</code></pre>
+          </div>
+          <p>Automatically extracts changelog entries from git commits since the last tag, categorizing them by conventional commit type (feat, fix, docs, etc.).</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="doc-section changelog-section">
+      <h2>v1.5.0 - Documentation & SEO</h2>
+      <p class="release-date">January 2026</p>
+
+      <h3>🔍 SEO Improvements</h3>
+      <div class="changelog-group">
+        <div class="changelog-item">
+          <h4>Meta Tags & Social Sharing</h4>
+          <p>Enhanced documentation site with comprehensive SEO:</p>
+          <ul class="feature-list">
+            <li>Open Graph meta tags for rich social media previews</li>
+            <li>Twitter Cards support</li>
+            <li>JSON-LD structured data for search engines</li>
+            <li>Optimized meta descriptions and keywords</li>
+          </ul>
+        </div>
+
+        <div class="changelog-item">
+          <h4>Homepage Enhancements</h4>
+          <ul class="feature-list">
+            <li>"Zero Dependencies" highlight prominently displayed</li>
+            <li>Logo pulse animation effect</li>
+            <li><code>npm run docs</code> command for local documentation development</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="doc-section changelog-section">
       <h2>v1.4.10 - Zero Dependencies</h2>
       <p class="release-date">January 2026</p>
 

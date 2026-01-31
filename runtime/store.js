@@ -21,6 +21,12 @@ import { loggers, createLogger } from './logger.js';
 const log = loggers.store;
 
 /**
+ * Maximum nesting depth for nested objects to prevent abuse
+ * @type {number}
+ */
+const MAX_NESTING_DEPTH = 10;
+
+/**
  * @typedef {Object} StoreOptions
  * @property {boolean} [persist=false] - Persist state to localStorage
  * @property {string} [storageKey='pulse-store'] - Key for localStorage persistence
@@ -45,6 +51,52 @@ const log = loggers.store;
 /**
  * @typedef {function(Store): Store} StorePlugin
  */
+
+/**
+ * Dangerous property names that could cause prototype pollution
+ * @type {Set<string>}
+ */
+const DANGEROUS_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
+/**
+ * Safely deserialize persisted state, preventing prototype pollution
+ * and property injection attacks.
+ * @private
+ * @param {Object} savedState - The parsed JSON state
+ * @param {Object} schema - The initial state defining allowed keys
+ * @returns {Object} Sanitized state object
+ */
+function safeDeserialize(savedState, schema) {
+  if (typeof savedState !== 'object' || savedState === null || Array.isArray(savedState)) {
+    return {};
+  }
+
+  const result = {};
+  for (const [key, value] of Object.entries(savedState)) {
+    // Block dangerous keys that could pollute prototypes
+    if (DANGEROUS_KEYS.has(key)) {
+      log.warn(`Blocked potentially dangerous key in persisted state: "${key}"`);
+      continue;
+    }
+
+    // Only allow keys that exist in the schema (initial state)
+    if (!(key in schema)) {
+      continue;
+    }
+
+    // Recursively validate nested objects
+    if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+      if (typeof schema[key] === 'object' && schema[key] !== null && !Array.isArray(schema[key])) {
+        result[key] = safeDeserialize(value, schema[key]);
+      }
+      // If schema expects primitive but got object, skip it
+    } else {
+      result[key] = value;
+    }
+  }
+
+  return result;
+}
 
 /**
  * Create a global store with reactive state properties.
@@ -76,7 +128,9 @@ export function createStore(initialState = {}, options = {}) {
     try {
       const saved = localStorage.getItem(storageKey);
       if (saved) {
-        state = { ...initialState, ...JSON.parse(saved) };
+        const parsed = JSON.parse(saved);
+        const sanitized = safeDeserialize(parsed, initialState);
+        state = { ...initialState, ...sanitized };
       }
     } catch (e) {
       log.warn('Failed to load persisted state:', e);
@@ -93,9 +147,18 @@ export function createStore(initialState = {}, options = {}) {
    * @private
    * @param {string} key - State key
    * @param {*} value - Initial value
+   * @param {number} [depth=0] - Current nesting depth
    * @returns {Pulse|Object} Pulse or nested object of pulses
    */
-  function createPulse(key, value) {
+  function createPulse(key, value, depth = 0) {
+    // Prevent excessive nesting depth
+    if (depth > MAX_NESTING_DEPTH) {
+      log.warn(`Max nesting depth (${MAX_NESTING_DEPTH}) exceeded for key: "${key}". Flattening to single pulse.`);
+      const p = pulse(value);
+      pulses[key] = p;
+      return p;
+    }
+
     if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
       // Create a pulse for the nested object itself (for $setState support)
       const objectPulse = pulse(value);
@@ -104,7 +167,7 @@ export function createStore(initialState = {}, options = {}) {
       // Also create nested pulses for individual properties
       const nested = {};
       for (const [k, v] of Object.entries(value)) {
-        nested[k] = createPulse(`${key}.${k}`, v);
+        nested[k] = createPulse(`${key}.${k}`, v, depth + 1);
       }
       return nested;
     }
@@ -117,6 +180,15 @@ export function createStore(initialState = {}, options = {}) {
   // Initialize state
   for (const [key, value] of Object.entries(state)) {
     store[key] = createPulse(key, value);
+  }
+
+  // Sync nested pulses for persisted state to ensure consistency
+  if (persist && typeof localStorage !== 'undefined') {
+    for (const [key, value] of Object.entries(state)) {
+      if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+        updateNestedPulses(key, value);
+      }
+    }
   }
 
   // Persist state changes
