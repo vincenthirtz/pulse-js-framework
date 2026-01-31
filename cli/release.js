@@ -460,17 +460,24 @@ Types:
   major     Bump major version (1.0.0 -> 2.0.0)
 
 Options:
-  --dry-run       Show what would be done without making changes
-  --no-push       Create commit and tag but don't push
-  --title <text>  Release title (e.g., "Performance Improvements")
-  --skip-prompt   Use empty changelog (for automated releases)
-  --from-commits  Auto-extract changelog from git commits since last tag
+  --dry-run        Show what would be done without making changes
+  --no-push        Create commit and tag but don't push
+  --title <text>   Release title (e.g., "Performance Improvements")
+  --skip-prompt    Use empty changelog (for automated releases)
+  --from-commits   Auto-extract changelog from git commits since last tag
+  --yes, -y        Auto-confirm all prompts
+  --changes <json> Pass changelog as JSON (e.g., '{"added":["Feature 1"],"fixed":["Bug 1"]}')
+  --added <items>  Comma-separated list of added features
+  --changed <items> Comma-separated list of changes
+  --fixed <items>  Comma-separated list of fixes
 
 Examples:
   pulse release patch
-  pulse release minor --title "New Features"
+  pulse release minor --title "New Features" -y
   pulse release major --dry-run
-  pulse release patch --from-commits --title "Bug Fixes"
+  pulse release patch --from-commits --title "Bug Fixes" -y
+  pulse release patch --title "Security" --fixed "XSS vulnerability,SQL injection" -y
+  pulse release patch --title "New API" --added "Feature A,Feature B" --fixed "Bug X" -y
   `);
 }
 
@@ -490,11 +497,39 @@ export async function runRelease(args) {
   const noPush = args.includes('--no-push');
   const skipPrompt = args.includes('--skip-prompt');
   const fromCommits = args.includes('--from-commits');
+  const autoConfirm = args.includes('--yes') || args.includes('-y');
 
   let title = '';
   const titleIndex = args.indexOf('--title');
   if (titleIndex !== -1 && args[titleIndex + 1]) {
     title = args[titleIndex + 1];
+  }
+
+  // Parse --changes JSON option
+  let changesFromArgs = null;
+  const changesIndex = args.indexOf('--changes');
+  if (changesIndex !== -1 && args[changesIndex + 1]) {
+    try {
+      changesFromArgs = JSON.parse(args[changesIndex + 1]);
+    } catch (e) {
+      log.error('Invalid JSON for --changes option');
+      process.exit(1);
+    }
+  }
+
+  // Parse individual change type options
+  const addedIndex = args.indexOf('--added');
+  const changedIndex = args.indexOf('--changed');
+  const fixedIndex = args.indexOf('--fixed');
+  const removedIndex = args.indexOf('--removed');
+
+  if (!changesFromArgs && (addedIndex !== -1 || changedIndex !== -1 || fixedIndex !== -1 || removedIndex !== -1)) {
+    changesFromArgs = {
+      added: addedIndex !== -1 && args[addedIndex + 1] ? args[addedIndex + 1].split(',').map(s => s.trim()) : [],
+      changed: changedIndex !== -1 && args[changedIndex + 1] ? args[changedIndex + 1].split(',').map(s => s.trim()) : [],
+      fixed: fixedIndex !== -1 && args[fixedIndex + 1] ? args[fixedIndex + 1].split(',').map(s => s.trim()) : [],
+      removed: removedIndex !== -1 && args[removedIndex + 1] ? args[removedIndex + 1].split(',').map(s => s.trim()) : []
+    };
   }
 
   // Read current version
@@ -517,10 +552,14 @@ export async function runRelease(args) {
     if (status.trim()) {
       log.warn('You have uncommitted changes:');
       log.info(status);
-      const proceed = await prompt('Continue anyway? (y/N) ');
-      if (proceed.toLowerCase() !== 'y') {
-        log.info('Aborted.');
-        process.exit(0);
+      if (!autoConfirm) {
+        const proceed = await prompt('Continue anyway? (y/N) ');
+        if (proceed.toLowerCase() !== 'y') {
+          log.info('Aborted.');
+          process.exit(0);
+        }
+      } else {
+        log.info('Auto-confirming with --yes flag');
       }
     }
   } catch (error) {
@@ -531,7 +570,24 @@ export async function runRelease(args) {
   // Collect changelog entries
   let changes = { added: [], changed: [], fixed: [], removed: [] };
 
-  if (fromCommits) {
+  // Use changes from command-line arguments if provided
+  if (changesFromArgs) {
+    changes = {
+      added: changesFromArgs.added || [],
+      changed: changesFromArgs.changed || [],
+      fixed: changesFromArgs.fixed || [],
+      removed: changesFromArgs.removed || []
+    };
+    const totalChanges = Object.values(changes).flat().length;
+    if (totalChanges > 0) {
+      log.info('');
+      log.info('Changelog entries from arguments:');
+      if (changes.added.length) log.info(`  Added: ${changes.added.length} items`);
+      if (changes.changed.length) log.info(`  Changed: ${changes.changed.length} items`);
+      if (changes.fixed.length) log.info(`  Fixed: ${changes.fixed.length} items`);
+      if (changes.removed.length) log.info(`  Removed: ${changes.removed.length} items`);
+    }
+  } else if (fromCommits) {
     // Auto-extract from git commits since last tag
     const lastTag = getLastTag();
     const commits = getCommitsSinceLastTag();
@@ -554,10 +610,10 @@ export async function runRelease(args) {
       }
     }
 
-    if (!title) {
+    if (!title && !autoConfirm) {
       title = await prompt('Release title (e.g., "Performance Improvements"): ');
     }
-  } else if (!skipPrompt) {
+  } else if (!skipPrompt && !autoConfirm) {
     if (!title) {
       title = await prompt('Release title (e.g., "Performance Improvements"): ');
     }
@@ -574,7 +630,7 @@ export async function runRelease(args) {
 
   const hasChanges = Object.values(changes).some(arr => arr.length > 0);
 
-  if (!hasChanges && !skipPrompt) {
+  if (!hasChanges && !skipPrompt && !autoConfirm) {
     const proceed = await prompt('No changelog entries. Continue? (y/N) ');
     if (proceed.toLowerCase() !== 'y') {
       log.info('Aborted.');
