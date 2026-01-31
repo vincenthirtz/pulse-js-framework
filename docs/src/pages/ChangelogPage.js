@@ -12,6 +12,38 @@ export function ChangelogPage() {
     <p class="intro">Recent updates and improvements to Pulse Framework</p>
 
     <section class="doc-section changelog-section">
+      <h2>v1.4.10 - Zero Dependencies</h2>
+      <p class="release-date">January 2026</p>
+
+      <h3>📦 Truly Zero Dependencies</h3>
+      <div class="changelog-group">
+        <p>Pulse Framework now has absolutely no external dependencies, including devDependencies:</p>
+
+        <div class="changelog-item">
+          <h4>Custom DOM Mock</h4>
+          <p>Replaced <code>linkedom</code> with a minimal, built-in DOM mock for testing:</p>
+          <ul class="feature-list">
+            <li><code>Document</code>, <code>Element</code>, <code>Node</code>, <code>Text</code>, <code>Comment</code>, <code>DocumentFragment</code></li>
+            <li><code>classList</code>, <code>style</code>, <code>getAttribute/setAttribute</code></li>
+            <li><code>querySelector/querySelectorAll</code> with CSS selector support</li>
+            <li>Mock <code>window</code> with <code>history</code> and <code>location</code> APIs</li>
+            <li>Event system with <code>addEventListener/dispatchEvent</code></li>
+          </ul>
+        </div>
+
+        <div class="changelog-item">
+          <h4>Test Coverage</h4>
+          <p>All 304 tests pass with the new mock DOM implementation. The custom mock is ~1100 lines of pure JavaScript.</p>
+        </div>
+
+        <div class="changelog-item">
+          <h4>Philosophy</h4>
+          <p>Pulse's "zero dependencies" philosophy now extends to the entire project - runtime, compiler, CLI, and tests all use only built-in Node.js and browser APIs.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="doc-section changelog-section">
       <h2>v1.4.9 - Lazy Loading, Middleware & Source Maps</h2>
       <p class="release-date">January 2026</p>
 

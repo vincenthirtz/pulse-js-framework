@@ -5,6 +5,21 @@ All notable changes to Pulse Framework will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.10] - 2026-01-31
+
+### Changed
+
+- **Zero External Dependencies** - Removed linkedom from devDependencies
+  - Added `test/mock-dom.js`: minimal DOM mock implementation (~1100 lines)
+  - Implements Document, Element, Node, Text, Comment, DocumentFragment
+  - Supports classList, style, querySelector/querySelectorAll
+  - Mock window with history API for router testing
+  - All 304 tests pass with the new mock
+
+### Fixed
+
+- Pulse Framework now has truly zero dependencies (including devDependencies)
+
 ## [1.4.9] - 2026-01-31
 
 ### Added
