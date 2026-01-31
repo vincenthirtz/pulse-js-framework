@@ -13,7 +13,18 @@ export function ChangelogPage() {
 
     
     
+    
     <section class="doc-section changelog-section">
+      <h2>v1.7.1 - Release</h2>
+      <p class="release-date">January 2026</p>
+
+      <div class="changelog-group">
+        <ul class="feature-list">
+          <li><strong>Changed:</strong> Add android-pulse example with hot-reload support</li>
+        </ul>
+      </div>
+    </section>
+<section class="doc-section changelog-section">
       <h2>v1.7.0 - Release</h2>
       <p class="release-date">January 2026</p>
 
