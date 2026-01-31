@@ -2,9 +2,15 @@
 /**
  * Sync version across all files after npm version bump
  * Called automatically by npm version hook
+ *
+ * This script updates version references in:
+ * - docs/src/state.js (version constant for docs site)
+ *
+ * Note: For full release workflow with changelog updates,
+ * use `pulse release` instead of `npm version`.
  */
 
-import { readFileSync, writeFileSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
@@ -27,14 +33,32 @@ const files = [
   }
 ];
 
+const updatedFiles = [];
+
 for (const file of files) {
   const filePath = join(root, file.path);
+
+  if (!existsSync(filePath)) {
+    console.log(`  Skipping ${file.path} (not found)`);
+    continue;
+  }
+
   let content = readFileSync(filePath, 'utf-8');
-  content = content.replace(file.pattern, file.replacement);
-  writeFileSync(filePath, content);
-  console.log(`  Updated ${file.path}`);
+  const newContent = content.replace(file.pattern, file.replacement);
+
+  if (content !== newContent) {
+    writeFileSync(filePath, newContent);
+    console.log(`  Updated ${file.path}`);
+    updatedFiles.push(file.path);
+  } else {
+    console.log(`  ${file.path} already up to date`);
+  }
 }
 
 // Stage the updated files
-execSync('git add docs/src/state.js', { cwd: root });
-console.log('Version sync complete!');
+if (updatedFiles.length > 0) {
+  execSync(`git add ${updatedFiles.join(' ')}`, { cwd: root });
+  console.log('Version sync complete!');
+} else {
+  console.log('No files needed updating.');
+}

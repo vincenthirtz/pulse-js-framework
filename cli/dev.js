@@ -8,6 +8,7 @@ import { createServer } from 'http';
 import { readFileSync, existsSync, statSync, watch } from 'fs';
 import { join, extname, resolve } from 'path';
 import { compile } from '../compiler/index.js';
+import { log } from './logger.js';
 
 const MIME_TYPES = {
   '.html': 'text/html',
@@ -52,7 +53,7 @@ export async function startDevServer(args) {
   try {
     const viteConfig = join(root, 'vite.config.js');
     if (existsSync(viteConfig)) {
-      console.log('Vite config detected, using Vite...');
+      log.info('Vite config detected, using Vite...');
       const { createServer: createViteServer } = await import('vite');
       const server = await createViteServer({
         root,
@@ -93,7 +94,10 @@ export async function startDevServer(args) {
         try {
           const source = readFileSync(filePath, 'utf-8');
           const result = compile(source, {
-            runtime: '/runtime/index.js'
+            runtime: '/runtime/index.js',
+            sourceMap: true,
+            inlineSourceMap: true,
+            sourceFileName: pathname
           });
 
           if (result.success) {
@@ -126,7 +130,10 @@ export async function startDevServer(args) {
         try {
           const source = readFileSync(pulseFilePath, 'utf-8');
           const result = compile(source, {
-            runtime: '/runtime/index.js'
+            runtime: '/runtime/index.js',
+            sourceMap: true,
+            inlineSourceMap: true,
+            sourceFileName: pulseFilePath.replace(root, '')
           });
 
           if (result.success) {
@@ -195,7 +202,7 @@ export async function startDevServer(args) {
   watchFiles(root);
 
   server.listen(port, () => {
-    console.log(`
+    log.success(`
   Pulse Dev Server running at:
 
     Local:   http://localhost:${port}/
@@ -214,7 +221,7 @@ function watchFiles(root) {
   if (existsSync(srcDir)) {
     watch(srcDir, { recursive: true }, (eventType, filename) => {
       if (filename && filename.endsWith('.pulse')) {
-        console.log(`File changed: ${filename}`);
+        log.debug(`File changed: ${filename}`);
         // Notify HMR clients (simplified)
         notifyClients({ type: 'update', path: `/src/${filename}` });
       }

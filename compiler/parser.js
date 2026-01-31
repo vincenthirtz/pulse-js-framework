@@ -5,6 +5,7 @@
  */
 
 import { TokenType, tokenize } from './lexer.js';
+import { ParserError, SUGGESTIONS } from '../core/errors.js';
 
 // AST Node types
 export const NodeType = {
@@ -122,9 +123,10 @@ export class Parser {
   expect(type, message = null) {
     if (!this.is(type)) {
       const token = this.current();
-      throw new Error(
-        message ||
-        `Expected ${type} but got ${token?.type} at line ${token?.line}:${token?.column}`
+      throw this.createError(
+        message || `Expected ${type} but got ${token?.type}`,
+        token,
+        { suggestion: SUGGESTIONS['unexpected-token']?.(type, token?.type) }
       );
     }
     return this.advance();
@@ -132,14 +134,19 @@ export class Parser {
 
   /**
    * Create a parse error with detailed information
+   * @param {string} message - Error message
+   * @param {Object} [token] - Token where error occurred
+   * @param {Object} [options] - Additional options (suggestion, code)
+   * @returns {ParserError} The parser error
    */
-  createError(message, token = null) {
+  createError(message, token = null, options = {}) {
     const t = token || this.current();
-    const error = new Error(message);
-    error.line = t?.line || 1;
-    error.column = t?.column || 1;
-    error.token = t;
-    return error;
+    return new ParserError(message, {
+      line: t?.line || 1,
+      column: t?.column || 1,
+      token: t,
+      ...options
+    });
   }
 
   /**
@@ -180,49 +187,63 @@ export class Parser {
       // Props block
       else if (this.is(TokenType.PROPS)) {
         if (program.props) {
-          throw this.createError('Duplicate props block - only one props block allowed per file');
+          throw this.createError('Duplicate props block - only one props block allowed per file', null, {
+            suggestion: SUGGESTIONS['duplicate-declaration']?.('props')
+          });
         }
         program.props = this.parsePropsBlock();
       }
       // State block
       else if (this.is(TokenType.STATE)) {
         if (program.state) {
-          throw this.createError('Duplicate state block - only one state block allowed per file');
+          throw this.createError('Duplicate state block - only one state block allowed per file', null, {
+            suggestion: SUGGESTIONS['duplicate-declaration']?.('state')
+          });
         }
         program.state = this.parseStateBlock();
       }
       // View block
       else if (this.is(TokenType.VIEW)) {
         if (program.view) {
-          throw this.createError('Duplicate view block - only one view block allowed per file');
+          throw this.createError('Duplicate view block - only one view block allowed per file', null, {
+            suggestion: SUGGESTIONS['duplicate-declaration']?.('view')
+          });
         }
         program.view = this.parseViewBlock();
       }
       // Actions block
       else if (this.is(TokenType.ACTIONS)) {
         if (program.actions) {
-          throw this.createError('Duplicate actions block - only one actions block allowed per file');
+          throw this.createError('Duplicate actions block - only one actions block allowed per file', null, {
+            suggestion: SUGGESTIONS['duplicate-declaration']?.('actions')
+          });
         }
         program.actions = this.parseActionsBlock();
       }
       // Style block
       else if (this.is(TokenType.STYLE)) {
         if (program.style) {
-          throw this.createError('Duplicate style block - only one style block allowed per file');
+          throw this.createError('Duplicate style block - only one style block allowed per file', null, {
+            suggestion: SUGGESTIONS['duplicate-declaration']?.('style')
+          });
         }
         program.style = this.parseStyleBlock();
       }
       // Router block
       else if (this.is(TokenType.ROUTER)) {
         if (program.router) {
-          throw this.createError('Duplicate router block - only one router block allowed per file');
+          throw this.createError('Duplicate router block - only one router block allowed per file', null, {
+            suggestion: SUGGESTIONS['duplicate-declaration']?.('router')
+          });
         }
         program.router = this.parseRouterBlock();
       }
       // Store block
       else if (this.is(TokenType.STORE)) {
         if (program.store) {
-          throw this.createError('Duplicate store block - only one store block allowed per file');
+          throw this.createError('Duplicate store block - only one store block allowed per file', null, {
+            suggestion: SUGGESTIONS['duplicate-declaration']?.('store')
+          });
         }
         program.store = this.parseStoreBlock();
       }
@@ -415,8 +436,8 @@ export class Parser {
 
     if (this.is(TokenType.IDENT)) return this.parseIdentifierOrExpression();
 
-    throw new Error(
-      `Unexpected token ${this.current()?.type} in value at line ${this.current()?.line}`
+    throw this.createError(
+      `Unexpected token ${this.current()?.type} in value`
     );
   }
 
@@ -1000,8 +1021,8 @@ export class Parser {
       return this.parseIdentifierOrExpression();
     }
 
-    throw new Error(
-      `Unexpected token ${this.current()?.type} in expression at line ${this.current()?.line}`
+    throw this.createError(
+      `Unexpected token ${this.current()?.type} in expression`
     );
   }
 

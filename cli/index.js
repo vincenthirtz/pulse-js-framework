@@ -28,7 +28,8 @@ const commands = {
   mobile: runMobile,
   lint: runLint,
   format: runFormat,
-  analyze: runAnalyze
+  analyze: runAnalyze,
+  release: runReleaseCmd
 };
 
 /**
@@ -66,6 +67,7 @@ Commands:
   lint [files]     Validate .pulse files for errors and style
   format [files]   Format .pulse files consistently
   analyze          Analyze bundle size and dependencies
+  release <type>   Create a new release (patch, minor, major)
   version          Show version number
   help             Show this help message
 
@@ -79,6 +81,12 @@ Format Options:
 Analyze Options:
   --json           Output analysis as JSON
   --verbose        Show detailed metrics
+
+Release Options:
+  --dry-run        Show what would be done without making changes
+  --no-push        Create commit and tag but don't push
+  --title <text>   Release title for changelog
+  --skip-prompt    Use empty changelog (for automation)
 
 Examples:
   pulse create my-app
@@ -96,6 +104,9 @@ Examples:
   pulse format src/App.pulse
   pulse analyze
   pulse analyze --json
+  pulse release patch
+  pulse release minor --title "New Features"
+  pulse release major --dry-run
 
 Documentation: https://github.com/vincenthirtz/pulse-js-framework
   `);
@@ -357,6 +368,14 @@ async function runFormat(args) {
 async function runAnalyze(args) {
   const { runAnalyze } = await import('./analyze.js');
   await runAnalyze(args);
+}
+
+/**
+ * Run release command
+ */
+async function runReleaseCmd(args) {
+  const { runRelease } = await import('./release.js');
+  await runRelease(args);
 }
 
 /**

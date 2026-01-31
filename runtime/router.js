@@ -15,6 +15,9 @@
 
 import { pulse, effect, batch } from './pulse.js';
 import { el } from './dom.js';
+import { loggers } from './logger.js';
+
+const log = loggers.router;
 
 /**
  * Lazy load helper for route components
@@ -126,7 +129,7 @@ export function lazy(importFn, options = {}) {
         if (ErrorComponent) {
           container.replaceChildren(ErrorComponent(err));
         } else {
-          console.error('Lazy load error:', err);
+          log.error('Lazy load error:', err);
           container.replaceChildren(
             el('div.lazy-error', `Failed to load component: ${err.message}`)
           );

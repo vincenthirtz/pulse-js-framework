@@ -5,6 +5,7 @@
 
 import { readFileSync, writeFileSync } from 'fs';
 import { findPulseFiles, parseArgs, relativePath } from './utils/file-utils.js';
+import { log } from './logger.js';
 
 /**
  * Lint rules configuration
@@ -710,11 +711,11 @@ export async function runLint(args) {
   const files = findPulseFiles(patterns);
 
   if (files.length === 0) {
-    console.log('No .pulse files found to lint.');
+    log.info('No .pulse files found to lint.');
     return;
   }
 
-  console.log(`Linting ${files.length} file(s)...\n`);
+  log.info(`Linting ${files.length} file(s)...\n`);
 
   let totalErrors = 0;
   let totalWarnings = 0;
@@ -725,10 +726,10 @@ export async function runLint(args) {
     const relPath = relativePath(file);
 
     if (result.diagnostics.length > 0) {
-      console.log(`\n${relPath}`);
+      log.info(`\n${relPath}`);
 
       for (const diag of result.diagnostics) {
-        console.log(formatDiagnostic(diag));
+        log.info(formatDiagnostic(diag));
 
         switch (diag.severity) {
           case 'error': totalErrors++; break;
@@ -740,16 +741,16 @@ export async function runLint(args) {
   }
 
   // Summary
-  console.log('\n' + '─'.repeat(60));
+  log.info('\n' + '─'.repeat(60));
   const parts = [];
   if (totalErrors > 0) parts.push(`${totalErrors} error(s)`);
   if (totalWarnings > 0) parts.push(`${totalWarnings} warning(s)`);
   if (totalInfo > 0) parts.push(`${totalInfo} info`);
 
   if (parts.length === 0) {
-    console.log(`✓ ${files.length} file(s) passed`);
+    log.success(`✓ ${files.length} file(s) passed`);
   } else {
-    console.log(`✗ ${parts.join(', ')} in ${files.length} file(s)`);
+    log.error(`✗ ${parts.join(', ')} in ${files.length} file(s)`);
   }
 
   // Exit with error code if errors found

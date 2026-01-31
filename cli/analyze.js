@@ -6,6 +6,7 @@
 import { readFileSync, statSync, existsSync } from 'fs';
 import { join, dirname, basename, relative } from 'path';
 import { findPulseFiles, parseArgs, formatBytes, relativePath, resolveImportPath } from './utils/file-utils.js';
+import { log } from './logger.js';
 
 /**
  * Analyze the bundle/project
@@ -472,28 +473,28 @@ export async function runAnalyze(args) {
 
   // Check if src directory exists
   if (!existsSync(join(root, 'src'))) {
-    console.error('Error: No src/ directory found.');
-    console.log('Run this command from your Pulse project root.');
+    log.error('Error: No src/ directory found.');
+    log.info('Run this command from your Pulse project root.');
     process.exit(1);
   }
 
-  console.log('Analyzing bundle...\n');
+  log.info('Analyzing bundle...\n');
 
   try {
     const analysis = await analyzeBundle(root);
 
     if (json) {
-      console.log(JSON.stringify(analysis, null, 2));
+      log.info(JSON.stringify(analysis, null, 2));
     } else {
-      console.log(formatConsoleOutput(analysis, verbose));
+      log.info(formatConsoleOutput(analysis, verbose));
     }
 
     // Exit with error if dead code found
     if (analysis.deadCode.length > 0 && !json) {
-      console.log(`\nWarning: ${analysis.deadCode.length} potentially unused file(s) found.`);
+      log.warn(`\nWarning: ${analysis.deadCode.length} potentially unused file(s) found.`);
     }
   } catch (error) {
-    console.error('Analysis failed:', error.message);
+    log.error('Analysis failed:', error.message);
     process.exit(1);
   }
 }

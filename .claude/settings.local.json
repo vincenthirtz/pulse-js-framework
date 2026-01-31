@@ -8,7 +8,8 @@
       "Bash(git commit:*)",
       "Bash(npm test)",
       "Bash(node -e:*)",
-      "Bash(node test/lint.test.js:*)"
+      "Bash(node test/lint.test.js:*)",
+      "Bash(tree:*)"
     ]
   }
 }

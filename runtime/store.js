@@ -97,7 +97,11 @@ export function createStore(initialState = {}, options = {}) {
    */
   function createPulse(key, value) {
     if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-      // Nested object - create nested store
+      // Create a pulse for the nested object itself (for $setState support)
+      const objectPulse = pulse(value);
+      pulses[key] = objectPulse;
+
+      // Also create nested pulses for individual properties
       const nested = {};
       for (const [k, v] of Object.entries(value)) {
         nested[k] = createPulse(`${key}.${k}`, v);
@@ -143,15 +147,45 @@ export function createStore(initialState = {}, options = {}) {
   }
 
   /**
+   * Update nested pulses recursively when a parent object is updated
+   * @private
+   * @param {string} prefix - The key prefix (e.g., 'user')
+   * @param {Object} obj - The new object value
+   */
+  function updateNestedPulses(prefix, obj) {
+    for (const [k, v] of Object.entries(obj)) {
+      const fullKey = `${prefix}.${k}`;
+      if (pulses[fullKey]) {
+        pulses[fullKey].set(v);
+        // Recursively update deeper nested objects
+        if (typeof v === 'object' && v !== null && !Array.isArray(v)) {
+          updateNestedPulses(fullKey, v);
+        }
+      }
+    }
+  }
+
+  /**
    * Set multiple values at once (batched)
+   * Supports both top-level and nested object updates
    * @param {Object} updates - Key-value pairs to update
    * @returns {void}
+   * @example
+   * // Top-level update
+   * store.$setState({ count: 5 });
+   *
+   * // Nested object update
+   * store.$setState({ user: { name: 'Jane', age: 25 } });
    */
   function setState(updates) {
     batch(() => {
       for (const [key, value] of Object.entries(updates)) {
         if (pulses[key]) {
           pulses[key].set(value);
+          // If the value is an object, also update nested pulses
+          if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+            updateNestedPulses(key, value);
+          }
         }
       }
     });

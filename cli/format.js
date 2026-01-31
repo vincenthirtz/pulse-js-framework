@@ -5,6 +5,7 @@
 
 import { readFileSync, writeFileSync } from 'fs';
 import { findPulseFiles, parseArgs, relativePath } from './utils/file-utils.js';
+import { log } from './logger.js';
 
 /**
  * Default format options
@@ -645,11 +646,11 @@ export async function runFormat(args) {
   const files = findPulseFiles(patterns);
 
   if (files.length === 0) {
-    console.log('No .pulse files found to format.');
+    log.info('No .pulse files found to format.');
     return;
   }
 
-  console.log(`${check ? 'Checking' : 'Formatting'} ${files.length} file(s)...\n`);
+  log.info(`${check ? 'Checking' : 'Formatting'} ${files.length} file(s)...\n`);
 
   let changedCount = 0;
   let errorCount = 0;
@@ -659,7 +660,7 @@ export async function runFormat(args) {
     const relPath = relativePath(file);
 
     if (result.error) {
-      console.log(`  ${relPath} - ERROR: ${result.error}`);
+      log.error(`  ${relPath} - ERROR: ${result.error}`);
       errorCount++;
       continue;
     }
@@ -668,37 +669,37 @@ export async function runFormat(args) {
       changedCount++;
 
       if (check) {
-        console.log(`  ${relPath} - needs formatting`);
+        log.warn(`  ${relPath} - needs formatting`);
       } else if (write) {
         writeFileSync(file, result.formatted);
-        console.log(`  ${relPath} - formatted`);
+        log.info(`  ${relPath} - formatted`);
       }
     } else {
       if (!check) {
-        console.log(`  ${relPath} - unchanged`);
+        log.info(`  ${relPath} - unchanged`);
       }
     }
   }
 
   // Summary
-  console.log('\n' + '─'.repeat(60));
+  log.info('\n' + '─'.repeat(60));
 
   if (errorCount > 0) {
-    console.log(`✗ ${errorCount} file(s) had errors`);
+    log.error(`✗ ${errorCount} file(s) had errors`);
   }
 
   if (check) {
     if (changedCount > 0) {
-      console.log(`✗ ${changedCount} file(s) need formatting`);
+      log.error(`✗ ${changedCount} file(s) need formatting`);
       process.exit(1);
     } else {
-      console.log(`✓ All ${files.length} file(s) are properly formatted`);
+      log.success(`✓ All ${files.length} file(s) are properly formatted`);
     }
   } else {
     if (changedCount > 0) {
-      console.log(`✓ ${changedCount} file(s) formatted`);
+      log.success(`✓ ${changedCount} file(s) formatted`);
     } else {
-      console.log(`✓ All ${files.length} file(s) were already formatted`);
+      log.success(`✓ All ${files.length} file(s) were already formatted`);
     }
   }
 }

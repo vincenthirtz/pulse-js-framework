@@ -75,7 +75,7 @@ export const navigation = [
 ];
 
 // Current version - automatically updated by npm version script
-export const version = '1.4.10';
+export const version = '1.5.0';
 
 // =============================================================================
 // Router

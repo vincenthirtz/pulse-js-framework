@@ -7,6 +7,7 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, statSync, copyFileSync } from 'fs';
 import { join, extname, relative, dirname } from 'path';
 import { compile } from '../compiler/index.js';
+import { log } from './logger.js';
 
 /**
  * Build project for production
@@ -19,7 +20,7 @@ export async function buildProject(args) {
   try {
     const viteConfig = join(root, 'vite.config.js');
     if (existsSync(viteConfig)) {
-      console.log('Vite config detected, using Vite build...');
+      log.info('Vite config detected, using Vite build...');
       const { build } = await import('vite');
       await build({ root });
       return;
@@ -28,7 +29,7 @@ export async function buildProject(args) {
     // Vite not available, use built-in build
   }
 
-  console.log('Building with Pulse compiler...');
+  log.info('Building with Pulse compiler...');
 
   // Create output directory
   if (!existsSync(outDir)) {
@@ -67,7 +68,7 @@ export async function buildProject(args) {
   // Bundle runtime
   bundleRuntime(outDir);
 
-  console.log(`
+  log.success(`
 Build complete!
 
 Output directory: ${relative(root, outDir)}
@@ -104,11 +105,11 @@ function processDirectory(srcDir, outDir) {
       if (result.success) {
         const outPath = join(outDir, file.replace('.pulse', '.js'));
         writeFileSync(outPath, result.code);
-        console.log(`  Compiled: ${file}`);
+        log.info(`  Compiled: ${file}`);
       } else {
-        console.error(`  Error compiling ${file}:`);
+        log.error(`  Error compiling ${file}:`);
         for (const error of result.errors) {
-          console.error(`    ${error.message}`);
+          log.error(`    ${error.message}`);
         }
       }
     } else if (file.endsWith('.js') || file.endsWith('.mjs')) {
@@ -129,7 +130,7 @@ function processDirectory(srcDir, outDir) {
 
       const outPath = join(outDir, file);
       writeFileSync(outPath, content);
-      console.log(`  Processed & minified: ${file}`);
+      log.info(`  Processed & minified: ${file}`);
     } else {
       // Copy other files
       const outPath = join(outDir, file);
@@ -155,9 +156,9 @@ ${readRuntimeFile('store.js')}
 
   if (shouldMinify) {
     runtimeCode = minifyJS(runtimeCode);
-    console.log('  Bundled & minified: runtime.js');
+    log.info('  Bundled & minified: runtime.js');
   } else {
-    console.log('  Bundled: runtime.js');
+    log.info('  Bundled: runtime.js');
   }
 
   writeFileSync(join(outDir, 'assets', 'runtime.js'), runtimeCode);
@@ -178,7 +179,7 @@ function readRuntimeFile(filename) {
     }
   }
 
-  console.warn(`  Warning: Could not find runtime file: ${filename}`);
+  log.warn(`  Warning: Could not find runtime file: ${filename}`);
   return '';
 }
 
@@ -263,7 +264,7 @@ export async function previewBuild(args) {
   const distDir = join(root, 'dist');
 
   if (!existsSync(distDir)) {
-    console.error('No dist folder found. Run "pulse build" first.');
+    log.error('No dist folder found. Run "pulse build" first.');
     process.exit(1);
   }
 
@@ -271,7 +272,7 @@ export async function previewBuild(args) {
   try {
     const viteConfig = join(root, 'vite.config.js');
     if (existsSync(viteConfig)) {
-      console.log('Using Vite preview...');
+      log.info('Using Vite preview...');
       const { preview } = await import('vite');
       const server = await preview({
         root,
@@ -327,7 +328,7 @@ export async function previewBuild(args) {
   });
 
   server.listen(port, () => {
-    console.log(`
+    log.success(`
   Pulse Preview Server running at:
 
     Local:   http://localhost:${port}/

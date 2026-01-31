@@ -7,12 +7,26 @@
 
 import { effect, pulse, batch, onCleanup } from './pulse.js';
 import { loggers } from './logger.js';
+import { LRUCache } from './lru-cache.js';
 
 const log = loggers.dom;
 
-// Selector cache for parseSelector
-const selectorCache = new Map();
-const SELECTOR_CACHE_MAX = 500;
+// =============================================================================
+// SELECTOR CACHE
+// =============================================================================
+// LRU (Least Recently Used) cache for parseSelector results.
+//
+// Why LRU instead of Map?
+// - Apps typically reuse the same selectors (e.g., 'div.container', 'button.primary')
+// - Without eviction, memory grows unbounded in long-running apps
+// - LRU keeps frequently-used selectors hot while evicting rare ones
+//
+// Capacity: 500 selectors (chosen based on typical SPA component count)
+// - Most apps use 50-200 unique selectors
+// - 500 provides headroom for dynamic selectors without excessive memory
+//
+// Cache hit returns a shallow copy to prevent mutation of cached config
+const selectorCache = new LRUCache(500);
 
 // Lifecycle tracking
 let mountCallbacks = [];
@@ -113,12 +127,7 @@ export function parseSelector(selector) {
     config.attrs[key] = value;
   }
 
-  // Cache the result (with size limit to prevent memory leaks)
-  if (selectorCache.size >= SELECTOR_CACHE_MAX) {
-    // Remove oldest entry (first key)
-    const firstKey = selectorCache.keys().next().value;
-    selectorCache.delete(firstKey);
-  }
+  // Cache the result (LRU cache handles eviction automatically)
   selectorCache.set(selector, config);
 
   // Return a copy
@@ -311,6 +320,37 @@ export function on(element, event, handler, options) {
 
 /**
  * Create a reactive list with efficient keyed diffing
+ *
+ * LIST DIFFING ALGORITHM:
+ * -----------------------
+ * This uses a keyed reconciliation strategy to minimize DOM operations:
+ *
+ * 1. KEY EXTRACTION: Each item gets a unique key via keyFn (defaults to index)
+ *    Good keys: item.id, item.uuid (stable across re-renders)
+ *    Bad keys: array index (causes unnecessary re-renders on reorder)
+ *
+ * 2. RECONCILIATION PHASES:
+ *    a) Build a map of new items by key
+ *    b) For existing keys: reuse the DOM nodes (no re-creation)
+ *    c) For removed keys: remove DOM nodes and run cleanup
+ *    d) For new keys: create DOM nodes via template function
+ *
+ * 3. REORDERING: Uses a single forward pass:
+ *    - Tracks previous node position with prevNode cursor
+ *    - Only moves nodes that are out of position
+ *    - Nodes already in correct position are skipped (no DOM operation)
+ *
+ * 4. BOUNDARY MARKERS: Uses comment nodes to track list boundaries:
+ *    - startMarker: Insertion point for first item
+ *    - endMarker: End boundary (not currently used but reserved)
+ *
+ * COMPLEXITY: O(n) for reconciliation + O(m) DOM moves where m <= n
+ * Best case (no changes): O(n) comparisons, 0 DOM operations
+ *
+ * @param {Function|Pulse} getItems - Items source (reactive)
+ * @param {Function} template - (item, index) => Node | Node[]
+ * @param {Function} keyFn - (item, index) => key (default: index)
+ * @returns {DocumentFragment} Container fragment with reactive list
  */
 export function list(getItems, template, keyFn = (item, i) => i) {
   const container = document.createDocumentFragment();
@@ -506,13 +546,24 @@ export function model(element, pulseValue) {
 
 /**
  * Mount an element to a target
+ * @param {string|HTMLElement} target - CSS selector or DOM element
+ * @param {Node} element - Element to mount
+ * @returns {Function} Unmount function
+ * @throws {Error} If target element is not found
  */
 export function mount(target, element) {
+  const originalTarget = target;
   if (typeof target === 'string') {
     target = document.querySelector(target);
   }
   if (!target) {
-    throw new Error('Mount target not found');
+    const selector = typeof originalTarget === 'string' ? originalTarget : '(element)';
+    throw new Error(
+      `[Pulse] Mount target not found: "${selector}". ` +
+      `Ensure the element exists in the DOM before mounting. ` +
+      `Tip: Use document.addEventListener('DOMContentLoaded', () => mount(...)) ` +
+      `or place your script at the end of <body>.`
+    );
   }
   target.appendChild(element);
   return () => {

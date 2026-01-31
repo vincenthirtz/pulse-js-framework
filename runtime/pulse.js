@@ -22,6 +22,43 @@ import { loggers } from './logger.js';
 
 const log = loggers.pulse;
 
+// =============================================================================
+// REACTIVE DEPENDENCY TRACKING ALGORITHM
+// =============================================================================
+//
+// This module implements a push-based reactive system using automatic dependency
+// tracking. Here's how it works:
+//
+// 1. READING (Dependency Collection)
+//    - When an effect runs, `context.currentEffect` points to it
+//    - When a pulse's get() is called, it checks if there's a currentEffect
+//    - If so, it adds the effect to its subscribers and vice versa
+//    - This creates a bidirectional link: pulse knows who depends on it,
+//      effect knows what it depends on
+//
+// 2. WRITING (Change Notification)
+//    - When a pulse's set() is called with a new value, it notifies subscribers
+//    - Each subscriber (effect) is either run immediately or queued for batching
+//    - Effects re-run, clearing old dependencies and collecting new ones
+//
+// 3. BATCHING (Performance Optimization)
+//    - batch() increments batchDepth and delays effect execution
+//    - Effects are queued in pendingEffects instead of running immediately
+//    - When batch completes, flushEffects() runs all queued effects
+//    - Nested batches are handled by only flushing at depth 0
+//
+// 4. COMPUTED VALUES (Derived State)
+//    - Computed pulses wrap a function and cache its result
+//    - They use the same dependency tracking to know when to recompute
+//    - Lazy computed values only recompute when read (pull-based optimization)
+//
+// 5. CLEANUP (Memory Management)
+//    - Effects can return a cleanup function called before re-run or disposal
+//    - On re-run, old dependencies are cleared before collecting new ones
+//    - This prevents memory leaks and stale subscriptions
+//
+// =============================================================================
+
 /**
  * @typedef {Object} ReactiveContext
  * @property {EffectFn|null} currentEffect - Currently executing effect for dependency tracking
@@ -509,11 +546,18 @@ export function computed(fn, options = {}) {
 
   // Override set to make it read-only
   p.set = () => {
-    throw new Error('Cannot set a computed pulse directly');
+    throw new Error(
+      '[Pulse] Cannot set a computed value directly. ' +
+      'Computed values are derived from other pulses and update automatically. ' +
+      'Modify the source pulse(s) instead.'
+    );
   };
 
   p.update = () => {
-    throw new Error('Cannot update a computed pulse directly');
+    throw new Error(
+      '[Pulse] Cannot update a computed value directly. ' +
+      'Computed values are read-only. Modify the source pulse(s) instead.'
+    );
   };
 
   // Add dispose method

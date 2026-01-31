@@ -21,7 +21,12 @@ export function isNativeAvailable() {
  */
 export function getNative() {
   if (!isNativeAvailable()) {
-    throw new Error('PulseMobile is not available. Include pulse-native.js in your app.');
+    throw new Error(
+      '[Pulse Native] PulseMobile bridge is not available. ' +
+      'This API only works in a Pulse native mobile app. ' +
+      'For web, use isNativeAvailable() to check before calling native APIs, ' +
+      'or use getPlatform() to detect the current environment.'
+    );
   }
   return window.PulseMobile;
 }

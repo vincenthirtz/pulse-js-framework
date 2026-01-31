@@ -161,3 +161,22 @@ export {
   SourceMapConsumer,
   encodeVLQ
 } from './sourcemap';
+
+// LRU Cache
+export { LRUCache } from './lru-cache';
+
+// Utilities (XSS Prevention, etc.)
+export {
+  escapeHtml,
+  unescapeHtml,
+  dangerouslySetInnerHTML,
+  createSafeTextNode,
+  escapeAttribute,
+  safeSetAttribute,
+  SanitizeUrlOptions,
+  sanitizeUrl,
+  deepClone,
+  CancellableFunction,
+  debounce,
+  throttle
+} from './utils';

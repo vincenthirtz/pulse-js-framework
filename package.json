@@ -1,6 +1,6 @@
 {
   "name": "pulse-js-framework",
-  "version": "1.4.10",
+  "version": "1.5.0",
   "description": "A declarative DOM framework with CSS selector-based structure and reactive pulsations",
   "type": "module",
   "main": "index.js",
@@ -45,6 +45,8 @@
       "types": "./types/hmr.d.ts",
       "default": "./runtime/hmr.js"
     },
+    "./runtime/lru-cache": "./runtime/lru-cache.js",
+    "./runtime/utils": "./runtime/utils.js",
     "./compiler": {
       "types": "./types/index.d.ts",
       "default": "./compiler/index.js"
@@ -52,6 +54,7 @@
     "./compiler/lexer": "./compiler/lexer.js",
     "./compiler/parser": "./compiler/parser.js",
     "./compiler/transformer": "./compiler/transformer.js",
+    "./core/errors": "./core/errors.js",
     "./vite": {
       "types": "./types/index.d.ts",
       "default": "./loader/vite-plugin.js"
@@ -62,6 +65,7 @@
   "files": [
     "index.js",
     "cli/",
+    "core/",
     "runtime/",
     "compiler/",
     "loader/",
