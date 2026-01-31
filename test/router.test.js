@@ -21,7 +21,7 @@ global.document = linkedomDocument;
 global.Node = mockWindow.Node;
 
 // Import router after mocks are set up
-import { createRouter, simpleRouter } from '../runtime/router.js';
+import { createRouter, simpleRouter, lazy, preload } from '../runtime/router.js';
 import { el } from '../runtime/dom.js';
 
 // Import test utilities
@@ -551,6 +551,448 @@ testAsync('handles async route handler', async () => {
   await router.navigate('/lazy');
 
   assertEqual(router.path.get(), '/lazy', 'Should navigate to lazy route');
+});
+
+// =============================================================================
+// Lazy Loading Tests
+// =============================================================================
+
+printSection('Lazy Loading Tests');
+
+testAsync('lazy loads component on navigation', async () => {
+  let loadCount = 0;
+  let loadResolve;
+  const loadPromise = new Promise(resolve => { loadResolve = resolve; });
+
+  const lazyComponent = lazy(() => {
+    loadCount++;
+    loadResolve();
+    return Promise.resolve({
+      default: () => el('div.lazy-content', 'Loaded!')
+    });
+  });
+
+  const router = createRouter({
+    routes: {
+      '/': () => el('div', 'Home'),
+      '/lazy': lazyComponent
+    }
+  });
+  router.start();
+
+  // Need to render via outlet for handler to be called
+  const container = document.createElement('div');
+  router.outlet(container);
+
+  await router.navigate('/lazy');
+  await loadPromise;
+
+  assertEqual(loadCount, 1, 'Should load component once');
+  assertEqual(router.path.get(), '/lazy', 'Should be on lazy route');
+});
+
+testAsync('lazy caches loaded component', async () => {
+  let loadCount = 0;
+
+  const lazyComponent = lazy(() => {
+    loadCount++;
+    return Promise.resolve({
+      default: () => el('div', 'Cached')
+    });
+  });
+
+  const router = createRouter({
+    routes: {
+      '/': () => el('div', 'Home'),
+      '/cached': lazyComponent
+    }
+  });
+  router.start();
+
+  // Need to render via outlet for handler to be called
+  const container = document.createElement('div');
+  router.outlet(container);
+
+  // First navigation
+  await router.navigate('/cached');
+  // Wait for lazy load to complete
+  await new Promise(r => setTimeout(r, 50));
+  assertEqual(loadCount, 1, 'Should load on first navigation');
+
+  // Navigate away
+  await router.navigate('/');
+
+  // Second navigation - should use cache
+  await router.navigate('/cached');
+  await new Promise(r => setTimeout(r, 50));
+  assertEqual(loadCount, 1, 'Should not reload cached component');
+});
+
+testAsync('lazy handles component with render method', async () => {
+  let loaded = false;
+  const lazyComponent = lazy(() => {
+    loaded = true;
+    return Promise.resolve({
+      default: {
+        render: () => el('div.rendered', 'Rendered!')
+      }
+    });
+  });
+
+  const router = createRouter({
+    routes: {
+      '/': () => el('div', 'Home'),
+      '/render': lazyComponent
+    }
+  });
+  router.start();
+
+  const container = document.createElement('div');
+  router.outlet(container);
+
+  await router.navigate('/render');
+  await new Promise(r => setTimeout(r, 50));
+
+  assertEqual(router.path.get(), '/render', 'Should navigate to render route');
+  assert(loaded, 'Should have loaded component');
+});
+
+testAsync('lazy shows loading component with delay', async () => {
+  let resolveLoad;
+  const loadPromise = new Promise(resolve => { resolveLoad = resolve; });
+
+  const lazyComponent = lazy(
+    () => loadPromise,
+    {
+      loading: () => el('div.loading', 'Loading...'),
+      delay: 0 // No delay for testing
+    }
+  );
+
+  const router = createRouter({
+    routes: {
+      '/': () => el('div', 'Home'),
+      '/loading': lazyComponent
+    }
+  });
+  router.start();
+
+  const container = document.createElement('div');
+  router.outlet(container);
+
+  // Start navigation but don't resolve yet
+  const navPromise = router.navigate('/loading');
+
+  // Give time for loading component to appear
+  await new Promise(r => setTimeout(r, 50));
+
+  // Resolve the load
+  resolveLoad({ default: () => el('div.loaded', 'Loaded!') });
+  await navPromise;
+
+  assertEqual(router.path.get(), '/loading', 'Should be on loading route');
+});
+
+testAsync('lazy shows error component on failure', async () => {
+  let errorHandled = false;
+  const lazyComponent = lazy(
+    () => Promise.reject(new Error('Load failed')),
+    {
+      error: (err) => {
+        errorHandled = true;
+        return el('div.error', `Error: ${err.message}`);
+      }
+    }
+  );
+
+  const router = createRouter({
+    routes: {
+      '/': () => el('div', 'Home'),
+      '/error': lazyComponent
+    }
+  });
+  router.start();
+
+  // Need to render via outlet for handler to be called
+  const container = document.createElement('div');
+  router.outlet(container);
+
+  await router.navigate('/error');
+
+  // Give time for error handling
+  await new Promise(r => setTimeout(r, 100));
+
+  assert(errorHandled, 'Should handle error with error component');
+});
+
+testAsync('preload loads component without rendering', async () => {
+  let loadCount = 0;
+  const lazyComponent = lazy(() => {
+    loadCount++;
+    return Promise.resolve({
+      default: () => el('div', 'Preloaded')
+    });
+  });
+
+  // Preload without navigation
+  await preload(lazyComponent);
+
+  assertEqual(loadCount, 1, 'Should load component during preload');
+
+  // Now create router and navigate - should use cached component
+  const router = createRouter({
+    routes: {
+      '/': () => el('div', 'Home'),
+      '/preloaded': lazyComponent
+    }
+  });
+  router.start();
+
+  await router.navigate('/preloaded');
+  assertEqual(loadCount, 1, 'Should not reload after preload');
+});
+
+// =============================================================================
+// Middleware Tests
+// =============================================================================
+
+printSection('Middleware Tests');
+
+testAsync('middleware runs on navigation', async () => {
+  let middlewareCalled = false;
+
+  const router = createRouter({
+    routes: {
+      '/': () => el('div', 'Home'),
+      '/page': () => el('div', 'Page')
+    },
+    middleware: [
+      async (ctx, next) => {
+        middlewareCalled = true;
+        await next();
+      }
+    ]
+  });
+  router.start();
+
+  await router.navigate('/page');
+
+  assert(middlewareCalled, 'Middleware should be called');
+  assertEqual(router.path.get(), '/page', 'Should navigate to page');
+});
+
+testAsync('middleware can abort navigation', async () => {
+  const router = createRouter({
+    routes: {
+      '/': () => el('div', 'Home'),
+      '/blocked': () => el('div', 'Blocked')
+    },
+    middleware: [
+      async (ctx, next) => {
+        if (ctx.to.path === '/blocked') {
+          ctx.abort();
+          return;
+        }
+        await next();
+      }
+    ]
+  });
+  router.start();
+
+  const result = await router.navigate('/blocked');
+
+  assertEqual(result, false, 'Navigation should be blocked');
+  assertEqual(router.path.get(), '/', 'Should stay on home');
+});
+
+testAsync('middleware can redirect', async () => {
+  const router = createRouter({
+    routes: {
+      '/': () => el('div', 'Home'),
+      '/protected': () => el('div', 'Protected'),
+      '/login': () => el('div', 'Login')
+    },
+    middleware: [
+      async (ctx, next) => {
+        if (ctx.to.path === '/protected') {
+          ctx.redirect('/login');
+          return;
+        }
+        await next();
+      }
+    ]
+  });
+  router.start();
+
+  await router.navigate('/protected');
+
+  assertEqual(router.path.get(), '/login', 'Should redirect to login');
+});
+
+testAsync('middleware runs in order', async () => {
+  const order = [];
+
+  const router = createRouter({
+    routes: {
+      '/': () => el('div', 'Home'),
+      '/page': () => el('div', 'Page')
+    },
+    middleware: [
+      async (ctx, next) => {
+        order.push('first-before');
+        await next();
+        order.push('first-after');
+      },
+      async (ctx, next) => {
+        order.push('second-before');
+        await next();
+        order.push('second-after');
+      }
+    ]
+  });
+  router.start();
+
+  await router.navigate('/page');
+
+  assertDeepEqual(order, [
+    'first-before',
+    'second-before',
+    'second-after',
+    'first-after'
+  ], 'Middleware should run in Koa-style order');
+});
+
+testAsync('middleware receives correct context', async () => {
+  let capturedCtx = null;
+
+  const router = createRouter({
+    routes: {
+      '/': () => el('div', 'Home'),
+      '/users/:id': {
+        handler: () => el('div', 'User'),
+        meta: { title: 'User Page' }
+      }
+    },
+    middleware: [
+      async (ctx, next) => {
+        capturedCtx = ctx;
+        await next();
+      }
+    ]
+  });
+  router.start();
+
+  await router.navigate('/users/42', { query: { tab: 'profile' } });
+
+  assertEqual(capturedCtx.to.path, '/users/42', 'Should have correct path');
+  assertEqual(capturedCtx.to.params.id, '42', 'Should have params');
+  assertEqual(capturedCtx.to.query.tab, 'profile', 'Should have query');
+  assertEqual(capturedCtx.to.meta.title, 'User Page', 'Should have meta');
+  assert(typeof capturedCtx.redirect === 'function', 'Should have redirect function');
+  assert(typeof capturedCtx.abort === 'function', 'Should have abort function');
+});
+
+testAsync('middleware can share metadata', async () => {
+  let sharedMeta = null;
+
+  const router = createRouter({
+    routes: {
+      '/': () => el('div', 'Home'),
+      '/page': () => el('div', 'Page')
+    },
+    middleware: [
+      async (ctx, next) => {
+        ctx.meta.startTime = Date.now();
+        ctx.meta.user = 'testuser';
+        await next();
+      },
+      async (ctx, next) => {
+        sharedMeta = ctx.meta;
+        await next();
+      }
+    ]
+  });
+  router.start();
+
+  await router.navigate('/page');
+
+  assert(sharedMeta.startTime !== undefined, 'Should have shared startTime');
+  assertEqual(sharedMeta.user, 'testuser', 'Should have shared user');
+});
+
+testAsync('use() adds middleware dynamically', async () => {
+  let dynamicMiddlewareCalled = false;
+
+  const router = createRouter({
+    routes: {
+      '/': () => el('div', 'Home'),
+      '/page': () => el('div', 'Page')
+    }
+  });
+  router.start();
+
+  // Add middleware dynamically
+  router.use(async (ctx, next) => {
+    dynamicMiddlewareCalled = true;
+    await next();
+  });
+
+  await router.navigate('/page');
+
+  assert(dynamicMiddlewareCalled, 'Dynamic middleware should be called');
+});
+
+testAsync('use() returns unsubscribe function', async () => {
+  let callCount = 0;
+
+  const router = createRouter({
+    routes: {
+      '/': () => el('div', 'Home'),
+      '/a': () => el('div', 'A'),
+      '/b': () => el('div', 'B')
+    }
+  });
+  router.start();
+
+  const unsubscribe = router.use(async (ctx, next) => {
+    callCount++;
+    await next();
+  });
+
+  await router.navigate('/a');
+  assertEqual(callCount, 1, 'Should be called once');
+
+  // Unsubscribe
+  unsubscribe();
+
+  await router.navigate('/b');
+  assertEqual(callCount, 1, 'Should not be called after unsubscribe');
+});
+
+testAsync('middleware stops chain when not calling next', async () => {
+  let secondMiddlewareCalled = false;
+
+  const router = createRouter({
+    routes: {
+      '/': () => el('div', 'Home'),
+      '/page': () => el('div', 'Page')
+    },
+    middleware: [
+      async (ctx, next) => {
+        // Don't call next()
+        ctx.abort();
+      },
+      async (ctx, next) => {
+        secondMiddlewareCalled = true;
+        await next();
+      }
+    ]
+  });
+  router.start();
+
+  await router.navigate('/page');
+
+  assert(!secondMiddlewareCalled, 'Second middleware should not be called');
 });
 
 // =============================================================================

@@ -136,6 +136,7 @@ style {
 - CSS scoping (styles are automatically scoped to component)
 - Native `router {}` and `store {}` blocks
 - Detailed error messages with line/column info
+- Source map generation (v1.4.9) for debugging original `.pulse` code
 
 ### Router & Store DSL (v1.4.0)
 
@@ -266,7 +267,53 @@ router.start();
 - Per-route guards (`beforeEnter`)
 - Global guards (`beforeEach`, `beforeResolve`, `afterEach`)
 - Scroll restoration
-- Lazy-loaded routes (async handlers)
+- Lazy-loaded routes with `lazy()` and `preload()`
+- Middleware pipeline (Koa-style)
+
+#### Lazy Loading & Middleware (v1.4.9)
+
+```javascript
+import { createRouter, lazy, preload } from 'pulse-js-framework/runtime/router';
+
+// Lazy load components
+const routes = {
+  '/': HomePage,
+  '/dashboard': lazy(() => import('./Dashboard.js')),
+  '/settings': lazy(() => import('./Settings.js'), {
+    loading: () => el('div.spinner', 'Loading...'),
+    error: (err) => el('div.error', `Failed: ${err.message}`),
+    timeout: 5000
+  })
+};
+
+// Preload on hover
+link.addEventListener('mouseenter', () => preload(routes['/dashboard']));
+
+// Middleware
+const router = createRouter({
+  routes,
+  middleware: [
+    // Logger middleware
+    async (ctx, next) => {
+      console.log('Navigating to:', ctx.to.path);
+      await next();
+    },
+    // Auth middleware
+    async (ctx, next) => {
+      if (ctx.to.meta.requiresAuth && !isLoggedIn()) {
+        return ctx.redirect('/login');
+      }
+      await next();
+    }
+  ]
+});
+
+// Add middleware dynamically
+const unsubscribe = router.use(async (ctx, next) => {
+  ctx.meta.startTime = Date.now();
+  await next();
+});
+```
 
 ### Store
 

@@ -10,10 +10,231 @@
  * - Per-route and global guards
  * - Scroll restoration
  * - Lazy-loaded routes
+ * - Middleware support
  */
 
 import { pulse, effect, batch } from './pulse.js';
 import { el } from './dom.js';
+
+/**
+ * Lazy load helper for route components
+ * Wraps a dynamic import to provide loading states and error handling
+ *
+ * @param {function} importFn - Dynamic import function () => import('./Component.js')
+ * @param {Object} options - Lazy loading options
+ * @param {function} options.loading - Loading component function
+ * @param {function} options.error - Error component function
+ * @param {number} options.timeout - Timeout in ms (default: 10000)
+ * @param {number} options.delay - Delay before showing loading (default: 200)
+ * @returns {function} Lazy route handler
+ *
+ * @example
+ * const routes = {
+ *   '/dashboard': lazy(() => import('./Dashboard.js')),
+ *   '/settings': lazy(() => import('./Settings.js'), {
+ *     loading: () => el('div.spinner', 'Loading...'),
+ *     error: (err) => el('div.error', `Failed to load: ${err.message}`),
+ *     timeout: 5000
+ *   })
+ * };
+ */
+export function lazy(importFn, options = {}) {
+  const {
+    loading: LoadingComponent = null,
+    error: ErrorComponent = null,
+    timeout = 10000,
+    delay = 200
+  } = options;
+
+  // Cache for loaded component
+  let cachedComponent = null;
+  let loadPromise = null;
+
+  return function lazyHandler(ctx) {
+    // Return cached component if already loaded
+    if (cachedComponent) {
+      return typeof cachedComponent === 'function'
+        ? cachedComponent(ctx)
+        : cachedComponent.default
+          ? cachedComponent.default(ctx)
+          : cachedComponent.render
+            ? cachedComponent.render(ctx)
+            : cachedComponent;
+    }
+
+    // Create container for async loading
+    const container = el('div.lazy-route');
+    let loadingTimer = null;
+    let timeoutTimer = null;
+
+    // Start loading if not already
+    if (!loadPromise) {
+      loadPromise = importFn();
+    }
+
+    // Delay showing loading state to avoid flash
+    if (LoadingComponent && delay > 0) {
+      loadingTimer = setTimeout(() => {
+        if (!cachedComponent) {
+          container.replaceChildren(LoadingComponent());
+        }
+      }, delay);
+    } else if (LoadingComponent) {
+      container.replaceChildren(LoadingComponent());
+    }
+
+    // Set timeout for loading
+    const timeoutPromise = timeout > 0
+      ? new Promise((_, reject) => {
+          timeoutTimer = setTimeout(() => {
+            reject(new Error(`Lazy load timeout after ${timeout}ms`));
+          }, timeout);
+        })
+      : null;
+
+    // Race between load and timeout
+    const loadWithTimeout = timeoutPromise
+      ? Promise.race([loadPromise, timeoutPromise])
+      : loadPromise;
+
+    loadWithTimeout
+      .then(module => {
+        clearTimeout(loadingTimer);
+        clearTimeout(timeoutTimer);
+
+        // Cache the component
+        cachedComponent = module;
+
+        // Get the component from module
+        const Component = module.default || module;
+        const result = typeof Component === 'function'
+          ? Component(ctx)
+          : Component.render
+            ? Component.render(ctx)
+            : Component;
+
+        // Replace loading with actual component
+        if (result instanceof Node) {
+          container.replaceChildren(result);
+        }
+      })
+      .catch(err => {
+        clearTimeout(loadingTimer);
+        clearTimeout(timeoutTimer);
+        loadPromise = null; // Allow retry
+
+        if (ErrorComponent) {
+          container.replaceChildren(ErrorComponent(err));
+        } else {
+          console.error('Lazy load error:', err);
+          container.replaceChildren(
+            el('div.lazy-error', `Failed to load component: ${err.message}`)
+          );
+        }
+      });
+
+    return container;
+  };
+}
+
+/**
+ * Preload a lazy component without rendering
+ * Useful for prefetching on hover or when likely to navigate
+ *
+ * @param {function} lazyHandler - Lazy handler created with lazy()
+ * @returns {Promise} Resolves when component is loaded
+ *
+ * @example
+ * const DashboardLazy = lazy(() => import('./Dashboard.js'));
+ * // Preload on link hover
+ * link.addEventListener('mouseenter', () => preload(DashboardLazy));
+ */
+export function preload(lazyHandler) {
+  // Trigger the lazy handler with a dummy context to start loading
+  // The result is discarded, but the component will be cached
+  return new Promise(resolve => {
+    const result = lazyHandler({});
+    if (result instanceof Promise) {
+      result.then(resolve);
+    } else {
+      // Already loaded
+      resolve(result);
+    }
+  });
+}
+
+/**
+ * Middleware context passed to each middleware function
+ * @typedef {Object} MiddlewareContext
+ * @property {NavigationTarget} to - Target route
+ * @property {NavigationTarget} from - Source route
+ * @property {Object} meta - Shared metadata between middlewares
+ * @property {function} redirect - Redirect to another path
+ * @property {function} abort - Abort navigation
+ */
+
+/**
+ * Create a middleware runner for the router
+ * Middlewares are executed in order, each can modify context or abort navigation
+ *
+ * @param {Array<function>} middlewares - Array of middleware functions
+ * @returns {function} Runner function
+ *
+ * @example
+ * const authMiddleware = async (ctx, next) => {
+ *   if (ctx.to.meta.requiresAuth && !isAuthenticated()) {
+ *     return ctx.redirect('/login');
+ *   }
+ *   await next();
+ * };
+ *
+ * const loggerMiddleware = async (ctx, next) => {
+ *   console.log('Navigating to:', ctx.to.path);
+ *   const start = Date.now();
+ *   await next();
+ *   console.log('Navigation took:', Date.now() - start, 'ms');
+ * };
+ *
+ * const router = createRouter({
+ *   routes,
+ *   middleware: [loggerMiddleware, authMiddleware]
+ * });
+ */
+function createMiddlewareRunner(middlewares) {
+  return async function runMiddleware(context) {
+    let index = 0;
+    let aborted = false;
+    let redirectPath = null;
+
+    // Create enhanced context with redirect and abort
+    const ctx = {
+      ...context,
+      meta: {},
+      redirect: (path) => {
+        redirectPath = path;
+      },
+      abort: () => {
+        aborted = true;
+      }
+    };
+
+    async function next() {
+      if (aborted || redirectPath) return;
+      if (index >= middlewares.length) return;
+
+      const middleware = middlewares[index++];
+      await middleware(ctx, next);
+    }
+
+    await next();
+
+    return {
+      aborted,
+      redirectPath,
+      meta: ctx.meta
+    };
+  };
+}
 
 /**
  * Radix Trie for efficient route matching
@@ -222,8 +443,12 @@ export function createRouter(options = {}) {
     routes = {},
     mode = 'history', // 'history' or 'hash'
     base = '',
-    scrollBehavior = null // Function to control scroll restoration
+    scrollBehavior = null, // Function to control scroll restoration
+    middleware: initialMiddleware = [] // Middleware functions
   } = options;
+
+  // Middleware array (mutable for dynamic registration)
+  const middleware = [...initialMiddleware];
 
   // Reactive state
   const currentPath = pulse(getPath());
@@ -344,6 +569,20 @@ export function createRouter(options = {}) {
       query: parseQuery(queryString),
       meta: match?.route?.meta || {}
     };
+
+    // Run middleware if configured
+    if (middleware.length > 0) {
+      const runMiddleware = createMiddlewareRunner(middleware);
+      const middlewareResult = await runMiddleware({ to, from });
+      if (middlewareResult.aborted) {
+        return false;
+      }
+      if (middlewareResult.redirectPath) {
+        return navigate(middlewareResult.redirectPath, { replace: true });
+      }
+      // Merge middleware meta into route meta
+      Object.assign(to.meta, middlewareResult.meta);
+    }
 
     // Run global beforeEach hooks
     for (const hook of beforeHooks) {
@@ -578,6 +817,19 @@ export function createRouter(options = {}) {
   }
 
   /**
+   * Add middleware dynamically
+   * @param {function} middlewareFn - Middleware function (ctx, next) => {}
+   * @returns {function} Unregister function
+   */
+  function use(middlewareFn) {
+    middleware.push(middlewareFn);
+    return () => {
+      const index = middleware.indexOf(middlewareFn);
+      if (index > -1) middleware.splice(index, 1);
+    };
+  }
+
+  /**
    * Add navigation guard
    */
   function beforeEach(hook) {
@@ -670,6 +922,7 @@ export function createRouter(options = {}) {
     start,
     link,
     outlet,
+    use,
     beforeEach,
     beforeResolve,
     afterEach,
@@ -702,6 +955,8 @@ export function simpleRouter(routes, target = '#app') {
 export default {
   createRouter,
   simpleRouter,
+  lazy,
+  preload,
   matchRoute,
   parseQuery
 };

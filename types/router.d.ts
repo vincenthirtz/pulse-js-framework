@@ -69,12 +69,57 @@ export interface Routes {
   [path: string]: RouteHandler | RouteDefinition;
 }
 
+// =============================================================================
+// Middleware Types
+// =============================================================================
+
+/** Middleware context passed to each middleware function */
+export interface MiddlewareContext {
+  /** Target route */
+  to: NavigationTarget;
+  /** Source route */
+  from: NavigationTarget;
+  /** Shared metadata between middlewares */
+  meta: Record<string, unknown>;
+  /** Redirect to another path */
+  redirect(path: string): void;
+  /** Abort navigation */
+  abort(): void;
+}
+
+/** Middleware function */
+export type MiddlewareFn = (
+  ctx: MiddlewareContext,
+  next: () => Promise<void>
+) => void | Promise<void>;
+
+// =============================================================================
+// Lazy Loading Types
+// =============================================================================
+
+/** Lazy loading options */
+export interface LazyOptions {
+  /** Loading component shown while loading */
+  loading?: () => Node;
+  /** Error component shown on failure */
+  error?: (err: Error) => Node;
+  /** Timeout in milliseconds (default: 10000) */
+  timeout?: number;
+  /** Delay before showing loading component (default: 200) */
+  delay?: number;
+}
+
+/** Lazy route handler */
+export type LazyRouteHandler = (ctx: RouteContext) => Node;
+
 /** Router options */
 export interface RouterOptions {
   routes?: Routes;
   mode?: 'history' | 'hash';
   base?: string;
   scrollBehavior?: ScrollBehaviorFn;
+  /** Middleware functions */
+  middleware?: MiddlewareFn[];
 }
 
 /** Navigation options */
@@ -82,6 +127,15 @@ export interface NavigateOptions {
   replace?: boolean;
   query?: Record<string, string | number>;
   state?: unknown;
+}
+
+/** Route context passed to route handlers */
+export interface RouteContext {
+  params: RouteParams;
+  query: QueryParams;
+  path: string;
+  navigate: Router['navigate'];
+  router: Router;
 }
 
 /** Link options */
@@ -142,6 +196,12 @@ export interface Router {
   go(delta: number): void;
 
   /**
+   * Add middleware dynamically
+   * @returns Unregister function
+   */
+  use(middleware: MiddlewareFn): () => void;
+
+  /**
    * Add global before-navigation guard
    * @returns Unregister function
    */
@@ -195,3 +255,32 @@ export declare function createRouter(options?: RouterOptions): Router;
  * Quick router setup (creates, starts, and mounts)
  */
 export declare function simpleRouter(routes: Routes, target?: string): Router;
+
+/**
+ * Create a lazy-loaded route handler
+ * Wraps a dynamic import with loading states and error handling
+ *
+ * @example
+ * const routes = {
+ *   '/dashboard': lazy(() => import('./Dashboard.js')),
+ *   '/settings': lazy(() => import('./Settings.js'), {
+ *     loading: () => el('div.spinner', 'Loading...'),
+ *     error: (err) => el('div.error', `Failed: ${err.message}`),
+ *     timeout: 5000
+ *   })
+ * };
+ */
+export declare function lazy(
+  importFn: () => Promise<{ default: RouteHandler | (() => Node) }>,
+  options?: LazyOptions
+): LazyRouteHandler;
+
+/**
+ * Preload a lazy component without rendering
+ * Useful for prefetching on hover or when likely to navigate
+ *
+ * @example
+ * const DashboardLazy = lazy(() => import('./Dashboard.js'));
+ * link.addEventListener('mouseenter', () => preload(DashboardLazy));
+ */
+export declare function preload(lazyHandler: LazyRouteHandler): Promise<void>;

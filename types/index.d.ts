@@ -90,8 +90,15 @@ export {
   LinkOptions,
   MatchedRoute,
   Router,
+  MiddlewareContext,
+  MiddlewareFn,
+  LazyOptions,
+  LazyRouteHandler,
+  RouteContext,
   createRouter,
-  simpleRouter
+  simpleRouter,
+  lazy,
+  preload
 } from './router';
 
 // Store
@@ -143,3 +150,14 @@ export {
   HMRContext,
   createHMRContext
 } from './hmr';
+
+// Source Maps (Compiler)
+export {
+  Position,
+  Mapping,
+  SourceMapV3,
+  OriginalPosition,
+  SourceMapGenerator,
+  SourceMapConsumer,
+  encodeVLQ
+} from './sourcemap';

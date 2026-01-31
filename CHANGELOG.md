@@ -5,6 +5,32 @@ All notable changes to Pulse Framework will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.9] - 2026-01-31
+
+### Added
+
+- **Lazy Loading Routes** - Load route components on demand
+  - `lazy(importFn, options)` - Wrap dynamic imports with loading states
+  - `preload(lazyHandler)` - Prefetch components without rendering
+  - Options: `loading`, `error`, `timeout`, `delay`
+  - Component caching for instant re-navigation
+- **Router Middleware** - Koa-style middleware pipeline
+  - `middleware: [...]` option in createRouter
+  - `router.use(fn)` for dynamic middleware registration
+  - Context with `ctx.to`, `ctx.from`, `ctx.meta`, `ctx.redirect()`, `ctx.abort()`
+  - Middleware runs before guards, can redirect or abort navigation
+- **Source Maps** - V3 source map generation for compiled .pulse files
+  - `SourceMapGenerator` class with VLQ encoding
+  - `SourceMapConsumer` for parsing and querying source maps
+  - `compile(source, { sourceMap: true })` option
+  - Inline source maps with `inlineSourceMap: true`
+- New test suites: 15 lazy loading tests, 9 middleware tests, 29 source map tests
+
+### Changed
+
+- Router now uses radix trie for O(path length) route matching
+- Updated TypeScript definitions with new router types
+
 ## [1.4.6] - 2026-01-30
 
 ### Added

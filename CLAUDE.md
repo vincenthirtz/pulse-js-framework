@@ -57,7 +57,8 @@ pulse/
 ├── compiler/            # .pulse file compiler
 │   ├── lexer.js         # Tokenizer
 │   ├── parser.js        # AST builder
-│   └── transformer.js   # Code generator
+│   ├── transformer.js   # Code generator
+│   └── sourcemap.js     # V3 source map generation
 ├── cli/                 # Command-line interface
 │   ├── index.js         # Main CLI, command handlers
 │   ├── dev.js           # Dev server
@@ -120,11 +121,20 @@ list(() => items.get(), (item) => el('li', item.name), item => item.id)
 ### Router (runtime/router.js)
 
 ```javascript
+import { createRouter, lazy, preload } from 'pulse-js-framework/runtime/router';
+
 const router = createRouter({
   routes: {
     '/': HomePage,
     '/users/:id': UserPage,
     '/files/*path': FilePage,
+    // Lazy loading with options
+    '/dashboard': lazy(() => import('./Dashboard.js')),
+    '/settings': lazy(() => import('./Settings.js'), {
+      loading: () => el('.spinner'),
+      error: (err) => el('.error', err.message),
+      timeout: 5000
+    }),
     '/admin': {
       handler: AdminPage,
       meta: { requiresAuth: true },
@@ -138,7 +148,16 @@ const router = createRouter({
     }
   },
   mode: 'history',
-  scrollBehavior: (to, from, saved) => saved || { x: 0, y: 0 }
+  scrollBehavior: (to, from, saved) => saved || { x: 0, y: 0 },
+  // Middleware (Koa-style)
+  middleware: [
+    async (ctx, next) => {
+      if (ctx.to.meta.requiresAuth && !isAuth()) {
+        return ctx.redirect('/login');
+      }
+      await next();
+    }
+  ]
 });
 
 // Guards
@@ -146,12 +165,18 @@ router.beforeEach((to, from) => { /* global guard */ });
 router.beforeResolve((to, from) => { /* after per-route guards */ });
 router.afterEach((to) => { /* after navigation */ });
 
+// Dynamic middleware
+const unsubscribe = router.use(async (ctx, next) => { await next(); });
+
 // Navigation
 router.navigate('/users/123');
 router.params.get();  // { id: '123' }
 router.meta.get();    // { requiresAuth: true }
 router.isActive('/admin'); // true/false
 router.outlet('#app');
+
+// Preload components
+preload(lazy(() => import('./Dashboard.js')));
 ```
 
 ### Store (runtime/store.js)
@@ -203,6 +228,7 @@ style {
 - `slot` / `slot "name"` for content projection
 - CSS scoping with unique class prefixes
 - Error messages include line:column
+- Source map generation for debugging
 
 ## Key Files
 
@@ -210,11 +236,12 @@ style {
 |------|---------|
 | `runtime/pulse.js` | Core reactivity (Pulse class, effect, computed, batch) |
 | `runtime/dom.js` | DOM helpers (el, text, bind, on, model, list, when) |
-| `runtime/router.js` | Router (createRouter, navigate, guards) |
+| `runtime/router.js` | Router (createRouter, lazy, preload, middleware) |
 | `runtime/store.js` | Store (createStore, createActions, plugins) |
 | `compiler/lexer.js` | Tokenizer with 50+ token types |
 | `compiler/parser.js` | AST builder for .pulse syntax |
 | `compiler/transformer.js` | JavaScript code generator |
+| `compiler/sourcemap.js` | V3 source map generation (VLQ encoding) |
 | `cli/index.js` | CLI commands implementation |
 | `cli/lint.js` | SemanticAnalyzer, LintRules for code validation |
 | `cli/format.js` | PulseFormatter for consistent code style |

@@ -7,9 +7,11 @@
  * - Import statement support
  * - Slot-based component composition
  * - CSS scoping with unique class prefixes
+ * - Source map generation
  */
 
 import { NodeType } from './parser.js';
+import { SourceMapGenerator } from './sourcemap.js';
 
 /** Generate a unique scope ID for CSS scoping */
 const generateScopeId = () => 'p' + Math.random().toString(36).substring(2, 8);
@@ -29,13 +31,92 @@ const STATEMENT_TOKEN_TYPES = new Set(['IF', 'FOR', 'EACH']);
 export class Transformer {
   constructor(ast, options = {}) {
     this.ast = ast;
-    this.options = { runtime: 'pulse-js-framework/runtime', minify: false, scopeStyles: true, ...options };
+    this.options = {
+      runtime: 'pulse-js-framework/runtime',
+      minify: false,
+      scopeStyles: true,
+      sourceMap: false,        // Enable source map generation
+      sourceFileName: null,    // Original .pulse file name
+      sourceContent: null,     // Original source content (for inline source maps)
+      ...options
+    };
     this.stateVars = new Set();
     this.propVars = new Set();
     this.propDefaults = new Map();
     this.actionNames = new Set();
     this.importedComponents = new Map();
     this.scopeId = this.options.scopeStyles ? generateScopeId() : null;
+
+    // Source map tracking
+    this.sourceMap = null;
+    this._currentLine = 0;
+    this._currentColumn = 0;
+
+    // Initialize source map generator if enabled
+    if (this.options.sourceMap) {
+      this.sourceMap = new SourceMapGenerator({
+        file: this.options.sourceFileName?.replace('.pulse', '.js') || 'output.js'
+      });
+      if (this.options.sourceFileName) {
+        this.sourceMap.addSource(
+          this.options.sourceFileName,
+          this.options.sourceContent
+        );
+      }
+    }
+  }
+
+  /**
+   * Add a mapping to the source map
+   * @param {Object} original - Original position {line, column} (1-based)
+   * @param {string} name - Optional identifier name
+   */
+  _addMapping(original, name = null) {
+    if (!this.sourceMap || !original) return;
+
+    this.sourceMap.addMapping({
+      generated: {
+        line: this._currentLine,
+        column: this._currentColumn
+      },
+      original: {
+        line: original.line - 1, // Convert to 0-based
+        column: original.column - 1
+      },
+      source: this.options.sourceFileName,
+      name
+    });
+  }
+
+  /**
+   * Track output position when writing code
+   * @param {string} code - Generated code
+   * @returns {string} The same code (for chaining)
+   */
+  _trackCode(code) {
+    for (const char of code) {
+      if (char === '\n') {
+        this._currentLine++;
+        this._currentColumn = 0;
+      } else {
+        this._currentColumn++;
+      }
+    }
+    return code;
+  }
+
+  /**
+   * Write code with optional source mapping
+   * @param {string} code - Code to write
+   * @param {Object} original - Original position {line, column}
+   * @param {string} name - Optional identifier name
+   * @returns {string} The code
+   */
+  _emit(code, original = null, name = null) {
+    if (original) {
+      this._addMapping(original, name);
+    }
+    return this._trackCode(code);
   }
 
   /**
@@ -100,7 +181,32 @@ export class Transformer {
     // Component export
     parts.push(this.generateExport());
 
-    return parts.filter(Boolean).join('\n\n');
+    const code = parts.filter(Boolean).join('\n\n');
+
+    // Track the generated code for source map positions
+    if (this.sourceMap) {
+      this._trackCode(code);
+    }
+
+    return code;
+  }
+
+  /**
+   * Transform AST and return result with optional source map
+   * @returns {Object} Result with code and optional sourceMap
+   */
+  transformWithSourceMap() {
+    const code = this.transform();
+
+    if (!this.sourceMap) {
+      return { code, sourceMap: null };
+    }
+
+    return {
+      code,
+      sourceMap: this.sourceMap.toJSON(),
+      sourceMapComment: this.sourceMap.toComment()
+    };
   }
 
   /**

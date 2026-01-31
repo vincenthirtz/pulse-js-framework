@@ -1,6 +1,6 @@
 {
   "name": "pulse-js-framework",
-  "version": "1.4.8",
+  "version": "1.4.9",
   "description": "A declarative DOM framework with CSS selector-based structure and reactive pulsations",
   "type": "module",
   "main": "index.js",
@@ -71,8 +71,9 @@
     "LICENSE"
   ],
   "scripts": {
-    "test": "npm run test:compiler && npm run test:pulse && npm run test:dom && npm run test:router && npm run test:store && npm run test:hmr && npm run test:lint && npm run test:format && npm run test:analyze",
+    "test": "npm run test:compiler && npm run test:sourcemap && npm run test:pulse && npm run test:dom && npm run test:router && npm run test:store && npm run test:hmr && npm run test:lint && npm run test:format && npm run test:analyze",
     "test:compiler": "node test/compiler.test.js",
+    "test:sourcemap": "node test/sourcemap.test.js",
     "test:pulse": "node test/pulse.test.js",
     "test:dom": "node test/dom.test.js",
     "test:router": "node test/router.test.js",
