@@ -23,7 +23,7 @@ view {
     .card {
       h2.card-title "Valeurs Derivees"
       p "Double: {count * 2}"
-      p "Carre: {count * count}"
+      p "Carredddddddd: {count * count}"
       p "Pair: {count % 2 === 0 ? 'Oui' : 'Non'}"
     }
   }
