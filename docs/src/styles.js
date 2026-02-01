@@ -295,6 +295,15 @@ body {
   cursor: pointer;
 }
 
+/* Header Actions (language + theme) */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
 .theme-btn {
   background: var(--bg);
   border: 1px solid var(--border);
@@ -303,7 +312,6 @@ body {
   font-size: 1.2em;
   cursor: pointer;
   transition: all 0.2s ease;
-  margin-left: 16px;
   flex-shrink: 0;
 }
 
@@ -315,7 +323,6 @@ body {
 /* Language Selector */
 .lang-selector {
   position: relative;
-  margin-left: 8px;
 }
 
 .lang-btn {
@@ -423,8 +430,8 @@ body {
   .header { padding: 14px 16px; }
   .nav { display: none; }
   .menu-btn { display: block; }
-  .theme-btn { padding: 6px 10px; font-size: 1em; margin-left: 8px; }
-  .lang-selector { margin-left: 4px; }
+  .header-actions { gap: 4px; }
+  .theme-btn { padding: 6px 10px; font-size: 1em; }
   .lang-btn { padding: 6px 10px; font-size: 1em; }
   .lang-menu { min-width: 140px; right: 0; }
   .version-badge, .stars-badge {

@@ -135,6 +135,9 @@ export function Header() {
 
   header.appendChild(nav);
 
+  // Header actions container (language + theme)
+  const headerActions = el('.header-actions');
+
   // Language selector
   const langSelector = el('.lang-selector');
 
@@ -182,7 +185,7 @@ export function Header() {
     langSelector.classList.remove('open');
   });
 
-  header.appendChild(langSelector);
+  headerActions.appendChild(langSelector);
 
   // Theme toggle button
   const themeBtn = el('button.theme-btn');
@@ -191,7 +194,9 @@ export function Header() {
     themeBtn.title = theme.get() === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
   });
   themeBtn.addEventListener('click', toggleTheme);
-  header.appendChild(themeBtn);
+  headerActions.appendChild(themeBtn);
+
+  header.appendChild(headerActions);
 
   // Mobile menu button
   const menuBtn = el('button.menu-btn', '☰');

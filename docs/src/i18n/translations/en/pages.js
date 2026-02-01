@@ -24,7 +24,9 @@ export default {
     comparison: {
       feature: 'Feature',
       uiStructure: 'UI Structure',
+      cssSelectors: 'CSS Selectors',
       reactivity: 'Reactivity',
+      pulses: 'Pulses',
       buildStep: 'Build Step',
       bundleSize: 'Bundle Size',
       dependencies: 'Dependencies',
