@@ -28,19 +28,24 @@ export default {
     examplesPage: '✨ Examples',
     examplesDesc: 'Sample applications',
     playground: '🎮 Playground',
-    playgroundDesc: 'Interactive sandbox'
+    playgroundDesc: 'Interactive sandbox',
+    changelog: '📋 Changelog'
   },
 
   // Theme
   theme: {
     switchToLight: 'Switch to light mode',
-    switchToDark: 'Switch to dark mode'
+    switchToDark: 'Switch to dark mode',
+    light: 'Light',
+    dark: 'Dark',
+    system: 'System'
   },
 
   // Language selector
   lang: {
     select: 'Select language',
-    current: 'Current language'
+    current: 'Current language',
+    change: 'Change language'
   },
 
   // Common buttons & actions
@@ -56,7 +61,26 @@ export default {
     searchPlaceholder: 'Search documentation...',
     close: 'Close',
     open: 'Open',
-    toggle: 'Toggle'
+    toggle: 'Toggle',
+    run: 'Run',
+    reset: 'Reset',
+    share: 'Share',
+    download: 'Download',
+    upload: 'Upload',
+    save: 'Save',
+    cancel: 'Cancel',
+    delete: 'Delete',
+    edit: 'Edit',
+    add: 'Add',
+    remove: 'Remove',
+    submit: 'Submit',
+    confirm: 'Confirm',
+    back: 'Back',
+    viewDemo: 'View Demo',
+    viewSource: 'View Source',
+    tryIt: 'Try It',
+    install: 'Install',
+    update: 'Update'
   },
 
   // Footer
@@ -64,7 +88,25 @@ export default {
     builtWith: 'Built with Pulse Framework',
     github: 'GitHub',
     documentation: 'Documentation',
-    license: 'MIT License'
+    license: 'MIT License',
+    madeWith: 'Made with',
+    by: 'by'
+  },
+
+  // Status & states
+  status: {
+    loading: 'Loading...',
+    error: 'Error',
+    success: 'Success',
+    ready: 'Ready',
+    running: 'Running...',
+    pending: 'Pending',
+    completed: 'Completed',
+    failed: 'Failed',
+    active: 'Active',
+    inactive: 'Inactive',
+    enabled: 'Enabled',
+    disabled: 'Disabled'
   },
 
   // Misc
@@ -72,6 +114,175 @@ export default {
     version: 'Version',
     loading: 'Loading...',
     error: 'An error occurred',
-    notFound: 'Page not found'
+    notFound: 'Page not found',
+    and: 'and',
+    or: 'or',
+    yes: 'Yes',
+    no: 'No',
+    all: 'All',
+    none: 'None',
+    default: 'Default',
+    custom: 'Custom',
+    optional: 'Optional',
+    required: 'Required',
+    recommended: 'Recommended',
+    deprecated: 'Deprecated',
+    new: 'New',
+    updated: 'Updated',
+    comingSoon: 'Coming Soon',
+    beta: 'Beta',
+    experimental: 'Experimental'
+  },
+
+  // Code & development
+  code: {
+    syntax: 'Syntax',
+    example: 'Example',
+    examples: 'Examples',
+    output: 'Output',
+    input: 'Input',
+    parameters: 'Parameters',
+    returns: 'Returns',
+    type: 'Type',
+    types: 'Types',
+    description: 'Description',
+    usage: 'Usage',
+    options: 'Options',
+    configuration: 'Configuration',
+    installation: 'Installation',
+    quickStart: 'Quick Start',
+    requirements: 'Requirements',
+    dependencies: 'Dependencies',
+    noDependencies: 'No dependencies',
+    zeroDependencies: 'Zero dependencies',
+    buildStep: 'Build step',
+    noBuildRequired: 'No build required',
+    bundleSize: 'Bundle size',
+    sourceCode: 'Source code',
+    liveDemo: 'Live demo'
+  },
+
+  // Categories & filters
+  categories: {
+    all: 'All',
+    types: 'Types',
+    reactivity: 'Reactivity',
+    dom: 'DOM',
+    router: 'Router',
+    store: 'Store',
+    hmr: 'HMR',
+    forms: 'Forms',
+    animations: 'Animations',
+    utilities: 'Utilities'
+  },
+
+  // Time
+  time: {
+    now: 'Now',
+    today: 'Today',
+    yesterday: 'Yesterday',
+    tomorrow: 'Tomorrow',
+    seconds: 'seconds',
+    minutes: 'minutes',
+    hours: 'hours',
+    days: 'days',
+    weeks: 'weeks',
+    months: 'months',
+    years: 'years',
+    ago: 'ago'
+  },
+
+  // Comparison table
+  comparison: {
+    feature: 'Feature',
+    pulse: 'Pulse',
+    react: 'React',
+    vue: 'Vue',
+    svelte: 'Svelte',
+    yes: 'Yes',
+    no: 'No',
+    partial: 'Partial',
+    builtIn: 'Built-in',
+    required: 'Required',
+    optional: 'Optional',
+    many: 'Many',
+    some: 'Some',
+    few: 'Few',
+    zero: 'Zero',
+    slow: 'Slow',
+    medium: 'Medium',
+    fast: 'Fast',
+    instant: 'Instant',
+    steep: 'Steep',
+    moderate: 'Moderate',
+    easy: 'Easy',
+    minimal: 'Minimal'
+  },
+
+  // Accessibility
+  a11y: {
+    skipToContent: 'Skip to content',
+    menu: 'Menu',
+    closeMenu: 'Close menu',
+    openMenu: 'Open menu',
+    navigation: 'Navigation',
+    mainContent: 'Main content',
+    search: 'Search',
+    toggleTheme: 'Toggle theme',
+    selectLanguage: 'Select language',
+    expandSection: 'Expand section',
+    collapseSection: 'Collapse section'
+  },
+
+  // Error messages
+  errors: {
+    generic: 'An error occurred',
+    notFound: 'Page not found',
+    networkError: 'Network error',
+    serverError: 'Server error',
+    timeout: 'Request timed out',
+    unauthorized: 'Unauthorized',
+    forbidden: 'Access forbidden',
+    validation: 'Validation error',
+    required: 'This field is required',
+    invalid: 'Invalid value',
+    tooShort: 'Too short',
+    tooLong: 'Too long',
+    invalidEmail: 'Invalid email',
+    invalidUrl: 'Invalid URL',
+    tryAgain: 'Please try again'
+  },
+
+  // Search
+  search: {
+    placeholder: 'Search...',
+    noResults: 'No results',
+    resultsFound: 'result(s) found',
+    searchIn: 'Search in',
+    clearSearch: 'Clear search',
+    recentSearches: 'Recent searches',
+    suggestions: 'Suggestions'
+  },
+
+  // Playground
+  playground: {
+    title: '🎮 Playground',
+    codeEditor: '📝 Code Editor',
+    preview: '👁️ Preview',
+    templates: '📋 Quick Templates',
+    counter: 'Counter',
+    todoList: 'Todo List',
+    timer: 'Timer',
+    form: 'Form',
+    calculator: 'Calculator',
+    tabs: 'Tabs',
+    themeSwitch: 'Theme',
+    searchFilter: 'Search',
+    cart: 'Cart',
+    animation: 'Animation',
+    ready: 'Ready',
+    running: 'Running...',
+    success: '✓ Success',
+    errorPrefix: '✗ Error:'
   }
 };

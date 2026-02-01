@@ -1,0 +1,288 @@
+/**
+ * Esperanto translations - Common UI elements
+ */
+
+export default {
+  // Navigation
+  nav: {
+    home: '🏠 Hejmo',
+    learn: '📚 Lerni',
+    reference: '📖 Referenco',
+    examples: '✨ Ekzemploj',
+    gettingStarted: '🚀 Komenci',
+    gettingStartedDesc: 'Instalado kaj unuaj paŝoj',
+    coreConcepts: '💡 Kernaj Konceptoj',
+    coreConceptsDesc: 'Reageco, DOM, vojigo',
+    apiReference: '📖 API Referenco',
+    apiReferenceDesc: 'Kompleta API dokumentado',
+    debugging: '🔍 Sencimigado',
+    debuggingDesc: 'Iloj kaj problemsolvado',
+    security: '🔒 Sekureco',
+    securityDesc: 'XSS preventado kaj sekuraj ŝablonoj',
+    performance: '⚡ Efikeco',
+    performanceDesc: 'Optimumigaj teknikoj',
+    errorHandling: '🛡️ Erartraktado',
+    errorHandlingDesc: 'Erarŝablonoj kaj reakiro',
+    mobile: '📱 Poŝtelefono',
+    mobileDesc: 'Android kaj iOS aplikaĵoj',
+    examplesPage: '✨ Ekzemploj',
+    examplesDesc: 'Ekzemplaj aplikaĵoj',
+    playground: '🎮 Ludejo',
+    playgroundDesc: 'Interaga sabloludejo',
+    changelog: '📋 Ŝanĝoprotokolo'
+  },
+
+  // Theme
+  theme: {
+    switchToLight: 'Ŝanĝi al hela reĝimo',
+    switchToDark: 'Ŝanĝi al malhela reĝimo',
+    light: 'Hela',
+    dark: 'Malhela',
+    system: 'Sistemo'
+  },
+
+  // Language selector
+  lang: {
+    select: 'Elekti lingvon',
+    current: 'Nuna lingvo',
+    change: 'Ŝanĝi lingvon'
+  },
+
+  // Common buttons & actions
+  actions: {
+    getStarted: 'Komenci',
+    viewExamples: 'Vidi Ekzemplojn',
+    learnMore: 'Lerni Pli',
+    next: 'Sekva',
+    previous: 'Antaŭa',
+    copy: 'Kopii',
+    copied: 'Kopiita!',
+    search: 'Serĉi',
+    searchPlaceholder: 'Serĉi dokumentadon...',
+    close: 'Fermi',
+    open: 'Malfermi',
+    toggle: 'Baskuli',
+    run: 'Ruli',
+    reset: 'Restarigi',
+    share: 'Kunhavigi',
+    download: 'Elŝuti',
+    upload: 'Alŝuti',
+    save: 'Konservi',
+    cancel: 'Nuligi',
+    delete: 'Forigi',
+    edit: 'Redakti',
+    add: 'Aldoni',
+    remove: 'Forigi',
+    submit: 'Sendi',
+    confirm: 'Konfirmi',
+    back: 'Reen',
+    viewDemo: 'Vidi Demonstron',
+    viewSource: 'Vidi Fontkodon',
+    tryIt: 'Provi',
+    install: 'Instali',
+    update: 'Ĝisdatigi'
+  },
+
+  // Footer
+  footer: {
+    builtWith: 'Konstruita per Pulse Framework',
+    github: 'GitHub',
+    documentation: 'Dokumentado',
+    license: 'MIT Licenco',
+    madeWith: 'Farita per',
+    by: 'de'
+  },
+
+  // Status & states
+  status: {
+    loading: 'Ŝarĝante...',
+    error: 'Eraro',
+    success: 'Sukceso',
+    ready: 'Preta',
+    running: 'Rulante...',
+    pending: 'Atendante',
+    completed: 'Finita',
+    failed: 'Malsukcesis',
+    active: 'Aktiva',
+    inactive: 'Neaktiva',
+    enabled: 'Ebligita',
+    disabled: 'Malebligita'
+  },
+
+  // Misc
+  misc: {
+    version: 'Versio',
+    loading: 'Ŝarĝante...',
+    error: 'Eraro okazis',
+    notFound: 'Paĝo ne trovita',
+    and: 'kaj',
+    or: 'aŭ',
+    yes: 'Jes',
+    no: 'Ne',
+    all: 'Ĉiuj',
+    none: 'Neniu',
+    default: 'Defaŭlta',
+    custom: 'Propra',
+    optional: 'Nedeviga',
+    required: 'Postulata',
+    recommended: 'Rekomendita',
+    deprecated: 'Malaktuala',
+    new: 'Nova',
+    updated: 'Ĝisdatigita',
+    comingSoon: 'Baldaŭ',
+    beta: 'Beta',
+    experimental: 'Eksperimenta'
+  },
+
+  // Code & development
+  code: {
+    syntax: 'Sintakso',
+    example: 'Ekzemplo',
+    examples: 'Ekzemploj',
+    output: 'Eligo',
+    input: 'Enigo',
+    parameters: 'Parametroj',
+    returns: 'Liveras',
+    type: 'Tipo',
+    types: 'Tipoj',
+    description: 'Priskribo',
+    usage: 'Uzado',
+    options: 'Opcioj',
+    configuration: 'Agordo',
+    installation: 'Instalado',
+    quickStart: 'Rapida Komenco',
+    requirements: 'Postuloj',
+    dependencies: 'Dependecoj',
+    noDependencies: 'Sen dependecoj',
+    zeroDependencies: 'Nul dependecoj',
+    buildStep: 'Kompila paŝo',
+    noBuildRequired: 'Sen kompilado bezonata',
+    bundleSize: 'Pakaĵa grando',
+    sourceCode: 'Fontkodo',
+    liveDemo: 'Viva demonstro'
+  },
+
+  // Categories & filters
+  categories: {
+    all: 'Ĉiuj',
+    types: 'Tipoj',
+    reactivity: 'Reageco',
+    dom: 'DOM',
+    router: 'Vojigilo',
+    store: 'Stokejo',
+    hmr: 'HMR',
+    forms: 'Formularoj',
+    animations: 'Animacioj',
+    utilities: 'Utilaĵoj'
+  },
+
+  // Time
+  time: {
+    now: 'Nun',
+    today: 'Hodiaŭ',
+    yesterday: 'Hieraŭ',
+    tomorrow: 'Morgaŭ',
+    seconds: 'sekundoj',
+    minutes: 'minutoj',
+    hours: 'horoj',
+    days: 'tagoj',
+    weeks: 'semajnoj',
+    months: 'monatoj',
+    years: 'jaroj',
+    ago: 'antaŭe'
+  },
+
+  // Comparison table
+  comparison: {
+    feature: 'Trajto',
+    pulse: 'Pulse',
+    react: 'React',
+    vue: 'Vue',
+    svelte: 'Svelte',
+    yes: 'Jes',
+    no: 'Ne',
+    partial: 'Parta',
+    builtIn: 'Enkonstruita',
+    required: 'Postulata',
+    optional: 'Nedeviga',
+    many: 'Multaj',
+    some: 'Kelkaj',
+    few: 'Malmultaj',
+    zero: 'Nul',
+    slow: 'Malrapida',
+    medium: 'Meza',
+    fast: 'Rapida',
+    instant: 'Tuja',
+    steep: 'Kruta',
+    moderate: 'Modera',
+    easy: 'Facila',
+    minimal: 'Minimuma'
+  },
+
+  // Accessibility
+  a11y: {
+    skipToContent: 'Salti al enhavo',
+    menu: 'Menuo',
+    closeMenu: 'Fermi menuon',
+    openMenu: 'Malfermi menuon',
+    navigation: 'Navigado',
+    mainContent: 'Ĉefa enhavo',
+    search: 'Serĉi',
+    toggleTheme: 'Ŝanĝi temon',
+    selectLanguage: 'Elekti lingvon',
+    expandSection: 'Ekspandi sekcion',
+    collapseSection: 'Kolapsigi sekcion'
+  },
+
+  // Error messages
+  errors: {
+    generic: 'Eraro okazis',
+    notFound: 'Paĝo ne trovita',
+    networkError: 'Reta eraro',
+    serverError: 'Servila eraro',
+    timeout: 'Tempolimo atingita',
+    unauthorized: 'Neaŭtorizita',
+    forbidden: 'Malpermesita aliro',
+    validation: 'Validiga eraro',
+    required: 'Ĉi tiu kampo estas postulata',
+    invalid: 'Nevalida valoro',
+    tooShort: 'Tro mallonga',
+    tooLong: 'Tro longa',
+    invalidEmail: 'Nevalida retpoŝto',
+    invalidUrl: 'Nevalida URL',
+    tryAgain: 'Bonvolu reprovi'
+  },
+
+  // Search
+  search: {
+    placeholder: 'Serĉi...',
+    noResults: 'Neniuj rezultoj',
+    resultsFound: 'rezulto(j) trovita(j)',
+    searchIn: 'Serĉi en',
+    clearSearch: 'Forigi serĉon',
+    recentSearches: 'Lastaj serĉoj',
+    suggestions: 'Sugestoj'
+  },
+
+  // Playground
+  playground: {
+    title: '🎮 Ludejo',
+    codeEditor: '📝 Koda Redaktilo',
+    preview: '👁️ Antaŭvido',
+    templates: '📋 Rapidaj Ŝablonoj',
+    counter: 'Kalkulilo',
+    todoList: 'Tasklisto',
+    timer: 'Tempomezurilo',
+    form: 'Formularo',
+    calculator: 'Kalkulilo',
+    tabs: 'Langetoj',
+    themeSwitch: 'Temo',
+    searchFilter: 'Serĉo',
+    cart: 'Ĉareto',
+    animation: 'Animacio',
+    ready: 'Preta',
+    running: 'Rulante...',
+    success: '✓ Sukceso',
+    errorPrefix: '✗ Eraro:'
+  }
+};
