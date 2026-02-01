@@ -8,6 +8,264 @@
 
 import { pulse, effect, batch, onCleanup } from './pulse.js';
 
+// ============================================================================
+// Versioned Async - Centralized Race Condition Handling
+// ============================================================================
+
+/**
+ * @typedef {Object} VersionedContext
+ * @property {function(): boolean} isCurrent - Check if this operation is still valid
+ * @property {function(): boolean} isStale - Check if this operation has been superseded
+ * @property {function(function): *} ifCurrent - Run callback only if still current
+ * @property {function(function, number): number} setTimeout - Register a timeout that auto-clears on abort
+ * @property {function(function, number): number} setInterval - Register an interval that auto-clears on abort
+ * @property {function(number): void} clearTimeout - Clear a registered timeout
+ * @property {function(number): void} clearInterval - Clear a registered interval
+ */
+
+/**
+ * @typedef {Object} VersionedAsyncController
+ * @property {function(): VersionedContext} begin - Start a new versioned operation
+ * @property {function(): void} abort - Abort the current operation
+ * @property {function(): number} getVersion - Get current version number
+ * @property {function(): void} cleanup - Clean up all timers
+ */
+
+/**
+ * Create a versioned async controller for race condition handling.
+ *
+ * This utility provides a centralized way to handle async race conditions
+ * by tracking operation versions. When a new operation starts, it invalidates
+ * any previous operations, preventing stale callbacks from executing.
+ *
+ * Use cases:
+ * - Preventing stale fetch responses from updating UI after navigation
+ * - Handling rapid user input that triggers multiple async operations
+ * - Managing lazy-loaded components during route changes
+ * - Any scenario where multiple async operations might overlap
+ *
+ * @param {Object} [options={}] - Configuration options
+ * @param {function(): void} [options.onAbort] - Callback invoked when operation is aborted
+ * @returns {VersionedAsyncController} Controller for managing versioned async operations
+ *
+ * @example
+ * // Basic usage
+ * const controller = createVersionedAsync();
+ *
+ * async function fetchData() {
+ *   const ctx = controller.begin();
+ *
+ *   const response = await fetch('/api/data');
+ *   const data = await response.json();
+ *
+ *   // Only update state if this operation is still current
+ *   ctx.ifCurrent(() => {
+ *     setState(data);
+ *   });
+ * }
+ *
+ * @example
+ * // With timeout handling
+ * const controller = createVersionedAsync();
+ *
+ * function lazyLoad() {
+ *   const ctx = controller.begin();
+ *
+ *   // Timer automatically clears if operation is aborted
+ *   ctx.setTimeout(() => {
+ *     ctx.ifCurrent(() => showLoading());
+ *   }, 200);
+ *
+ *   loadComponent().then(component => {
+ *     ctx.ifCurrent(() => render(component));
+ *   });
+ * }
+ *
+ * // Abort on navigation
+ * onNavigate(() => controller.abort());
+ *
+ * @example
+ * // Manual staleness check
+ * const controller = createVersionedAsync();
+ *
+ * async function search(query) {
+ *   const ctx = controller.begin();
+ *
+ *   const results = await searchApi(query);
+ *
+ *   if (ctx.isStale()) {
+ *     return null; // Newer search was started
+ *   }
+ *
+ *   return results;
+ * }
+ */
+export function createVersionedAsync(options = {}) {
+  const { onAbort } = options;
+
+  let version = 0;
+  let aborted = false;
+  const timeouts = new Set();
+  const intervals = new Set();
+
+  /**
+   * Start a new versioned operation.
+   * Invalidates any previous operations and returns a context
+   * for checking validity and managing timers.
+   *
+   * @returns {VersionedContext} Context for the new operation
+   */
+  function begin() {
+    aborted = false;
+    const currentVersion = ++version;
+
+    // Clear any pending timers from previous operations
+    timeouts.forEach(clearTimeout);
+    timeouts.clear();
+    intervals.forEach(clearInterval);
+    intervals.clear();
+
+    return {
+      /**
+       * Check if this operation is still the current one.
+       * Returns false if abort() was called or a new begin() was called.
+       * @returns {boolean}
+       */
+      isCurrent() {
+        return !aborted && currentVersion === version;
+      },
+
+      /**
+       * Check if this operation has been superseded.
+       * Inverse of isCurrent() for readability.
+       * @returns {boolean}
+       */
+      isStale() {
+        return aborted || currentVersion !== version;
+      },
+
+      /**
+       * Execute a callback only if this operation is still current.
+       * Useful for safely updating state after async operations.
+       *
+       * @template T
+       * @param {function(): T} fn - Function to execute if current
+       * @returns {T|undefined} Result of fn or undefined if stale
+       */
+      ifCurrent(fn) {
+        if (!aborted && currentVersion === version) {
+          return fn();
+        }
+        return undefined;
+      },
+
+      /**
+       * Set a timeout that automatically clears when the operation
+       * becomes stale (either by abort or new begin).
+       *
+       * @param {function(): void} fn - Callback to execute
+       * @param {number} ms - Delay in milliseconds
+       * @returns {number} Timer ID
+       */
+      setTimeout(fn, ms) {
+        const id = setTimeout(() => {
+          timeouts.delete(id);
+          if (!aborted && currentVersion === version) {
+            fn();
+          }
+        }, ms);
+        timeouts.add(id);
+        return id;
+      },
+
+      /**
+       * Set an interval that automatically clears when the operation
+       * becomes stale.
+       *
+       * @param {function(): void} fn - Callback to execute
+       * @param {number} ms - Interval in milliseconds
+       * @returns {number} Timer ID
+       */
+      setInterval(fn, ms) {
+        const id = setInterval(() => {
+          if (!aborted && currentVersion === version) {
+            fn();
+          } else {
+            clearInterval(id);
+            intervals.delete(id);
+          }
+        }, ms);
+        intervals.add(id);
+        return id;
+      },
+
+      /**
+       * Clear a specific timeout registered with this context.
+       * @param {number} id - Timer ID to clear
+       */
+      clearTimeout(id) {
+        clearTimeout(id);
+        timeouts.delete(id);
+      },
+
+      /**
+       * Clear a specific interval registered with this context.
+       * @param {number} id - Timer ID to clear
+       */
+      clearInterval(id) {
+        clearInterval(id);
+        intervals.delete(id);
+      }
+    };
+  }
+
+  /**
+   * Abort the current operation.
+   * Marks all active operations as stale and clears pending timers.
+   */
+  function abort() {
+    aborted = true;
+    version++;
+
+    // Clear all pending timers
+    timeouts.forEach(clearTimeout);
+    timeouts.clear();
+    intervals.forEach(clearInterval);
+    intervals.clear();
+
+    if (onAbort) {
+      onAbort();
+    }
+  }
+
+  /**
+   * Get the current version number.
+   * Useful for advanced use cases or debugging.
+   * @returns {number}
+   */
+  function getVersion() {
+    return version;
+  }
+
+  /**
+   * Clean up all timers without aborting.
+   * Call this when disposing of the controller.
+   */
+  function cleanup() {
+    timeouts.forEach(clearTimeout);
+    timeouts.clear();
+    intervals.forEach(clearInterval);
+    intervals.clear();
+  }
+
+  return {
+    begin,
+    abort,
+    getVersion,
+    cleanup
+  };
+}
+
 /**
  * @typedef {Object} AsyncState
  * @property {T|null} data - The resolved data
@@ -29,6 +287,8 @@ import { pulse, effect, batch, onCleanup } from './pulse.js';
 /**
  * Create a reactive async operation handler.
  * Manages loading, error, and success states automatically.
+ *
+ * Uses createVersionedAsync internally for race condition handling.
  *
  * @template T
  * @param {function(): Promise<T>} asyncFn - Async function to execute
@@ -73,8 +333,8 @@ export function useAsync(asyncFn, options = {}) {
   const loading = pulse(false);
   const status = pulse('idle');
 
-  // Track current execution version to handle race conditions
-  let executionVersion = 0;
+  // Use centralized versioned async for race condition handling
+  const versionController = createVersionedAsync();
 
   /**
    * Execute the async function
@@ -82,7 +342,7 @@ export function useAsync(asyncFn, options = {}) {
    * @returns {Promise<T|null>} The resolved data or null on error
    */
   async function execute(...args) {
-    const currentVersion = ++executionVersion;
+    const ctx = versionController.begin();
     let attempt = 0;
 
     batch(() => {
@@ -96,7 +356,7 @@ export function useAsync(asyncFn, options = {}) {
         const result = await asyncFn(...args);
 
         // Check if this execution is still current (not stale)
-        if (currentVersion !== executionVersion) {
+        if (ctx.isStale()) {
           return null;
         }
 
@@ -112,13 +372,13 @@ export function useAsync(asyncFn, options = {}) {
         attempt++;
 
         // Only retry if we haven't exceeded retries and execution is still current
-        if (attempt <= retries && currentVersion === executionVersion) {
+        if (attempt <= retries && ctx.isCurrent()) {
           await new Promise(resolve => setTimeout(resolve, retryDelay));
           continue;
         }
 
         // Check if this execution is still current
-        if (currentVersion !== executionVersion) {
+        if (ctx.isStale()) {
           return null;
         }
 
@@ -140,7 +400,7 @@ export function useAsync(asyncFn, options = {}) {
    * Reset state to initial values
    */
   function reset() {
-    executionVersion++;
+    versionController.abort();
     batch(() => {
       data.set(initialData);
       error.set(null);
@@ -153,7 +413,7 @@ export function useAsync(asyncFn, options = {}) {
    * Abort current execution (marks it as stale)
    */
   function abort() {
-    executionVersion++;
+    versionController.abort();
     if (loading.get()) {
       batch(() => {
         loading.set(false);
@@ -239,7 +499,9 @@ export function useResource(key, fetcher, options = {}) {
   const lastFetchTime = pulse(0);
 
   let intervalId = null;
-  let currentKey = null;
+
+  // Use centralized versioned async for race condition handling
+  const versionController = createVersionedAsync();
 
   /**
    * Get the current cache key
@@ -285,7 +547,7 @@ export function useResource(key, fetcher, options = {}) {
    */
   async function fetch() {
     const cacheKey = getCacheKey();
-    currentKey = cacheKey;
+    const ctx = versionController.begin();
 
     // Check cache first
     const cached = getCachedData();
@@ -312,8 +574,8 @@ export function useResource(key, fetcher, options = {}) {
     try {
       const result = await fetcher();
 
-      // Check if key changed during fetch
-      if (cacheKey !== currentKey) {
+      // Check if fetch was superseded (key changed or aborted)
+      if (ctx.isStale()) {
         return null;
       }
 
@@ -330,7 +592,7 @@ export function useResource(key, fetcher, options = {}) {
 
       return result;
     } catch (err) {
-      if (cacheKey !== currentKey) {
+      if (ctx.isStale()) {
         return null;
       }
 
@@ -415,16 +677,21 @@ export function useResource(key, fetcher, options = {}) {
     onCleanup(() => window.removeEventListener('online', handleOnline));
   }
 
+  // Track current key for change detection
+  let lastKey = null;
+
   // Watch for key changes if key is a function
   if (typeof key === 'function') {
     effect(() => {
       const newKey = key();
-      if (newKey !== currentKey) {
+      if (newKey !== lastKey) {
+        lastKey = newKey;
         fetch();
       }
     });
   } else {
     // Initial fetch
+    lastKey = key;
     fetch();
   }
 
@@ -611,6 +878,7 @@ export function getResourceCacheStats() {
 }
 
 export default {
+  createVersionedAsync,
   useAsync,
   useResource,
   usePolling,

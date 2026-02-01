@@ -8,6 +8,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, statSy
 import { join, extname, relative, dirname } from 'path';
 import { compile } from '../compiler/index.js';
 import { log } from './logger.js';
+import { createTimer, createProgressBar, formatDuration, createSpinner } from './utils/cli-ui.js';
 
 /**
  * Build project for production
@@ -15,21 +16,23 @@ import { log } from './logger.js';
 export async function buildProject(args) {
   const root = process.cwd();
   const outDir = join(root, 'dist');
+  const timer = createTimer();
 
   // Check if vite is available
   try {
     const viteConfig = join(root, 'vite.config.js');
     if (existsSync(viteConfig)) {
-      log.info('Vite config detected, using Vite build...');
+      const spinner = createSpinner('Building with Vite...');
       const { build } = await import('vite');
       await build({ root });
+      spinner.success(`Built with Vite in ${timer.format()}`);
       return;
     }
   } catch (e) {
     // Vite not available, use built-in build
   }
 
-  log.info('Building with Pulse compiler...');
+  log.info('Building with Pulse compiler...\n');
 
   // Create output directory
   if (!existsSync(outDir)) {
@@ -42,10 +45,19 @@ export async function buildProject(args) {
     copyDir(publicDir, outDir);
   }
 
-  // Process source files
+  // Count files for progress bar
   const srcDir = join(root, 'src');
-  if (existsSync(srcDir)) {
-    processDirectory(srcDir, join(outDir, 'assets'));
+  const fileCount = existsSync(srcDir) ? countFiles(srcDir) : 0;
+
+  // Process source files with progress bar
+  if (existsSync(srcDir) && fileCount > 0) {
+    const progress = createProgressBar({
+      total: fileCount,
+      label: 'Compiling',
+      width: 25
+    });
+    processDirectory(srcDir, join(outDir, 'assets'), progress);
+    progress.done();
   }
 
   // Copy and process index.html
@@ -68,20 +80,45 @@ export async function buildProject(args) {
   // Bundle runtime
   bundleRuntime(outDir);
 
+  const elapsed = timer.elapsed();
   log.success(`
-Build complete!
+✓ Build complete in ${formatDuration(elapsed)}
 
-Output directory: ${relative(root, outDir)}
+Output: ${relative(root, outDir)}/
+Files:  ${fileCount} processed
 
-To preview the build:
-  npx serve dist
+To preview:
+  pulse preview
   `);
 }
 
 /**
- * Process a directory of source files
+ * Count files in a directory recursively
  */
-function processDirectory(srcDir, outDir) {
+function countFiles(dir) {
+  let count = 0;
+  const files = readdirSync(dir);
+
+  for (const file of files) {
+    const fullPath = join(dir, file);
+    const stat = statSync(fullPath);
+    if (stat.isDirectory()) {
+      count += countFiles(fullPath);
+    } else {
+      count++;
+    }
+  }
+
+  return count;
+}
+
+/**
+ * Process a directory of source files
+ * @param {string} srcDir - Source directory
+ * @param {string} outDir - Output directory
+ * @param {Object} [progress] - Progress bar instance
+ */
+function processDirectory(srcDir, outDir, progress = null) {
   if (!existsSync(outDir)) {
     mkdirSync(outDir, { recursive: true });
   }
@@ -93,7 +130,7 @@ function processDirectory(srcDir, outDir) {
     const stat = statSync(srcPath);
 
     if (stat.isDirectory()) {
-      processDirectory(srcPath, join(outDir, file));
+      processDirectory(srcPath, join(outDir, file), progress);
     } else if (file.endsWith('.pulse')) {
       // Compile .pulse files
       const source = readFileSync(srcPath, 'utf-8');
@@ -105,13 +142,13 @@ function processDirectory(srcDir, outDir) {
       if (result.success) {
         const outPath = join(outDir, file.replace('.pulse', '.js'));
         writeFileSync(outPath, result.code);
-        log.info(`  Compiled: ${file}`);
       } else {
         log.error(`  Error compiling ${file}:`);
         for (const error of result.errors) {
           log.error(`    ${error.message}`);
         }
       }
+      if (progress) progress.tick();
     } else if (file.endsWith('.js') || file.endsWith('.mjs')) {
       // Process JS files - rewrite imports
       let content = readFileSync(srcPath, 'utf-8');
@@ -130,11 +167,12 @@ function processDirectory(srcDir, outDir) {
 
       const outPath = join(outDir, file);
       writeFileSync(outPath, content);
-      log.info(`  Processed & minified: ${file}`);
+      if (progress) progress.tick();
     } else {
       // Copy other files
       const outPath = join(outDir, file);
       copyFileSync(srcPath, outPath);
+      if (progress) progress.tick();
     }
   }
 }

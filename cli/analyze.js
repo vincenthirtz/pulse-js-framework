@@ -7,6 +7,7 @@ import { readFileSync, statSync, existsSync } from 'fs';
 import { join, dirname, basename, relative } from 'path';
 import { findPulseFiles, parseArgs, formatBytes, relativePath, resolveImportPath } from './utils/file-utils.js';
 import { log } from './logger.js';
+import { createTimer, formatDuration, createSpinner, createBarChart, createTree, createTable, printSection } from './utils/cli-ui.js';
 
 /**
  * Analyze the bundle/project
@@ -384,73 +385,110 @@ function formatConsoleOutput(analysis, verbose = false) {
   lines.push('  PULSE BUNDLE ANALYSIS');
   lines.push('═'.repeat(60));
 
-  // Summary
+  // Summary table
   lines.push('');
-  lines.push('  SUMMARY');
-  lines.push('  ' + '─'.repeat(40));
-  lines.push(`  Total files:     ${analysis.summary.totalFiles}`);
-  lines.push(`  .pulse files:    ${analysis.summary.pulseFiles}`);
-  lines.push(`  .js files:       ${analysis.summary.jsFiles}`);
-  lines.push(`  Total size:      ${analysis.summary.totalSizeFormatted}`);
+  lines.push(createTable(
+    ['Metric', 'Value'],
+    [
+      ['Total files', String(analysis.summary.totalFiles)],
+      ['.pulse files', String(analysis.summary.pulseFiles)],
+      ['.js files', String(analysis.summary.jsFiles)],
+      ['Total size', analysis.summary.totalSizeFormatted]
+    ],
+    { align: ['left', 'right'] }
+  ));
 
-  // Complexity (top 5)
+  // Complexity bar chart (top 5)
   if (analysis.complexity.length > 0) {
-    lines.push('');
-    lines.push('  COMPLEXITY (Top 5)');
-    lines.push('  ' + '─'.repeat(40));
+    printSection('COMPONENT COMPLEXITY');
     const top5 = analysis.complexity.slice(0, 5);
-    for (const comp of top5) {
-      const bar = '█'.repeat(Math.min(comp.complexity, 20));
-      lines.push(`  ${comp.componentName.padEnd(20)} ${String(comp.complexity).padStart(3)} ${bar}`);
+    const chartData = top5.map(comp => ({
+      label: comp.componentName.slice(0, 15).padEnd(15),
+      value: comp.complexity,
+      color: comp.complexity > 20 ? 'red' : comp.complexity > 10 ? 'yellow' : 'green'
+    }));
+    lines.push(createBarChart(chartData, { maxWidth: 30, showValues: true }));
+
+    // Detailed metrics table for verbose mode
+    if (verbose) {
+      lines.push('');
+      lines.push(createTable(
+        ['Component', 'State', 'Actions', 'Depth', 'Directives', 'Score'],
+        top5.map(c => [
+          c.componentName,
+          String(c.stateCount),
+          String(c.actionCount),
+          String(c.viewDepth),
+          String(c.directiveCount),
+          String(c.complexity)
+        ]),
+        { align: ['left', 'right', 'right', 'right', 'right', 'right'] }
+      ));
     }
   }
 
-  // Dead code
+  // Dead code warnings
   if (analysis.deadCode.length > 0) {
-    lines.push('');
-    lines.push('  DEAD CODE');
-    lines.push('  ' + '─'.repeat(40));
+    printSection('DEAD CODE DETECTED');
     for (const dead of analysis.deadCode) {
       lines.push(`  ⚠ ${dead.file}`);
-      lines.push(`    ${dead.message}`);
+      lines.push(`    └─ ${dead.message}`);
     }
   }
 
-  // File breakdown (verbose)
+  // File size breakdown with bar chart (verbose)
   if (verbose && analysis.fileBreakdown.length > 0) {
-    lines.push('');
-    lines.push('  FILE BREAKDOWN');
-    lines.push('  ' + '─'.repeat(40));
-    for (const file of analysis.fileBreakdown) {
-      const size = file.sizeFormatted.padStart(10);
-      lines.push(`  ${size}  ${file.path}`);
-    }
+    printSection('FILE SIZE BREAKDOWN');
+    const top10Files = analysis.fileBreakdown.slice(0, 10);
+    const sizeChartData = top10Files.map(file => ({
+      label: basename(file.path).slice(0, 20).padEnd(20),
+      value: file.size,
+      color: file.type === 'pulse' ? 'cyan' : 'blue'
+    }));
+    lines.push(createBarChart(sizeChartData, { maxWidth: 25, showValues: true, unit: 'B' }));
   }
 
-  // Import graph (verbose)
+  // Import graph as tree (verbose)
   if (verbose && analysis.importGraph.edges.length > 0) {
-    lines.push('');
-    lines.push('  IMPORT GRAPH');
-    lines.push('  ' + '─'.repeat(40));
-    for (const edge of analysis.importGraph.edges.slice(0, 20)) {
-      lines.push(`  ${edge.from} → ${edge.to}`);
+    printSection('IMPORT DEPENDENCY TREE');
+
+    // Build tree structure from edges
+    const tree = buildDependencyTree(analysis.importGraph);
+    if (tree) {
+      lines.push(createTree(tree));
     }
-    if (analysis.importGraph.edges.length > 20) {
-      lines.push(`  ... and ${analysis.importGraph.edges.length - 20} more`);
-    }
+
+    // Show edge count summary
+    lines.push(`  Total dependencies: ${analysis.importGraph.edges.length}`);
   }
 
   // State usage (verbose)
   if (verbose && analysis.stateUsage.length > 0) {
-    lines.push('');
-    lines.push('  STATE VARIABLES');
-    lines.push('  ' + '─'.repeat(40));
-    for (const state of analysis.stateUsage.slice(0, 10)) {
-      const shared = state.isShared ? ' (shared)' : '';
+    printSection('STATE VARIABLES');
+
+    // Show shared state as a table
+    const sharedState = analysis.stateUsage.filter(s => s.isShared);
+    if (sharedState.length > 0) {
+      lines.push('  Shared state (used in multiple files):');
+      lines.push(createTable(
+        ['Variable', 'Files'],
+        sharedState.slice(0, 5).map(s => [s.name, String(s.files.length)]),
+        { align: ['left', 'right'] }
+      ));
+    }
+
+    // State tree visualization
+    for (const state of analysis.stateUsage.slice(0, 5)) {
+      const shared = state.isShared ? ' \x1b[33m(shared)\x1b[0m' : '';
       lines.push(`  ${state.name}${shared}`);
-      for (const file of state.files) {
-        lines.push(`    └─ ${file}`);
+      for (let i = 0; i < state.files.length; i++) {
+        const isLast = i === state.files.length - 1;
+        const prefix = isLast ? '└── ' : '├── ';
+        lines.push(`    ${prefix}${state.files[i]}`);
       }
+    }
+    if (analysis.stateUsage.length > 5) {
+      lines.push(`  ... and ${analysis.stateUsage.length - 5} more state variables`);
     }
   }
 
@@ -458,6 +496,44 @@ function formatConsoleOutput(analysis, verbose = false) {
   lines.push('═'.repeat(60));
 
   return lines.join('\n');
+}
+
+/**
+ * Build a dependency tree structure for visualization
+ */
+function buildDependencyTree(importGraph) {
+  if (!importGraph.edges.length) return null;
+
+  // Find entry points (files that aren't imported by others)
+  const imported = new Set(importGraph.edges.map(e => e.to));
+  const entryPoints = importGraph.nodes.filter(n =>
+    !imported.has(n) && (n.includes('main') || n.includes('index') || n.includes('App'))
+  );
+
+  if (entryPoints.length === 0 && importGraph.nodes.length > 0) {
+    entryPoints.push(importGraph.nodes[0]);
+  }
+
+  // Build tree recursively (limit depth to avoid infinite loops)
+  function buildNode(name, visited = new Set(), depth = 0) {
+    if (depth > 5 || visited.has(name)) {
+      return { name: basename(name) + (visited.has(name) ? ' (circular)' : ' ...'), children: [] };
+    }
+
+    visited.add(name);
+    const children = importGraph.edges
+      .filter(e => e.from === name)
+      .slice(0, 5) // Limit children
+      .map(e => buildNode(e.to, new Set(visited), depth + 1));
+
+    return {
+      name: basename(name),
+      children
+    };
+  }
+
+  // Return first entry point's tree
+  return buildNode(entryPoints[0]);
 }
 
 /**
@@ -478,10 +554,14 @@ export async function runAnalyze(args) {
     process.exit(1);
   }
 
-  log.info('Analyzing bundle...\n');
+  const timer = createTimer();
+  const spinner = createSpinner('Analyzing bundle...');
 
   try {
     const analysis = await analyzeBundle(root);
+    const elapsed = timer.elapsed();
+
+    spinner.success(`Analysis complete (${formatDuration(elapsed)})`);
 
     if (json) {
       log.info(JSON.stringify(analysis, null, 2));
@@ -494,7 +574,8 @@ export async function runAnalyze(args) {
       log.warn(`\nWarning: ${analysis.deadCode.length} potentially unused file(s) found.`);
     }
   } catch (error) {
-    log.error('Analysis failed:', error.message);
+    spinner.fail('Analysis failed');
+    log.error(error.message);
     process.exit(1);
   }
 }

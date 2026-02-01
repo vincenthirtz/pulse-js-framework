@@ -5,7 +5,7 @@
  */
 
 import { TokenType, tokenize } from './lexer.js';
-import { ParserError, SUGGESTIONS } from '../core/errors.js';
+import { ParserError, SUGGESTIONS, getDocsUrl } from '../core/errors.js';
 
 // AST Node types
 export const NodeType = {
@@ -141,10 +141,20 @@ export class Parser {
    */
   createError(message, token = null, options = {}) {
     const t = token || this.current();
-    return new ParserError(message, {
+    const code = options.code || 'PARSER_ERROR';
+
+    // Build enhanced message with docs link
+    let enhancedMessage = message;
+    if (options.suggestion) {
+      enhancedMessage += `\n  → ${options.suggestion}`;
+    }
+    enhancedMessage += `\n  See: ${getDocsUrl(code)}`;
+
+    return new ParserError(enhancedMessage, {
       line: t?.line || 1,
       column: t?.column || 1,
       token: t,
+      code,
       ...options
     });
   }
@@ -188,6 +198,7 @@ export class Parser {
       else if (this.is(TokenType.PROPS)) {
         if (program.props) {
           throw this.createError('Duplicate props block - only one props block allowed per file', null, {
+            code: 'DUPLICATE_BLOCK',
             suggestion: SUGGESTIONS['duplicate-declaration']?.('props')
           });
         }
@@ -197,6 +208,7 @@ export class Parser {
       else if (this.is(TokenType.STATE)) {
         if (program.state) {
           throw this.createError('Duplicate state block - only one state block allowed per file', null, {
+            code: 'DUPLICATE_BLOCK',
             suggestion: SUGGESTIONS['duplicate-declaration']?.('state')
           });
         }
@@ -206,6 +218,7 @@ export class Parser {
       else if (this.is(TokenType.VIEW)) {
         if (program.view) {
           throw this.createError('Duplicate view block - only one view block allowed per file', null, {
+            code: 'DUPLICATE_BLOCK',
             suggestion: SUGGESTIONS['duplicate-declaration']?.('view')
           });
         }
@@ -215,6 +228,7 @@ export class Parser {
       else if (this.is(TokenType.ACTIONS)) {
         if (program.actions) {
           throw this.createError('Duplicate actions block - only one actions block allowed per file', null, {
+            code: 'DUPLICATE_BLOCK',
             suggestion: SUGGESTIONS['duplicate-declaration']?.('actions')
           });
         }
@@ -224,6 +238,7 @@ export class Parser {
       else if (this.is(TokenType.STYLE)) {
         if (program.style) {
           throw this.createError('Duplicate style block - only one style block allowed per file', null, {
+            code: 'DUPLICATE_BLOCK',
             suggestion: SUGGESTIONS['duplicate-declaration']?.('style')
           });
         }
@@ -233,6 +248,7 @@ export class Parser {
       else if (this.is(TokenType.ROUTER)) {
         if (program.router) {
           throw this.createError('Duplicate router block - only one router block allowed per file', null, {
+            code: 'DUPLICATE_BLOCK',
             suggestion: SUGGESTIONS['duplicate-declaration']?.('router')
           });
         }
@@ -242,6 +258,7 @@ export class Parser {
       else if (this.is(TokenType.STORE)) {
         if (program.store) {
           throw this.createError('Duplicate store block - only one store block allowed per file', null, {
+            code: 'DUPLICATE_BLOCK',
             suggestion: SUGGESTIONS['duplicate-declaration']?.('store')
           });
         }

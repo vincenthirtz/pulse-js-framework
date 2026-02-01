@@ -19,6 +19,7 @@
  */
 
 import { loggers } from './logger.js';
+import { Errors } from '../core/errors.js';
 
 const log = loggers.pulse;
 
@@ -77,23 +78,163 @@ const log = loggers.pulse;
  */
 const MAX_EFFECT_ITERATIONS = 100;
 
-/**
- * Global reactive context - holds all tracking state.
- * Exported for testing purposes (use resetContext() to reset).
- * @type {ReactiveContext}
- */
-export const context = {
-  currentEffect: null,
-  batchDepth: 0,
-  pendingEffects: new Set(),
-  isRunningEffects: false,
-  // HMR support
-  currentModuleId: null,
-  effectRegistry: new Map()
-};
+// =============================================================================
+// REACTIVE CONTEXT CLASS
+// =============================================================================
 
 /**
- * Reset the reactive context to initial state.
+ * ReactiveContext - Encapsulates all state for an isolated reactive system.
+ *
+ * This allows multiple independent reactive systems to coexist:
+ * - Isolated testing (each test gets its own context)
+ * - Server-side rendering (one context per request)
+ * - Micro-frontends (each app gets its own context)
+ *
+ * @example
+ * // Create isolated context for testing
+ * const testContext = new ReactiveContext();
+ * testContext.run(() => {
+ *   const count = pulse(0);
+ *   effect(() => console.log(count.get()));
+ *   count.set(1);
+ * });
+ *
+ * // Global context is unaffected
+ */
+export class ReactiveContext {
+  /**
+   * Create a new reactive context
+   * @param {Object} [options] - Configuration options
+   * @param {string} [options.name] - Name for debugging
+   */
+  constructor(options = {}) {
+    this.name = options.name || `context_${++ReactiveContext._idCounter}`;
+    this.currentEffect = null;
+    this.batchDepth = 0;
+    this.pendingEffects = new Set();
+    this.isRunningEffects = false;
+    // HMR support
+    this.currentModuleId = null;
+    this.effectRegistry = new Map();
+  }
+
+  /**
+   * Reset this context to initial state
+   */
+  reset() {
+    this.currentEffect = null;
+    this.batchDepth = 0;
+    this.pendingEffects.clear();
+    this.isRunningEffects = false;
+    this.currentModuleId = null;
+    this.effectRegistry.clear();
+  }
+
+  /**
+   * Run a function within this context
+   * @template T
+   * @param {function(): T} fn - Function to run
+   * @returns {T} Return value of fn
+   */
+  run(fn) {
+    const prevContext = activeContext;
+    activeContext = this;
+    try {
+      return fn();
+    } finally {
+      activeContext = prevContext;
+    }
+  }
+
+  /**
+   * Check if this context is currently active
+   * @returns {boolean}
+   */
+  isActive() {
+    return activeContext === this;
+  }
+
+  /** @private */
+  static _idCounter = 0;
+}
+
+/**
+ * The currently active reactive context.
+ * @type {ReactiveContext}
+ * @private
+ */
+let activeContext;
+
+/**
+ * Global default reactive context - used when no specific context is active.
+ * @type {ReactiveContext}
+ */
+export const globalContext = new ReactiveContext({ name: 'global' });
+
+// Initialize active context to global
+activeContext = globalContext;
+
+/**
+ * Get the currently active reactive context.
+ * @returns {ReactiveContext} The active context
+ */
+export function getActiveContext() {
+  return activeContext;
+}
+
+/**
+ * Run a function within a specific reactive context.
+ * Useful for isolating reactive operations in tests or SSR.
+ *
+ * @template T
+ * @param {ReactiveContext} ctx - The context to use
+ * @param {function(): T} fn - Function to run
+ * @returns {T} Return value of fn
+ *
+ * @example
+ * const isolated = new ReactiveContext();
+ * withContext(isolated, () => {
+ *   const x = pulse(0);
+ *   effect(() => console.log(x.get()));
+ * });
+ */
+export function withContext(ctx, fn) {
+  return ctx.run(fn);
+}
+
+/**
+ * Create a new isolated reactive context.
+ * @param {Object} [options] - Configuration options
+ * @param {string} [options.name] - Name for debugging
+ * @returns {ReactiveContext} A new isolated context
+ *
+ * @example
+ * // In tests
+ * let ctx;
+ * beforeEach(() => { ctx = createContext({ name: 'test' }); });
+ * afterEach(() => ctx.reset());
+ *
+ * test('isolated test', () => {
+ *   ctx.run(() => {
+ *     const count = pulse(0);
+ *     // This effect only exists in ctx
+ *   });
+ * });
+ */
+export function createContext(options) {
+  return new ReactiveContext(options);
+}
+
+/**
+ * Legacy: Global reactive context object for backward compatibility.
+ * Prefer using getActiveContext() for new code.
+ * @type {ReactiveContext}
+ * @deprecated Use getActiveContext() instead
+ */
+export const context = globalContext;
+
+/**
+ * Reset the active reactive context to initial state.
  * Use this in tests to ensure isolation between test cases.
  * @returns {void}
  * @example
@@ -102,12 +243,7 @@ export const context = {
  * beforeEach(() => resetContext());
  */
 export function resetContext() {
-  context.currentEffect = null;
-  context.batchDepth = 0;
-  context.pendingEffects.clear();
-  context.isRunningEffects = false;
-  context.currentModuleId = null;
-  context.effectRegistry.clear();
+  activeContext.reset();
 }
 
 /**
@@ -174,7 +310,7 @@ export function onEffectError(handler) {
  * @returns {void}
  */
 export function setCurrentModule(moduleId) {
-  context.currentModuleId = moduleId;
+  activeContext.currentModuleId = moduleId;
 }
 
 /**
@@ -182,7 +318,7 @@ export function setCurrentModule(moduleId) {
  * @returns {void}
  */
 export function clearCurrentModule() {
-  context.currentModuleId = null;
+  activeContext.currentModuleId = null;
 }
 
 /**
@@ -192,7 +328,7 @@ export function clearCurrentModule() {
  * @returns {void}
  */
 export function disposeModule(moduleId) {
-  const effects = context.effectRegistry.get(moduleId);
+  const effects = activeContext.effectRegistry.get(moduleId);
   if (effects) {
     for (const effectFn of effects) {
       // Run cleanup functions
@@ -211,7 +347,7 @@ export function disposeModule(moduleId) {
       }
       effectFn.dependencies.clear();
     }
-    context.effectRegistry.delete(moduleId);
+    activeContext.effectRegistry.delete(moduleId);
   }
 }
 
@@ -269,8 +405,8 @@ export function disposeModule(moduleId) {
  * });
  */
 export function onCleanup(fn) {
-  if (context.currentEffect) {
-    context.currentEffect.cleanups.push(fn);
+  if (activeContext.currentEffect) {
+    activeContext.currentEffect.cleanups.push(fn);
   }
 }
 
@@ -307,9 +443,9 @@ export class Pulse {
    * });
    */
   get() {
-    if (context.currentEffect) {
-      this.#subscribers.add(context.currentEffect);
-      context.currentEffect.dependencies.add(this);
+    if (activeContext.currentEffect) {
+      this.#subscribers.add(activeContext.currentEffect);
+      activeContext.currentEffect.dependencies.add(this);
     }
     return this.#value;
   }
@@ -380,8 +516,8 @@ export class Pulse {
     const subs = [...this.#subscribers];
 
     for (const subscriber of subs) {
-      if (context.batchDepth > 0 || context.isRunningEffects) {
-        context.pendingEffects.add(subscriber);
+      if (activeContext.batchDepth > 0 || activeContext.isRunningEffects) {
+        activeContext.pendingEffects.add(subscriber);
       } else {
         runEffect(subscriber);
       }
@@ -519,19 +655,19 @@ function runEffect(effectFn) {
  * @returns {void}
  */
 function flushEffects() {
-  if (context.isRunningEffects) return;
+  if (activeContext.isRunningEffects) return;
 
-  context.isRunningEffects = true;
+  activeContext.isRunningEffects = true;
   let iterations = 0;
 
   // Track effect run counts to identify infinite loop culprits
   const effectRunCounts = new Map();
 
   try {
-    while (context.pendingEffects.size > 0 && iterations < MAX_EFFECT_ITERATIONS) {
+    while (activeContext.pendingEffects.size > 0 && iterations < MAX_EFFECT_ITERATIONS) {
       iterations++;
-      const effects = [...context.pendingEffects];
-      context.pendingEffects.clear();
+      const effects = [...activeContext.pendingEffects];
+      activeContext.pendingEffects.clear();
 
       for (const eff of effects) {
         // Track how many times each effect runs
@@ -547,33 +683,26 @@ function flushEffects() {
         .sort((a, b) => b[1] - a[1])
         .slice(0, 10);
 
-      const culpritDetails = sortedByRuns
-        .map(([id, count]) => `${id} (${count} runs)`)
-        .join(', ');
+      const culprits = sortedByRuns
+        .map(([id, count]) => `${id} (${count} runs)`);
 
       // Still pending effects
-      const stillPending = [...context.pendingEffects]
+      const stillPending = [...activeContext.pendingEffects]
         .map(e => e.id || 'unknown')
-        .slice(0, 5)
-        .join(', ');
+        .slice(0, 5);
 
-      const errorMsg =
-        `[Pulse] INFINITE LOOP DETECTED\n` +
-        `Maximum effect iterations (${MAX_EFFECT_ITERATIONS}) reached.\n` +
-        `Most active effects: [${culpritDetails}]\n` +
-        `Still pending: [${stillPending || 'none'}]\n` +
-        `Tip: Check for circular dependencies where effects trigger each other.`;
+      const error = Errors.circularDependency(culprits, stillPending);
 
       // Always use console.error directly to ensure visibility
-      console.error(errorMsg);
+      console.error(error.message);
 
       // Also log through the logger for consistency
-      log.error(errorMsg);
+      log.error(error.message);
 
-      context.pendingEffects.clear();
+      activeContext.pendingEffects.clear();
     }
   } finally {
-    context.isRunningEffects = false;
+    activeContext.isRunningEffects = false;
   }
 }
 
@@ -632,13 +761,13 @@ export function computed(fn, options = {}) {
     p.get = function() {
       if (dirty) {
         // Run computation
-        const prevEffect = context.currentEffect;
+        const prevEffect = activeContext.currentEffect;
         const tempEffect = {
           run: () => {},
           dependencies: new Set(),
           cleanups: []
         };
-        context.currentEffect = tempEffect;
+        activeContext.currentEffect = tempEffect;
 
         try {
           cachedValue = fn();
@@ -664,14 +793,14 @@ export function computed(fn, options = {}) {
 
           p._init(cachedValue);
         } finally {
-          context.currentEffect = prevEffect;
+          activeContext.currentEffect = prevEffect;
         }
       }
 
       // Track dependency on this computed
-      if (context.currentEffect) {
-        p._addSubscriber(context.currentEffect);
-        context.currentEffect.dependencies.add(p);
+      if (activeContext.currentEffect) {
+        p._addSubscriber(activeContext.currentEffect);
+        activeContext.currentEffect.dependencies.add(p);
       }
 
       return cachedValue;
@@ -701,18 +830,11 @@ export function computed(fn, options = {}) {
 
   // Override set to make it read-only
   p.set = () => {
-    throw new Error(
-      '[Pulse] Cannot set a computed value directly. ' +
-      'Computed values are derived from other pulses and update automatically. ' +
-      'Modify the source pulse(s) instead.'
-    );
+    throw Errors.computedSet(p._name || null);
   };
 
   p.update = () => {
-    throw new Error(
-      '[Pulse] Cannot update a computed value directly. ' +
-      'Computed values are read-only. Modify the source pulse(s) instead.'
-    );
+    throw Errors.computedSet(p._name || null);
   };
 
   // Add dispose method
@@ -764,7 +886,7 @@ export function effect(fn, options = {}) {
   const effectId = customId || `effect_${++effectIdCounter}`;
 
   // Capture module ID at creation time for HMR tracking
-  const moduleId = context.currentModuleId;
+  const moduleId = activeContext.currentModuleId;
 
   const effectFn = {
     id: effectId,
@@ -787,15 +909,15 @@ export function effect(fn, options = {}) {
       effectFn.dependencies.clear();
 
       // Set as current effect for dependency tracking
-      const prevEffect = context.currentEffect;
-      context.currentEffect = effectFn;
+      const prevEffect = activeContext.currentEffect;
+      activeContext.currentEffect = effectFn;
 
       try {
         fn();
       } catch (error) {
         handleEffectError(error, effectFn, 'execution');
       } finally {
-        context.currentEffect = prevEffect;
+        activeContext.currentEffect = prevEffect;
       }
     },
     dependencies: new Set(),
@@ -804,10 +926,10 @@ export function effect(fn, options = {}) {
 
   // HMR: Register effect with current module
   if (moduleId) {
-    if (!context.effectRegistry.has(moduleId)) {
-      context.effectRegistry.set(moduleId, new Set());
+    if (!activeContext.effectRegistry.has(moduleId)) {
+      activeContext.effectRegistry.set(moduleId, new Set());
     }
-    context.effectRegistry.get(moduleId).add(effectFn);
+    activeContext.effectRegistry.get(moduleId).add(effectFn);
   }
 
   // Run immediately to collect dependencies
@@ -831,8 +953,8 @@ export function effect(fn, options = {}) {
     effectFn.dependencies.clear();
 
     // HMR: Remove from registry
-    if (moduleId && context.effectRegistry.has(moduleId)) {
-      context.effectRegistry.get(moduleId).delete(effectFn);
+    if (moduleId && activeContext.effectRegistry.has(moduleId)) {
+      activeContext.effectRegistry.get(moduleId).delete(effectFn);
     }
   };
 }
@@ -859,12 +981,12 @@ export function effect(fn, options = {}) {
  * });
  */
 export function batch(fn) {
-  context.batchDepth++;
+  activeContext.batchDepth++;
   try {
     return fn();
   } finally {
-    context.batchDepth--;
-    if (context.batchDepth === 0) {
+    activeContext.batchDepth--;
+    if (activeContext.batchDepth === 0) {
       flushEffects();
     }
   }
@@ -1145,12 +1267,12 @@ export function fromPromise(promise, initialValue = undefined) {
  * // Effect only re-runs when aSignal changes, not bSignal
  */
 export function untrack(fn) {
-  const prevEffect = context.currentEffect;
-  context.currentEffect = null;
+  const prevEffect = activeContext.currentEffect;
+  activeContext.currentEffect = null;
   try {
     return fn();
   } finally {
-    context.currentEffect = prevEffect;
+    activeContext.currentEffect = prevEffect;
   }
 }
 

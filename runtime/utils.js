@@ -130,32 +130,103 @@ export function escapeAttribute(value) {
 }
 
 /**
+ * Pattern to detect event handler attributes (onclick, onerror, etc.)
+ * Matches any attribute starting with "on" followed by lowercase letters
+ * @private
+ */
+const EVENT_HANDLER_PATTERN = /^on[a-z]+$/i;
+
+/**
+ * Attributes that accept URLs and need sanitization
+ * @private
+ */
+const URL_ATTRIBUTES = new Set([
+  'href', 'src', 'action', 'formaction', 'data', 'poster',
+  'cite', 'codebase', 'background', 'profile', 'usemap', 'longdesc',
+  'dynsrc', 'lowsrc', 'srcset', 'imagesrcset'
+]);
+
+/**
+ * Attributes that can contain raw HTML/JS content
+ * @private
+ */
+const HTML_CONTENT_ATTRIBUTES = new Set(['srcdoc']);
+
+/**
  * Safely set an attribute on an element.
- * Validates attribute names to prevent attribute injection.
+ * Validates the attribute name, blocks dangerous attributes, and sanitizes URLs.
+ *
+ * Security protections:
+ * - Blocks ALL event handler attributes (onclick, onerror, onmouseover, etc.)
+ * - Sanitizes URL attributes (href, src, action, etc.) to prevent javascript: XSS
+ * - Blocks HTML injection attributes (srcdoc)
  *
  * @param {HTMLElement} element - Target element
  * @param {string} name - Attribute name
  * @param {*} value - Attribute value
- * @returns {boolean} True if attribute was set
+ * @param {Object} [options] - Options
+ * @param {boolean} [options.allowEventHandlers=false] - Allow event handlers (dangerous!)
+ * @param {boolean} [options.allowDataUrls=false] - Allow data: URLs
+ * @param {boolean} [options.allowUnsafeHtml=false] - Allow srcdoc attribute (dangerous!)
+ * @param {Object} [domAdapter] - Optional DOM adapter (uses element.setAttribute if not provided)
+ * @returns {boolean} True if attribute was set successfully
  *
  * @example
  * safeSetAttribute(element, 'data-id', userId);
+ * safeSetAttribute(element, 'href', userUrl); // Sanitizes URL automatically
  */
-export function safeSetAttribute(element, name, value) {
+export function safeSetAttribute(element, name, value, options = {}, domAdapter = null) {
+  const {
+    allowEventHandlers = false,
+    allowDataUrls = false,
+    allowUnsafeHtml = false
+  } = options;
+
   // Validate attribute name (prevent injection attacks)
   if (!/^[a-zA-Z][a-zA-Z0-9\-_:.]*$/.test(name)) {
-    console.warn(`Invalid attribute name: ${name}`);
+    console.warn(`[Pulse Security] Invalid attribute name blocked: ${name}`);
     return false;
   }
 
-  // Prevent dangerous attributes
-  const dangerousAttrs = ['onclick', 'onerror', 'onload', 'onmouseover', 'onfocus', 'onblur'];
-  if (dangerousAttrs.includes(name.toLowerCase())) {
-    console.warn(`Potentially dangerous attribute blocked: ${name}`);
+  const lowerName = name.toLowerCase();
+
+  // Block ALL event handler attributes (onclick, onerror, onmouseover, etc.)
+  if (!allowEventHandlers && EVENT_HANDLER_PATTERN.test(lowerName)) {
+    console.warn(
+      `[Pulse Security] Event handler attribute blocked: ${name}. ` +
+      `Use on(element, '${lowerName.slice(2)}', handler) instead.`
+    );
     return false;
   }
 
-  element.setAttribute(name, value == null ? '' : String(value));
+  // Block HTML content attributes that could inject scripts
+  if (!allowUnsafeHtml && HTML_CONTENT_ATTRIBUTES.has(lowerName)) {
+    console.warn(
+      `[Pulse Security] HTML content attribute blocked: ${name}. ` +
+      `This attribute can execute arbitrary JavaScript.`
+    );
+    return false;
+  }
+
+  // Sanitize URL attributes to prevent javascript: XSS
+  if (URL_ATTRIBUTES.has(lowerName) && value != null && value !== '') {
+    const sanitized = sanitizeUrl(String(value), { allowData: allowDataUrls });
+    if (sanitized === null) {
+      console.warn(
+        `[Pulse Security] Dangerous URL blocked for ${name}: "${String(value).slice(0, 50)}${String(value).length > 50 ? '...' : ''}"`
+      );
+      return false;
+    }
+    value = sanitized;
+  }
+
+  // Use adapter if provided, otherwise direct call
+  const attrValue = value == null ? '' : String(value);
+  if (domAdapter) {
+    domAdapter.setAttribute(element, name, attrValue);
+  } else {
+    element.setAttribute(name, attrValue);
+  }
   return true;
 }
 
@@ -166,9 +237,17 @@ export function safeSetAttribute(element, name, value) {
 /**
  * Validate and sanitize a URL to prevent javascript: and data: XSS.
  *
+ * Security protections:
+ * - Blocks javascript: URLs (including encoded variants)
+ * - Blocks data: URLs by default (can be enabled)
+ * - Blocks blob: URLs by default (can be enabled)
+ * - Blocks vbscript: URLs
+ * - Decodes URL before checking to prevent encoding bypass
+ *
  * @param {string} url - URL to validate
  * @param {Object} [options] - Validation options
  * @param {boolean} [options.allowData=false] - Allow data: URLs
+ * @param {boolean} [options.allowBlob=false] - Allow blob: URLs
  * @param {boolean} [options.allowRelative=true] - Allow relative URLs
  * @returns {string|null} Sanitized URL or null if invalid
  *
@@ -179,26 +258,58 @@ export function safeSetAttribute(element, name, value) {
  * }
  */
 export function sanitizeUrl(url, options = {}) {
-  const { allowData = false, allowRelative = true } = options;
+  const { allowData = false, allowBlob = false, allowRelative = true } = options;
 
   if (url == null || url === '') return null;
 
   const trimmed = String(url).trim();
 
-  // Check for javascript: protocol (case insensitive, handles encoding)
-  const lowerUrl = trimmed.toLowerCase().replace(/\s/g, '');
-  if (lowerUrl.startsWith('javascript:')) {
-    return null;
+  // Decode URL to catch encoded attacks like &#x6a;avascript:
+  // Also handles %6A%61%76%61%73%63%72%69%70%74 encoding
+  let decoded = trimmed;
+  try {
+    // Decode HTML entities first (&#x6a; -> j)
+    decoded = decoded.replace(/&#x([0-9a-f]+);?/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+    decoded = decoded.replace(/&#(\d+);?/g, (_, dec) => String.fromCharCode(parseInt(dec, 10)));
+    // Then decode URI encoding (%6A -> j)
+    decoded = decodeURIComponent(decoded);
+  } catch {
+    // If decoding fails, use original (malformed URLs will be blocked anyway)
+  }
+
+  // Normalize: lowercase and remove whitespace for protocol check
+  const normalized = decoded.toLowerCase().replace(/[\s\x00-\x1f]/g, '');
+
+  // Block dangerous protocols
+  const dangerousProtocols = ['javascript:', 'vbscript:', 'file:'];
+  for (const protocol of dangerousProtocols) {
+    if (normalized.startsWith(protocol)) {
+      return null;
+    }
   }
 
   // Check for data: protocol
-  if (lowerUrl.startsWith('data:')) {
+  if (normalized.startsWith('data:')) {
     return allowData ? trimmed : null;
   }
 
-  // Allow relative URLs
-  if (allowRelative && (trimmed.startsWith('/') || trimmed.startsWith('.') || !trimmed.includes(':'))) {
-    return trimmed;
+  // Check for blob: protocol
+  if (normalized.startsWith('blob:')) {
+    return allowBlob ? trimmed : null;
+  }
+
+  // Allow relative URLs (must start with / or . to prevent //evil.com attacks)
+  if (allowRelative) {
+    if (trimmed.startsWith('/') && !trimmed.startsWith('//')) {
+      return trimmed;
+    }
+    if (trimmed.startsWith('./') || trimmed.startsWith('../')) {
+      return trimmed;
+    }
+    // URLs without protocol that don't start with // are relative
+    if (!trimmed.includes(':') && !trimmed.startsWith('//')) {
+      return trimmed;
+    }
   }
 
   // Only allow http: and https: protocols
@@ -207,6 +318,152 @@ export function sanitizeUrl(url, options = {}) {
   }
 
   return null;
+}
+
+// ============================================================================
+// CSS Sanitization
+// ============================================================================
+
+/**
+ * Pattern to validate CSS property names (camelCase or kebab-case)
+ * @private
+ */
+const CSS_PROPERTY_PATTERN = /^-?[a-zA-Z][a-zA-Z0-9-]*$/;
+
+/**
+ * Dangerous patterns in CSS values that could be used for injection
+ * @private
+ */
+const CSS_DANGEROUS_PATTERNS = [
+  /url\s*\(/i,           // url() can make external requests
+  /expression\s*\(/i,    // IE expression() executes JS
+  /@import/i,            // @import can load external stylesheets
+  /<\/style/i,           // Attempt to break out of style context
+  /javascript:/i,        // javascript: in url()
+  /behavior\s*:/i,       // IE behavior property
+  /-moz-binding/i,       // Firefox XBL binding (deprecated but dangerous)
+];
+
+/**
+ * Validate a CSS property name.
+ *
+ * @param {string} prop - CSS property name (camelCase or kebab-case)
+ * @returns {boolean} True if valid property name
+ *
+ * @example
+ * isValidCSSProperty('backgroundColor') // true
+ * isValidCSSProperty('font-size')       // true
+ * isValidCSSProperty('123invalid')      // false
+ */
+export function isValidCSSProperty(prop) {
+  if (typeof prop !== 'string' || prop === '') return false;
+  return CSS_PROPERTY_PATTERN.test(prop);
+}
+
+/**
+ * Sanitize a CSS value to prevent injection attacks.
+ *
+ * Security protections:
+ * - Blocks url() which can make external requests (data exfiltration)
+ * - Blocks expression() (IE JavaScript execution)
+ * - Blocks @import (external stylesheet loading)
+ * - Blocks attempts to break out of style context
+ * - Removes semicolons to prevent property injection
+ *
+ * @param {*} value - CSS value to sanitize
+ * @param {Object} [options] - Options
+ * @param {boolean} [options.allowUrl=false] - Allow url() values
+ * @param {boolean} [options.allowMultiple=false] - Allow semicolons (multiple properties)
+ * @returns {{safe: boolean, value: string, blocked?: string}} Sanitization result
+ *
+ * @example
+ * sanitizeCSSValue('red')                    // { safe: true, value: 'red' }
+ * sanitizeCSSValue('red; margin: 999px')     // { safe: false, value: 'red', blocked: 'semicolon' }
+ * sanitizeCSSValue('url(http://evil.com)')   // { safe: false, value: '', blocked: 'url()' }
+ */
+export function sanitizeCSSValue(value, options = {}) {
+  const { allowUrl = false, allowMultiple = false } = options;
+
+  if (value == null) {
+    return { safe: true, value: '' };
+  }
+
+  let strValue = String(value);
+
+  // Check for dangerous patterns
+  for (const pattern of CSS_DANGEROUS_PATTERNS) {
+    if (pattern.test(strValue)) {
+      // url() can be allowed with option
+      if (pattern.source.includes('url') && allowUrl) {
+        continue;
+      }
+      const patternName = pattern.source.replace(/\\s\*|\\|\/i|\(|\)/g, '');
+      return { safe: false, value: '', blocked: patternName };
+    }
+  }
+
+  // Check for semicolons (property injection)
+  if (!allowMultiple && strValue.includes(';')) {
+    // Remove everything after the semicolon
+    const sanitized = strValue.split(';')[0].trim();
+    return { safe: false, value: sanitized, blocked: 'semicolon' };
+  }
+
+  // Check for curly braces (rule injection)
+  if (strValue.includes('{') || strValue.includes('}')) {
+    return { safe: false, value: '', blocked: 'braces' };
+  }
+
+  return { safe: true, value: strValue };
+}
+
+/**
+ * Safely set a CSS style property on an element.
+ *
+ * @param {HTMLElement} element - Target element
+ * @param {string} prop - CSS property name
+ * @param {*} value - CSS value
+ * @param {Object} [options] - Options passed to sanitizeCSSValue
+ * @param {Object} [domAdapter] - Optional DOM adapter (uses element.style if not provided)
+ * @returns {boolean} True if style was set successfully
+ *
+ * @example
+ * safeSetStyle(element, 'color', 'red');           // true
+ * safeSetStyle(element, 'color', 'red; margin: 0'); // false (blocked)
+ */
+export function safeSetStyle(element, prop, value, options = {}, domAdapter = null) {
+  // Validate property name
+  if (!isValidCSSProperty(prop)) {
+    console.warn(`[Pulse Security] Invalid CSS property name: ${prop}`);
+    return false;
+  }
+
+  // Sanitize value
+  const result = sanitizeCSSValue(value, options);
+
+  // Helper to set style
+  const setStyle = (p, v) => {
+    if (domAdapter) {
+      domAdapter.setStyle(element, p, v);
+    } else {
+      element.style[p] = v;
+    }
+  };
+
+  if (!result.safe) {
+    console.warn(
+      `[Pulse Security] CSS injection blocked for ${prop}: ${result.blocked}. ` +
+      `Original value: "${String(value).slice(0, 50)}${String(value).length > 50 ? '...' : ''}"`
+    );
+    // Still set the sanitized portion if available
+    if (result.value) {
+      setStyle(prop, result.value);
+    }
+    return false;
+  }
+
+  setStyle(prop, result.value);
+  return true;
 }
 
 // ============================================================================
@@ -341,6 +598,10 @@ export default {
   escapeAttribute,
   safeSetAttribute,
   sanitizeUrl,
+  // CSS Sanitization
+  isValidCSSProperty,
+  sanitizeCSSValue,
+  safeSetStyle,
   // Utilities
   deepClone,
   debounce,

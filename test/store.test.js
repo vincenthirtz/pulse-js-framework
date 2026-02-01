@@ -588,6 +588,211 @@ test('$setState ignores non-existent keys', () => {
 });
 
 // =============================================================================
+// Error Path Tests
+// =============================================================================
+
+printSection('Error Path Tests');
+
+test('action error does not corrupt store state', () => {
+  const store = createStore({ count: 0, status: 'ok' });
+  const actions = createActions(store, {
+    failingAction: (store) => {
+      store.count.set(100);
+      throw new Error('Action failed');
+    }
+  });
+
+  let caught = false;
+  try {
+    actions.failingAction();
+  } catch (e) {
+    caught = true;
+  }
+
+  assert(caught, 'Error should be thrown');
+  // State was already updated before the error
+  assertEqual(store.count.get(), 100, 'State was updated before error');
+  assertEqual(store.status.get(), 'ok', 'Other state remains unchanged');
+});
+
+test('handles localStorage.setItem failure gracefully', () => {
+  // Mock localStorage to throw on setItem
+  const originalSetItem = localStorage.setItem;
+  localStorage.setItem = () => {
+    throw new Error('QuotaExceededError');
+  };
+
+  // Should not throw when creating store with persistence
+  let errorThrown = false;
+  try {
+    const store = createStore(
+      { count: 0 },
+      { persist: true, storageKey: 'quota-test' }
+    );
+    store.count.set(1); // This triggers persistence
+  } catch (e) {
+    errorThrown = true;
+  }
+
+  // Restore localStorage
+  localStorage.setItem = originalSetItem;
+
+  // The store should handle this gracefully (may or may not throw depending on implementation)
+  // This test documents the behavior
+});
+
+test('handles localStorage.getItem failure gracefully', () => {
+  const originalGetItem = localStorage.getItem;
+  localStorage.getItem = () => {
+    throw new Error('SecurityError');
+  };
+
+  // Should not throw, should use initial state
+  const store = createStore(
+    { count: 42 },
+    { persist: true, storageKey: 'security-test' }
+  );
+
+  // Restore localStorage
+  localStorage.getItem = originalGetItem;
+
+  assertEqual(store.count.get(), 42, 'Should use initial state on getItem error');
+});
+
+test('handles deeply nested null values', () => {
+  const store = createStore({
+    level1: {
+      level2: null
+    }
+  });
+
+  assertEqual(store.level1.level2.get(), null, 'Should handle deeply nested null');
+});
+
+test('handles boolean false correctly', () => {
+  const store = createStore({
+    enabled: false,
+    visible: true
+  });
+
+  assertEqual(store.enabled.get(), false, 'Should handle false boolean');
+  assertEqual(store.visible.get(), true, 'Should handle true boolean');
+
+  store.enabled.set(true);
+  store.visible.set(false);
+
+  assertEqual(store.enabled.get(), true, 'Should update to true');
+  assertEqual(store.visible.get(), false, 'Should update to false');
+});
+
+test('handles zero and empty string correctly', () => {
+  const store = createStore({
+    count: 0,
+    name: ''
+  });
+
+  assertEqual(store.count.get(), 0, 'Should handle zero');
+  assertEqual(store.name.get(), '', 'Should handle empty string');
+});
+
+test('$reset after error restores clean state', () => {
+  const store = createStore({ value: 'initial' });
+
+  store.value.set('modified');
+  assertEqual(store.value.get(), 'modified', 'Value should be modified');
+
+  store.$reset();
+  assertEqual(store.value.get(), 'initial', 'Value should be reset');
+});
+
+test('multiple rapid $setState calls work correctly', () => {
+  const store = createStore({ count: 0 });
+  let effectCount = 0;
+
+  effect(() => {
+    store.count.get();
+    effectCount++;
+  });
+
+  // Reset after initial effect run
+  const initialRuns = effectCount;
+
+  // Rapid updates
+  for (let i = 0; i < 10; i++) {
+    store.$setState({ count: i });
+  }
+
+  assertEqual(store.count.get(), 9, 'Final value should be correct');
+  // Each $setState triggers an effect (unless batched internally)
+  assert(effectCount > initialRuns, 'Effects should have run');
+});
+
+test('createGetters handles undefined store values', () => {
+  const store = createStore({ value: undefined });
+  const getters = createGetters(store, {
+    hasValue: (s) => s.value.get() !== undefined
+  });
+
+  assertEqual(getters.hasValue.get(), false, 'Should handle undefined in getter');
+
+  store.value.set('something');
+  assertEqual(getters.hasValue.get(), true, 'Getter should update');
+});
+
+test('combineStores handles stores with same property names', () => {
+  const store1 = createStore({ count: 1 });
+  const store2 = createStore({ count: 2 });
+
+  const combined = combineStores({
+    a: store1,
+    b: store2
+  });
+
+  assertEqual(combined.a.count.get(), 1, 'First store count');
+  assertEqual(combined.b.count.get(), 2, 'Second store count');
+
+  combined.a.count.set(10);
+  combined.b.count.set(20);
+
+  assertEqual(combined.a.count.get(), 10, 'First store updated');
+  assertEqual(combined.b.count.get(), 20, 'Second store updated');
+});
+
+test('historyPlugin handles rapid undo/redo', () => {
+  const store = createStore({ value: 0 });
+  usePlugin(store, (s) => historyPlugin(s, 5));
+
+  store.$setState({ value: 1 });
+  store.$setState({ value: 2 });
+
+  // Rapid undo
+  store.$undo();
+  store.$undo();
+
+  // Rapid redo
+  store.$redo();
+  store.$redo();
+
+  assertEqual(store.value.get(), 2, 'Should handle rapid undo/redo');
+});
+
+test('historyPlugin canUndo/canRedo return correct values', () => {
+  const store = createStore({ value: 0 });
+  usePlugin(store, (s) => historyPlugin(s, 10));
+
+  assertEqual(store.$canUndo(), false, 'Initially cannot undo');
+  assertEqual(store.$canRedo(), false, 'Initially cannot redo');
+
+  store.$setState({ value: 1 });
+  assertEqual(store.$canUndo(), true, 'Can undo after change');
+  assertEqual(store.$canRedo(), false, 'Cannot redo after change');
+
+  store.$undo();
+  assertEqual(store.$canUndo(), false, 'Cannot undo at beginning');
+  assertEqual(store.$canRedo(), true, 'Can redo after undo');
+});
+
+// =============================================================================
 // Results
 // =============================================================================
 

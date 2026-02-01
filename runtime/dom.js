@@ -2,14 +2,41 @@
  * Pulse DOM - Declarative DOM manipulation
  *
  * Creates DOM elements using CSS selector-like syntax
- * and provides reactive bindings
+ * and provides reactive bindings.
+ *
+ * DOM Abstraction:
+ * This module uses a DOM adapter for all DOM operations, enabling:
+ * - Server-Side Rendering (SSR) with virtual DOM implementations
+ * - Simplified testing without browser environment
+ * - Platform-specific optimizations
+ *
+ * @see ./dom-adapter.js for adapter configuration
  */
 
 import { effect, pulse, batch, onCleanup } from './pulse.js';
 import { loggers } from './logger.js';
 import { LRUCache } from './lru-cache.js';
+import { safeSetAttribute, sanitizeUrl, safeSetStyle } from './utils.js';
+import { getAdapter } from './dom-adapter.js';
+import { Errors } from '../core/errors.js';
 
 const log = loggers.dom;
+
+// =============================================================================
+// CONFIGURATION
+// =============================================================================
+
+/**
+ * @typedef {Object} DomConfig
+ * @property {number} [selectorCacheCapacity=500] - Max selectors to cache (0 = disabled)
+ * @property {boolean} [trackCacheMetrics=true] - Enable cache hit/miss tracking
+ */
+
+/** @type {DomConfig} */
+const config = {
+  selectorCacheCapacity: 500,
+  trackCacheMetrics: true
+};
 
 // =============================================================================
 // SELECTOR CACHE
@@ -21,13 +48,84 @@ const log = loggers.dom;
 // - Without eviction, memory grows unbounded in long-running apps
 // - LRU keeps frequently-used selectors hot while evicting rare ones
 //
-// Capacity: 500 selectors (chosen based on typical SPA component count)
+// Default capacity: 500 selectors (configurable via configureDom())
 // - Most apps use 50-200 unique selectors
 // - 500 provides headroom for dynamic selectors without excessive memory
 //
 // Cache hit returns a shallow copy to prevent mutation of cached config
 // Metrics tracking enabled for performance monitoring
-const selectorCache = new LRUCache(500, { trackMetrics: true });
+let selectorCache = new LRUCache(config.selectorCacheCapacity, { trackMetrics: config.trackCacheMetrics });
+
+/**
+ * Configure DOM module settings.
+ *
+ * Call this before using any DOM functions if you need non-default settings.
+ * Changing configuration clears the selector cache.
+ *
+ * @param {Partial<DomConfig>} options - Configuration options
+ * @returns {DomConfig} Current configuration after applying changes
+ *
+ * @example
+ * // Increase cache for large apps
+ * configureDom({ selectorCacheCapacity: 1000 });
+ *
+ * @example
+ * // Disable caching for debugging
+ * configureDom({ selectorCacheCapacity: 0 });
+ *
+ * @example
+ * // Disable metrics tracking in production
+ * configureDom({ trackCacheMetrics: false });
+ */
+export function configureDom(options = {}) {
+  let cacheChanged = false;
+
+  if (options.selectorCacheCapacity !== undefined) {
+    config.selectorCacheCapacity = options.selectorCacheCapacity;
+    cacheChanged = true;
+  }
+
+  if (options.trackCacheMetrics !== undefined) {
+    config.trackCacheMetrics = options.trackCacheMetrics;
+    cacheChanged = true;
+  }
+
+  // Recreate cache if settings changed
+  if (cacheChanged) {
+    if (config.selectorCacheCapacity > 0) {
+      selectorCache = new LRUCache(config.selectorCacheCapacity, {
+        trackMetrics: config.trackCacheMetrics
+      });
+    } else {
+      // Disable caching with a null-like cache
+      selectorCache = {
+        get: () => undefined,
+        set: () => {},
+        clear: () => {},
+        getMetrics: () => ({ hits: 0, misses: 0, evictions: 0, hitRate: 0, size: 0, capacity: 0 }),
+        resetMetrics: () => {}
+      };
+    }
+  }
+
+  return { ...config };
+}
+
+/**
+ * Get current DOM configuration.
+ * @returns {DomConfig} Current configuration (copy)
+ */
+export function getDomConfig() {
+  return { ...config };
+}
+
+/**
+ * Clear the selector cache.
+ * Useful for memory management or after significant DOM structure changes.
+ */
+export function clearSelectorCache() {
+  selectorCache.clear();
+}
 
 /**
  * Get selector cache performance metrics.
@@ -52,23 +150,6 @@ export function resetCacheMetrics() {
 }
 
 /**
- * Safely insert a node before a reference node
- * Returns false if the parent is detached (no parentNode)
- * @private
- * @param {Node} newNode - Node to insert
- * @param {Node} refNode - Reference node (insert before this)
- * @returns {boolean} True if insertion succeeded
- */
-function safeInsertBefore(newNode, refNode) {
-  if (!refNode.parentNode) {
-    log.warn('Cannot insert node: reference node has no parent (may be detached)');
-    return false;
-  }
-  refNode.parentNode.insertBefore(newNode, refNode);
-  return true;
-}
-
-/**
  * Resolve a selector string or element to a DOM element
  * @private
  * @param {string|HTMLElement} target - CSS selector or DOM element
@@ -77,7 +158,8 @@ function safeInsertBefore(newNode, refNode) {
  */
 function resolveSelector(target, context = 'target') {
   if (typeof target === 'string') {
-    const element = document.querySelector(target);
+    const dom = getAdapter();
+    const element = dom.querySelector(target);
     return { element, selector: target };
   }
   return { element: target, selector: '(element)' };
@@ -96,7 +178,8 @@ export function onMount(fn) {
     currentMountContext.mountCallbacks.push(fn);
   } else {
     // Defer to next microtask if no context
-    queueMicrotask(fn);
+    const dom = getAdapter();
+    dom.queueMicrotask(fn);
   }
 }
 
@@ -218,19 +301,21 @@ export function parseSelector(selector) {
  * Create a DOM element from a selector
  */
 export function el(selector, ...children) {
+  const dom = getAdapter();
   const config = parseSelector(selector);
-  const element = document.createElement(config.tag);
+  const element = dom.createElement(config.tag);
 
   if (config.id) {
-    element.id = config.id;
+    dom.setProperty(element, 'id', config.id);
   }
 
   if (config.classes.length > 0) {
-    element.className = config.classes.join(' ');
+    dom.setProperty(element, 'className', config.classes.join(' '));
   }
 
   for (const [key, value] of Object.entries(config.attrs)) {
-    element.setAttribute(key, value);
+    // Use safeSetAttribute to prevent XSS via event handlers and javascript: URLs
+    safeSetAttribute(element, key, value, {}, dom);
   }
 
   // Process children
@@ -245,20 +330,22 @@ export function el(selector, ...children) {
  * Append a child to an element, handling various types
  */
 function appendChild(parent, child) {
+  const dom = getAdapter();
+
   if (child == null || child === false) return;
 
   if (typeof child === 'string' || typeof child === 'number') {
-    parent.appendChild(document.createTextNode(String(child)));
-  } else if (child instanceof Node) {
-    parent.appendChild(child);
+    dom.appendChild(parent, dom.createTextNode(String(child)));
+  } else if (dom.isNode(child)) {
+    dom.appendChild(parent, child);
   } else if (Array.isArray(child)) {
     for (const c of child) {
       appendChild(parent, c);
     }
   } else if (typeof child === 'function') {
     // Reactive child - create a placeholder and update it
-    const placeholder = document.createComment('pulse');
-    parent.appendChild(placeholder);
+    const placeholder = dom.createComment('pulse');
+    dom.appendChild(parent, placeholder);
     let currentNodes = [];
 
     effect(() => {
@@ -266,34 +353,35 @@ function appendChild(parent, child) {
 
       // Remove old nodes
       for (const node of currentNodes) {
-        node.remove();
+        dom.removeNode(node);
       }
       currentNodes = [];
 
       // Add new nodes
       if (result != null && result !== false) {
-        const fragment = document.createDocumentFragment();
+        const fragment = dom.createDocumentFragment();
         if (typeof result === 'string' || typeof result === 'number') {
-          const textNode = document.createTextNode(String(result));
-          fragment.appendChild(textNode);
+          const textNode = dom.createTextNode(String(result));
+          dom.appendChild(fragment, textNode);
           currentNodes.push(textNode);
-        } else if (result instanceof Node) {
-          fragment.appendChild(result);
+        } else if (dom.isNode(result)) {
+          dom.appendChild(fragment, result);
           currentNodes.push(result);
         } else if (Array.isArray(result)) {
           for (const r of result) {
-            if (r instanceof Node) {
-              fragment.appendChild(r);
+            if (dom.isNode(r)) {
+              dom.appendChild(fragment, r);
               currentNodes.push(r);
             } else if (r != null && r !== false) {
-              const textNode = document.createTextNode(String(r));
-              fragment.appendChild(textNode);
+              const textNode = dom.createTextNode(String(r));
+              dom.appendChild(fragment, textNode);
               currentNodes.push(textNode);
             }
           }
         }
-        if (placeholder.parentNode) {
-          placeholder.parentNode.insertBefore(fragment, placeholder.nextSibling);
+        const placeholderParent = dom.getParentNode(placeholder);
+        if (placeholderParent) {
+          dom.insertBefore(placeholderParent, fragment, dom.getNextSibling(placeholder));
         } else {
           log.warn('Cannot insert reactive children: placeholder has no parent node');
         }
@@ -306,33 +394,74 @@ function appendChild(parent, child) {
  * Create a reactive text node
  */
 export function text(getValue) {
+  const dom = getAdapter();
   if (typeof getValue === 'function') {
-    const node = document.createTextNode('');
+    const node = dom.createTextNode('');
     effect(() => {
-      node.textContent = String(getValue());
+      dom.setTextContent(node, String(getValue()));
     });
     return node;
   }
-  return document.createTextNode(String(getValue));
+  return dom.createTextNode(String(getValue));
 }
 
 /**
- * Bind an attribute reactively
+ * URL attributes that need sanitization in bind()
+ * @private
+ */
+const BIND_URL_ATTRIBUTES = new Set([
+  'href', 'src', 'action', 'formaction', 'data', 'poster',
+  'cite', 'codebase', 'background', 'profile', 'usemap', 'longdesc'
+]);
+
+/**
+ * Bind an attribute reactively with XSS protection
+ *
+ * Security: URL attributes (href, src, etc.) are sanitized to prevent javascript: XSS
  */
 export function bind(element, attr, getValue) {
+  const dom = getAdapter();
+  const lowerAttr = attr.toLowerCase();
+  const isUrlAttr = BIND_URL_ATTRIBUTES.has(lowerAttr);
+
   if (typeof getValue === 'function') {
     effect(() => {
       const value = getValue();
       if (value == null || value === false) {
-        element.removeAttribute(attr);
+        dom.removeAttribute(element, attr);
       } else if (value === true) {
-        element.setAttribute(attr, '');
+        dom.setAttribute(element, attr, '');
       } else {
-        element.setAttribute(attr, String(value));
+        // Sanitize URL attributes to prevent javascript: XSS
+        if (isUrlAttr) {
+          const sanitized = sanitizeUrl(String(value));
+          if (sanitized === null) {
+            console.warn(
+              `[Pulse Security] Dangerous URL blocked in bind() for ${attr}: "${String(value).slice(0, 50)}"`
+            );
+            dom.removeAttribute(element, attr);
+            return;
+          }
+          dom.setAttribute(element, attr, sanitized);
+        } else {
+          dom.setAttribute(element, attr, String(value));
+        }
       }
     });
   } else {
-    element.setAttribute(attr, String(getValue));
+    // Sanitize URL attributes for static values too
+    if (isUrlAttr) {
+      const sanitized = sanitizeUrl(String(getValue));
+      if (sanitized === null) {
+        console.warn(
+          `[Pulse Security] Dangerous URL blocked in bind() for ${attr}: "${String(getValue).slice(0, 50)}"`
+        );
+        return element;
+      }
+      dom.setAttribute(element, attr, sanitized);
+    } else {
+      dom.setAttribute(element, attr, String(getValue));
+    }
   }
   return element;
 }
@@ -341,12 +470,13 @@ export function bind(element, attr, getValue) {
  * Bind a property reactively
  */
 export function prop(element, propName, getValue) {
+  const dom = getAdapter();
   if (typeof getValue === 'function') {
     effect(() => {
-      element[propName] = getValue();
+      dom.setProperty(element, propName, getValue());
     });
   } else {
-    element[propName] = getValue;
+    dom.setProperty(element, propName, getValue);
   }
   return element;
 }
@@ -355,30 +485,43 @@ export function prop(element, propName, getValue) {
  * Bind CSS class reactively
  */
 export function cls(element, className, condition) {
+  const dom = getAdapter();
   if (typeof condition === 'function') {
     effect(() => {
       if (condition()) {
-        element.classList.add(className);
+        dom.addClass(element, className);
       } else {
-        element.classList.remove(className);
+        dom.removeClass(element, className);
       }
     });
   } else if (condition) {
-    element.classList.add(className);
+    dom.addClass(element, className);
   }
   return element;
 }
 
 /**
- * Bind style property reactively
+ * Bind style property reactively with CSS injection protection
+ *
+ * Security: CSS values are sanitized to prevent injection attacks via:
+ * - Semicolons (property injection: 'red; position: fixed')
+ * - url() (data exfiltration)
+ * - expression() (IE script execution)
+ *
+ * @param {HTMLElement} element - Target element
+ * @param {string} prop - CSS property name
+ * @param {*} getValue - Value or function returning value
+ * @param {Object} [options] - Options passed to safeSetStyle
+ * @returns {HTMLElement} The element for chaining
  */
-export function style(element, prop, getValue) {
+export function style(element, prop, getValue, options = {}) {
+  const dom = getAdapter();
   if (typeof getValue === 'function') {
     effect(() => {
-      element.style[prop] = getValue();
+      safeSetStyle(element, prop, getValue(), options, dom);
     });
   } else {
-    element.style[prop] = getValue;
+    safeSetStyle(element, prop, getValue, options, dom);
   }
   return element;
 }
@@ -387,11 +530,12 @@ export function style(element, prop, getValue) {
  * Attach an event listener
  */
 export function on(element, event, handler, options) {
-  element.addEventListener(event, handler, options);
+  const dom = getAdapter();
+  dom.addEventListener(element, event, handler, options);
 
   // Auto-cleanup: remove listener when effect is disposed (HMR support)
   onCleanup(() => {
-    element.removeEventListener(event, handler, options);
+    dom.removeEventListener(element, event, handler, options);
   });
 
   return element;
@@ -483,12 +627,13 @@ function computeLIS(arr) {
  * @returns {DocumentFragment} Container fragment with reactive list
  */
 export function list(getItems, template, keyFn = (item, i) => i) {
-  const container = document.createDocumentFragment();
-  const startMarker = document.createComment('list-start');
-  const endMarker = document.createComment('list-end');
+  const dom = getAdapter();
+  const container = dom.createDocumentFragment();
+  const startMarker = dom.createComment('list-start');
+  const endMarker = dom.createComment('list-end');
 
-  container.appendChild(startMarker);
-  container.appendChild(endMarker);
+  dom.appendChild(container, startMarker);
+  dom.appendChild(container, endMarker);
 
   // Map: key -> { nodes: Node[], cleanup: Function, item: any }
   let itemNodes = new Map();
@@ -529,7 +674,7 @@ export function list(getItems, template, keyFn = (item, i) => i) {
     for (const [key, entry] of itemNodes) {
       if (!newItemNodes.has(key)) {
         for (const node of entry.nodes) {
-          node.remove();
+          dom.removeNode(node);
         }
         if (entry.cleanup) entry.cleanup();
       }
@@ -561,17 +706,17 @@ export function list(getItems, template, keyFn = (item, i) => i) {
     });
 
     // Phase 5: Position nodes with minimal DOM operations
-    const parent = startMarker.parentNode;
+    const parent = dom.getParentNode(startMarker);
     if (!parent) {
       // Not yet in DOM, use simple append with DocumentFragment batch
-      const fragment = document.createDocumentFragment();
+      const fragment = dom.createDocumentFragment();
       for (const key of newKeys) {
         const entry = newItemNodes.get(key);
         for (const node of entry.nodes) {
-          fragment.appendChild(node);
+          dom.appendChild(fragment, node);
         }
       }
-      container.insertBefore(fragment, endMarker);
+      dom.insertBefore(container, fragment, endMarker);
     } else {
       // Optimized reordering: batch consecutive inserts using DocumentFragment
       let prevNode = startMarker;
@@ -585,14 +730,14 @@ export function list(getItems, template, keyFn = (item, i) => i) {
         const isStable = stableKeys.has(key);
 
         // Check if node is already in correct position
-        const inPosition = prevNode.nextSibling === firstNode;
+        const inPosition = dom.getNextSibling(prevNode) === firstNode;
 
         if (inPosition && (isStable || isNew)) {
           // Already in correct position, just advance
           prevNode = entry.nodes[entry.nodes.length - 1];
         } else {
           // Collect consecutive items that need to be inserted at this position
-          const fragment = document.createDocumentFragment();
+          const fragment = dom.createDocumentFragment();
           let j = i;
 
           while (j < newKeys.length) {
@@ -603,14 +748,14 @@ export function list(getItems, template, keyFn = (item, i) => i) {
             const s = stableKeys.has(k);
 
             // If this item is already in position after prevNode, stop batching
-            if (j > i && prevNode.nextSibling === f) {
+            if (j > i && dom.getNextSibling(prevNode) === f) {
               break;
             }
 
             // Add to batch if it's new or needs to move
-            if (n || !s || prevNode.nextSibling !== f) {
+            if (n || !s || dom.getNextSibling(prevNode) !== f) {
               for (const node of e.nodes) {
-                fragment.appendChild(node);
+                dom.appendChild(fragment, node);
               }
               j++;
             } else {
@@ -619,8 +764,8 @@ export function list(getItems, template, keyFn = (item, i) => i) {
           }
 
           // Insert the batch
-          if (fragment.childNodes.length > 0) {
-            parent.insertBefore(fragment, prevNode.nextSibling);
+          if (dom.getFirstChild(fragment)) {
+            dom.insertBefore(parent, fragment, dom.getNextSibling(prevNode));
           }
 
           // Update prevNode to last inserted node
@@ -644,9 +789,10 @@ export function list(getItems, template, keyFn = (item, i) => i) {
  * Conditional rendering
  */
 export function when(condition, thenTemplate, elseTemplate = null) {
-  const container = document.createDocumentFragment();
-  const marker = document.createComment('when');
-  container.appendChild(marker);
+  const dom = getAdapter();
+  const container = dom.createDocumentFragment();
+  const marker = dom.createComment('when');
+  dom.appendChild(container, marker);
 
   let currentNodes = [];
   let currentCleanup = null;
@@ -656,7 +802,7 @@ export function when(condition, thenTemplate, elseTemplate = null) {
 
     // Cleanup previous
     for (const node of currentNodes) {
-      node.remove();
+      dom.removeNode(node);
     }
     if (currentCleanup) currentCleanup();
     currentNodes = [];
@@ -668,14 +814,17 @@ export function when(condition, thenTemplate, elseTemplate = null) {
       const result = typeof template === 'function' ? template() : template;
       if (result) {
         const nodes = Array.isArray(result) ? result : [result];
-        const fragment = document.createDocumentFragment();
+        const fragment = dom.createDocumentFragment();
         for (const node of nodes) {
-          if (node instanceof Node) {
-            fragment.appendChild(node);
+          if (dom.isNode(node)) {
+            dom.appendChild(fragment, node);
             currentNodes.push(node);
           }
         }
-        marker.parentNode?.insertBefore(fragment, marker.nextSibling);
+        const markerParent = dom.getParentNode(marker);
+        if (markerParent) {
+          dom.insertBefore(markerParent, fragment, dom.getNextSibling(marker));
+        }
       }
     }
   });
@@ -687,7 +836,8 @@ export function when(condition, thenTemplate, elseTemplate = null) {
  * Switch/case rendering
  */
 export function match(getValue, cases) {
-  const marker = document.createComment('match');
+  const dom = getAdapter();
+  const marker = dom.createComment('match');
   let currentNodes = [];
 
   effect(() => {
@@ -695,7 +845,7 @@ export function match(getValue, cases) {
 
     // Remove old nodes
     for (const node of currentNodes) {
-      node.remove();
+      dom.removeNode(node);
     }
     currentNodes = [];
 
@@ -705,14 +855,17 @@ export function match(getValue, cases) {
       const result = typeof template === 'function' ? template() : template;
       if (result) {
         const nodes = Array.isArray(result) ? result : [result];
-        const fragment = document.createDocumentFragment();
+        const fragment = dom.createDocumentFragment();
         for (const node of nodes) {
-          if (node instanceof Node) {
-            fragment.appendChild(node);
+          if (dom.isNode(node)) {
+            dom.appendChild(fragment, node);
             currentNodes.push(node);
           }
         }
-        marker.parentNode?.insertBefore(fragment, marker.nextSibling);
+        const markerParent = dom.getParentNode(marker);
+        if (markerParent) {
+          dom.insertBefore(markerParent, fragment, dom.getNextSibling(marker));
+        }
       }
     }
   });
@@ -727,35 +880,36 @@ export function match(getValue, cases) {
  * to prevent memory leaks when the element is removed from the DOM.
  */
 export function model(element, pulseValue) {
-  const tagName = element.tagName.toLowerCase();
-  const type = element.type?.toLowerCase();
+  const dom = getAdapter();
+  const tagName = dom.getTagName(element);
+  const type = dom.getInputType(element);
 
   if (tagName === 'input' && (type === 'checkbox' || type === 'radio')) {
     // Checkbox/Radio
     effect(() => {
-      element.checked = pulseValue.get();
+      dom.setProperty(element, 'checked', pulseValue.get());
     });
-    const handler = () => pulseValue.set(element.checked);
-    element.addEventListener('change', handler);
-    onCleanup(() => element.removeEventListener('change', handler));
+    const handler = () => pulseValue.set(dom.getProperty(element, 'checked'));
+    dom.addEventListener(element, 'change', handler);
+    onCleanup(() => dom.removeEventListener(element, 'change', handler));
   } else if (tagName === 'select') {
     // Select
     effect(() => {
-      element.value = pulseValue.get();
+      dom.setProperty(element, 'value', pulseValue.get());
     });
-    const handler = () => pulseValue.set(element.value);
-    element.addEventListener('change', handler);
-    onCleanup(() => element.removeEventListener('change', handler));
+    const handler = () => pulseValue.set(dom.getProperty(element, 'value'));
+    dom.addEventListener(element, 'change', handler);
+    onCleanup(() => dom.removeEventListener(element, 'change', handler));
   } else {
     // Text input, textarea, etc.
     effect(() => {
-      if (element.value !== pulseValue.get()) {
-        element.value = pulseValue.get();
+      if (dom.getProperty(element, 'value') !== pulseValue.get()) {
+        dom.setProperty(element, 'value', pulseValue.get());
       }
     });
-    const handler = () => pulseValue.set(element.value);
-    element.addEventListener('input', handler);
-    onCleanup(() => element.removeEventListener('input', handler));
+    const handler = () => pulseValue.set(dom.getProperty(element, 'value'));
+    dom.addEventListener(element, 'input', handler);
+    onCleanup(() => dom.removeEventListener(element, 'input', handler));
   }
 
   return element;
@@ -769,18 +923,14 @@ export function model(element, pulseValue) {
  * @throws {Error} If target element is not found
  */
 export function mount(target, element) {
+  const dom = getAdapter();
   const { element: resolved, selector } = resolveSelector(target, 'mount');
   if (!resolved) {
-    throw new Error(
-      `[Pulse] Mount target not found: "${selector}". ` +
-      `Ensure the element exists in the DOM before mounting. ` +
-      `Tip: Use document.addEventListener('DOMContentLoaded', () => mount(...)) ` +
-      `or place your script at the end of <body>.`
-    );
+    throw Errors.mountNotFound(selector);
   }
-  resolved.appendChild(element);
+  dom.appendChild(resolved, element);
   return () => {
-    element.remove();
+    dom.removeNode(element);
   };
 }
 
@@ -789,6 +939,7 @@ export function mount(target, element) {
  */
 export function component(setup) {
   return (props = {}) => {
+    const dom = getAdapter();
     const state = {};
     const methods = {};
 
@@ -826,7 +977,7 @@ export function component(setup) {
 
     // Schedule mount callbacks after DOM insertion
     if (mountContext.mountCallbacks.length > 0) {
-      queueMicrotask(() => {
+      dom.queueMicrotask(() => {
         for (const cb of mountContext.mountCallbacks) {
           try {
             cb();
@@ -838,7 +989,7 @@ export function component(setup) {
     }
 
     // Store unmount callbacks on the element for later cleanup
-    if (result instanceof Node && mountContext.unmountCallbacks.length > 0) {
+    if (dom.isNode(result) && mountContext.unmountCallbacks.length > 0) {
       result._pulseUnmount = mountContext.unmountCallbacks;
     }
 
@@ -851,9 +1002,10 @@ export function component(setup) {
  * Unlike when(), this keeps the element in the DOM but hides it
  */
 export function show(condition, element) {
+  const dom = getAdapter();
   effect(() => {
     const shouldShow = typeof condition === 'function' ? condition() : condition.get();
-    element.style.display = shouldShow ? '' : 'none';
+    dom.setStyle(element, 'display', shouldShow ? '' : 'none');
   });
   return element;
 }
@@ -862,14 +1014,15 @@ export function show(condition, element) {
  * Portal - render children into a different DOM location
  */
 export function portal(children, target) {
+  const dom = getAdapter();
   const { element: resolvedTarget, selector } = resolveSelector(target, 'portal');
 
   if (!resolvedTarget) {
     log.warn(`Portal target not found: "${selector}"`);
-    return document.createComment('portal-target-not-found');
+    return dom.createComment('portal-target-not-found');
   }
 
-  const marker = document.createComment('portal');
+  const marker = dom.createComment('portal');
   let mountedNodes = [];
 
   // Handle reactive children
@@ -877,7 +1030,7 @@ export function portal(children, target) {
     effect(() => {
       // Cleanup previous nodes
       for (const node of mountedNodes) {
-        node.remove();
+        dom.removeNode(node);
         if (node._pulseUnmount) {
           for (const cb of node._pulseUnmount) cb();
         }
@@ -888,8 +1041,8 @@ export function portal(children, target) {
       if (result) {
         const nodes = Array.isArray(result) ? result : [result];
         for (const node of nodes) {
-          if (node instanceof Node) {
-            resolvedTarget.appendChild(node);
+          if (dom.isNode(node)) {
+            dom.appendChild(resolvedTarget, node);
             mountedNodes.push(node);
           }
         }
@@ -899,8 +1052,8 @@ export function portal(children, target) {
     // Static children
     const nodes = Array.isArray(children) ? children : [children];
     for (const node of nodes) {
-      if (node instanceof Node) {
-        resolvedTarget.appendChild(node);
+      if (dom.isNode(node)) {
+        dom.appendChild(resolvedTarget, node);
         mountedNodes.push(node);
       }
     }
@@ -909,7 +1062,7 @@ export function portal(children, target) {
   // Return marker for position tracking, attach cleanup
   marker._pulseUnmount = [() => {
     for (const node of mountedNodes) {
-      node.remove();
+      dom.removeNode(node);
       if (node._pulseUnmount) {
         for (const cb of node._pulseUnmount) cb();
       }
@@ -923,9 +1076,10 @@ export function portal(children, target) {
  * Error boundary - catch errors in child components
  */
 export function errorBoundary(children, fallback) {
-  const container = document.createDocumentFragment();
-  const marker = document.createComment('error-boundary');
-  container.appendChild(marker);
+  const dom = getAdapter();
+  const container = dom.createDocumentFragment();
+  const marker = dom.createComment('error-boundary');
+  dom.appendChild(container, marker);
 
   const error = pulse(null);
   let currentNodes = [];
@@ -933,7 +1087,7 @@ export function errorBoundary(children, fallback) {
   const renderContent = () => {
     // Cleanup previous
     for (const node of currentNodes) {
-      node.remove();
+      dom.removeNode(node);
     }
     currentNodes = [];
 
@@ -949,21 +1103,24 @@ export function errorBoundary(children, fallback) {
 
       if (result) {
         const nodes = Array.isArray(result) ? result : [result];
-        const fragment = document.createDocumentFragment();
+        const fragment = dom.createDocumentFragment();
         for (const node of nodes) {
-          if (node instanceof Node) {
-            fragment.appendChild(node);
+          if (dom.isNode(node)) {
+            dom.appendChild(fragment, node);
             currentNodes.push(node);
           }
         }
-        marker.parentNode?.insertBefore(fragment, marker.nextSibling);
+        const markerParent = dom.getParentNode(marker);
+        if (markerParent) {
+          dom.insertBefore(markerParent, fragment, dom.getNextSibling(marker));
+        }
       }
     } catch (e) {
       log.error('Error in component:', e);
       error.set(e);
       // Re-render with error
       if (!hasError) {
-        queueMicrotask(renderContent);
+        dom.queueMicrotask(renderContent);
       }
     }
   };
@@ -983,6 +1140,7 @@ export function errorBoundary(children, fallback) {
  * to prevent callbacks executing on removed elements.
  */
 export function transition(element, options = {}) {
+  const dom = getAdapter();
   const {
     enter = 'fade-in',
     exit = 'fade-out',
@@ -995,7 +1153,7 @@ export function transition(element, options = {}) {
   const activeTimers = new Set();
 
   const safeTimeout = (fn, delay) => {
-    const timerId = setTimeout(() => {
+    const timerId = dom.setTimeout(() => {
       activeTimers.delete(timerId);
       fn();
     }, delay);
@@ -1005,34 +1163,34 @@ export function transition(element, options = {}) {
 
   const clearAllTimers = () => {
     for (const timerId of activeTimers) {
-      clearTimeout(timerId);
+      dom.clearTimeout(timerId);
     }
     activeTimers.clear();
   };
 
   // Apply enter animation
   const applyEnter = () => {
-    element.classList.add(enter);
+    dom.addClass(element, enter);
     if (onEnter) onEnter(element);
     safeTimeout(() => {
-      element.classList.remove(enter);
+      dom.removeClass(element, enter);
     }, duration);
   };
 
   // Apply exit animation and return promise
   const applyExit = () => {
     return new Promise(resolve => {
-      element.classList.add(exit);
+      dom.addClass(element, exit);
       if (onExit) onExit(element);
       safeTimeout(() => {
-        element.classList.remove(exit);
+        dom.removeClass(element, exit);
         resolve();
       }, duration);
     });
   };
 
   // Apply enter on mount
-  queueMicrotask(applyEnter);
+  dom.queueMicrotask(applyEnter);
 
   // Attach exit method
   element._pulseTransitionExit = applyExit;
@@ -1050,9 +1208,10 @@ export function transition(element, options = {}) {
  * to prevent callbacks executing on removed elements.
  */
 export function whenTransition(condition, thenTemplate, elseTemplate = null, options = {}) {
-  const container = document.createDocumentFragment();
-  const marker = document.createComment('when-transition');
-  container.appendChild(marker);
+  const dom = getAdapter();
+  const container = dom.createDocumentFragment();
+  const marker = dom.createComment('when-transition');
+  dom.appendChild(container, marker);
 
   const { duration = 300, enterClass = 'fade-in', exitClass = 'fade-out' } = options;
 
@@ -1063,7 +1222,7 @@ export function whenTransition(condition, thenTemplate, elseTemplate = null, opt
   const activeTimers = new Set();
 
   const safeTimeout = (fn, delay) => {
-    const timerId = setTimeout(() => {
+    const timerId = dom.setTimeout(() => {
       activeTimers.delete(timerId);
       fn();
     }, delay);
@@ -1073,7 +1232,7 @@ export function whenTransition(condition, thenTemplate, elseTemplate = null, opt
 
   const clearAllTimers = () => {
     for (const timerId of activeTimers) {
-      clearTimeout(timerId);
+      dom.clearTimeout(timerId);
     }
     activeTimers.clear();
   };
@@ -1095,12 +1254,12 @@ export function whenTransition(condition, thenTemplate, elseTemplate = null, opt
       currentNodes = [];
 
       for (const node of nodesToRemove) {
-        node.classList.add(exitClass);
+        dom.addClass(node, exitClass);
       }
 
       safeTimeout(() => {
         for (const node of nodesToRemove) {
-          node.remove();
+          dom.removeNode(node);
         }
         isTransitioning = false;
 
@@ -1109,16 +1268,19 @@ export function whenTransition(condition, thenTemplate, elseTemplate = null, opt
           const result = typeof template === 'function' ? template() : template;
           if (result) {
             const nodes = Array.isArray(result) ? result : [result];
-            const fragment = document.createDocumentFragment();
+            const fragment = dom.createDocumentFragment();
             for (const node of nodes) {
-              if (node instanceof Node) {
-                node.classList.add(enterClass);
-                fragment.appendChild(node);
+              if (dom.isNode(node)) {
+                dom.addClass(node, enterClass);
+                dom.appendChild(fragment, node);
                 currentNodes.push(node);
-                safeTimeout(() => node.classList.remove(enterClass), duration);
+                safeTimeout(() => dom.removeClass(node, enterClass), duration);
               }
             }
-            marker.parentNode?.insertBefore(fragment, marker.nextSibling);
+            const markerParent = dom.getParentNode(marker);
+            if (markerParent) {
+              dom.insertBefore(markerParent, fragment, dom.getNextSibling(marker));
+            }
           }
         }
       }, duration);
@@ -1127,16 +1289,19 @@ export function whenTransition(condition, thenTemplate, elseTemplate = null, opt
       const result = typeof template === 'function' ? template() : template;
       if (result) {
         const nodes = Array.isArray(result) ? result : [result];
-        const fragment = document.createDocumentFragment();
+        const fragment = dom.createDocumentFragment();
         for (const node of nodes) {
-          if (node instanceof Node) {
-            node.classList.add(enterClass);
-            fragment.appendChild(node);
+          if (dom.isNode(node)) {
+            dom.addClass(node, enterClass);
+            dom.appendChild(fragment, node);
             currentNodes.push(node);
-            safeTimeout(() => node.classList.remove(enterClass), duration);
+            safeTimeout(() => dom.removeClass(node, enterClass), duration);
           }
         }
-        marker.parentNode?.insertBefore(fragment, marker.nextSibling);
+        const markerParent = dom.getParentNode(marker);
+        if (markerParent) {
+          dom.insertBefore(markerParent, fragment, dom.getNextSibling(marker));
+        }
       }
     }
   });
@@ -1167,6 +1332,10 @@ export default {
   errorBoundary,
   transition,
   whenTransition,
+  // Configuration
+  configureDom,
+  getDomConfig,
+  clearSelectorCache,
   // Diagnostics
   getCacheMetrics,
   resetCacheMetrics

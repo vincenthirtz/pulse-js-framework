@@ -37,7 +37,7 @@ export class PulseError extends Error {
    */
   formatWithSnippet(source = this.source, contextLines = 2) {
     if (!this.line || !source) {
-      return this.toString();
+      return this.format();
     }
 
     const lines = source.split('\n');
@@ -62,11 +62,35 @@ export class PulseError extends Error {
     }
 
     if (this.suggestion) {
-      output += `\n  Suggestion: ${this.suggestion}\n`;
+      output += `\n  → ${this.suggestion}\n`;
     }
 
     if (this.code && this.code !== 'PULSE_ERROR') {
-      output += `\n  Error code: ${this.code}\n`;
+      output += `\n  See: ${getDocsUrl(this.code)}\n`;
+    }
+
+    return output;
+  }
+
+  /**
+   * Format error without source code context
+   * @returns {string} Formatted error message
+   */
+  format() {
+    let output = `${this.name}: ${this.message}`;
+
+    if (this.file || this.line) {
+      output += `\n  at ${this.file || '<anonymous>'}`;
+      if (this.line) output += `:${this.line}`;
+      if (this.column) output += `:${this.column}`;
+    }
+
+    if (this.suggestion) {
+      output += `\n\n  → ${this.suggestion}`;
+    }
+
+    if (this.code && this.code !== 'PULSE_ERROR') {
+      output += `\n  See: ${getDocsUrl(this.code)}`;
     }
 
     return output;
@@ -218,6 +242,43 @@ export class ConfigError extends CLIError {
 }
 
 // ============================================================================
+// Documentation & URLs
+// ============================================================================
+
+const DOCS_BASE_URL = 'https://pulse-js.fr';
+
+/**
+ * Generate documentation URL for an error code
+ * @param {string} code - Error code
+ * @returns {string} Documentation URL
+ */
+export function getDocsUrl(code) {
+  const paths = {
+    // Reactivity
+    'COMPUTED_SET': 'reactivity/computed#read-only',
+    'CIRCULAR_DEPENDENCY': 'reactivity/effects#circular-dependencies',
+    'EFFECT_ERROR': 'reactivity/effects#error-handling',
+    // DOM
+    'MOUNT_ERROR': 'dom/mounting#troubleshooting',
+    'SELECTOR_INVALID': 'dom/elements#selectors',
+    'LIST_NO_KEY': 'dom/lists#key-function',
+    // Router
+    'ROUTE_NOT_FOUND': 'router/routes#catch-all',
+    'LAZY_TIMEOUT': 'router/lazy-loading#timeout',
+    'GUARD_ERROR': 'router/guards#error-handling',
+    // Store
+    'PERSIST_ERROR': 'store/persistence#troubleshooting',
+    'STORE_TYPE_ERROR': 'store/state#valid-types',
+    // Compiler
+    'PARSER_ERROR': 'compiler/syntax',
+    'DUPLICATE_BLOCK': 'compiler/structure#blocks',
+    'INVALID_DIRECTIVE': 'compiler/directives',
+    'LEXER_ERROR': 'compiler/syntax#tokens'
+  };
+  return `${DOCS_BASE_URL}/${paths[code] || 'errors#' + code.toLowerCase()}`;
+}
+
+// ============================================================================
 // Helper Functions
 // ============================================================================
 
@@ -225,6 +286,7 @@ export class ConfigError extends CLIError {
  * Common error suggestions based on error patterns
  */
 export const SUGGESTIONS = {
+  // Compiler
   'undefined-variable': (name) =>
     `Did you forget to declare '${name}' in the state block or import it?`,
   'duplicate-declaration': (name) =>
@@ -236,9 +298,37 @@ export const SUGGESTIONS = {
   'missing-closing-paren': () =>
     `Add the missing closing parenthesis ')'`,
   'invalid-directive': (name) =>
-    `'${name}' is not a valid directive. Valid directives: @if, @each, @click, @link, @outlet`,
+    `'${name}' is not a valid directive. Valid directives: @if, @for, @click, @link, @outlet`,
   'empty-block': (blockName) =>
-    `The ${blockName} block is empty. Add content or remove the block.`
+    `The ${blockName} block is empty. Add content or remove the block.`,
+
+  // Reactivity
+  'computed-set': (name) =>
+    `Use a regular pulse() if you need to set values directly, or modify the source pulse(s) that '${name || 'this computed'}' depends on.`,
+  'circular-dependency': () =>
+    `Check for effects that modify their own dependencies. Consider using batch() to group updates.`,
+  'effect-cleanup': () =>
+    `Return a cleanup function from your effect: effect(() => { ... return () => cleanup(); })`,
+
+  // DOM
+  'mount-not-found': (selector) =>
+    `Ensure "${selector}" exists in the DOM. Use DOMContentLoaded or place script at end of <body>.`,
+  'invalid-selector': (selector) =>
+    `"${selector}" is not a valid CSS selector. Use tag.class#id[attr] format.`,
+  'list-needs-key': () =>
+    `Add a key function as third argument: list(items, render, item => item.id)`,
+
+  // Router
+  'route-not-found': (path) =>
+    `Add a route for "${path}" or use a catch-all route: '/*path': NotFoundPage`,
+  'lazy-timeout': (ms) =>
+    `The component took longer than ${ms}ms to load. Check your network or increase timeout.`,
+
+  // Store
+  'persist-quota': () =>
+    `localStorage is full. Consider clearing old data or reducing state size.`,
+  'invalid-store-value': (type) =>
+    `Store values must be serializable. ${type} cannot be persisted.`
 };
 
 /**
@@ -281,6 +371,188 @@ export function createParserError(message, token, options = {}) {
   });
 }
 
+/**
+ * Create a user-friendly error message with context and suggestions
+ * @param {Object} options - Error options
+ * @param {string} options.code - Error code (e.g., 'COMPUTED_SET')
+ * @param {string} options.message - Main error message
+ * @param {string} [options.context] - What the user was trying to do
+ * @param {string} [options.suggestion] - How to fix it
+ * @param {Object} [options.details] - Additional details
+ * @returns {string} Formatted error message
+ */
+export function createErrorMessage({ code, message, context, suggestion, details }) {
+  let output = `[Pulse] ${message}`;
+
+  if (context) {
+    output += `\n\n  Context: ${context}`;
+  }
+
+  if (details) {
+    for (const [key, value] of Object.entries(details)) {
+      output += `\n  ${key}: ${value}`;
+    }
+  }
+
+  if (suggestion) {
+    output += `\n\n  → ${suggestion}`;
+  }
+
+  if (code) {
+    output += `\n  See: ${getDocsUrl(code)}`;
+  }
+
+  return output;
+}
+
+// ============================================================================
+// Pre-built Error Creators
+// ============================================================================
+
+/**
+ * Error creators for common scenarios with good DX
+ */
+export const Errors = {
+  /**
+   * Cannot set computed value
+   */
+  computedSet(name) {
+    return new ReactivityError(
+      createErrorMessage({
+        code: 'COMPUTED_SET',
+        message: `Cannot set computed value${name ? ` '${name}'` : ''}.`,
+        context: 'Computed values are derived from other pulses and update automatically.',
+        suggestion: SUGGESTIONS['computed-set'](name)
+      }),
+      { code: 'COMPUTED_SET' }
+    );
+  },
+
+  /**
+   * Circular dependency in effects
+   */
+  circularDependency(effectIds, pending) {
+    return new ReactivityError(
+      createErrorMessage({
+        code: 'CIRCULAR_DEPENDENCY',
+        message: 'Infinite loop detected in reactive effects.',
+        context: 'An effect is repeatedly triggering itself or other effects.',
+        details: {
+          'Most active effects': effectIds.slice(0, 5).join(', '),
+          'Still pending': pending.slice(0, 5).join(', ') || 'none'
+        },
+        suggestion: SUGGESTIONS['circular-dependency']()
+      }),
+      { code: 'CIRCULAR_DEPENDENCY' }
+    );
+  },
+
+  /**
+   * Mount target not found
+   */
+  mountNotFound(selector) {
+    return new DOMError(
+      createErrorMessage({
+        code: 'MOUNT_ERROR',
+        message: `Mount target not found: "${selector}"`,
+        context: 'The element must exist in the DOM before mounting.',
+        suggestion: SUGGESTIONS['mount-not-found'](selector)
+      }),
+      { code: 'MOUNT_ERROR' }
+    );
+  },
+
+  /**
+   * List missing key function
+   */
+  listNoKey() {
+    return new DOMError(
+      createErrorMessage({
+        code: 'LIST_NO_KEY',
+        message: 'List rendering without key function may cause performance issues.',
+        context: 'Keys help Pulse efficiently update only changed items.',
+        suggestion: SUGGESTIONS['list-needs-key']()
+      }),
+      { code: 'LIST_NO_KEY' }
+    );
+  },
+
+  /**
+   * Route not found
+   */
+  routeNotFound(path) {
+    return new RouterError(
+      createErrorMessage({
+        code: 'ROUTE_NOT_FOUND',
+        message: `No route matched: "${path}"`,
+        context: 'Navigation attempted to an undefined route.',
+        suggestion: SUGGESTIONS['route-not-found'](path)
+      }),
+      { code: 'ROUTE_NOT_FOUND' }
+    );
+  },
+
+  /**
+   * Lazy load timeout
+   */
+  lazyTimeout(timeout) {
+    return new RouterError(
+      createErrorMessage({
+        code: 'LAZY_TIMEOUT',
+        message: `Lazy component load timed out after ${timeout}ms.`,
+        context: 'The dynamic import took too long to resolve.',
+        suggestion: SUGGESTIONS['lazy-timeout'](timeout)
+      }),
+      { code: 'LAZY_TIMEOUT' }
+    );
+  },
+
+  /**
+   * Store persistence error
+   */
+  persistError(operation, cause) {
+    return new StoreError(
+      createErrorMessage({
+        code: 'PERSIST_ERROR',
+        message: `Failed to ${operation} persisted state.`,
+        context: cause?.message || 'localStorage operation failed.',
+        suggestion: SUGGESTIONS['persist-quota']()
+      }),
+      { code: 'PERSIST_ERROR' }
+    );
+  },
+
+  /**
+   * Invalid store value type
+   */
+  invalidStoreValue(type) {
+    return new StoreError(
+      createErrorMessage({
+        code: 'STORE_TYPE_ERROR',
+        message: `Invalid value type in store: ${type}`,
+        context: 'Store values must be JSON-serializable.',
+        suggestion: SUGGESTIONS['invalid-store-value'](type)
+      }),
+      { code: 'STORE_TYPE_ERROR' }
+    );
+  },
+
+  /**
+   * Native API not available
+   */
+  nativeNotAvailable(api) {
+    return new RuntimeError(
+      createErrorMessage({
+        code: 'NATIVE_ERROR',
+        message: `Native API '${api}' is not available.`,
+        context: 'This API only works in Pulse native mobile apps.',
+        suggestion: `Use isNativeAvailable() to check before calling native APIs, or use getPlatform() to detect the environment.`
+      }),
+      { code: 'NATIVE_ERROR' }
+    );
+  }
+};
+
 export default {
   PulseError,
   CompileError,
@@ -295,6 +567,9 @@ export default {
   CLIError,
   ConfigError,
   SUGGESTIONS,
+  Errors,
   formatError,
-  createParserError
+  createParserError,
+  createErrorMessage,
+  getDocsUrl
 };

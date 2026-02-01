@@ -8,6 +8,10 @@ import {
   unescapeHtml,
   escapeAttribute,
   sanitizeUrl,
+  safeSetAttribute,
+  isValidCSSProperty,
+  sanitizeCSSValue,
+  safeSetStyle,
   deepClone,
   debounce,
   throttle
@@ -219,6 +223,330 @@ test('trims whitespace', () => {
 test('blocks other protocols', () => {
   assertEqual(sanitizeUrl('ftp://example.com'), null);
   assertEqual(sanitizeUrl('file:///etc/passwd'), null);
+});
+
+test('blocks vbscript: URLs', () => {
+  assertEqual(sanitizeUrl('vbscript:msgbox(1)'), null);
+  assertEqual(sanitizeUrl('VBSCRIPT:msgbox(1)'), null);
+});
+
+test('blocks blob: URLs by default', () => {
+  assertEqual(sanitizeUrl('blob:http://example.com/file'), null);
+});
+
+test('allows blob: URLs with allowBlob option', () => {
+  const url = 'blob:http://example.com/file';
+  assertEqual(sanitizeUrl(url, { allowBlob: true }), url);
+});
+
+test('blocks HTML entity encoded javascript:', () => {
+  // &#x6a; = j, &#x61; = a, etc.
+  assertEqual(sanitizeUrl('&#x6a;avascript:alert(1)'), null);
+  assertEqual(sanitizeUrl('&#106;avascript:alert(1)'), null);
+});
+
+test('blocks URL-encoded javascript:', () => {
+  assertEqual(sanitizeUrl('%6Aavascript:alert(1)'), null);
+  assertEqual(sanitizeUrl('%6a%61%76%61script:alert(1)'), null);
+});
+
+test('blocks javascript: with null bytes', () => {
+  assertEqual(sanitizeUrl('java\x00script:alert(1)'), null);
+});
+
+test('blocks protocol-relative URLs that could escape to different origin', () => {
+  assertEqual(sanitizeUrl('//evil.com/path'), null);
+});
+
+test('allows single-slash relative URLs', () => {
+  assertEqual(sanitizeUrl('/path/to/page'), '/path/to/page');
+});
+
+test('allows dot-relative URLs', () => {
+  assertEqual(sanitizeUrl('./path'), './path');
+  assertEqual(sanitizeUrl('../path'), '../path');
+});
+
+// ============================================================================
+// safeSetAttribute Tests (XSS Protection)
+// ============================================================================
+
+console.log('\nsafeSetAttribute:');
+
+// Create a mock element for testing
+function createMockElement() {
+  const attrs = {};
+  return {
+    setAttribute(name, value) { attrs[name] = value; },
+    removeAttribute(name) { delete attrs[name]; },
+    getAttribute(name) { return attrs[name]; },
+    _attrs: attrs
+  };
+}
+
+test('sets safe attributes normally', () => {
+  const el = createMockElement();
+  const result = safeSetAttribute(el, 'data-id', '123');
+  assert(result === true, 'Should return true');
+  assertEqual(el.getAttribute('data-id'), '123');
+});
+
+test('sets class and id attributes', () => {
+  const el = createMockElement();
+  safeSetAttribute(el, 'class', 'my-class');
+  safeSetAttribute(el, 'id', 'my-id');
+  assertEqual(el.getAttribute('class'), 'my-class');
+  assertEqual(el.getAttribute('id'), 'my-id');
+});
+
+test('blocks onclick event handler', () => {
+  const el = createMockElement();
+  const result = safeSetAttribute(el, 'onclick', 'alert(1)');
+  assert(result === false, 'Should return false');
+  assertEqual(el.getAttribute('onclick'), undefined);
+});
+
+test('blocks all on* event handlers', () => {
+  const el = createMockElement();
+  const handlers = ['onerror', 'onload', 'onmouseover', 'onfocus', 'onblur',
+                    'onchange', 'oninput', 'onsubmit', 'onkeydown', 'onkeyup'];
+  for (const handler of handlers) {
+    const result = safeSetAttribute(el, handler, 'alert(1)');
+    assert(result === false, `Should block ${handler}`);
+    assertEqual(el.getAttribute(handler), undefined);
+  }
+});
+
+test('blocks event handlers case-insensitively', () => {
+  const el = createMockElement();
+  assert(safeSetAttribute(el, 'ONCLICK', 'alert(1)') === false);
+  assert(safeSetAttribute(el, 'OnClick', 'alert(1)') === false);
+  assert(safeSetAttribute(el, 'onClick', 'alert(1)') === false);
+});
+
+test('blocks srcdoc attribute', () => {
+  const el = createMockElement();
+  const result = safeSetAttribute(el, 'srcdoc', '<script>alert(1)</script>');
+  assert(result === false, 'Should block srcdoc');
+  assertEqual(el.getAttribute('srcdoc'), undefined);
+});
+
+test('sanitizes href with javascript:', () => {
+  const el = createMockElement();
+  const result = safeSetAttribute(el, 'href', 'javascript:alert(1)');
+  assert(result === false, 'Should return false for dangerous URL');
+  assertEqual(el.getAttribute('href'), undefined);
+});
+
+test('sanitizes src with javascript:', () => {
+  const el = createMockElement();
+  const result = safeSetAttribute(el, 'src', 'javascript:alert(1)');
+  assert(result === false, 'Should return false for dangerous URL');
+  assertEqual(el.getAttribute('src'), undefined);
+});
+
+test('allows safe href URLs', () => {
+  const el = createMockElement();
+  safeSetAttribute(el, 'href', 'https://example.com');
+  assertEqual(el.getAttribute('href'), 'https://example.com');
+
+  const el2 = createMockElement();
+  safeSetAttribute(el2, 'href', '/path/to/page');
+  assertEqual(el2.getAttribute('href'), '/path/to/page');
+});
+
+test('sanitizes action attribute', () => {
+  const el = createMockElement();
+  const result = safeSetAttribute(el, 'action', 'javascript:alert(1)');
+  assert(result === false, 'Should block dangerous action');
+});
+
+test('sanitizes formaction attribute', () => {
+  const el = createMockElement();
+  const result = safeSetAttribute(el, 'formaction', 'javascript:alert(1)');
+  assert(result === false, 'Should block dangerous formaction');
+});
+
+test('blocks invalid attribute names', () => {
+  const el = createMockElement();
+  assert(safeSetAttribute(el, '"><script>', 'xss') === false);
+  assert(safeSetAttribute(el, 'foo bar', 'value') === false);
+  assert(safeSetAttribute(el, '123attr', 'value') === false);
+});
+
+test('allows event handlers with allowEventHandlers option', () => {
+  const el = createMockElement();
+  const result = safeSetAttribute(el, 'onclick', 'handleClick()', { allowEventHandlers: true });
+  assert(result === true, 'Should allow with option');
+  assertEqual(el.getAttribute('onclick'), 'handleClick()');
+});
+
+test('allows data URLs with allowDataUrls option', () => {
+  const el = createMockElement();
+  const dataUrl = 'data:image/png;base64,abc123';
+  const result = safeSetAttribute(el, 'src', dataUrl, { allowDataUrls: true });
+  assert(result === true, 'Should allow data URL with option');
+  assertEqual(el.getAttribute('src'), dataUrl);
+});
+
+test('handles null and undefined values', () => {
+  const el = createMockElement();
+  safeSetAttribute(el, 'data-test', null);
+  assertEqual(el.getAttribute('data-test'), '');
+
+  safeSetAttribute(el, 'data-test2', undefined);
+  assertEqual(el.getAttribute('data-test2'), '');
+});
+
+// ============================================================================
+// CSS Sanitization Tests
+// ============================================================================
+
+console.log('\nisValidCSSProperty:');
+
+test('validates camelCase property names', () => {
+  assert(isValidCSSProperty('backgroundColor') === true);
+  assert(isValidCSSProperty('fontSize') === true);
+  assert(isValidCSSProperty('color') === true);
+});
+
+test('validates kebab-case property names', () => {
+  assert(isValidCSSProperty('background-color') === true);
+  assert(isValidCSSProperty('font-size') === true);
+  assert(isValidCSSProperty('-webkit-transform') === true);
+});
+
+test('rejects invalid property names', () => {
+  assert(isValidCSSProperty('123invalid') === false);
+  assert(isValidCSSProperty('') === false);
+  assert(isValidCSSProperty(null) === false);
+  assert(isValidCSSProperty('prop name') === false);
+});
+
+console.log('\nsanitizeCSSValue:');
+
+test('allows safe CSS values', () => {
+  const result = sanitizeCSSValue('red');
+  assert(result.safe === true);
+  assertEqual(result.value, 'red');
+});
+
+test('allows complex safe values', () => {
+  assert(sanitizeCSSValue('10px').safe === true);
+  assert(sanitizeCSSValue('rgba(0, 0, 0, 0.5)').safe === true);
+  assert(sanitizeCSSValue('1px solid #ccc').safe === true);
+  assert(sanitizeCSSValue('translateX(100%)').safe === true);
+});
+
+test('blocks semicolon injection', () => {
+  const result = sanitizeCSSValue('red; position: fixed');
+  assert(result.safe === false);
+  assertEqual(result.blocked, 'semicolon');
+  assertEqual(result.value, 'red'); // Returns sanitized portion
+});
+
+test('blocks url() by default', () => {
+  const result = sanitizeCSSValue('url(http://evil.com/tracking.gif)');
+  assert(result.safe === false);
+  assertEqual(result.blocked, 'url');
+});
+
+test('allows url() with option', () => {
+  const result = sanitizeCSSValue('url(/images/bg.png)', { allowUrl: true });
+  assert(result.safe === true);
+});
+
+test('blocks expression() (IE)', () => {
+  const result = sanitizeCSSValue('expression(alert(1))');
+  assert(result.safe === false);
+  assertEqual(result.blocked, 'expression');
+});
+
+test('blocks @import', () => {
+  const result = sanitizeCSSValue('@import "evil.css"');
+  assert(result.safe === false);
+  assertEqual(result.blocked, '@import');
+});
+
+test('blocks style breakout attempts', () => {
+  const result = sanitizeCSSValue('red</style><script>alert(1)</script>');
+  assert(result.safe === false);
+  assertEqual(result.blocked, '</style');
+});
+
+test('blocks javascript: in values', () => {
+  const result = sanitizeCSSValue('javascript:alert(1)');
+  assert(result.safe === false);
+  assertEqual(result.blocked, 'javascript:');
+});
+
+test('blocks curly braces (rule injection)', () => {
+  const result = sanitizeCSSValue('red } .evil { position: fixed');
+  assert(result.safe === false);
+  assertEqual(result.blocked, 'braces');
+});
+
+test('handles null and undefined', () => {
+  assert(sanitizeCSSValue(null).safe === true);
+  assertEqual(sanitizeCSSValue(null).value, '');
+  assert(sanitizeCSSValue(undefined).safe === true);
+});
+
+console.log('\nsafeSetStyle:');
+
+// Create a mock element for style testing
+function createMockStyleElement() {
+  const styles = {};
+  return {
+    style: new Proxy(styles, {
+      set(target, prop, value) {
+        target[prop] = value;
+        return true;
+      },
+      get(target, prop) {
+        return target[prop];
+      }
+    }),
+    _styles: styles
+  };
+}
+
+test('sets safe style values', () => {
+  const el = createMockStyleElement();
+  const result = safeSetStyle(el, 'color', 'red');
+  assert(result === true);
+  assertEqual(el.style.color, 'red');
+});
+
+test('blocks semicolon injection in style', () => {
+  const el = createMockStyleElement();
+  const result = safeSetStyle(el, 'color', 'red; margin: 999px');
+  assert(result === false);
+  assertEqual(el.style.color, 'red'); // Sanitized value still set
+});
+
+test('blocks url() in style by default', () => {
+  const el = createMockStyleElement();
+  const result = safeSetStyle(el, 'backgroundImage', 'url(http://evil.com)');
+  assert(result === false);
+});
+
+test('allows url() in style with option', () => {
+  const el = createMockStyleElement();
+  const result = safeSetStyle(el, 'backgroundImage', 'url(/images/bg.png)', { allowUrl: true });
+  assert(result === true);
+});
+
+test('blocks invalid property names', () => {
+  const el = createMockStyleElement();
+  const result = safeSetStyle(el, '123invalid', 'red');
+  assert(result === false);
+});
+
+test('blocks expression() in style', () => {
+  const el = createMockStyleElement();
+  const result = safeSetStyle(el, 'width', 'expression(document.body.clientWidth)');
+  assert(result === false);
 });
 
 // ============================================================================

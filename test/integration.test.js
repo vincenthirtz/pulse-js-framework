@@ -517,6 +517,278 @@ testAsync('effect cleanup runs correctly on dispose', async () => {
 });
 
 // =============================================================================
+// CLI Utility Tests
+// =============================================================================
+
+printSection('CLI Utility Tests');
+
+// Import CLI utilities
+import { parseArgs, formatBytes, relativePath } from '../cli/utils/file-utils.js';
+
+test('parseArgs extracts options and patterns correctly', () => {
+  const result = parseArgs(['src/', '--fix', 'lib/', '-v', '**/*.pulse']);
+
+  assertDeepEqual(result.patterns, ['src/', 'lib/', '**/*.pulse'], 'Should extract patterns');
+  assertEqual(result.options.fix, true, 'Should extract --fix option');
+  assertEqual(result.options.v, true, 'Should extract -v option');
+});
+
+test('parseArgs handles empty args', () => {
+  const result = parseArgs([]);
+
+  assertDeepEqual(result.patterns, [], 'Should have empty patterns');
+  assertDeepEqual(result.options, {}, 'Should have empty options');
+});
+
+test('parseArgs handles only options', () => {
+  const result = parseArgs(['--check', '--verbose', '-f']);
+
+  assertDeepEqual(result.patterns, [], 'Should have empty patterns');
+  assertEqual(result.options.check, true);
+  assertEqual(result.options.verbose, true);
+  assertEqual(result.options.f, true);
+});
+
+test('parseArgs handles only patterns', () => {
+  const result = parseArgs(['src/', 'lib/', 'test/']);
+
+  assertDeepEqual(result.patterns, ['src/', 'lib/', 'test/']);
+  assertDeepEqual(result.options, {});
+});
+
+test('formatBytes formats zero correctly', () => {
+  assertEqual(formatBytes(0), '0 B', 'Should format zero');
+});
+
+test('formatBytes formats bytes correctly', () => {
+  assertEqual(formatBytes(500), '500 B', 'Should format bytes');
+});
+
+test('formatBytes formats kilobytes correctly', () => {
+  const result = formatBytes(1024);
+  assert(result.includes('KB'), 'Should format as KB');
+});
+
+test('formatBytes formats megabytes correctly', () => {
+  const result = formatBytes(1024 * 1024);
+  assert(result.includes('MB'), 'Should format as MB');
+});
+
+test('formatBytes formats gigabytes correctly', () => {
+  const result = formatBytes(1024 * 1024 * 1024);
+  assert(result.includes('GB'), 'Should format as GB');
+});
+
+test('relativePath handles absolute paths', () => {
+  const cwd = process.cwd();
+  const absPath = cwd + '/src/App.pulse';
+  const result = relativePath(absPath);
+
+  assertEqual(result, 'src/App.pulse', 'Should return relative path');
+});
+
+test('relativePath handles paths outside cwd', () => {
+  const result = relativePath('/some/other/path/file.js');
+
+  assertEqual(result, '/some/other/path/file.js', 'Should return original path');
+});
+
+// =============================================================================
+// CLI Error Handling Tests
+// =============================================================================
+
+printSection('CLI Error Handling Tests');
+
+// Import compiler for error testing
+import { parse } from '../compiler/index.js';
+
+test('compiler throws on invalid syntax', () => {
+  const invalidSource = `
+@page Test
+
+state {
+  count: // missing value
+}
+
+view {
+  div "Hello"
+}`;
+
+  let caught = false;
+  try {
+    parse(invalidSource);
+  } catch (e) {
+    caught = true;
+    assert(e.message.length > 0, 'Error should have message');
+  }
+
+  assert(caught, 'Should throw on invalid syntax');
+});
+
+test('compiler throws on unclosed brace', () => {
+  const invalidSource = `
+@page Test
+
+state {
+  count: 0
+
+view {
+  div "Hello"
+}`;
+
+  let caught = false;
+  try {
+    parse(invalidSource);
+  } catch (e) {
+    caught = true;
+  }
+
+  assert(caught, 'Should throw on unclosed brace');
+});
+
+test('compiler handles empty source', () => {
+  const emptySource = '';
+  const ast = parse(emptySource);
+
+  assertEqual(ast.type, 'Program', 'Should return Program node');
+  assertEqual(ast.page, null, 'Should have null page');
+  assertEqual(ast.imports.length, 0, 'Should have no imports');
+});
+
+test('compiler handles whitespace-only source', () => {
+  const whitespaceSource = '   \n\t\n   ';
+  const ast = parse(whitespaceSource);
+
+  assertEqual(ast.type, 'Program', 'Should return Program node');
+});
+
+test('compiler handles incomplete import statement', () => {
+  // import with missing source should throw
+  const invalidImport = `
+import Button
+
+@page Test
+view { div "Hello" }`;
+
+  let caught = false;
+  try {
+    parse(invalidImport);
+  } catch (e) {
+    caught = true;
+  }
+
+  assert(caught, 'Should throw on incomplete import');
+});
+
+test('compiler handles duplicate blocks', () => {
+  const duplicateBlocks = `
+@page Test
+
+state { a: 1 }
+state { b: 2 }
+
+view { div "Hello" }`;
+
+  let caught = false;
+  try {
+    parse(duplicateBlocks);
+  } catch (e) {
+    caught = true;
+    assert(e.message.includes('Duplicate'), 'Error should mention duplicate');
+  }
+
+  assert(caught, 'Should throw on duplicate state block');
+});
+
+// =============================================================================
+// Lint Error Path Tests
+// =============================================================================
+
+printSection('Lint Error Path Tests');
+
+import { SemanticAnalyzer, LintRules } from '../cli/lint.js';
+
+test('SemanticAnalyzer handles minimal AST', () => {
+  const minimalAst = {
+    type: 'Program',
+    imports: [],
+    page: null,
+    state: null,
+    view: null,
+    actions: null
+  };
+
+  const analyzer = new SemanticAnalyzer(minimalAst, '');
+  const diagnostics = analyzer.analyze();
+
+  assert(Array.isArray(diagnostics), 'Should return array of diagnostics');
+});
+
+test('SemanticAnalyzer handles empty view children', () => {
+  const ast = {
+    type: 'Program',
+    imports: [],
+    page: { name: 'Test' },
+    state: null,
+    view: {
+      type: 'ViewBlock',
+      children: []
+    },
+    actions: null
+  };
+
+  const analyzer = new SemanticAnalyzer(ast, '');
+  const diagnostics = analyzer.analyze();
+
+  // Should produce empty-block warning
+  assert(diagnostics.some(d => d.code === 'empty-block'), 'Should warn about empty view');
+});
+
+test('SemanticAnalyzer handles partial AST nodes', () => {
+  // AST with minimal/partial state properties (missing value, missing line info)
+  const partialAst = {
+    type: 'Program',
+    imports: [],
+    page: { name: 'Test' },
+    state: {
+      properties: [
+        { name: 'count' }, // Missing value, line, column - partial node
+        { name: 'status', line: 5, column: 3 } // Missing value but has location
+      ]
+    },
+    view: {
+      children: [
+        { type: 'Element', selector: 'div', directives: [], textContent: [], children: [] }
+      ]
+    },
+    actions: null
+  };
+
+  // Should not throw
+  const analyzer = new SemanticAnalyzer(partialAst, '');
+  const diagnostics = analyzer.analyze();
+
+  assert(Array.isArray(diagnostics), 'Should handle partial AST gracefully');
+  // Both state vars are unused - should have warnings
+  const unusedState = diagnostics.filter(d => d.code === 'unused-state');
+  assertEqual(unusedState.length, 2, 'Should detect unused state variables');
+});
+
+test('LintRules has expected structure', () => {
+  const ruleNames = Object.keys(LintRules);
+
+  assert(ruleNames.length >= 10, 'Should have at least 10 rules');
+
+  for (const name of ruleNames) {
+    const rule = LintRules[name];
+    assert('severity' in rule, `Rule ${name} should have severity`);
+    assert('fixable' in rule, `Rule ${name} should have fixable`);
+    assert(['error', 'warning', 'info'].includes(rule.severity),
+      `Rule ${name} should have valid severity`);
+  }
+});
+
+// =============================================================================
 // Run Tests and Print Results
 // =============================================================================
 

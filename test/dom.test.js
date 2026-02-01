@@ -40,7 +40,12 @@ import {
   portal,
   errorBoundary,
   transition,
-  whenTransition
+  whenTransition,
+  configureDom,
+  getDomConfig,
+  clearSelectorCache,
+  getCacheMetrics,
+  resetCacheMetrics
 } from '../runtime/dom.js';
 
 import { pulse, effect, batch } from '../runtime/pulse.js';
@@ -1101,6 +1106,113 @@ test('list with complex nested elements', () => {
 
   assertEqual(container.querySelectorAll('.item').length, 2, 'Should have 2 items');
   assertEqual(container.querySelectorAll('.tag').length, 3, 'Should have 3 tags total');
+});
+
+// =============================================================================
+// Configuration Tests
+// =============================================================================
+
+printSection('Configuration Tests');
+
+test('getDomConfig returns current configuration', () => {
+  const config = getDomConfig();
+  assert(typeof config.selectorCacheCapacity === 'number', 'Should have selectorCacheCapacity');
+  assert(typeof config.trackCacheMetrics === 'boolean', 'Should have trackCacheMetrics');
+});
+
+test('configureDom changes cache capacity', () => {
+  const originalConfig = getDomConfig();
+
+  // Change capacity
+  configureDom({ selectorCacheCapacity: 100 });
+  const newConfig = getDomConfig();
+  assertEqual(newConfig.selectorCacheCapacity, 100, 'Should update capacity');
+
+  // Restore original
+  configureDom({ selectorCacheCapacity: originalConfig.selectorCacheCapacity });
+});
+
+test('configureDom with zero capacity disables caching', () => {
+  const originalConfig = getDomConfig();
+
+  configureDom({ selectorCacheCapacity: 0 });
+
+  // Should still work without errors
+  const element = el('div.test');
+  assertEqual(element.tagName, 'DIV', 'Should create element with caching disabled');
+
+  // Restore original
+  configureDom({ selectorCacheCapacity: originalConfig.selectorCacheCapacity });
+});
+
+test('configureDom changes metrics tracking', () => {
+  const originalConfig = getDomConfig();
+
+  configureDom({ trackCacheMetrics: false });
+  const config = getDomConfig();
+  assertEqual(config.trackCacheMetrics, false, 'Should disable metrics');
+
+  // Restore original
+  configureDom({
+    selectorCacheCapacity: originalConfig.selectorCacheCapacity,
+    trackCacheMetrics: originalConfig.trackCacheMetrics
+  });
+});
+
+test('clearSelectorCache clears the cache', () => {
+  // Populate cache
+  el('div.test1');
+  el('div.test2');
+  el('div.test3');
+
+  const metricsBefore = getCacheMetrics();
+  assert(metricsBefore.size >= 0, 'Should have metrics available');
+
+  clearSelectorCache();
+
+  const metricsAfter = getCacheMetrics();
+  assertEqual(metricsAfter.size, 0, 'Cache should be empty after clear');
+});
+
+test('getCacheMetrics returns valid metrics', () => {
+  resetCacheMetrics();
+  clearSelectorCache();
+
+  // Generate some cache activity
+  el('div.metric-test');
+  el('div.metric-test'); // Cache hit
+  el('span.another');
+
+  const metrics = getCacheMetrics();
+
+  assert(typeof metrics.hits === 'number', 'Should have hits count');
+  assert(typeof metrics.misses === 'number', 'Should have misses count');
+  assert(typeof metrics.hitRate === 'number', 'Should have hit rate');
+  assert(typeof metrics.size === 'number', 'Should have size');
+  assert(typeof metrics.capacity === 'number', 'Should have capacity');
+});
+
+test('resetCacheMetrics resets counters', () => {
+  // Generate some activity
+  el('div.reset-test');
+
+  resetCacheMetrics();
+
+  const metrics = getCacheMetrics();
+  assertEqual(metrics.hits, 0, 'Hits should be 0 after reset');
+  assertEqual(metrics.misses, 0, 'Misses should be 0 after reset');
+});
+
+test('configureDom returns updated config', () => {
+  const originalConfig = getDomConfig();
+
+  const result = configureDom({ selectorCacheCapacity: 250 });
+
+  assertEqual(result.selectorCacheCapacity, 250, 'Should return updated config');
+  assert(typeof result.trackCacheMetrics === 'boolean', 'Should include all config properties');
+
+  // Restore
+  configureDom({ selectorCacheCapacity: originalConfig.selectorCacheCapacity });
 });
 
 // =============================================================================

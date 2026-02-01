@@ -3,9 +3,11 @@
  * Formats .pulse files consistently
  */
 
-import { readFileSync, writeFileSync } from 'fs';
+import { readFileSync, writeFileSync, watch } from 'fs';
+import { dirname } from 'path';
 import { findPulseFiles, parseArgs, relativePath } from './utils/file-utils.js';
 import { log } from './logger.js';
+import { createTimer, formatDuration } from './utils/cli-ui.js';
 
 /**
  * Default format options
@@ -641,6 +643,7 @@ export async function runFormat(args) {
   const { options, patterns } = parseArgs(args);
   const check = options.check || false;
   const write = !check; // Default to write unless --check is specified
+  const watchMode = options.watch || options.w || false;
 
   // Find files to format
   const files = findPulseFiles(patterns);
@@ -650,7 +653,57 @@ export async function runFormat(args) {
     return;
   }
 
-  log.info(`${check ? 'Checking' : 'Formatting'} ${files.length} file(s)...\n`);
+  // Run initial format
+  const result = await runFormatOnFiles(files, { check, write, options });
+
+  // If watch mode, set up file watchers
+  if (watchMode) {
+    if (check) {
+      log.warn('--watch mode is not available with --check');
+      return;
+    }
+
+    log.info('\nWatching for changes... (Ctrl+C to stop)\n');
+
+    // Get unique directories to watch
+    const watchedDirs = new Set(files.map(f => dirname(f)));
+
+    // Debounce timer
+    let debounceTimer = null;
+    const debounceDelay = 100;
+
+    for (const dir of watchedDirs) {
+      watch(dir, { recursive: false }, (_eventType, filename) => {
+        if (!filename || !filename.endsWith('.pulse')) return;
+
+        // Debounce rapid changes
+        if (debounceTimer) clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+          const changedFiles = findPulseFiles(patterns);
+          runFormatOnFiles(changedFiles, { check: false, write: true, options, isRerun: true })
+            .then(() => {
+              log.info('Watching for changes...\n');
+            });
+        }, debounceDelay);
+      });
+    }
+
+    // Keep process alive
+    process.stdin.resume();
+  } else if (check && result.changedCount > 0) {
+    process.exit(1);
+  }
+}
+
+/**
+ * Run format on a list of files
+ */
+async function runFormatOnFiles(files, { check, write, options, isRerun = false }) {
+  const timer = createTimer();
+
+  if (!isRerun) {
+    log.info(`${check ? 'Checking' : 'Formatting'} ${files.length} file(s)...\n`);
+  }
 
   let changedCount = 0;
   let errorCount = 0;
@@ -675,11 +728,13 @@ export async function runFormat(args) {
         log.info(`  ${relPath} - formatted`);
       }
     } else {
-      if (!check) {
+      if (!check && !isRerun) {
         log.info(`  ${relPath} - unchanged`);
       }
     }
   }
+
+  const elapsed = timer.elapsed();
 
   // Summary
   log.info('\n' + '─'.repeat(60));
@@ -690,16 +745,17 @@ export async function runFormat(args) {
 
   if (check) {
     if (changedCount > 0) {
-      log.error(`✗ ${changedCount} file(s) need formatting`);
-      process.exit(1);
+      log.error(`✗ ${changedCount} file(s) need formatting (${formatDuration(elapsed)})`);
     } else {
-      log.success(`✓ All ${files.length} file(s) are properly formatted`);
+      log.success(`✓ All ${files.length} file(s) are properly formatted (${formatDuration(elapsed)})`);
     }
   } else {
     if (changedCount > 0) {
-      log.success(`✓ ${changedCount} file(s) formatted`);
+      log.success(`✓ ${changedCount} file(s) formatted (${formatDuration(elapsed)})`);
     } else {
-      log.success(`✓ All ${files.length} file(s) were already formatted`);
+      log.success(`✓ All ${files.length} file(s) were already formatted (${formatDuration(elapsed)})`);
     }
   }
+
+  return { changedCount, errorCount };
 }

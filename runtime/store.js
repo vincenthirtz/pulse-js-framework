@@ -17,6 +17,7 @@
 
 import { pulse, computed, effect, batch } from './pulse.js';
 import { loggers, createLogger } from './logger.js';
+import { Errors, createErrorMessage } from '../core/errors.js';
 
 const log = loggers.store;
 
@@ -77,20 +78,22 @@ function validateStateValue(value, path = 'state', seen = new WeakSet()) {
 
   // Check for invalid types
   if (INVALID_TYPES.has(valueType)) {
-    throw new TypeError(
-      `Invalid state value at "${path}": ${valueType}s cannot be stored in state. ` +
-      `State values must be primitives, arrays, or plain objects.`
-    );
+    throw Errors.invalidStoreValue(valueType);
   }
 
   // Check objects for circular references and nested invalid types
   if (value !== null && valueType === 'object') {
     // Check for circular reference
     if (seen.has(value)) {
-      throw new TypeError(
-        `Circular reference detected at "${path}". ` +
-        `State must not contain circular references.`
+      const error = new TypeError(
+        createErrorMessage({
+          code: 'STORE_TYPE_ERROR',
+          message: `Circular reference detected at "${path}".`,
+          context: 'State must not contain circular references for persistence.',
+          suggestion: 'Remove the circular reference or exclude this value from the store.'
+        })
       );
+      throw error;
     }
     seen.add(value);
 

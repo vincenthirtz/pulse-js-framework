@@ -191,6 +191,194 @@ const actions = createActions(store, {
 });
 ```
 
+### Form (runtime/form.js)
+
+```javascript
+import { useForm, useField, useFieldArray, validators } from 'pulse-js-framework/runtime/form';
+
+// Create a form with validation
+const { fields, handleSubmit, isValid, errors, reset } = useForm(
+  { email: '', password: '', confirmPassword: '' },
+  {
+    email: [validators.required(), validators.email()],
+    password: [validators.required(), validators.minLength(8)],
+    confirmPassword: [validators.required(), validators.matches('password', 'Passwords must match')]
+  },
+  {
+    onSubmit: (values) => console.log('Submit:', values),
+    onError: (errors) => console.log('Errors:', errors)
+  }
+);
+
+// Bind to inputs
+el('input', { value: fields.email.value.get(), onInput: fields.email.onChange, onBlur: fields.email.onBlur });
+el('span.error', fields.email.error.get());
+
+// Form state
+isValid.get();        // true if all fields pass validation
+errors.get();         // { email: 'Invalid email', ... }
+fields.email.dirty.get();    // true if value changed from initial
+fields.email.touched.get();  // true if field was blurred
+
+// Built-in validators
+validators.required(message?)
+validators.minLength(length, message?)
+validators.maxLength(length, message?)
+validators.email(message?)
+validators.url(message?)
+validators.pattern(regex, message?)
+validators.min(value, message?)
+validators.max(value, message?)
+validators.matches(fieldName, message?)
+validators.custom((value, allValues) => true | 'error message')
+
+// Single field outside form
+const email = useField('', [validators.required(), validators.email()]);
+
+// Dynamic field arrays
+const tags = useFieldArray(['tag1'], [validators.required()]);
+tags.append('tag2');
+tags.remove(0);
+tags.move(0, 1);
+tags.fields.get().forEach(field => field.value.get());
+```
+
+### Async (runtime/async.js)
+
+```javascript
+import { useAsync, useResource, usePolling, createVersionedAsync } from 'pulse-js-framework/runtime/async';
+
+// Basic async operation
+const { data, loading, error, execute, reset, abort } = useAsync(
+  () => fetch('/api/users').then(r => r.json()),
+  {
+    immediate: true,     // Execute on creation (default: true)
+    initialData: null,   // Initial data value
+    retries: 3,          // Retry on failure
+    retryDelay: 1000,    // Delay between retries (ms)
+    onSuccess: (data) => console.log('Got:', data),
+    onError: (err) => console.error('Failed:', err)
+  }
+);
+
+// Resource with caching (SWR pattern)
+const users = useResource(
+  'users',                                    // Cache key
+  () => fetch('/api/users').then(r => r.json()),
+  {
+    refreshInterval: 30000,    // Auto-refresh every 30s
+    refreshOnFocus: true,      // Refresh when window gains focus
+    refreshOnReconnect: true,  // Refresh when network reconnects
+    staleTime: 5000,           // Data considered fresh for 5s
+    cacheTime: 300000          // Keep in cache for 5 min
+  }
+);
+
+// Dynamic cache key (re-fetches when userId changes)
+const userId = pulse(1);
+const user = useResource(
+  () => `user-${userId.get()}`,
+  () => fetch(`/api/users/${userId.get()}`).then(r => r.json())
+);
+
+// Polling for live data
+const { data, start, stop, isPolling } = usePolling(
+  () => fetch('/api/status').then(r => r.json()),
+  {
+    interval: 5000,
+    pauseOnHidden: true,   // Pause when tab hidden
+    pauseOnOffline: true,  // Pause when offline
+    maxErrors: 3           // Stop after 3 consecutive errors
+  }
+);
+start();  // Begin polling
+stop();   // Stop polling
+
+// Race condition handling (low-level)
+const controller = createVersionedAsync();
+async function search(query) {
+  const ctx = controller.begin();  // Invalidates previous operations
+  const results = await searchApi(query);
+  ctx.ifCurrent(() => setResults(results));  // Only runs if still current
+}
+```
+
+### Native (runtime/native.js)
+
+```javascript
+import {
+  isNativeAvailable, getPlatform, isNative,
+  createNativeStorage, createDeviceInfo,
+  NativeUI, NativeClipboard,
+  onAppPause, onAppResume, onBackButton, onNativeReady,
+  exitApp, minimizeApp
+} from 'pulse-js-framework/runtime/native';
+
+// Platform detection
+isNativeAvailable();  // true if PulseMobile bridge exists
+getPlatform();        // 'ios' | 'android' | 'web'
+isNative();           // true if running in native app
+
+// Reactive storage (auto-persists, works on web and native)
+const storage = createNativeStorage('app_');
+const theme = storage.get('theme', 'light');  // Returns a pulse
+theme.set('dark');  // Auto-saves to storage
+storage.remove('theme');
+storage.clear();
+
+// Device info
+const device = createDeviceInfo();
+device.info.get();      // { platform, userAgent, language, ... }
+device.network.get();   // { connected: true, type: 'wifi' }
+device.isOnline;        // true/false
+device.platform;        // 'ios' | 'android' | 'web'
+
+// Native UI
+NativeUI.toast('Message saved!', isLong?);
+NativeUI.vibrate(duration?);
+
+// Clipboard
+await NativeClipboard.copy('text');
+const text = await NativeClipboard.read();
+
+// App lifecycle
+onAppPause(() => saveState());
+onAppResume(() => refreshData());
+onBackButton(() => handleBack());  // Android only
+onNativeReady(({ platform }) => init());
+
+// App control (native only)
+exitApp();      // Android only
+minimizeApp();
+```
+
+### HMR (runtime/hmr.js)
+
+```javascript
+import { createHMRContext } from 'pulse-js-framework/runtime/hmr';
+
+const hmr = createHMRContext(import.meta.url);
+
+// Preserve state across hot reloads
+const count = hmr.preservePulse('count', 0);
+const todos = hmr.preservePulse('todos', []);
+
+// Setup effects with automatic cleanup
+hmr.setup(() => {
+  effect(() => {
+    document.title = `${todos.get().length} todos`;
+  });
+});
+
+// Accept HMR updates
+hmr.accept();
+
+// Custom dispose logic
+hmr.dispose(() => {
+  // Cleanup before module replacement
+});
+```
+
 ### .pulse DSL Format
 
 ```pulse
@@ -238,6 +426,10 @@ style {
 | `runtime/dom.js` | DOM helpers (el, text, bind, on, model, list, when) |
 | `runtime/router.js` | Router (createRouter, lazy, preload, middleware) |
 | `runtime/store.js` | Store (createStore, createActions, plugins) |
+| `runtime/form.js` | Form handling (useForm, useField, useFieldArray, validators) |
+| `runtime/async.js` | Async primitives (useAsync, useResource, usePolling) |
+| `runtime/native.js` | Native mobile bridge (storage, device, UI, lifecycle) |
+| `runtime/hmr.js` | Hot module replacement (createHMRContext) |
 | `compiler/lexer.js` | Tokenizer with 50+ token types |
 | `compiler/parser.js` | AST builder for .pulse syntax |
 | `compiler/transformer.js` | JavaScript code generator |
@@ -261,11 +453,34 @@ style {
 ## Export Map
 
 ```javascript
-import { pulse, effect, computed } from 'pulse-js-framework/runtime';
-import { el, mount, on } from 'pulse-js-framework/runtime';
-import { createRouter } from 'pulse-js-framework/runtime/router';
-import { createStore } from 'pulse-js-framework/runtime/store';
+// Core reactivity
+import { pulse, effect, computed, batch } from 'pulse-js-framework/runtime';
+
+// DOM helpers
+import { el, mount, on, text, bind, model, list, when } from 'pulse-js-framework/runtime';
+
+// Router
+import { createRouter, lazy, preload } from 'pulse-js-framework/runtime/router';
+
+// Store
+import { createStore, createActions } from 'pulse-js-framework/runtime/store';
+
+// Form
+import { useForm, useField, useFieldArray, validators } from 'pulse-js-framework/runtime/form';
+
+// Async
+import { useAsync, useResource, usePolling, createVersionedAsync } from 'pulse-js-framework/runtime/async';
+
+// Native (mobile)
+import { createNativeStorage, createDeviceInfo, NativeUI, NativeClipboard } from 'pulse-js-framework/runtime/native';
+
+// HMR
+import { createHMRContext } from 'pulse-js-framework/runtime/hmr';
+
+// Compiler
 import { compile } from 'pulse-js-framework/compiler';
+
+// Vite plugin
 import pulsePlugin from 'pulse-js-framework/vite';
 ```
 
@@ -286,3 +501,159 @@ node --test test/*.js
 - Circular dependency protection limits to 100 iterations
 - Effects use try-catch to prevent one error from breaking others
 - List rendering uses key functions for efficient DOM updates
+
+## Error Codes
+
+### Compiler Errors
+
+| Code | Message | Cause |
+|------|---------|-------|
+| `PARSE_ERROR` | Unexpected token | Syntax error in .pulse file |
+| `DUPLICATE_BLOCK` | Duplicate {block} block | Multiple state/view/style blocks |
+| `INVALID_IMPORT` | Invalid import statement | Malformed import syntax |
+| `UNCLOSED_BLOCK` | Unclosed {block} | Missing closing brace |
+| `INVALID_DIRECTIVE` | Unknown directive @{name} | Unrecognized @ directive |
+
+### Runtime Errors
+
+| Code | Message | Cause |
+|------|---------|-------|
+| `CIRCULAR_DEPENDENCY` | Circular dependency detected | Effect triggers itself (max 100 iterations) |
+| `INVALID_PULSE` | Expected Pulse instance | Passing non-pulse to reactive API |
+| `MOUNT_ERROR` | Mount target not found | Invalid selector for mount() |
+| `ROUTER_NO_MATCH` | No route matched | Navigation to undefined route |
+
+### Lint Errors
+
+| Rule | Message | Fix |
+|------|---------|-----|
+| `no-unused-state` | State '{name}' is never used | Remove or use the state variable |
+| `no-missing-key` | List missing key function | Add key function: `list(items, render, item => item.id)` |
+| `no-direct-mutation` | Direct state mutation | Use `.set()` or `.update()` instead of assignment |
+| `prefer-computed` | Derivable value in effect | Use `computed()` for derived values |
+| `no-async-effect` | Async effect without cleanup | Return cleanup function or use `useAsync` |
+
+### Form Validation Errors
+
+| Validator | Default Message |
+|-----------|-----------------|
+| `required` | This field is required |
+| `minLength(n)` | Must be at least {n} characters |
+| `maxLength(n)` | Must be at most {n} characters |
+| `email` | Invalid email address |
+| `url` | Invalid URL |
+| `min(n)` | Must be at least {n} |
+| `max(n)` | Must be at most {n} |
+| `matches(field)` | Must match {field} |
+
+## Performance Guide
+
+### When to Use batch()
+
+```javascript
+// BAD: Multiple effects fire for each set
+count.set(1);    // Effect runs
+name.set('A');   // Effect runs again
+items.set([]);   // Effect runs again
+
+// GOOD: Effects fire once after all updates
+batch(() => {
+  count.set(1);
+  name.set('A');
+  items.set([]);
+}); // Effects run once
+
+// Use batch when:
+// - Updating multiple related pulses
+// - Resetting form state
+// - Processing API responses into multiple stores
+```
+
+### Computed: Lazy vs Eager
+
+```javascript
+// LAZY (default) - computed only when accessed
+const total = computed(() => items.get().reduce((a, b) => a + b, 0));
+// Computation runs when total.get() is called
+// Use for: expensive calculations, infrequently accessed values
+
+// EAGER - computed immediately when dependencies change
+const total = computed(() => items.get().reduce((a, b) => a + b, 0), { lazy: false });
+// Computation runs immediately on any items change
+// Use for: values that must always be current, validation state
+```
+
+### Effect Best Practices
+
+```javascript
+// BAD: Effect does too much
+effect(() => {
+  const data = items.get();
+  const filtered = data.filter(x => x.active);  // Filtering on every run
+  render(filtered);
+});
+
+// GOOD: Use computed for derived values
+const activeItems = computed(() => items.get().filter(x => x.active));
+effect(() => render(activeItems.get()));
+
+// Cleanup pattern for subscriptions
+effect(() => {
+  const id = setInterval(() => tick.update(n => n + 1), 1000);
+  return () => clearInterval(id);  // Cleanup on re-run or dispose
+});
+```
+
+### List Rendering Performance
+
+```javascript
+// BAD: No key function - entire list re-renders
+list(() => items.get(), item => el('li', item.name));
+
+// GOOD: Key function enables efficient diffing
+list(() => items.get(), item => el('li', item.name), item => item.id);
+
+// Key function must return unique, stable identifier
+// - Use database IDs when available
+// - Avoid using array index (breaks on reorder)
+```
+
+### Avoiding Unnecessary Re-renders
+
+```javascript
+// BAD: Creates new object every time, always triggers effects
+config.set({ theme: 'dark', lang: 'en' });
+
+// GOOD: Custom equality for objects
+const config = pulse({ theme: 'dark', lang: 'en' }, {
+  equals: (a, b) => a.theme === b.theme && a.lang === b.lang
+});
+
+// Or use peek() to read without tracking
+effect(() => {
+  const theme = config.get().theme;  // Tracks config
+  const lang = config.peek().lang;   // Does NOT track
+});
+```
+
+### Async Best Practices
+
+```javascript
+// BAD: No race condition handling
+async function search(query) {
+  const results = await api.search(query);
+  setResults(results);  // May set stale results!
+}
+
+// GOOD: Use useAsync or createVersionedAsync
+const { data, execute } = useAsync((query) => api.search(query), { immediate: false });
+// Automatically handles race conditions
+
+// Or manual version control
+const controller = createVersionedAsync();
+async function search(query) {
+  const ctx = controller.begin();
+  const results = await api.search(query);
+  ctx.ifCurrent(() => setResults(results));
+}
+```

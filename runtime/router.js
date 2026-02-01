@@ -16,6 +16,8 @@
 import { pulse, effect, batch } from './pulse.js';
 import { el } from './dom.js';
 import { loggers } from './logger.js';
+import { createVersionedAsync } from './async.js';
+import { Errors } from '../core/errors.js';
 
 const log = loggers.router;
 
@@ -55,8 +57,9 @@ export function lazy(importFn, options = {}) {
   // Cache for loaded component
   let cachedComponent = null;
   let loadPromise = null;
-  // Version counter to invalidate stale load callbacks
-  let currentLoadVersion = 0;
+
+  // Use centralized versioned async for race condition handling
+  const versionController = createVersionedAsync();
 
   return function lazyHandler(ctx) {
     // Return cached component if already loaded
@@ -72,35 +75,22 @@ export function lazy(importFn, options = {}) {
 
     // Create container for async loading
     const container = el('div.lazy-route');
-    let loadingTimer = null;
-    let timeoutTimer = null;
-    let isAborted = false;
 
-    // Increment version and capture for this load attempt
-    const loadVersion = ++currentLoadVersion;
-
-    // Helper to check if this load is still valid
-    const isStale = () => isAborted || loadVersion !== currentLoadVersion;
-
-    // Cleanup function to abort this load attempt
-    const abort = () => {
-      isAborted = true;
-      clearTimeout(loadingTimer);
-      clearTimeout(timeoutTimer);
-    };
+    // Start a new versioned load operation
+    const loadCtx = versionController.begin();
 
     // Attach abort method to container for cleanup on navigation
-    container._pulseAbortLazyLoad = abort;
+    container._pulseAbortLazyLoad = () => versionController.abort();
 
     // Start loading if not already
     if (!loadPromise) {
       loadPromise = importFn();
     }
 
-    // Delay showing loading state to avoid flash
+    // Delay showing loading state to avoid flash (uses versioned timer)
     if (LoadingComponent && delay > 0) {
-      loadingTimer = setTimeout(() => {
-        if (!cachedComponent && !isStale()) {
+      loadCtx.setTimeout(() => {
+        if (!cachedComponent && loadCtx.isCurrent()) {
           container.replaceChildren(LoadingComponent());
         }
       }, delay);
@@ -108,14 +98,15 @@ export function lazy(importFn, options = {}) {
       container.replaceChildren(LoadingComponent());
     }
 
-    // Set timeout for loading
-    const timeoutPromise = timeout > 0
-      ? new Promise((_, reject) => {
-          timeoutTimer = setTimeout(() => {
-            reject(new Error(`Lazy load timeout after ${timeout}ms`));
-          }, timeout);
-        })
-      : null;
+    // Set timeout for loading (uses versioned timer)
+    let timeoutPromise = null;
+    if (timeout > 0) {
+      timeoutPromise = new Promise((_, reject) => {
+        loadCtx.setTimeout(() => {
+          reject(Errors.lazyTimeout(timeout));
+        }, timeout);
+      });
+    }
 
     // Race between load and timeout
     const loadWithTimeout = timeoutPromise
@@ -124,11 +115,8 @@ export function lazy(importFn, options = {}) {
 
     loadWithTimeout
       .then(module => {
-        clearTimeout(loadingTimer);
-        clearTimeout(timeoutTimer);
-
         // Ignore if this load attempt is stale (navigation occurred)
-        if (isStale()) {
+        if (loadCtx.isStale()) {
           return;
         }
 
@@ -144,17 +132,17 @@ export function lazy(importFn, options = {}) {
             : Component;
 
         // Replace loading with actual component
-        if (result instanceof Node && !isStale()) {
-          container.replaceChildren(result);
-        }
+        loadCtx.ifCurrent(() => {
+          if (result instanceof Node) {
+            container.replaceChildren(result);
+          }
+        });
       })
       .catch(err => {
-        clearTimeout(loadingTimer);
-        clearTimeout(timeoutTimer);
         loadPromise = null; // Allow retry
 
         // Ignore if this load attempt is stale
-        if (isStale()) {
+        if (loadCtx.isStale()) {
           return;
         }
 

@@ -24,7 +24,13 @@ import {
   resetContext,
   setCurrentModule,
   clearCurrentModule,
-  disposeModule
+  disposeModule,
+  // Isolated contexts
+  ReactiveContext,
+  globalContext,
+  getActiveContext,
+  withContext,
+  createContext
 } from '../runtime/pulse.js';
 
 import {
@@ -900,6 +906,182 @@ test('resetContext clears HMR state', () => {
 
   assertEqual(context.currentModuleId, null);
   assertEqual(context.effectRegistry.size, 0);
+});
+
+// =============================================================================
+// Isolated Context Tests
+// =============================================================================
+
+printSection('Isolated Context Tests');
+
+test('ReactiveContext class exists', () => {
+  assert(ReactiveContext !== undefined, 'ReactiveContext should be exported');
+  assert(typeof ReactiveContext === 'function', 'ReactiveContext should be a constructor');
+});
+
+test('createContext creates isolated context', () => {
+  const ctx = createContext({ name: 'test-context' });
+  assert(ctx instanceof ReactiveContext, 'Should return ReactiveContext instance');
+  assertEqual(ctx.name, 'test-context');
+});
+
+test('globalContext is the default active context', () => {
+  const active = getActiveContext();
+  assertEqual(active, globalContext);
+});
+
+test('withContext switches active context', () => {
+  const isolated = createContext({ name: 'isolated' });
+
+  assertEqual(getActiveContext(), globalContext);
+
+  withContext(isolated, () => {
+    assertEqual(getActiveContext(), isolated);
+  });
+
+  assertEqual(getActiveContext(), globalContext);
+});
+
+test('ReactiveContext.run switches context', () => {
+  const isolated = createContext({ name: 'isolated-run' });
+
+  isolated.run(() => {
+    assertEqual(getActiveContext(), isolated);
+  });
+
+  assertEqual(getActiveContext(), globalContext);
+});
+
+test('isolated contexts have independent state', () => {
+  const ctx1 = createContext({ name: 'ctx1' });
+  const ctx2 = createContext({ name: 'ctx2' });
+
+  let effectRuns1 = 0;
+  let effectRuns2 = 0;
+
+  // Create pulse and effect in ctx1
+  let p1;
+  ctx1.run(() => {
+    p1 = pulse(0);
+    effect(() => {
+      p1.get();
+      effectRuns1++;
+    });
+  });
+
+  // Create pulse and effect in ctx2
+  let p2;
+  ctx2.run(() => {
+    p2 = pulse(0);
+    effect(() => {
+      p2.get();
+      effectRuns2++;
+    });
+  });
+
+  // Each effect should have run once
+  assertEqual(effectRuns1, 1);
+  assertEqual(effectRuns2, 1);
+
+  // Update p1 in ctx1 - only ctx1 effect should run
+  ctx1.run(() => {
+    p1.set(1);
+  });
+  assertEqual(effectRuns1, 2);
+  assertEqual(effectRuns2, 1);
+
+  // Update p2 in ctx2 - only ctx2 effect should run
+  ctx2.run(() => {
+    p2.set(1);
+  });
+  assertEqual(effectRuns1, 2);
+  assertEqual(effectRuns2, 2);
+});
+
+test('context.reset() clears state', () => {
+  const ctx = createContext({ name: 'reset-test' });
+
+  ctx.run(() => {
+    const p = pulse(0);
+    effect(() => p.get());
+  });
+
+  // After running, context should have some state
+  assert(ctx.currentEffect === null, 'currentEffect should be null after effects run');
+
+  // Simulate some state
+  ctx.batchDepth = 2;
+  ctx.pendingEffects.add({ run: () => {} });
+
+  ctx.reset();
+
+  assertEqual(ctx.batchDepth, 0);
+  assertEqual(ctx.pendingEffects.size, 0);
+  assertEqual(ctx.currentEffect, null);
+});
+
+test('nested withContext restores properly', () => {
+  const ctx1 = createContext({ name: 'nested1' });
+  const ctx2 = createContext({ name: 'nested2' });
+
+  withContext(ctx1, () => {
+    assertEqual(getActiveContext(), ctx1);
+
+    withContext(ctx2, () => {
+      assertEqual(getActiveContext(), ctx2);
+    });
+
+    assertEqual(getActiveContext(), ctx1);
+  });
+
+  assertEqual(getActiveContext(), globalContext);
+});
+
+test('batch works within isolated context', () => {
+  const ctx = createContext({ name: 'batch-test' });
+  let effectRuns = 0;
+
+  ctx.run(() => {
+    const a = pulse(0);
+    const b = pulse(0);
+
+    effect(() => {
+      a.get();
+      b.get();
+      effectRuns++;
+    });
+
+    // Effect ran once
+    assertEqual(effectRuns, 1);
+
+    // Batch multiple updates
+    batch(() => {
+      a.set(1);
+      b.set(1);
+    });
+
+    // Effect should only have run once more (not twice)
+    assertEqual(effectRuns, 2);
+  });
+});
+
+test('computed works within isolated context', () => {
+  const ctx = createContext({ name: 'computed-test' });
+
+  ctx.run(() => {
+    const count = pulse(5);
+    const doubled = computed(() => count.get() * 2);
+
+    assertEqual(doubled.get(), 10);
+
+    count.set(10);
+    assertEqual(doubled.get(), 20);
+  });
+});
+
+test('context backward compatibility - context alias works', () => {
+  // The deprecated context export should work
+  assert(context === globalContext, 'context should be alias to globalContext');
 });
 
 // =============================================================================

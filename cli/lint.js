@@ -3,9 +3,11 @@
  * Validates .pulse files for errors and style issues
  */
 
-import { readFileSync, writeFileSync } from 'fs';
+import { readFileSync, writeFileSync, watch } from 'fs';
+import { dirname } from 'path';
 import { findPulseFiles, parseArgs, relativePath } from './utils/file-utils.js';
 import { log } from './logger.js';
+import { createTimer, formatDuration } from './utils/cli-ui.js';
 
 /**
  * Lint rules configuration
@@ -701,21 +703,14 @@ export async function lintFile(filePath, options = {}) {
 }
 
 /**
- * Main lint command handler
+ * Lint files and return summary
+ * @param {string[]} files - Files to lint
+ * @param {Object} options - Lint options
+ * @returns {Object} Summary with totals
  */
-export async function runLint(args) {
-  const { options, patterns } = parseArgs(args);
-  const fix = options.fix || false;
-
-  // Find files to lint
-  const files = findPulseFiles(patterns);
-
-  if (files.length === 0) {
-    log.info('No .pulse files found to lint.');
-    return;
-  }
-
-  log.info(`Linting ${files.length} file(s)...\n`);
+async function lintFiles(files, options = {}) {
+  const { fix = false, quiet = false } = options;
+  const timer = createTimer();
 
   let totalErrors = 0;
   let totalWarnings = 0;
@@ -725,7 +720,7 @@ export async function runLint(args) {
     const result = await lintFile(file, { fix });
     const relPath = relativePath(file);
 
-    if (result.diagnostics.length > 0) {
+    if (result.diagnostics.length > 0 && !quiet) {
       log.info(`\n${relPath}`);
 
       for (const diag of result.diagnostics) {
@@ -740,21 +735,111 @@ export async function runLint(args) {
     }
   }
 
-  // Summary
-  log.info('\n' + '─'.repeat(60));
-  const parts = [];
-  if (totalErrors > 0) parts.push(`${totalErrors} error(s)`);
-  if (totalWarnings > 0) parts.push(`${totalWarnings} warning(s)`);
-  if (totalInfo > 0) parts.push(`${totalInfo} info`);
+  return {
+    errors: totalErrors,
+    warnings: totalWarnings,
+    info: totalInfo,
+    elapsed: timer.elapsed()
+  };
+}
 
-  if (parts.length === 0) {
-    log.success(`✓ ${files.length} file(s) passed`);
-  } else {
-    log.error(`✗ ${parts.join(', ')} in ${files.length} file(s)`);
+/**
+ * Main lint command handler
+ */
+export async function runLint(args) {
+  const { options, patterns } = parseArgs(args);
+  const fix = options.fix || false;
+  const watchMode = options.watch || options.w || false;
+
+  // Find files to lint
+  const files = findPulseFiles(patterns);
+
+  if (files.length === 0) {
+    log.info('No .pulse files found to lint.');
+    return;
   }
 
-  // Exit with error code if errors found
-  if (totalErrors > 0) {
-    process.exit(1);
+  // Initial lint run
+  log.info(`Linting ${files.length} file(s)...\n`);
+  const summary = await lintFiles(files, { fix });
+
+  // Print summary
+  printLintSummary(summary, files.length);
+
+  // Watch mode
+  if (watchMode) {
+    log.info('\nWatching for changes... (Ctrl+C to stop)\n');
+
+    const watchedDirs = new Set();
+    const debounceTimers = new Map();
+
+    // Collect directories to watch
+    for (const file of files) {
+      watchedDirs.add(dirname(file));
+    }
+
+    // Watch each directory
+    for (const dir of watchedDirs) {
+      watch(dir, { recursive: false }, (_eventType, filename) => {
+        if (!filename || !filename.endsWith('.pulse')) return;
+
+        const filePath = files.find(f => f.endsWith(filename));
+        if (!filePath) return;
+
+        // Debounce rapid changes
+        if (debounceTimers.has(filePath)) {
+          clearTimeout(debounceTimers.get(filePath));
+        }
+
+        debounceTimers.set(filePath, setTimeout(() => {
+          debounceTimers.delete(filePath);
+
+          log.info(`\n[${new Date().toLocaleTimeString()}] File changed: ${relativePath(filePath)}`);
+          lintFiles([filePath], { fix }).then(result => {
+            printLintSummary(result, 1, true);
+          });
+        }, 100));
+      });
+    }
+
+    // Keep process running
+    return new Promise(() => {});
+  } else {
+    // Exit with error code if errors found
+    if (summary.errors > 0) {
+      process.exit(1);
+    }
+  }
+}
+
+/**
+ * Print lint summary
+ */
+function printLintSummary(summary, fileCount, compact = false) {
+  const { errors, warnings, info, elapsed } = summary;
+  const timeStr = formatDuration(elapsed);
+
+  if (compact) {
+    const parts = [];
+    if (errors > 0) parts.push(`${errors} error(s)`);
+    if (warnings > 0) parts.push(`${warnings} warning(s)`);
+    if (parts.length === 0) {
+      log.success(`✓ Passed (${timeStr})`);
+    } else {
+      log.error(`✗ ${parts.join(', ')} (${timeStr})`);
+    }
+    return;
+  }
+
+  log.info('\n' + '─'.repeat(60));
+  const parts = [];
+  if (errors > 0) parts.push(`${errors} error(s)`);
+  if (warnings > 0) parts.push(`${warnings} warning(s)`);
+  if (info > 0) parts.push(`${info} info`);
+
+  if (parts.length === 0) {
+    log.success(`✓ ${fileCount} file(s) passed (${timeStr})`);
+  } else {
+    log.error(`✗ ${parts.join(', ')} in ${fileCount} file(s) (${timeStr})`);
   }
 }

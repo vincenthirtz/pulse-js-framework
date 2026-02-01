@@ -2,6 +2,12 @@
  * Pulse Logger - Centralized logging with namespaces and levels
  * @module pulse-js-framework/runtime/logger
  *
+ * Automatically uses noop logging in production for zero overhead.
+ * Production mode is detected via:
+ * - process.env.NODE_ENV === 'production'
+ * - __PULSE_PROD__ global (for bundlers)
+ * - Manual configuration via configureLogger({ production: true })
+ *
  * @example
  * import { logger, createLogger } from './logger.js';
  *
@@ -13,7 +19,64 @@
  * // Namespaced logger
  * const log = createLogger('Router');
  * log.info('Navigating to /home'); // [Router] Navigating to /home
+ *
+ * // Force production mode (noop logging)
+ * configureLogger({ production: true });
  */
+
+// ============================================================================
+// Environment Detection
+// ============================================================================
+
+/**
+ * Detect if we're in production mode
+ * @private
+ */
+function detectProduction() {
+  // Check for bundler-injected global
+  if (typeof __PULSE_PROD__ !== 'undefined') {
+    return __PULSE_PROD__;
+  }
+  // Check Node.js environment
+  if (typeof process !== 'undefined' && process.env) {
+    return process.env.NODE_ENV === 'production';
+  }
+  // Default to development
+  return false;
+}
+
+/** @type {boolean} */
+let isProduction = detectProduction();
+
+/**
+ * Configure logger behavior
+ * @param {Object} options - Configuration options
+ * @param {boolean} [options.production] - Force production mode (noop logging)
+ * @returns {void}
+ * @example
+ * // Disable all logging
+ * configureLogger({ production: true });
+ *
+ * // Re-enable logging
+ * configureLogger({ production: false });
+ */
+export function configureLogger(options = {}) {
+  if (options.production !== undefined) {
+    isProduction = options.production;
+  }
+}
+
+/**
+ * Check if logger is in production mode
+ * @returns {boolean} True if production mode is active
+ */
+export function isProductionMode() {
+  return isProduction;
+}
+
+// ============================================================================
+// Log Levels
+// ============================================================================
 
 /**
  * Log level constants
@@ -76,7 +139,7 @@ export function setLogLevel(level) {
  * }
  */
 export function getLogLevel() {
-  return globalLevel;
+  return isProduction ? LogLevel.SILENT : globalLevel;
 }
 
 /**
@@ -93,6 +156,36 @@ export function getLogLevel() {
 export function setFormatter(formatter) {
   globalFormatter = formatter;
 }
+
+// ============================================================================
+// Production Noop Logger
+// ============================================================================
+
+/**
+ * Noop function for production builds
+ * @private
+ */
+const noop = () => {};
+
+/**
+ * Noop logger for production builds - zero overhead
+ * @private
+ * @type {Logger}
+ */
+const noopLogger = {
+  error: noop,
+  warn: noop,
+  info: noop,
+  debug: noop,
+  group: noop,
+  groupEnd: noop,
+  log: noop,
+  child: () => noopLogger
+};
+
+// ============================================================================
+// Development Logger Implementation
+// ============================================================================
 
 /**
  * Format message arguments with optional namespace prefix
@@ -132,37 +225,21 @@ function formatArgs(namespace, args) {
  */
 
 /**
- * Create a logger instance with optional namespace
- * @param {string|null} [namespace=null] - Logger namespace (e.g., 'Router', 'Store')
- * @param {LoggerOptions} [options={}] - Logger configuration options
- * @returns {Logger} A logger instance with error, warn, info, debug methods
- * @example
- * const log = createLogger('MyComponent');
- * log.info('Initialized'); // [MyComponent] Initialized
- * log.error('Failed', { code: 500 }); // [MyComponent] Failed { code: 500 }
- *
- * // With custom level
- * const debugLog = createLogger('Debug', { level: LogLevel.DEBUG });
+ * Create a development logger instance
+ * @private
+ * @param {string|null} namespace
+ * @param {LoggerOptions} options
+ * @returns {Logger}
  */
-export function createLogger(namespace = null, options = {}) {
+function createDevLogger(namespace, options) {
   const localLevel = options.level;
 
-  /**
-   * Check if a message at the given level should be logged
-   * @param {number} level - The log level to check
-   * @returns {boolean} True if the message should be logged
-   */
   function shouldLog(level) {
     const effectiveLevel = localLevel !== undefined ? localLevel : globalLevel;
     return level <= effectiveLevel;
   }
 
   return {
-    /**
-     * Log an error message (shown unless level is SILENT)
-     * @param {...*} args - Values to log
-     * @returns {void}
-     */
     error(...args) {
       if (shouldLog(LogLevel.ERROR)) {
         if (globalFormatter) {
@@ -173,11 +250,6 @@ export function createLogger(namespace = null, options = {}) {
       }
     },
 
-    /**
-     * Log a warning message (shown at WARN level and above)
-     * @param {...*} args - Values to log
-     * @returns {void}
-     */
     warn(...args) {
       if (shouldLog(LogLevel.WARN)) {
         if (globalFormatter) {
@@ -188,11 +260,6 @@ export function createLogger(namespace = null, options = {}) {
       }
     },
 
-    /**
-     * Log an info message (shown at INFO level and above)
-     * @param {...*} args - Values to log
-     * @returns {void}
-     */
     info(...args) {
       if (shouldLog(LogLevel.INFO)) {
         if (globalFormatter) {
@@ -203,11 +270,6 @@ export function createLogger(namespace = null, options = {}) {
       }
     },
 
-    /**
-     * Log a debug message (only shown at DEBUG level)
-     * @param {...*} args - Values to log
-     * @returns {void}
-     */
     debug(...args) {
       if (shouldLog(LogLevel.DEBUG)) {
         if (globalFormatter) {
@@ -218,33 +280,18 @@ export function createLogger(namespace = null, options = {}) {
       }
     },
 
-    /**
-     * Start a collapsed log group (only shown at DEBUG level)
-     * @param {string} label - The group label
-     * @returns {void}
-     */
     group(label) {
       if (shouldLog(LogLevel.DEBUG)) {
         console.group(namespace ? `${formatNamespace(namespace)} ${label}` : label);
       }
     },
 
-    /**
-     * End the current log group
-     * @returns {void}
-     */
     groupEnd() {
       if (shouldLog(LogLevel.DEBUG)) {
         console.groupEnd();
       }
     },
 
-    /**
-     * Log a message at a custom level
-     * @param {number} level - The LogLevel to use
-     * @param {...*} args - Values to log
-     * @returns {void}
-     */
     log(level, ...args) {
       if (shouldLog(level)) {
         const formatted = formatArgs(namespace, args);
@@ -261,15 +308,6 @@ export function createLogger(namespace = null, options = {}) {
       }
     },
 
-    /**
-     * Create a child logger with an additional namespace segment
-     * @param {string} childNamespace - The child namespace to append
-     * @returns {Logger} A new logger with combined namespace
-     * @example
-     * const log = createLogger('App');
-     * const routerLog = log.child('Router');
-     * routerLog.info('Navigate'); // [App:Router] Navigate
-     */
     child(childNamespace) {
       const combined = namespace
         ? `${namespace}${NAMESPACE_SEPARATOR}${childNamespace}`
@@ -279,8 +317,41 @@ export function createLogger(namespace = null, options = {}) {
   };
 }
 
+// ============================================================================
+// Public API
+// ============================================================================
+
+/**
+ * Create a logger instance with optional namespace
+ *
+ * In production mode, returns a noop logger with zero overhead.
+ * In development mode, returns a full-featured logger.
+ *
+ * @param {string|null} [namespace=null] - Logger namespace (e.g., 'Router', 'Store')
+ * @param {LoggerOptions} [options={}] - Logger configuration options
+ * @returns {Logger} A logger instance with error, warn, info, debug methods
+ * @example
+ * const log = createLogger('MyComponent');
+ * log.info('Initialized'); // [MyComponent] Initialized
+ * log.error('Failed', { code: 500 }); // [MyComponent] Failed { code: 500 }
+ *
+ * // With custom level
+ * const debugLog = createLogger('Debug', { level: LogLevel.DEBUG });
+ */
+export function createLogger(namespace = null, options = {}) {
+  // Return noop logger in production for zero overhead
+  if (isProduction) {
+    return noopLogger;
+  }
+  return createDevLogger(namespace, options);
+}
+
 /**
  * Default logger instance without namespace
+ *
+ * Note: This is evaluated at module load time. If you configure
+ * production mode after import, use createLogger() instead.
+ *
  * @type {Logger}
  * @example
  * import { logger } from './logger.js';
@@ -290,6 +361,10 @@ export const logger = createLogger();
 
 /**
  * Pre-configured loggers for common Pulse subsystems
+ *
+ * These are lazily evaluated on first access to respect
+ * production mode configuration.
+ *
  * @type {Object.<string, Logger>}
  * @property {Logger} pulse - Logger for core reactivity system
  * @property {Logger} dom - Logger for DOM operations
@@ -300,13 +375,13 @@ export const logger = createLogger();
  * @property {Logger} cli - Logger for CLI tools
  */
 export const loggers = {
-  pulse: createLogger('Pulse'),
-  dom: createLogger('DOM'),
-  router: createLogger('Router'),
-  store: createLogger('Store'),
-  native: createLogger('Native'),
-  hmr: createLogger('HMR'),
-  cli: createLogger('CLI')
+  get pulse() { return isProduction ? noopLogger : createDevLogger('Pulse', {}); },
+  get dom() { return isProduction ? noopLogger : createDevLogger('DOM', {}); },
+  get router() { return isProduction ? noopLogger : createDevLogger('Router', {}); },
+  get store() { return isProduction ? noopLogger : createDevLogger('Store', {}); },
+  get native() { return isProduction ? noopLogger : createDevLogger('Native', {}); },
+  get hmr() { return isProduction ? noopLogger : createDevLogger('HMR', {}); },
+  get cli() { return isProduction ? noopLogger : createDevLogger('CLI', {}); }
 };
 
 export default logger;
