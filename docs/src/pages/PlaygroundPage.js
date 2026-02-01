@@ -3,6 +3,7 @@
  */
 
 import { el } from '/runtime/index.js';
+import { t } from '../state.js';
 
 const defaultCode = `// Welcome to Pulse Playground!
 // Write your code here and see it run in real-time
@@ -730,16 +731,16 @@ export function PlaygroundPage() {
   const page = el('.page.playground-page');
 
   page.innerHTML = `
-    <h1>🎮 Playground</h1>
-    <p class="intro">Write Pulse code and see the results instantly</p>
+    <h1>${t('playground.title')}</h1>
+    <p class="intro">${t('playground.intro')}</p>
 
     <div class="playground-container">
       <div class="playground-editor">
         <div class="editor-header">
-          <span class="editor-title">📝 Code Editor</span>
+          <span class="editor-title">${t('playground.codeEditor')}</span>
           <div class="editor-actions">
-            <button class="run-btn" id="runBtn">▶ Run</button>
-            <button class="reset-btn" id="resetBtn">↺ Reset</button>
+            <button class="run-btn" id="runBtn">${t('playground.run')}</button>
+            <button class="reset-btn" id="resetBtn">${t('playground.reset')}</button>
           </div>
         </div>
         <textarea id="codeEditor" spellcheck="false">${defaultCode}</textarea>
@@ -747,26 +748,26 @@ export function PlaygroundPage() {
 
       <div class="playground-preview">
         <div class="preview-header">
-          <span class="preview-title">👁️ Preview</span>
-          <span class="preview-status" id="previewStatus">Ready</span>
+          <span class="preview-title">${t('playground.preview')}</span>
+          <span class="preview-status" id="previewStatus">${t('playground.ready')}</span>
         </div>
         <iframe id="previewFrame" sandbox="allow-scripts"></iframe>
       </div>
     </div>
 
     <div class="playground-templates">
-      <h3>📋 Quick Templates</h3>
+      <h3>${t('playground.templates')}</h3>
       <div class="template-buttons">
-        <button class="template-btn" data-template="counter">Counter</button>
-        <button class="template-btn" data-template="todo">Todo List</button>
-        <button class="template-btn" data-template="timer">Timer</button>
-        <button class="template-btn" data-template="form">Form</button>
-        <button class="template-btn" data-template="calculator">Calculator</button>
-        <button class="template-btn" data-template="tabs">Tabs</button>
-        <button class="template-btn" data-template="theme">Theme</button>
-        <button class="template-btn" data-template="search">Search</button>
-        <button class="template-btn" data-template="cart">Cart</button>
-        <button class="template-btn" data-template="animation">Animation</button>
+        <button class="template-btn" data-template="counter">${t('playground.templateCounter')}</button>
+        <button class="template-btn" data-template="todo">${t('playground.templateTodo')}</button>
+        <button class="template-btn" data-template="timer">${t('playground.templateTimer')}</button>
+        <button class="template-btn" data-template="form">${t('playground.templateForm')}</button>
+        <button class="template-btn" data-template="calculator">${t('playground.templateCalculator')}</button>
+        <button class="template-btn" data-template="tabs">${t('playground.templateTabs')}</button>
+        <button class="template-btn" data-template="theme">${t('playground.templateTheme')}</button>
+        <button class="template-btn" data-template="search">${t('playground.templateSearch')}</button>
+        <button class="template-btn" data-template="cart">${t('playground.templateCart')}</button>
+        <button class="template-btn" data-template="animation">${t('playground.templateAnimation')}</button>
       </div>
     </div>
   `;
@@ -875,7 +876,7 @@ export function PlaygroundPage() {
       '</' + 'script></body></html>';
 
     iframe.srcdoc = html;
-    status.textContent = 'Running...';
+    status.textContent = t('playground.running');
     status.className = 'preview-status running';
   }
 
@@ -890,10 +891,10 @@ export function PlaygroundPage() {
     // Listen for messages from iframe
     window.addEventListener('message', (e) => {
       if (e.data.type === 'success') {
-        status.textContent = '✓ Success';
+        status.textContent = t('playground.success');
         status.className = 'preview-status success';
       } else if (e.data.type === 'error') {
-        status.textContent = '✗ Error: ' + e.data.message;
+        status.textContent = t('playground.errorPrefix') + ' ' + e.data.message;
         status.className = 'preview-status error';
       }
     });

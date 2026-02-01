@@ -3,16 +3,17 @@
  */
 
 import { el } from '/runtime/index.js';
+import { t } from '../state.js';
 
 export function SecurityPage() {
   const page = el('.page.docs-page');
 
   page.innerHTML = `
-    <h1>Security Guide</h1>
-    <p class="intro">Best practices for building secure Pulse applications</p>
+    <h1>${t('security.title')}</h1>
+    <p class="intro">${t('security.intro')}</p>
 
     <section class="doc-section">
-      <h2>XSS Prevention</h2>
+      <h2>${t('security.xssPrevention')}</h2>
       <p>Cross-Site Scripting (XSS) is one of the most common web vulnerabilities. Pulse provides built-in protections, but you must use the APIs correctly.</p>
 
       <h3>Safe by Default: Text Content</h3>
@@ -67,7 +68,7 @@ sanitizeUrl(dataUrl, { allowData: true });</code></pre>
     </section>
 
     <section class="doc-section">
-      <h2>URL Sanitization</h2>
+      <h2>${t('security.urlSanitization')}</h2>
       <p>Always sanitize user-provided URLs before using them in links or redirects:</p>
 
       <div class="code-block">
@@ -111,7 +112,7 @@ function safeNavigate(path) {
     </section>
 
     <section class="doc-section">
-      <h2>Form Security</h2>
+      <h2>${t('security.formSecurity')}</h2>
       <p>Secure handling of form data:</p>
 
       <h3>Input Validation</h3>
@@ -163,7 +164,7 @@ function logout() {
     </section>
 
     <section class="doc-section">
-      <h2>Content Security Policy</h2>
+      <h2>${t('security.csp')}</h2>
       <p>Recommended CSP headers for Pulse applications:</p>
 
       <div class="code-block">
@@ -196,7 +197,7 @@ export default defineConfig({
     </section>
 
     <section class="doc-section">
-      <h2>API Security</h2>
+      <h2>${t('security.apiSecurity')}</h2>
       <p>Secure patterns for data fetching:</p>
 
       <div class="code-block">
@@ -235,7 +236,7 @@ function validateUserData(data) {
     </section>
 
     <section class="doc-section">
-      <h2>Security Checklist</h2>
+      <h2>${t('security.checklist')}</h2>
       <table class="doc-table">
         <thead>
           <tr>
@@ -286,7 +287,7 @@ function validateUserData(data) {
 
     <div class="next-section">
       <button class="btn btn-primary" onclick="window.docs.navigate('/performance')">
-        Next: Performance Guide
+        ${t('security.nextPerformance')}
       </button>
     </div>
   `;

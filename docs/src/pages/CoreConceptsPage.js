@@ -3,16 +3,17 @@
  */
 
 import { el } from '/runtime/index.js';
+import { t } from '../state.js';
 
 export function CoreConceptsPage() {
   const page = el('.page.docs-page');
 
   page.innerHTML = `
-    <h1>💡 Core Concepts</h1>
+    <h1>${t('coreConcepts.title')}</h1>
 
     <section class="doc-section">
-      <h2>Pulsations (Reactive State)</h2>
-      <p>A <strong>Pulse</strong> is a reactive value container. When its value changes, it automatically notifies all dependents.</p>
+      <h2>${t('coreConcepts.pulses')}</h2>
+      <p>${t('coreConcepts.pulsesDesc')}</p>
       <div class="code-block">
         <pre><code>import { pulse, effect } from 'pulse-js-framework';
 
@@ -32,8 +33,8 @@ console.log(count.peek()); // 6</code></pre>
     </section>
 
     <section class="doc-section">
-      <h2>Effects (Reactive Side Effects)</h2>
-      <p>Effects automatically re-run when their dependencies change:</p>
+      <h2>${t('coreConcepts.effects')}</h2>
+      <p>${t('coreConcepts.effectsDesc')}</p>
       <div class="code-block">
         <pre><code>const name = pulse('World');
 
@@ -47,8 +48,8 @@ name.set('Pulse'); // Logs: "Hello, Pulse!"</code></pre>
     </section>
 
     <section class="doc-section">
-      <h2>CSS Selector Syntax</h2>
-      <p>Create DOM elements using familiar CSS selector syntax:</p>
+      <h2>${t('coreConcepts.cssSelectorSyntax')}</h2>
+      <p>${t('coreConcepts.cssSelectorSyntaxDesc')}</p>
       <div class="code-block">
         <pre><code>import { el } from 'pulse-js-framework';
 
@@ -79,10 +80,10 @@ el('.card',
     </section>
 
     <section class="doc-section">
-      <h2>.pulse File Syntax</h2>
-      <p>The <code>.pulse</code> DSL provides a clean, declarative way to write components:</p>
+      <h2>${t('coreConcepts.pulseFileSyntax')}</h2>
+      <p>${t('coreConcepts.pulseFileSyntaxDesc')}</p>
 
-      <h3>Blocks</h3>
+      <h3>${t('coreConcepts.blocks')}</h3>
       <ul class="feature-list">
         <li><code>import</code> - Import components from other files</li>
         <li><code>@page Name</code> - Component name declaration</li>
@@ -93,7 +94,7 @@ el('.card',
         <li><code>style { }</code> - Scoped CSS styles (automatically scoped)</li>
       </ul>
 
-      <h3>Imports</h3>
+      <h3>${t('coreConcepts.imports')}</h3>
       <div class="code-block">
         <pre><code>// Default import
 import Button from './Button.pulse'
@@ -108,7 +109,7 @@ import * as Icons from './icons.pulse'
 import { Card as MyCard } from './ui.pulse'</code></pre>
       </div>
 
-      <h3>Directives</h3>
+      <h3>${t('coreConcepts.directives')}</h3>
       <ul class="feature-list">
         <li><code>@click(action)</code> - Event handlers</li>
         <li><code>@if(condition) { }</code> - Conditional rendering</li>
@@ -116,8 +117,8 @@ import { Card as MyCard } from './ui.pulse'</code></pre>
         <li><code>{variable}</code> - Text interpolation</li>
       </ul>
 
-      <h3>Slots (Content Projection)</h3>
-      <p>Use slots to compose components with dynamic content:</p>
+      <h3>${t('coreConcepts.slots')}</h3>
+      <p>${t('coreConcepts.slotsDesc')}</p>
       <div class="code-block">
         <pre><code>// Card.pulse - Component with slots
 @page Card
@@ -150,8 +151,8 @@ view {
 }</code></pre>
       </div>
 
-      <h3>CSS Scoping</h3>
-      <p>Styles in <code>.pulse</code> files are automatically scoped to the component, preventing style leaks:</p>
+      <h3>${t('coreConcepts.cssScoping')}</h3>
+      <p>${t('coreConcepts.cssScopingDesc')}</p>
       <div class="code-block">
         <pre><code>style {
   // These styles only affect this component
@@ -224,11 +225,11 @@ style {
     </section>
 
     <section class="doc-section">
-      <h2>Advanced Routing</h2>
-      <p>Pulse router supports lazy loading, middleware, and code splitting for optimal performance.</p>
+      <h2>${t('coreConcepts.advancedRouting')}</h2>
+      <p>${t('coreConcepts.advancedRoutingDesc')}</p>
 
-      <h3>Lazy Loading</h3>
-      <p>Load route components on demand to reduce initial bundle size:</p>
+      <h3>${t('coreConcepts.lazyLoading')}</h3>
+      <p>${t('coreConcepts.lazyLoadingDesc')}</p>
       <div class="code-block">
         <pre><code>import { createRouter, lazy, preload } from 'pulse-js-framework/runtime/router';
 
@@ -247,8 +248,8 @@ const routes = {
 link.addEventListener('mouseenter', () => preload(routes['/dashboard']));</code></pre>
       </div>
 
-      <h3>Middleware</h3>
-      <p>Koa-style middleware for flexible navigation control:</p>
+      <h3>${t('coreConcepts.middleware')}</h3>
+      <p>${t('coreConcepts.middlewareDesc')}</p>
       <div class="code-block">
         <pre><code>const router = createRouter({
   routes,
@@ -282,7 +283,7 @@ const unsubscribe = router.use(async (ctx, next) => {
 
     <div class="next-section">
       <button class="btn btn-primary" onclick="window.docs.navigate('/api-reference')">
-        Next: API Reference →
+        ${t('coreConcepts.nextApiReference')}
       </button>
     </div>
   `;

@@ -3,13 +3,14 @@
  */
 
 import { el } from '/runtime/index.js';
+import { t } from '../state.js';
 
 export function ChangelogPage() {
   const page = el('.page.docs-page');
 
   page.innerHTML = `
-    <h1>📋 Changelog</h1>
-    <p class="intro">Recent updates and improvements to Pulse Framework</p>
+    <h1>${t('changelog.title')}</h1>
+    <p class="intro">${t('changelog.intro')}</p>
 
     
     

@@ -3,16 +3,17 @@
  */
 
 import { el } from '/runtime/index.js';
+import { t } from '../state.js';
 
 export function PerformancePage() {
   const page = el('.page.docs-page');
 
   page.innerHTML = `
-    <h1>Performance Guide</h1>
-    <p class="intro">Optimize your Pulse applications for maximum performance</p>
+    <h1>${t('performance.title')}</h1>
+    <p class="intro">${t('performance.intro')}</p>
 
     <section class="doc-section">
-      <h2>Lazy Computed Values</h2>
+      <h2>${t('performance.lazyComputed')}</h2>
       <p>By default, computed values evaluate eagerly. Use lazy evaluation for expensive computations that aren't always needed:</p>
 
       <div class="code-block">
@@ -69,7 +70,7 @@ const lazyResult = computed(() => {
     </section>
 
     <section class="doc-section">
-      <h2>List Keying</h2>
+      <h2>${t('performance.listKeying')}</h2>
       <p>Proper keying is critical for list performance. The key function determines how Pulse tracks items across updates.</p>
 
       <h3>Good vs Bad Keys</h3>
@@ -114,7 +115,7 @@ items: [A, B, C] -> [X, A, B, C]
     </section>
 
     <section class="doc-section">
-      <h2>Batching Updates</h2>
+      <h2>${t('performance.batching')}</h2>
       <p>Batch multiple state changes to avoid intermediate re-renders:</p>
 
       <div class="code-block">
@@ -168,7 +169,7 @@ async function loadData() {
     </section>
 
     <section class="doc-section">
-      <h2>Memoization</h2>
+      <h2>${t('performance.memoization')}</h2>
       <p>Cache expensive computations to avoid redundant work:</p>
 
       <div class="code-block">
@@ -200,7 +201,7 @@ const result = memo(
     </section>
 
     <section class="doc-section">
-      <h2>Lazy Loading Routes</h2>
+      <h2>${t('performance.lazyRoutes')}</h2>
       <p>Split your app into chunks loaded on demand:</p>
 
       <div class="code-block">
@@ -240,7 +241,7 @@ link.onmouseenter = () => {
     </section>
 
     <section class="doc-section">
-      <h2>Avoid Unnecessary Reactivity</h2>
+      <h2>${t('performance.avoidReactivity')}</h2>
       <p>Not everything needs to be reactive:</p>
 
       <div class="code-block">
@@ -276,7 +277,7 @@ effect(() => {
     </section>
 
     <section class="doc-section">
-      <h2>Effect Optimization</h2>
+      <h2>${t('performance.effectOptimization')}</h2>
       <p>Keep effects fast and focused:</p>
 
       <div class="code-block">
@@ -320,7 +321,7 @@ effect(() => {
     </section>
 
     <section class="doc-section">
-      <h2>Resource Caching</h2>
+      <h2>${t('performance.resourceCaching')}</h2>
       <p>Use the async module's caching features:</p>
 
       <div class="code-block">
@@ -359,7 +360,7 @@ user.invalidate();     // Invalidate specific resource</code></pre>
     </section>
 
     <section class="doc-section">
-      <h2>Performance Monitoring</h2>
+      <h2>${t('performance.monitoring')}</h2>
       <p>Use the devtools module to monitor performance:</p>
 
       <div class="code-block">
@@ -403,7 +404,7 @@ console.table(slowEffects);</code></pre>
     </section>
 
     <section class="doc-section">
-      <h2>Performance Checklist</h2>
+      <h2>${t('performance.checklist')}</h2>
       <table class="doc-table">
         <thead>
           <tr>
@@ -459,7 +460,7 @@ console.table(slowEffects);</code></pre>
 
     <div class="next-section">
       <button class="btn btn-primary" onclick="window.docs.navigate('/error-handling')">
-        Next: Error Handling
+        ${t('performance.nextErrorHandling')}
       </button>
     </div>
   `;

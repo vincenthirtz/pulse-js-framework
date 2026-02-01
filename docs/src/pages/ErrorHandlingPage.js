@@ -3,16 +3,17 @@
  */
 
 import { el } from '/runtime/index.js';
+import { t } from '../state.js';
 
 export function ErrorHandlingPage() {
   const page = el('.page.docs-page');
 
   page.innerHTML = `
-    <h1>Error Handling Patterns</h1>
-    <p class="intro">Robust error handling strategies for Pulse applications</p>
+    <h1>${t('errorHandling.title')}</h1>
+    <p class="intro">${t('errorHandling.intro')}</p>
 
     <section class="doc-section">
-      <h2>Effect Error Handling</h2>
+      <h2>${t('errorHandling.effectErrors')}</h2>
       <p>Effects can fail. Handle errors gracefully to prevent app crashes:</p>
 
       <h3>Per-Effect Error Handler</h3>
@@ -70,7 +71,7 @@ setGlobalEffectErrorHandler((error) => {
     </section>
 
     <section class="doc-section">
-      <h2>Async Error Handling</h2>
+      <h2>${t('errorHandling.asyncErrors')}</h2>
       <p>The async module provides built-in error state management:</p>
 
       <div class="code-block">
@@ -143,7 +144,7 @@ when(
     </section>
 
     <section class="doc-section">
-      <h2>Form Validation Errors</h2>
+      <h2>${t('errorHandling.formErrors')}</h2>
       <p>Handle form validation with the form module:</p>
 
       <div class="code-block">
@@ -198,7 +199,7 @@ when(
     </section>
 
     <section class="doc-section">
-      <h2>Router Error Handling</h2>
+      <h2>${t('errorHandling.routerErrors')}</h2>
       <p>Handle navigation and route loading errors:</p>
 
       <div class="code-block">
@@ -256,7 +257,7 @@ router.afterEach((to) => {
     </section>
 
     <section class="doc-section">
-      <h2>Error Boundaries</h2>
+      <h2>${t('errorHandling.boundaries')}</h2>
       <p>Contain errors to prevent entire app crashes:</p>
 
       <div class="code-block">
@@ -297,7 +298,7 @@ mount(SafeUserProfile({ userId: 123 }), container);</code></pre>
     </section>
 
     <section class="doc-section">
-      <h2>Error Logging & Reporting</h2>
+      <h2>${t('errorHandling.logging')}</h2>
       <p>Integrate with error tracking services:</p>
 
       <div class="code-block">
@@ -362,7 +363,7 @@ async function sendToErrorService(error) {
     </section>
 
     <section class="doc-section">
-      <h2>Graceful Degradation</h2>
+      <h2>${t('errorHandling.gracefulDegradation')}</h2>
       <p>Patterns for maintaining functionality when parts fail:</p>
 
       <div class="code-block">
@@ -412,7 +413,7 @@ async function fetchWithRetry(url, maxRetries = 3) {
     </section>
 
     <section class="doc-section">
-      <h2>Error Handling Patterns Summary</h2>
+      <h2>${t('errorHandling.summary')}</h2>
       <table class="doc-table">
         <thead>
           <tr>
@@ -458,7 +459,7 @@ async function fetchWithRetry(url, maxRetries = 3) {
 
     <div class="next-section">
       <button class="btn btn-primary" onclick="window.docs.navigate('/api-reference')">
-        Next: API Reference
+        ${t('errorHandling.nextApiReference')}
       </button>
     </div>
   `;

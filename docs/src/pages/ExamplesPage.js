@@ -3,163 +3,164 @@
  */
 
 import { el } from '/runtime/index.js';
+import { t } from '../state.js';
 
 export function ExamplesPage() {
   const page = el('.page.examples-page');
 
   page.innerHTML = `
-    <h1>✨ Examples</h1>
-    <p class="intro">Explore live examples built with Pulse Framework</p>
+    <h1>${t('examples.title')}</h1>
+    <p class="intro">${t('examples.intro')}</p>
 
     <div class="examples-grid">
       <div class="example-card featured">
         <div class="example-icon">🔥</div>
-        <h3>HMR Demo</h3>
-        <p>Hot Module Replacement with state preservation. Edit code and see changes instantly!</p>
+        <h3>${t('examples.hmrDemo.title')}</h3>
+        <p>${t('examples.hmrDemo.desc')}</p>
         <ul class="example-features">
-          <li>✓ State survives HMR</li>
-          <li>✓ Effect auto-cleanup</li>
-          <li>✓ Theme switching</li>
-          <li>✓ Notes persistence</li>
-          <li>✓ HMR update counter</li>
+          <li>✓ ${t('examples.hmrDemo.features.0')}</li>
+          <li>✓ ${t('examples.hmrDemo.features.1')}</li>
+          <li>✓ ${t('examples.hmrDemo.features.2')}</li>
+          <li>✓ ${t('examples.hmrDemo.features.3')}</li>
+          <li>✓ ${t('examples.hmrDemo.features.4')}</li>
         </ul>
         <a href="/examples/hmr/" class="btn btn-primary">
-          View Demo →
+          ${t('examples.viewDemo')}
         </a>
       </div>
 
       <div class="example-card">
         <div class="example-icon">📰</div>
-        <h3>Blog</h3>
-        <p>Full-featured blog application with CRUD, categories, search, and dark mode.</p>
+        <h3>${t('examples.blog.title')}</h3>
+        <p>${t('examples.blog.desc')}</p>
         <ul class="example-features">
-          <li>✓ CRUD operations</li>
-          <li>✓ Category filtering</li>
-          <li>✓ Search functionality</li>
-          <li>✓ Dark/light mode</li>
-          <li>✓ Responsive design</li>
+          <li>✓ ${t('examples.blog.features.0')}</li>
+          <li>✓ ${t('examples.blog.features.1')}</li>
+          <li>✓ ${t('examples.blog.features.2')}</li>
+          <li>✓ ${t('examples.blog.features.3')}</li>
+          <li>✓ ${t('examples.blog.features.4')}</li>
         </ul>
         <a href="/examples/blog/" class="btn btn-primary">
-          View Demo →
+          ${t('examples.viewDemo')}
         </a>
       </div>
 
       <div class="example-card">
         <div class="example-icon">📝</div>
-        <h3>Todo App</h3>
-        <p>A full-featured todo application with dark mode, filters, and localStorage persistence.</p>
+        <h3>${t('examples.todoApp.title')}</h3>
+        <p>${t('examples.todoApp.desc')}</p>
         <ul class="example-features">
-          <li>✓ Add, edit, delete todos</li>
-          <li>✓ Filter by status</li>
-          <li>✓ Dark mode toggle</li>
-          <li>✓ LocalStorage persistence</li>
-          <li>✓ Progress tracking</li>
+          <li>✓ ${t('examples.todoApp.features.0')}</li>
+          <li>✓ ${t('examples.todoApp.features.1')}</li>
+          <li>✓ ${t('examples.todoApp.features.2')}</li>
+          <li>✓ ${t('examples.todoApp.features.3')}</li>
+          <li>✓ ${t('examples.todoApp.features.4')}</li>
         </ul>
         <a href="/examples/todo/" class="btn btn-primary">
-          View Demo →
+          ${t('examples.viewDemo')}
         </a>
       </div>
 
       <div class="example-card">
         <div class="example-icon">🌤️</div>
-        <h3>Weather App</h3>
-        <p>Real-time weather application using the Open-Meteo API.</p>
+        <h3>${t('examples.weatherApp.title')}</h3>
+        <p>${t('examples.weatherApp.desc')}</p>
         <ul class="example-features">
-          <li>✓ Search any city</li>
-          <li>✓ Current conditions</li>
-          <li>✓ 7-day forecast</li>
-          <li>✓ Favorite cities</li>
-          <li>✓ °C/°F toggle</li>
+          <li>✓ ${t('examples.weatherApp.features.0')}</li>
+          <li>✓ ${t('examples.weatherApp.features.1')}</li>
+          <li>✓ ${t('examples.weatherApp.features.2')}</li>
+          <li>✓ ${t('examples.weatherApp.features.3')}</li>
+          <li>✓ ${t('examples.weatherApp.features.4')}</li>
         </ul>
         <a href="/examples/meteo/" class="btn btn-primary">
-          View Demo →
+          ${t('examples.viewDemo')}
         </a>
       </div>
 
       <div class="example-card">
         <div class="example-icon">🛒</div>
-        <h3>E-commerce Shop</h3>
-        <p>Full-featured shopping experience with cart and checkout.</p>
+        <h3>${t('examples.ecommerce.title')}</h3>
+        <p>${t('examples.ecommerce.desc')}</p>
         <ul class="example-features">
-          <li>✓ Product catalog</li>
-          <li>✓ Search & filters</li>
-          <li>✓ Shopping cart</li>
-          <li>✓ Checkout flow</li>
-          <li>✓ LocalStorage persistence</li>
+          <li>✓ ${t('examples.ecommerce.features.0')}</li>
+          <li>✓ ${t('examples.ecommerce.features.1')}</li>
+          <li>✓ ${t('examples.ecommerce.features.2')}</li>
+          <li>✓ ${t('examples.ecommerce.features.3')}</li>
+          <li>✓ ${t('examples.ecommerce.features.4')}</li>
         </ul>
         <a href="/examples/ecommerce/" class="btn btn-primary">
-          View Demo →
+          ${t('examples.viewDemo')}
         </a>
       </div>
 
       <div class="example-card">
         <div class="example-icon">💬</div>
-        <h3>Chat App</h3>
-        <p>Real-time messaging with rooms and simulated users.</p>
+        <h3>${t('examples.chatApp.title')}</h3>
+        <p>${t('examples.chatApp.desc')}</p>
         <ul class="example-features">
-          <li>✓ Multiple chat rooms</li>
-          <li>✓ User presence</li>
-          <li>✓ Simulated bot responses</li>
-          <li>✓ Emoji picker</li>
-          <li>✓ Message persistence</li>
+          <li>✓ ${t('examples.chatApp.features.0')}</li>
+          <li>✓ ${t('examples.chatApp.features.1')}</li>
+          <li>✓ ${t('examples.chatApp.features.2')}</li>
+          <li>✓ ${t('examples.chatApp.features.3')}</li>
+          <li>✓ ${t('examples.chatApp.features.4')}</li>
         </ul>
         <a href="/examples/chat/" class="btn btn-primary">
-          View Demo →
+          ${t('examples.viewDemo')}
         </a>
       </div>
 
       <div class="example-card">
         <div class="example-icon">🧭</div>
-        <h3>Router Demo</h3>
-        <p>SPA routing with navigation, guards, and dynamic routes.</p>
+        <h3>${t('examples.routerDemo.title')}</h3>
+        <p>${t('examples.routerDemo.desc')}</p>
         <ul class="example-features">
-          <li>✓ Route parameters</li>
-          <li>✓ Query strings</li>
-          <li>✓ Route guards</li>
-          <li>✓ Active link styling</li>
-          <li>✓ Protected routes</li>
+          <li>✓ ${t('examples.routerDemo.features.0')}</li>
+          <li>✓ ${t('examples.routerDemo.features.1')}</li>
+          <li>✓ ${t('examples.routerDemo.features.2')}</li>
+          <li>✓ ${t('examples.routerDemo.features.3')}</li>
+          <li>✓ ${t('examples.routerDemo.features.4')}</li>
         </ul>
         <a href="/examples/router/" class="btn btn-primary">
-          View Demo →
+          ${t('examples.viewDemo')}
         </a>
       </div>
 
       <div class="example-card">
         <div class="example-icon">📝</div>
-        <h3>Store Demo</h3>
-        <p>Global state management with the Pulse Store system.</p>
+        <h3>${t('examples.storeDemo.title')}</h3>
+        <p>${t('examples.storeDemo.desc')}</p>
         <ul class="example-features">
-          <li>✓ createStore with persistence</li>
-          <li>✓ Actions & getters</li>
-          <li>✓ Undo/Redo (historyPlugin)</li>
-          <li>✓ Module stores</li>
-          <li>✓ Logger plugin</li>
+          <li>✓ ${t('examples.storeDemo.features.0')}</li>
+          <li>✓ ${t('examples.storeDemo.features.1')}</li>
+          <li>✓ ${t('examples.storeDemo.features.2')}</li>
+          <li>✓ ${t('examples.storeDemo.features.3')}</li>
+          <li>✓ ${t('examples.storeDemo.features.4')}</li>
         </ul>
         <a href="/examples/store/" class="btn btn-primary">
-          View Demo →
+          ${t('examples.viewDemo')}
         </a>
       </div>
 
       <div class="example-card">
         <div class="example-icon">📊</div>
-        <h3>Admin Dashboard</h3>
-        <p>Complete admin interface demonstrating ALL Pulse features.</p>
+        <h3>${t('examples.dashboard.title')}</h3>
+        <p>${t('examples.dashboard.desc')}</p>
         <ul class="example-features">
-          <li>✓ Authentication & guards</li>
-          <li>✓ Charts, tables, modals</li>
-          <li>✓ CRUD operations</li>
-          <li>✓ Themes & settings</li>
-          <li>✓ All reactivity features</li>
+          <li>✓ ${t('examples.dashboard.features.0')}</li>
+          <li>✓ ${t('examples.dashboard.features.1')}</li>
+          <li>✓ ${t('examples.dashboard.features.2')}</li>
+          <li>✓ ${t('examples.dashboard.features.3')}</li>
+          <li>✓ ${t('examples.dashboard.features.4')}</li>
         </ul>
         <a href="/examples/dashboard/" class="btn btn-primary">
-          View Demo →
+          ${t('examples.viewDemo')}
         </a>
       </div>
     </div>
 
     <section class="doc-section">
-      <h2>Run Examples Locally</h2>
-      <p>To run the example projects on your machine:</p>
+      <h2>${t('examples.runLocally')}</h2>
+      <p>${t('examples.runLocallyDesc')}</p>
       <div class="code-block">
         <pre><code># HMR Demo (port 3000) - Try editing code!
 cd pulse/examples/hmr
@@ -204,8 +205,8 @@ npm run dev</code></pre>
     </section>
 
     <section class="doc-section">
-      <h2>Create Your Own</h2>
-      <p>Start a new Pulse project:</p>
+      <h2>${t('examples.createYourOwn')}</h2>
+      <p>${t('examples.createYourOwnDesc')}</p>
       <div class="code-block">
         <pre><code>npx pulse-js-framework create my-awesome-app
 cd my-awesome-app
@@ -215,8 +216,8 @@ npm run dev</code></pre>
     </section>
 
     <section class="doc-section">
-      <h2>📱 Mobile Examples</h2>
-      <p>Pulse can also run on mobile platforms via WebView:</p>
+      <h2>${t('examples.mobileExamples')}</h2>
+      <p>${t('examples.mobileExamplesDesc')}</p>
       <ul>
         <li><strong>Android WebView</strong> - Native Android app wrapping a Pulse web app (<code>examples/android-webview</code>)</li>
       </ul>

@@ -4,6 +4,11 @@
 
 import { pulse, effect } from '/runtime/index.js';
 import { createRouter } from '/runtime/router.js';
+import { locale, localePath, isValidLocale, defaultLocale } from './i18n/index.js';
+
+// Re-export i18n for convenience
+export { locale, localePath, t, setLocale, getPathWithoutLocale } from './i18n/index.js';
+export { locales, isValidLocale, defaultLocale } from './i18n/locales.js';
 
 // =============================================================================
 // Theme State
@@ -95,20 +100,44 @@ export function initRouter(routes) {
     mode: 'history'
   });
 
-  // Add after navigation hook to close mobile menu and scroll to top
+  // Sync locale from URL on route change
   router.afterEach(() => {
     mobileMenuOpen.set(false);
     window.scrollTo(0, 0);
+
+    // Update locale from URL if needed
+    const pathParts = window.location.pathname.split('/').filter(Boolean);
+    if (pathParts.length > 0 && isValidLocale(pathParts[0])) {
+      if (locale.get() !== pathParts[0]) {
+        locale.set(pathParts[0]);
+      }
+    } else if (locale.get() !== defaultLocale) {
+      // URL has no locale prefix, set to default
+      locale.set(defaultLocale);
+    }
   });
 
   // Global API for onclick handlers in HTML
   window.docs = {
-    navigate: (path) => router.navigate(path)
+    navigate: (path) => navigateLocale(path)
   };
 
   return router;
 }
 
+/**
+ * Navigate to a path with locale prefix
+ */
+export function navigateLocale(path) {
+  if (router) {
+    const localizedPath = localePath(path, locale.get());
+    router.navigate(localizedPath);
+  }
+}
+
+/**
+ * Navigate without changing locale (for language switcher)
+ */
 export function navigate(path) {
   if (router) {
     router.navigate(path);

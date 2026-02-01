@@ -312,6 +312,77 @@ body {
   transform: scale(1.05);
 }
 
+/* Language Selector */
+.lang-selector {
+  position: relative;
+  margin-left: 8px;
+}
+
+.lang-btn {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 1.2em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.lang-btn:hover {
+  background: var(--border);
+  transform: scale(1.05);
+}
+
+.lang-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 160px;
+  background: var(--bg-light);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  z-index: 200;
+}
+
+.lang-selector.open .lang-menu {
+  opacity: 1;
+  visibility: visible;
+}
+
+.lang-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 14px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  border-radius: 6px;
+  font-size: 0.95em;
+  transition: all 0.15s ease;
+  text-align: left;
+}
+
+.lang-option:hover {
+  background: var(--bg);
+}
+
+.lang-option.active {
+  background: rgba(99, 102, 241, 0.15);
+  color: var(--primary);
+}
+
+.lang-option span {
+  flex: 1;
+}
+
 .mobile-nav {
   display: none;
   position: absolute;
@@ -353,6 +424,9 @@ body {
   .nav { display: none; }
   .menu-btn { display: block; }
   .theme-btn { padding: 6px 10px; font-size: 1em; margin-left: 8px; }
+  .lang-selector { margin-left: 4px; }
+  .lang-btn { padding: 6px 10px; font-size: 1em; }
+  .lang-menu { min-width: 140px; right: 0; }
   .version-badge, .stars-badge {
     padding: 3px 8px;
     font-size: 0.7em;

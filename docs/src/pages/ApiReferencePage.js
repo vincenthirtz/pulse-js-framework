@@ -3,33 +3,34 @@
  */
 
 import { el } from '/runtime/index.js';
+import { t } from '../state.js';
 
 export function ApiReferencePage() {
   const page = el('.page.docs-page');
 
   page.innerHTML = `
-    <h1>📖 API Reference</h1>
+    <h1>${t('apiReference.title')}</h1>
 
     <div class="api-search">
-      <input type="text" id="api-search-input" placeholder="Search API... (e.g. pulse, effect, router)" autocomplete="off">
+      <input type="text" id="api-search-input" placeholder="${t('apiReference.searchPlaceholder')}" autocomplete="off">
       <kbd class="api-search-kbd" id="api-search-kbd">/</kbd>
       <span class="api-search-clear" id="api-search-clear">&times;</span>
       <div class="api-search-results" id="api-search-results"></div>
     </div>
 
     <div class="api-filters" id="api-filters">
-      <span class="filter-label">Filter:</span>
-      <button class="filter-btn active" data-filter="all">All</button>
-      <button class="filter-btn" data-filter="types">Types</button>
-      <button class="filter-btn" data-filter="reactivity">Reactivity</button>
-      <button class="filter-btn" data-filter="dom">DOM</button>
-      <button class="filter-btn" data-filter="router">Router</button>
-      <button class="filter-btn" data-filter="store">Store</button>
-      <button class="filter-btn" data-filter="hmr">HMR</button>
+      <span class="filter-label">${t('apiReference.filter')}</span>
+      <button class="filter-btn active" data-filter="all">${t('apiReference.categories.all')}</button>
+      <button class="filter-btn" data-filter="types">${t('apiReference.categories.types')}</button>
+      <button class="filter-btn" data-filter="reactivity">${t('apiReference.categories.reactivity')}</button>
+      <button class="filter-btn" data-filter="dom">${t('apiReference.categories.dom')}</button>
+      <button class="filter-btn" data-filter="router">${t('apiReference.categories.router')}</button>
+      <button class="filter-btn" data-filter="store">${t('apiReference.categories.store')}</button>
+      <button class="filter-btn" data-filter="hmr">${t('apiReference.categories.hmr')}</button>
     </div>
 
     <section class="doc-section" data-category="types">
-      <h2>TypeScript Support</h2>
+      <h2>${t('apiReference.typescriptSupport')}</h2>
       <p>Pulse includes full TypeScript definitions for IDE autocomplete. Types are automatically detected:</p>
       <div class="code-block">
         <pre><code>import { pulse, effect, computed, Pulse } from 'pulse-js-framework/runtime';
@@ -42,7 +43,7 @@ const doubled = computed(() => count.get() * 2);</code></pre>
     </section>
 
     <section class="doc-section" data-category="reactivity">
-      <h2>Reactivity</h2>
+      <h2>${t('apiReference.reactivity')}</h2>
 
       <div class="api-item">
         <h3><code>pulse(initialValue, options?)</code></h3>
@@ -164,7 +165,7 @@ state.items$filter(x => x !== 'b');</code></pre>
     </section>
 
     <section class="doc-section" data-category="dom">
-      <h2>DOM</h2>
+      <h2>${t('apiReference.domSection')}</h2>
 
       <div class="api-item">
         <h3><code>el(selector, ...children)</code></h3>
@@ -289,7 +290,7 @@ portal(
     </section>
 
     <section class="doc-section" data-category="router">
-      <h2>Router</h2>
+      <h2>${t('apiReference.routerSection')}</h2>
 
       <div class="api-item">
         <h3><code>createRouter(options)</code></h3>
@@ -439,7 +440,7 @@ unsubscribe();</code></pre>
     </section>
 
     <section class="doc-section" data-category="store">
-      <h2>Store</h2>
+      <h2>${t('apiReference.storeSection')}</h2>
 
       <div class="api-item">
         <h3><code>createStore(initialState, options?)</code></h3>
@@ -461,7 +462,7 @@ store.$reset();</code></pre>
     </section>
 
     <section class="doc-section" data-category="hmr">
-      <h2>HMR (Hot Module Replacement)</h2>
+      <h2>${t('apiReference.hmrSection')}</h2>
 
       <div class="api-item">
         <h3><code>createHMRContext(moduleId)</code></h3>
@@ -542,7 +543,7 @@ console.log(hmr.data.myCustomState); // { x: 1, y: 2 }</code></pre>
 
     <div class="next-section">
       <button class="btn btn-primary" onclick="window.docs.navigate('/mobile')">
-        Next: Mobile Apps →
+        ${t('apiReference.nextMobile')}
       </button>
     </div>
   `;

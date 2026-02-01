@@ -3,7 +3,7 @@
  */
 
 import { effect, el } from '/runtime/index.js';
-import { mobileMenuOpen, theme, toggleTheme, navigation, navigationFlat, router, version } from '../state.js';
+import { mobileMenuOpen, theme, toggleTheme, navigation, navigationFlat, router, version, locale, locales, setLocale, navigateLocale, getPathWithoutLocale } from '../state.js';
 
 export function Header() {
   const header = el('header.header');
@@ -14,7 +14,7 @@ export function Header() {
   logo.innerHTML = '⚡ <span>Pulse</span>';
   logo.addEventListener('click', (e) => {
     e.preventDefault();
-    router.navigate('/');
+    navigateLocale('/');
   });
   logo.style.cursor = 'pointer';
   logoContainer.appendChild(logo);
@@ -73,20 +73,21 @@ export function Header() {
         `;
         menuItem.addEventListener('click', (e) => {
           e.preventDefault();
-          router.navigate(child.path);
+          navigateLocale(child.path);
           dropdown.classList.remove('open');
         });
 
-        // Update active state
+        // Update active state (compare without locale prefix)
         effect(() => {
-          const currentPath = router.path.get();
+          const currentPath = getPathWithoutLocale();
           if (currentPath === child.path) {
             menuItem.classList.add('active');
             trigger.classList.add('has-active');
           } else {
             menuItem.classList.remove('active');
             // Check if any child is active
-            const anyActive = item.children.some(c => router.path.get() === c.path);
+            const pathWithoutLocale = getPathWithoutLocale();
+            const anyActive = item.children.some(c => pathWithoutLocale === c.path);
             if (!anyActive) trigger.classList.remove('has-active');
           }
         });
@@ -106,9 +107,23 @@ export function Header() {
 
       nav.appendChild(dropdown);
     } else {
-      // Simple link
-      const link = router.link(item.path, item.label, { activeClass: 'active' });
-      link.className = 'nav-link';
+      // Simple link with locale-aware navigation
+      const link = el('a.nav-link');
+      link.href = item.path;
+      link.textContent = item.label;
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        navigateLocale(item.path);
+      });
+      // Update active state
+      effect(() => {
+        const currentPath = getPathWithoutLocale();
+        if (currentPath === item.path) {
+          link.classList.add('active');
+        } else {
+          link.classList.remove('active');
+        }
+      });
       nav.appendChild(link);
     }
   }
@@ -119,6 +134,55 @@ export function Header() {
   });
 
   header.appendChild(nav);
+
+  // Language selector
+  const langSelector = el('.lang-selector');
+
+  const langBtn = el('button.lang-btn');
+  effect(() => {
+    const currentLocale = locale.get();
+    langBtn.textContent = locales[currentLocale]?.flag || '🌐';
+    langBtn.title = locales[currentLocale]?.name || 'Language';
+  });
+  langSelector.appendChild(langBtn);
+
+  const langMenu = el('.lang-menu');
+  for (const [code, { name, flag }] of Object.entries(locales)) {
+    const langOption = el('button.lang-option');
+    langOption.dataset.locale = code;
+    langOption.innerHTML = `${flag} <span>${name}</span>`;
+
+    // Highlight current locale
+    effect(() => {
+      if (locale.get() === code) {
+        langOption.classList.add('active');
+      } else {
+        langOption.classList.remove('active');
+      }
+    });
+
+    langOption.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setLocale(code, router);
+      langSelector.classList.remove('open');
+    });
+
+    langMenu.appendChild(langOption);
+  }
+  langSelector.appendChild(langMenu);
+
+  // Toggle language menu
+  langBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    langSelector.classList.toggle('open');
+  });
+
+  // Close language menu when clicking outside
+  document.addEventListener('click', () => {
+    langSelector.classList.remove('open');
+  });
+
+  header.appendChild(langSelector);
 
   // Theme toggle button
   const themeBtn = el('button.theme-btn');
@@ -140,8 +204,22 @@ export function Header() {
     mobileNav.className = `mobile-nav ${mobileMenuOpen.get() ? 'open' : ''}`;
   });
   for (const item of navigationFlat) {
-    const link = router.link(item.path, item.label, { activeClass: 'active' });
-    link.className = 'nav-link';
+    const link = el('a.nav-link');
+    link.href = item.path;
+    link.textContent = item.label;
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      navigateLocale(item.path);
+    });
+    // Update active state
+    effect(() => {
+      const currentPath = getPathWithoutLocale();
+      if (currentPath === item.path) {
+        link.classList.add('active');
+      } else {
+        link.classList.remove('active');
+      }
+    });
     mobileNav.appendChild(link);
   }
   header.appendChild(mobileNav);

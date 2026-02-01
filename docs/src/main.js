@@ -7,6 +7,7 @@ import { el, mount } from '/runtime/index.js';
 
 // State & Router
 import { initRouter } from './state.js';
+import { localeKeys, defaultLocale } from './i18n/locales.js';
 
 // Components
 import { Header } from './components/Header.js';
@@ -34,7 +35,8 @@ import { highlightAllCode } from './highlighter.js';
 // Routes Configuration
 // =============================================================================
 
-const routes = {
+// Base routes (without locale prefix)
+const baseRoutes = {
   '/': HomePage,
   '/getting-started': GettingStartedPage,
   '/core-concepts': CoreConceptsPage,
@@ -46,9 +48,24 @@ const routes = {
   '/mobile': MobilePage,
   '/examples': ExamplesPage,
   '/playground': PlaygroundPage,
-  '/changelog': ChangelogPage,
-  '*': HomePage // Fallback to home for unknown routes
+  '/changelog': ChangelogPage
 };
+
+// Build routes with locale prefixes (fr, es, de)
+const routes = { ...baseRoutes };
+
+// Add locale-prefixed routes for non-default locales
+for (const loc of localeKeys) {
+  if (loc !== defaultLocale) {
+    for (const [path, handler] of Object.entries(baseRoutes)) {
+      const localePath = path === '/' ? `/${loc}` : `/${loc}${path}`;
+      routes[localePath] = handler;
+    }
+  }
+}
+
+// Fallback to home for unknown routes
+routes['*'] = HomePage;
 
 // =============================================================================
 // App Component

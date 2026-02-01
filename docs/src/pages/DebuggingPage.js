@@ -3,16 +3,17 @@
  */
 
 import { el } from '/runtime/index.js';
+import { t } from '../state.js';
 
 export function DebuggingPage() {
   const page = el('.page.docs-page');
 
   page.innerHTML = `
-    <h1>🔍 Debugging</h1>
-    <p class="intro">Tools and techniques for debugging Pulse applications</p>
+    <h1>${t('debugging.title')}</h1>
+    <p class="intro">${t('debugging.intro')}</p>
 
     <section class="doc-section">
-      <h2>Source Maps</h2>
+      <h2>${t('debugging.sourceMaps')}</h2>
       <p>Pulse v1.4.9+ generates V3 source maps for compiled <code>.pulse</code> files, enabling debugging of original source code in browser DevTools.</p>
 
       <h3>Enabling Source Maps</h3>
@@ -59,7 +60,7 @@ export default defineConfig({
     </section>
 
     <section class="doc-section">
-      <h2>Logger API</h2>
+      <h2>${t('debugging.loggerApi')}</h2>
       <p>Use the built-in logger for structured debugging output:</p>
 
       <div class="code-block">
@@ -101,7 +102,7 @@ childLog.info('Validating'); // [MyComponent:Validation] Validating</code></pre>
     </section>
 
     <section class="doc-section">
-      <h2>Reactivity Debugging</h2>
+      <h2>${t('debugging.reactivityDebugging')}</h2>
       <p>Techniques for debugging reactive state and effects:</p>
 
       <h3>Tracking Dependencies</h3>
@@ -151,7 +152,7 @@ batch(() => {
     </section>
 
     <section class="doc-section">
-      <h2>Router Debugging</h2>
+      <h2>${t('debugging.routerDebugging')}</h2>
       <p>Debug navigation and route matching:</p>
 
       <div class="code-block">
@@ -184,7 +185,7 @@ effect(() => {
     </section>
 
     <section class="doc-section">
-      <h2>HMR Debugging</h2>
+      <h2>${t('debugging.hmrDebugging')}</h2>
       <p>Debug Hot Module Replacement issues:</p>
 
       <div class="code-block">
@@ -211,7 +212,7 @@ console.log('Preserved count:', count.get());</code></pre>
     </section>
 
     <section class="doc-section">
-      <h2>Common Errors</h2>
+      <h2>${t('debugging.commonErrors')}</h2>
 
       <div class="error-item">
         <h3><code>Maximum update depth exceeded</code></h3>
@@ -295,7 +296,7 @@ lazy(() => import('./Dashboard.js'))  // export default Dashboard</code></pre>
     </section>
 
     <section class="doc-section">
-      <h2>Performance Profiling</h2>
+      <h2>${t('debugging.performanceProfiling')}</h2>
       <p>Tips for identifying performance bottlenecks:</p>
 
       <h3>Measure Effect Performance</h3>
@@ -324,7 +325,7 @@ lazy(() => import('./Dashboard.js'))  // export default Dashboard</code></pre>
 
     <div class="next-section">
       <button class="btn btn-primary" onclick="window.docs.navigate('/api-reference')">
-        Next: API Reference →
+        ${t('debugging.nextApiReference')}
       </button>
     </div>
   `;

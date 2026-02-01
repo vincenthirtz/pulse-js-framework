@@ -3,16 +3,17 @@
  */
 
 import { el } from '/runtime/index.js';
+import { t } from '../state.js';
 
 export function MobilePage() {
   const page = el('.page.mobile-page');
 
   page.innerHTML = `
-    <h1>📱 Mobile Apps</h1>
-    <p class="intro">Build native Android & iOS apps from your Pulse project with zero external dependencies.</p>
+    <h1>${t('mobile.title')}</h1>
+    <p class="intro">${t('mobile.intro')}</p>
 
     <section class="doc-section">
-      <h2>Overview</h2>
+      <h2>${t('mobile.overview')}</h2>
       <p>Pulse Mobile lets you package your web app as a native mobile app without using Capacitor, Cordova, or any external dependencies. It provides pure native templates (Java for Android, Swift for iOS) with a WebView container and JavaScript bridge for native features.</p>
 
       <div class="feature-grid">
@@ -40,7 +41,7 @@ export function MobilePage() {
     </section>
 
     <section class="doc-section">
-      <h2>Quick Start</h2>
+      <h2>${t('mobile.quickStart')}</h2>
 
       <div class="code-block">
         <pre><code># Initialize mobile platforms in your Pulse project
@@ -62,7 +63,7 @@ pulse mobile run ios</code></pre>
     </section>
 
     <section class="doc-section">
-      <h2>CLI Commands</h2>
+      <h2>${t('mobile.cliCommands')}</h2>
 
       <div class="api-item">
         <h3><code>pulse mobile init</code></h3>
@@ -95,8 +96,8 @@ pulse mobile run ios</code></pre>
     </section>
 
     <section class="doc-section">
-      <h2>Configuration</h2>
-      <p>The <code>pulse.mobile.json</code> file configures your mobile app:</p>
+      <h2>${t('mobile.configuration')}</h2>
+      <p>${t('mobile.configurationDesc')}</p>
 
       <div class="code-block">
         <pre><code>{
@@ -117,7 +118,7 @@ pulse mobile run ios</code></pre>
     </section>
 
     <section class="doc-section">
-      <h2>Native APIs</h2>
+      <h2>${t('mobile.nativeApis')}</h2>
 
       <div class="api-item">
         <h3><code>onNativeReady(callback)</code></h3>
@@ -222,16 +223,16 @@ onBackButton(() => {
     </section>
 
     <section class="doc-section">
-      <h2>Requirements</h2>
+      <h2>${t('mobile.requirements')}</h2>
 
-      <h3>Android</h3>
+      <h3>${t('mobile.requirementsAndroid')}</h3>
       <ul>
         <li>Android SDK with build-tools installed</li>
         <li>ANDROID_HOME environment variable set</li>
         <li>ADB for running on devices</li>
       </ul>
 
-      <h3>iOS</h3>
+      <h3>${t('mobile.requirementsIos')}</h3>
       <ul>
         <li>macOS (iOS builds only work on Mac)</li>
         <li>Xcode installed with command line tools</li>
@@ -241,7 +242,7 @@ onBackButton(() => {
 
     <div class="next-section">
       <button class="btn btn-primary" onclick="window.docs.navigate('/examples')">
-        Next: Examples →
+        ${t('mobile.nextExamples')}
       </button>
     </div>
   `;

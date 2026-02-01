@@ -3,16 +3,17 @@
  */
 
 import { el } from '/runtime/index.js';
+import { t } from '../state.js';
 
 export function GettingStartedPage() {
   const page = el('.page.docs-page');
 
   page.innerHTML = `
-    <h1>🚀 Getting Started</h1>
+    <h1>${t('gettingStarted.title')}</h1>
 
     <section class="doc-section">
-      <h2>Installation</h2>
-      <p>Create a new Pulse project with a single command:</p>
+      <h2>${t('gettingStarted.installation')}</h2>
+      <p>${t('gettingStarted.installationDesc')}</p>
       <div class="code-block">
         <pre><code>npx pulse-js-framework create my-app
 cd my-app
@@ -22,20 +23,20 @@ npm run dev</code></pre>
     </section>
 
     <section class="doc-section">
-      <h2>Manual Setup</h2>
-      <p>Or set up manually in any project:</p>
+      <h2>${t('gettingStarted.manualSetup')}</h2>
+      <p>${t('gettingStarted.manualSetupDesc')}</p>
       <div class="code-block">
         <pre><code>npm install pulse-js-framework</code></pre>
       </div>
-      <p>Then import in your JavaScript:</p>
+      <p>${t('gettingStarted.thenImport')}</p>
       <div class="code-block">
         <pre><code>import { pulse, effect, el, mount } from 'pulse-js-framework';</code></pre>
       </div>
     </section>
 
     <section class="doc-section">
-      <h2>Your First Component</h2>
-      <p>Create a simple reactive counter:</p>
+      <h2>${t('gettingStarted.firstComponent')}</h2>
+      <p>${t('gettingStarted.firstComponentDesc')}</p>
       <div class="code-block">
         <pre><code>import { pulse, effect, el, mount } from 'pulse-js-framework';
 
@@ -69,8 +70,8 @@ mount('#app', App());</code></pre>
     </section>
 
     <section class="doc-section">
-      <h2>Using .pulse Files</h2>
-      <p>For a cleaner syntax, use <code>.pulse</code> files with the Vite plugin:</p>
+      <h2>${t('gettingStarted.usingPulseFiles')}</h2>
+      <p>${t('gettingStarted.usingPulseFilesDesc')}</p>
       <div class="code-block">
         <div class="code-header">vite.config.js</div>
         <pre><code>import { defineConfig } from 'vite';
@@ -99,7 +100,7 @@ view {
     </section>
 
     <section class="doc-section">
-      <h2>Project Structure</h2>
+      <h2>${t('gettingStarted.projectStructure')}</h2>
       <div class="code-block">
         <pre><code>my-app/
 ├── index.html
@@ -114,10 +115,10 @@ view {
     </section>
 
     <section class="doc-section">
-      <h2>CLI Commands</h2>
-      <p>Pulse provides a complete CLI for development workflow:</p>
+      <h2>${t('gettingStarted.cliCommands')}</h2>
+      <p>${t('gettingStarted.cliCommandsDesc')}</p>
 
-      <h3>Development</h3>
+      <h3>${t('gettingStarted.development')}</h3>
       <div class="code-block">
         <pre><code>pulse create &lt;name&gt;   # Create new project
 pulse dev [port]      # Start dev server (default: 3000)
@@ -125,7 +126,7 @@ pulse build           # Build for production
 pulse preview [port]  # Preview production build</code></pre>
       </div>
 
-      <h3>Code Quality</h3>
+      <h3>${t('gettingStarted.codeQuality')}</h3>
       <div class="code-block">
         <pre><code>pulse lint [files]    # Validate .pulse files
 pulse lint --fix      # Auto-fix issues
@@ -135,32 +136,32 @@ pulse analyze         # Analyze bundle size
 pulse analyze --json  # JSON output</code></pre>
       </div>
 
-      <p><strong>Lint checks:</strong> undefined references, unused imports/state, naming conventions, empty blocks, import order.</p>
-      <p><strong>Format rules:</strong> 2-space indent, sorted imports, consistent braces, proper spacing.</p>
-      <p><strong>Analyze output:</strong> file count, component complexity, import graph, dead code detection.</p>
+      <p>${t('gettingStarted.lintChecks')}</p>
+      <p>${t('gettingStarted.formatRules')}</p>
+      <p>${t('gettingStarted.analyzeOutput')}</p>
     </section>
 
     <section class="doc-section faq-section">
-      <h2>FAQ</h2>
+      <h2>${t('gettingStarted.faq')}</h2>
 
       <div class="faq-item">
-        <h3>Do I need a build step?</h3>
-        <p>No! Pulse works directly in the browser. However, for <code>.pulse</code> files and production optimization, we recommend using Vite with the Pulse plugin.</p>
+        <h3>${t('gettingStarted.faqBuildStep.q')}</h3>
+        <p>${t('gettingStarted.faqBuildStep.a')}</p>
       </div>
 
       <div class="faq-item">
-        <h3>How does Pulse compare to React/Vue?</h3>
-        <p>Pulse is much lighter (~4kb core, ~12kb full vs 35-45kb) and uses pulses (reactive primitives) instead of virtual DOM. It has zero dependencies and an optional build step. The CSS selector syntax is unique to Pulse.</p>
+        <h3>${t('gettingStarted.faqComparison.q')}</h3>
+        <p>${t('gettingStarted.faqComparison.a')}</p>
       </div>
 
       <div class="faq-item">
-        <h3>Can I use TypeScript?</h3>
-        <p>Yes! Pulse includes full TypeScript definitions. Just import types from <code>pulse-js-framework/runtime</code> and your IDE will provide autocomplete.</p>
+        <h3>${t('gettingStarted.faqTypeScript.q')}</h3>
+        <p>${t('gettingStarted.faqTypeScript.a')}</p>
       </div>
 
       <div class="faq-item">
-        <h3>How do I handle forms?</h3>
-        <p>Use the <code>model()</code> helper for two-way binding:</p>
+        <h3>${t('gettingStarted.faqForms.q')}</h3>
+        <p>${t('gettingStarted.faqForms.a')}</p>
         <div class="code-block">
           <pre><code>const name = pulse('');
 const input = el('input[type=text]');
@@ -169,13 +170,13 @@ model(input, name);  // Two-way binding</code></pre>
       </div>
 
       <div class="faq-item">
-        <h3>Can I use Pulse with existing projects?</h3>
-        <p>Yes! Pulse can be mounted to any DOM element. Use <code>mount('#my-widget', MyComponent())</code> to embed Pulse components anywhere.</p>
+        <h3>${t('gettingStarted.faqExisting.q')}</h3>
+        <p>${t('gettingStarted.faqExisting.a')}</p>
       </div>
 
       <div class="faq-item">
-        <h3>How do I fetch data?</h3>
-        <p>Use standard <code>fetch()</code> with effects:</p>
+        <h3>${t('gettingStarted.faqFetch.q')}</h3>
+        <p>${t('gettingStarted.faqFetch.a')}</p>
         <div class="code-block">
           <pre><code>const users = pulse([]);
 const loading = pulse(true);
@@ -192,29 +193,29 @@ effect(() => {
       </div>
 
       <div class="faq-item">
-        <h3>Does Pulse support SSR?</h3>
-        <p>Not yet, but it's on the roadmap. Currently Pulse is optimized for client-side SPAs and mobile apps.</p>
+        <h3>${t('gettingStarted.faqSSR.q')}</h3>
+        <p>${t('gettingStarted.faqSSR.a')}</p>
       </div>
 
       <div class="faq-item">
-        <h3>How do I debug my app?</h3>
-        <p>Pulse v1.4.9+ supports source maps for <code>.pulse</code> files. Use the Logger API for structured output. See the <a href="#" onclick="window.docs.navigate('/debugging'); return false;">Debugging Guide</a> for more.</p>
+        <h3>${t('gettingStarted.faqDebug.q')}</h3>
+        <p>${t('gettingStarted.faqDebug.a')}</p>
       </div>
 
       <div class="faq-item">
-        <h3>Can I build mobile apps?</h3>
-        <p>Yes! Use <code>pulse mobile init</code> to set up Android/iOS projects. Pulse includes native APIs for storage, device info, and more. See the <a href="#" onclick="window.docs.navigate('/mobile'); return false;">Mobile Guide</a>.</p>
+        <h3>${t('gettingStarted.faqMobile.q')}</h3>
+        <p>${t('gettingStarted.faqMobile.a')}</p>
       </div>
 
       <div class="faq-item">
-        <h3>Where can I get help?</h3>
-        <p>Open an issue on <a href="https://github.com/vincenthirtz/pulse-js-framework/issues" target="_blank">GitHub</a> or check the <a href="#" onclick="window.docs.navigate('/examples'); return false;">Examples</a> for reference implementations.</p>
+        <h3>${t('gettingStarted.faqHelp.q')}</h3>
+        <p>${t('gettingStarted.faqHelp.a')}</p>
       </div>
     </section>
 
     <div class="next-section">
       <button class="btn btn-primary" onclick="window.docs.navigate('/core-concepts')">
-        Next: Core Concepts →
+        ${t('gettingStarted.nextCoreConcepts')}
       </button>
     </div>
   `;
