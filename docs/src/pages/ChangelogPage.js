@@ -17,7 +17,20 @@ export function ChangelogPage() {
     
     
     
+    
     <section class="doc-section changelog-section">
+      <h2>v1.7.5 - DX Improvements & CLI Enhancements</h2>
+      <p class="release-date">February 2026</p>
+
+      <div class="changelog-group">
+        <ul class="feature-list">
+          <li><strong>Added:</strong> DX improvements - error messages, CLI enhancements, documentation</li>
+          <li><strong>Added:</strong> add Japanese, Portuguese, Icelandic, and Esperanto translations</li>
+          <li><strong>Fixed:</strong> header layout and missing i18n keys</li>
+        </ul>
+      </div>
+    </section>
+<section class="doc-section changelog-section">
       <h2>v1.7.4 - iOS WebView & i18n System</h2>
       <p class="release-date">February 2026</p>
 
