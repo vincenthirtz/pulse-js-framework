@@ -9,9 +9,9 @@ struct ContentView: View {
 }
 
 struct WebView: UIViewRepresentable {
-    // URL du serveur de dev Pulse (localhost depuis le simulateur)
+    // URL du serveur de dev Pulse (127.0.0.1 depuis le simulateur)
     // Pour un appareil physique, utilisez l'IP de votre machine
-    private let devServerURL = "http://localhost:3000"
+    private let devServerURL = "http://127.0.0.1:3000"
 
     // En Debug: charge depuis le serveur Pulse (hot-reload)
     // En Release: charge depuis les ressources locales
@@ -25,7 +25,9 @@ struct WebView: UIViewRepresentable {
         let configuration = WKWebViewConfiguration()
 
         // Active JavaScript (nécessaire pour Pulse)
-        configuration.preferences.javaScriptEnabled = true
+        let pagePrefs = WKWebpagePreferences()
+        pagePrefs.allowsContentJavaScript = true
+        configuration.defaultWebpagePreferences = pagePrefs
 
         // Support du DOM Storage pour le store Pulse
         configuration.websiteDataStore = .default()
@@ -43,10 +45,10 @@ struct WebView: UIViewRepresentable {
         webView.scrollView.maximumZoomScale = 1.0
         webView.scrollView.minimumZoomScale = 1.0
 
-        // Debug WebView en mode dev
+        // Debug WebView en mode dev (iOS 16.4+)
         #if DEBUG
         if #available(iOS 16.4, *) {
-            webView.isInspectable = true
+            webView.setValue(true, forKey: "inspectable")
         }
         #endif
 
@@ -96,6 +98,8 @@ struct WebView: UIViewRepresentable {
     }
 }
 
-#Preview {
-    ContentView()
+struct ContentView_Previews: PreviewProvider {
+    static var previews: some View {
+        ContentView()
+    }
 }
