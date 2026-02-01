@@ -26,7 +26,30 @@ const log = loggers.dom;
 // - 500 provides headroom for dynamic selectors without excessive memory
 //
 // Cache hit returns a shallow copy to prevent mutation of cached config
-const selectorCache = new LRUCache(500);
+// Metrics tracking enabled for performance monitoring
+const selectorCache = new LRUCache(500, { trackMetrics: true });
+
+/**
+ * Get selector cache performance metrics.
+ * Useful for debugging and performance tuning.
+ *
+ * @returns {{hits: number, misses: number, evictions: number, hitRate: number, size: number, capacity: number}}
+ * @example
+ * const stats = getCacheMetrics();
+ * console.log(`Cache hit rate: ${(stats.hitRate * 100).toFixed(1)}%`);
+ * console.log(`Cache size: ${stats.size}/${stats.capacity}`);
+ */
+export function getCacheMetrics() {
+  return selectorCache.getMetrics();
+}
+
+/**
+ * Reset cache metrics counters.
+ * Useful for measuring performance over specific time periods.
+ */
+export function resetCacheMetrics() {
+  selectorCache.resetMetrics();
+}
 
 /**
  * Safely insert a node before a reference node
@@ -375,6 +398,57 @@ export function on(element, event, handler, options) {
 }
 
 /**
+ * Compute Longest Increasing Subsequence indices
+ * Used to minimize DOM moves during list reconciliation
+ * @private
+ * @param {number[]} arr - Array of indices
+ * @returns {number[]} Indices of elements in the LIS
+ */
+function computeLIS(arr) {
+  const n = arr.length;
+  if (n === 0) return [];
+
+  // dp[i] = smallest tail of LIS of length i+1
+  const dp = [];
+  // parent[i] = index of previous element in LIS ending at i
+  const parent = new Array(n).fill(-1);
+  // indices[i] = index in original array of dp[i]
+  const indices = [];
+
+  for (let i = 0; i < n; i++) {
+    const val = arr[i];
+
+    // Binary search for position
+    let lo = 0, hi = dp.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (dp[mid] < val) lo = mid + 1;
+      else hi = mid;
+    }
+
+    if (lo === dp.length) {
+      dp.push(val);
+      indices.push(i);
+    } else {
+      dp[lo] = val;
+      indices[lo] = i;
+    }
+
+    parent[i] = lo > 0 ? indices[lo - 1] : -1;
+  }
+
+  // Reconstruct LIS indices
+  const lis = [];
+  let idx = indices[dp.length - 1];
+  while (idx !== -1) {
+    lis.push(idx);
+    idx = parent[idx];
+  }
+
+  return lis.reverse();
+}
+
+/**
  * Create a reactive list with efficient keyed diffing
  *
  * LIST DIFFING ALGORITHM:
@@ -389,19 +463,19 @@ export function on(element, event, handler, options) {
  *    a) Build a map of new items by key
  *    b) For existing keys: reuse the DOM nodes (no re-creation)
  *    c) For removed keys: remove DOM nodes and run cleanup
- *    d) For new keys: create DOM nodes via template function
+ *    d) For new keys: batch create via DocumentFragment
  *
- * 3. REORDERING: Uses a single forward pass:
- *    - Tracks previous node position with prevNode cursor
- *    - Only moves nodes that are out of position
- *    - Nodes already in correct position are skipped (no DOM operation)
+ * 3. REORDERING: Uses LIS (Longest Increasing Subsequence):
+ *    - Computes which nodes are already in correct relative order
+ *    - Only moves nodes NOT in the LIS (minimizes DOM operations)
+ *    - New items are batched into DocumentFragment before insertion
  *
  * 4. BOUNDARY MARKERS: Uses comment nodes to track list boundaries:
  *    - startMarker: Insertion point for first item
  *    - endMarker: End boundary (not currently used but reserved)
  *
- * COMPLEXITY: O(n) for reconciliation + O(m) DOM moves where m <= n
- * Best case (no changes): O(n) comparisons, 0 DOM operations
+ * COMPLEXITY: O(n log n) for LIS + O(m) DOM moves where m = n - LIS length
+ * Best case (append only): O(n) with single DocumentFragment insert
  *
  * @param {Function|Pulse} getItems - Items source (reactive)
  * @param {Function} template - (item, index) => Node | Node[]
@@ -426,8 +500,9 @@ export function list(getItems, template, keyFn = (item, i) => i) {
 
     const newKeys = [];
     const newItemNodes = new Map();
+    const newItems = []; // Track new items for batched insertion
 
-    // Build map of new items by key
+    // Phase 1: Build map of new items by key
     itemsArray.forEach((item, index) => {
       const key = keyFn(item, index);
       newKeys.push(key);
@@ -436,14 +511,21 @@ export function list(getItems, template, keyFn = (item, i) => i) {
         // Reuse existing entry
         newItemNodes.set(key, itemNodes.get(key));
       } else {
-        // Create new nodes
+        // Mark as new (will batch create later)
+        newItems.push({ key, item, index });
+      }
+    });
+
+    // Phase 2: Batch create new nodes using DocumentFragment
+    if (newItems.length > 0) {
+      for (const { key, item, index } of newItems) {
         const result = template(item, index);
         const nodes = Array.isArray(result) ? result : [result];
         newItemNodes.set(key, { nodes, cleanup: null, item });
       }
-    });
+    }
 
-    // Remove items that are no longer present
+    // Phase 3: Remove items that are no longer present
     for (const [key, entry] of itemNodes) {
       if (!newItemNodes.has(key)) {
         for (const node of entry.nodes) {
@@ -453,25 +535,101 @@ export function list(getItems, template, keyFn = (item, i) => i) {
       }
     }
 
-    // Efficient reordering using minimal DOM operations
-    // Use a simple diff algorithm: iterate through new order and move/insert as needed
-    let prevNode = startMarker;
+    // Phase 4: Efficient reordering using LIS algorithm
+    // Build old position map for existing keys
+    const oldKeyIndex = new Map();
+    keyOrder.forEach((key, i) => oldKeyIndex.set(key, i));
 
+    // Get indices of existing items in old order
+    const existingIndices = [];
+    const existingKeys = [];
     for (let i = 0; i < newKeys.length; i++) {
       const key = newKeys[i];
-      const entry = newItemNodes.get(key);
-      const firstNode = entry.nodes[0];
+      if (oldKeyIndex.has(key)) {
+        existingIndices.push(oldKeyIndex.get(key));
+        existingKeys.push(key);
+      }
+    }
 
-      // Check if node is already in correct position
-      if (prevNode.nextSibling !== firstNode) {
-        // Need to move/insert
+    // Compute LIS - these nodes don't need to move
+    const lisIndices = new Set(computeLIS(existingIndices));
+    const stableKeys = new Set();
+    existingKeys.forEach((key, i) => {
+      if (lisIndices.has(i)) {
+        stableKeys.add(key);
+      }
+    });
+
+    // Phase 5: Position nodes with minimal DOM operations
+    const parent = startMarker.parentNode;
+    if (!parent) {
+      // Not yet in DOM, use simple append with DocumentFragment batch
+      const fragment = document.createDocumentFragment();
+      for (const key of newKeys) {
+        const entry = newItemNodes.get(key);
         for (const node of entry.nodes) {
-          prevNode.parentNode?.insertBefore(node, prevNode.nextSibling);
-          prevNode = node;
+          fragment.appendChild(node);
         }
-      } else {
-        // Already in position, just advance prevNode
-        prevNode = entry.nodes[entry.nodes.length - 1];
+      }
+      container.insertBefore(fragment, endMarker);
+    } else {
+      // Optimized reordering: batch consecutive inserts using DocumentFragment
+      let prevNode = startMarker;
+
+      // Process items in new order
+      for (let i = 0; i < newKeys.length; i++) {
+        const key = newKeys[i];
+        const entry = newItemNodes.get(key);
+        const firstNode = entry.nodes[0];
+        const isNew = !oldKeyIndex.has(key);
+        const isStable = stableKeys.has(key);
+
+        // Check if node is already in correct position
+        const inPosition = prevNode.nextSibling === firstNode;
+
+        if (inPosition && (isStable || isNew)) {
+          // Already in correct position, just advance
+          prevNode = entry.nodes[entry.nodes.length - 1];
+        } else {
+          // Collect consecutive items that need to be inserted at this position
+          const fragment = document.createDocumentFragment();
+          let j = i;
+
+          while (j < newKeys.length) {
+            const k = newKeys[j];
+            const e = newItemNodes.get(k);
+            const f = e.nodes[0];
+            const n = !oldKeyIndex.has(k);
+            const s = stableKeys.has(k);
+
+            // If this item is already in position after prevNode, stop batching
+            if (j > i && prevNode.nextSibling === f) {
+              break;
+            }
+
+            // Add to batch if it's new or needs to move
+            if (n || !s || prevNode.nextSibling !== f) {
+              for (const node of e.nodes) {
+                fragment.appendChild(node);
+              }
+              j++;
+            } else {
+              break;
+            }
+          }
+
+          // Insert the batch
+          if (fragment.childNodes.length > 0) {
+            parent.insertBefore(fragment, prevNode.nextSibling);
+          }
+
+          // Update prevNode to last inserted node
+          if (j > i) {
+            const lastEntry = newItemNodes.get(newKeys[j - 1]);
+            prevNode = lastEntry.nodes[lastEntry.nodes.length - 1];
+            i = j - 1; // Continue from where we left off
+          }
+        }
       }
     }
 
@@ -564,6 +722,9 @@ export function match(getValue, cases) {
 
 /**
  * Two-way binding for form inputs
+ *
+ * MEMORY SAFETY: All event listeners are registered with onCleanup()
+ * to prevent memory leaks when the element is removed from the DOM.
  */
 export function model(element, pulseValue) {
   const tagName = element.tagName.toLowerCase();
@@ -574,17 +735,17 @@ export function model(element, pulseValue) {
     effect(() => {
       element.checked = pulseValue.get();
     });
-    element.addEventListener('change', () => {
-      pulseValue.set(element.checked);
-    });
+    const handler = () => pulseValue.set(element.checked);
+    element.addEventListener('change', handler);
+    onCleanup(() => element.removeEventListener('change', handler));
   } else if (tagName === 'select') {
     // Select
     effect(() => {
       element.value = pulseValue.get();
     });
-    element.addEventListener('change', () => {
-      pulseValue.set(element.value);
-    });
+    const handler = () => pulseValue.set(element.value);
+    element.addEventListener('change', handler);
+    onCleanup(() => element.removeEventListener('change', handler));
   } else {
     // Text input, textarea, etc.
     effect(() => {
@@ -592,9 +753,9 @@ export function model(element, pulseValue) {
         element.value = pulseValue.get();
       }
     });
-    element.addEventListener('input', () => {
-      pulseValue.set(element.value);
-    });
+    const handler = () => pulseValue.set(element.value);
+    element.addEventListener('input', handler);
+    onCleanup(() => element.removeEventListener('input', handler));
   }
 
   return element;
@@ -817,6 +978,9 @@ export function errorBoundary(children, fallback) {
 
 /**
  * Transition helper - animate element enter/exit
+ *
+ * MEMORY SAFETY: All timers are tracked and cleared on cleanup
+ * to prevent callbacks executing on removed elements.
  */
 export function transition(element, options = {}) {
   const {
@@ -827,11 +991,30 @@ export function transition(element, options = {}) {
     onExit
   } = options;
 
+  // Track active timers for cleanup
+  const activeTimers = new Set();
+
+  const safeTimeout = (fn, delay) => {
+    const timerId = setTimeout(() => {
+      activeTimers.delete(timerId);
+      fn();
+    }, delay);
+    activeTimers.add(timerId);
+    return timerId;
+  };
+
+  const clearAllTimers = () => {
+    for (const timerId of activeTimers) {
+      clearTimeout(timerId);
+    }
+    activeTimers.clear();
+  };
+
   // Apply enter animation
   const applyEnter = () => {
     element.classList.add(enter);
     if (onEnter) onEnter(element);
-    setTimeout(() => {
+    safeTimeout(() => {
       element.classList.remove(enter);
     }, duration);
   };
@@ -841,7 +1024,7 @@ export function transition(element, options = {}) {
     return new Promise(resolve => {
       element.classList.add(exit);
       if (onExit) onExit(element);
-      setTimeout(() => {
+      safeTimeout(() => {
         element.classList.remove(exit);
         resolve();
       }, duration);
@@ -854,11 +1037,17 @@ export function transition(element, options = {}) {
   // Attach exit method
   element._pulseTransitionExit = applyExit;
 
+  // Register cleanup for all timers
+  onCleanup(clearAllTimers);
+
   return element;
 }
 
 /**
  * Conditional rendering with transitions
+ *
+ * MEMORY SAFETY: All timers are tracked and cleared on cleanup
+ * to prevent callbacks executing on removed elements.
  */
 export function whenTransition(condition, thenTemplate, elseTemplate = null, options = {}) {
   const container = document.createDocumentFragment();
@@ -869,6 +1058,28 @@ export function whenTransition(condition, thenTemplate, elseTemplate = null, opt
 
   let currentNodes = [];
   let isTransitioning = false;
+
+  // Track active timers for cleanup
+  const activeTimers = new Set();
+
+  const safeTimeout = (fn, delay) => {
+    const timerId = setTimeout(() => {
+      activeTimers.delete(timerId);
+      fn();
+    }, delay);
+    activeTimers.add(timerId);
+    return timerId;
+  };
+
+  const clearAllTimers = () => {
+    for (const timerId of activeTimers) {
+      clearTimeout(timerId);
+    }
+    activeTimers.clear();
+  };
+
+  // Register cleanup for all timers
+  onCleanup(clearAllTimers);
 
   effect(() => {
     const show = typeof condition === 'function' ? condition() : condition.get();
@@ -887,7 +1098,7 @@ export function whenTransition(condition, thenTemplate, elseTemplate = null, opt
         node.classList.add(exitClass);
       }
 
-      setTimeout(() => {
+      safeTimeout(() => {
         for (const node of nodesToRemove) {
           node.remove();
         }
@@ -904,7 +1115,7 @@ export function whenTransition(condition, thenTemplate, elseTemplate = null, opt
                 node.classList.add(enterClass);
                 fragment.appendChild(node);
                 currentNodes.push(node);
-                setTimeout(() => node.classList.remove(enterClass), duration);
+                safeTimeout(() => node.classList.remove(enterClass), duration);
               }
             }
             marker.parentNode?.insertBefore(fragment, marker.nextSibling);
@@ -922,7 +1133,7 @@ export function whenTransition(condition, thenTemplate, elseTemplate = null, opt
             node.classList.add(enterClass);
             fragment.appendChild(node);
             currentNodes.push(node);
-            setTimeout(() => node.classList.remove(enterClass), duration);
+            safeTimeout(() => node.classList.remove(enterClass), duration);
           }
         }
         marker.parentNode?.insertBefore(fragment, marker.nextSibling);
@@ -955,5 +1166,8 @@ export default {
   portal,
   errorBoundary,
   transition,
-  whenTransition
+  whenTransition,
+  // Diagnostics
+  getCacheMetrics,
+  resetCacheMetrics
 };

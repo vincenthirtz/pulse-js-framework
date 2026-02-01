@@ -549,6 +549,14 @@ class Element extends Node {
     }
   }
 
+  get type() {
+    return this._attributes.type || '';
+  }
+
+  set type(val) {
+    this._attributes.type = val;
+  }
+
   get href() {
     return this._attributes.href || '';
   }

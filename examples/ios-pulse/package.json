@@ -1,0 +1,14 @@
+{
+  "name": "ios-pulse",
+  "version": "1.0.0",
+  "description": "Pulse app for iOS WKWebView with hot-reload",
+  "type": "module",
+  "scripts": {
+    "dev": "pulse dev 3000",
+    "build": "pulse build",
+    "build:ios": "pulse build && node scripts/copy-to-ios.js"
+  },
+  "devDependencies": {
+    "pulse-js-framework": "file:../.."
+  }
+}

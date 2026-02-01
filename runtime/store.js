@@ -109,8 +109,50 @@ function validateStateValue(value, path = 'state', seen = new WeakSet()) {
 }
 
 /**
+ * Recursively sanitize a value, removing dangerous keys from nested objects.
+ * @private
+ * @param {*} value - Value to sanitize
+ * @param {number} depth - Current nesting depth
+ * @returns {*} Sanitized value
+ */
+function sanitizeValue(value, depth = 0) {
+  // Prevent deep nesting attacks
+  if (depth > MAX_NESTING_DEPTH) {
+    log.warn('Maximum nesting depth exceeded in persisted state');
+    return null;
+  }
+
+  if (value === null || typeof value !== 'object') {
+    return value;
+  }
+
+  if (Array.isArray(value)) {
+    // Recursively sanitize array elements
+    return value.map(item => sanitizeValue(item, depth + 1));
+  }
+
+  // Sanitize object
+  const result = {};
+  for (const [key, val] of Object.entries(value)) {
+    // Block dangerous keys at every nesting level
+    if (DANGEROUS_KEYS.has(key)) {
+      log.warn(`Blocked dangerous key in persisted state: "${key}"`);
+      continue;
+    }
+    result[key] = sanitizeValue(val, depth + 1);
+  }
+  return result;
+}
+
+/**
  * Safely deserialize persisted state, preventing prototype pollution
  * and property injection attacks.
+ *
+ * SECURITY: Validates at every nesting level including arrays.
+ * - Blocks __proto__, constructor, prototype keys
+ * - Enforces maximum nesting depth
+ * - Only allows keys defined in schema
+ *
  * @private
  * @param {Object} savedState - The parsed JSON state
  * @param {Object} schema - The initial state defining allowed keys
@@ -140,6 +182,9 @@ function safeDeserialize(savedState, schema) {
         result[key] = safeDeserialize(value, schema[key]);
       }
       // If schema expects primitive but got object, skip it
+    } else if (Array.isArray(value)) {
+      // Sanitize arrays to remove dangerous keys from nested objects
+      result[key] = sanitizeValue(value, 0);
     } else {
       result[key] = value;
     }

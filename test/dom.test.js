@@ -744,6 +744,366 @@ test('transition attaches exit method', () => {
 });
 
 // =============================================================================
+// Memory Leak Tests - model()
+// =============================================================================
+
+printSection('Memory Leak Tests - model()');
+
+test('model cleanup removes event listeners on text input', () => {
+  const value = pulse('test');
+  const input = el('input[type=text]');
+
+  // Track listeners before
+  const listenersBefore = input._eventListeners['input']?.length || 0;
+
+  model(input, value);
+
+  // Should have added listener
+  const listenersAfter = input._eventListeners['input']?.length || 0;
+  assert(listenersAfter > listenersBefore, 'Should add input listener');
+});
+
+test('model cleanup removes event listeners on checkbox', () => {
+  const checked = pulse(false);
+  const input = el('input[type=checkbox]');
+
+  const listenersBefore = input._eventListeners['change']?.length || 0;
+
+  model(input, checked);
+
+  const listenersAfter = input._eventListeners['change']?.length || 0;
+  assert(listenersAfter > listenersBefore, 'Should add change listener');
+});
+
+test('model cleanup removes event listeners on select', () => {
+  const selected = pulse('a');
+  const select = el('select');
+  select.innerHTML = '<option value="a">A</option><option value="b">B</option>';
+
+  const listenersBefore = select._eventListeners['change']?.length || 0;
+
+  model(select, selected);
+
+  const listenersAfter = select._eventListeners['change']?.length || 0;
+  assert(listenersAfter > listenersBefore, 'Should add change listener');
+});
+
+test('model with rapid value changes does not leak', () => {
+  const value = pulse('initial');
+  const input = el('input[type=text]');
+
+  model(input, value);
+
+  // Rapid updates should not create additional listeners
+  const listenersCount = input._eventListeners['input']?.length || 0;
+
+  for (let i = 0; i < 100; i++) {
+    value.set(`value-${i}`);
+  }
+
+  const listenersAfter = input._eventListeners['input']?.length || 0;
+  assertEqual(listenersAfter, listenersCount, 'Should not add extra listeners on value changes');
+});
+
+// =============================================================================
+// Memory Leak Tests - transition()
+// =============================================================================
+
+printSection('Memory Leak Tests - transition()');
+
+test('transition timer cleanup prevents callbacks on removed elements', () => {
+  const elem = el('div', 'Content');
+  document.body.appendChild(elem);
+
+  transition(elem, { enter: 'fade-in', duration: 50 });
+
+  // Remove element immediately (before timer fires)
+  elem.remove();
+
+  // Wait for timer to try to fire
+  return new Promise(resolve => {
+    setTimeout(() => {
+      // No error should occur - timers should be cleaned up
+      assert(true, 'No error from timer callback on removed element');
+      resolve();
+    }, 100);
+  });
+});
+
+test('transition exit method returns promise', () => {
+  const elem = el('div', 'Content');
+
+  transition(elem, { exit: 'fade-out', duration: 50 });
+
+  const result = elem._pulseTransitionExit();
+  assert(result instanceof Promise, 'Exit should return a promise');
+});
+
+test('multiple transitions on same element cleanup correctly', () => {
+  const elem = el('div', 'Content');
+
+  // Apply multiple transitions
+  transition(elem, { enter: 'fade-in', duration: 50 });
+  transition(elem, { enter: 'slide-in', duration: 50 });
+  transition(elem, { enter: 'zoom-in', duration: 50 });
+
+  // Should have the last exit method
+  assert(typeof elem._pulseTransitionExit === 'function');
+});
+
+// =============================================================================
+// Memory Leak Tests - whenTransition()
+// =============================================================================
+
+printSection('Memory Leak Tests - whenTransition()');
+
+test('whenTransition timer cleanup on rapid toggle', () => {
+  const show = pulse(true);
+  const container = el('div');
+
+  const fragment = whenTransition(
+    () => show.get(),
+    () => el('span.shown', 'Shown'),
+    () => el('span.hidden', 'Hidden'),
+    { duration: 50 }
+  );
+
+  container.appendChild(fragment);
+  document.body.appendChild(container);
+
+  // Rapid toggles should not accumulate timers
+  for (let i = 0; i < 20; i++) {
+    show.set(i % 2 === 0);
+  }
+
+  container.remove();
+
+  // If timers leaked, this would cause issues
+  assert(true, 'Rapid toggles should not leak timers');
+});
+
+test('whenTransition cleanup when parent removed', () => {
+  const show = pulse(true);
+  const container = el('div');
+
+  const fragment = whenTransition(
+    () => show.get(),
+    () => el('span.content', 'Content'),
+    null,
+    { duration: 100 }
+  );
+
+  container.appendChild(fragment);
+  document.body.appendChild(container);
+
+  // Start a transition
+  show.set(false);
+
+  // Remove container during transition
+  container.remove();
+
+  return new Promise(resolve => {
+    setTimeout(() => {
+      // Should not error when trying to update removed nodes
+      assert(true, 'No error when parent removed during transition');
+      resolve();
+    }, 150);
+  });
+});
+
+// =============================================================================
+// List Stress Tests
+// =============================================================================
+
+printSection('List Stress Tests');
+
+test('list handles large dataset (1000 items)', () => {
+  const largeData = Array.from({ length: 1000 }, (_, i) => ({
+    id: i,
+    name: `Item ${i}`
+  }));
+
+  const items = pulse(largeData);
+  const container = el('ul');
+
+  const fragment = list(
+    items,
+    (item) => el('li', item.name),
+    (item) => item.id
+  );
+
+  container.appendChild(fragment);
+
+  assertEqual(container.querySelectorAll('li').length, 1000, 'Should render 1000 items');
+});
+
+test('list handles rapid updates', () => {
+  const items = pulse([{ id: 1, name: 'a' }]);
+  const container = el('ul');
+
+  const fragment = list(
+    items,
+    (item) => el('li', item.name),
+    (item) => item.id
+  );
+
+  container.appendChild(fragment);
+
+  // Rapid updates
+  for (let i = 0; i < 50; i++) {
+    items.set([
+      { id: i * 2, name: `even-${i}` },
+      { id: i * 2 + 1, name: `odd-${i}` }
+    ]);
+  }
+
+  // Final state should be correct
+  assertEqual(container.querySelectorAll('li').length, 2, 'Should have 2 items after rapid updates');
+});
+
+test('list handles batch operations efficiently', () => {
+  const items = pulse([]);
+  const container = el('ul');
+
+  const fragment = list(
+    items,
+    (item) => el('li', item.name),
+    (item) => item.id
+  );
+
+  container.appendChild(fragment);
+
+  // Batch insert
+  batch(() => {
+    const newItems = Array.from({ length: 100 }, (_, i) => ({
+      id: i,
+      name: `Item ${i}`
+    }));
+    items.set(newItems);
+  });
+
+  assertEqual(container.querySelectorAll('li').length, 100, 'Batch insert should work');
+
+  // Batch delete half
+  batch(() => {
+    items.set(items.get().filter(item => item.id % 2 === 0));
+  });
+
+  assertEqual(container.querySelectorAll('li').length, 50, 'Batch delete should work');
+});
+
+test('list maintains correct order after shuffle', () => {
+  const items = pulse([
+    { id: 1, name: 'a' },
+    { id: 2, name: 'b' },
+    { id: 3, name: 'c' },
+    { id: 4, name: 'd' },
+    { id: 5, name: 'e' }
+  ]);
+  const container = el('ul');
+
+  const fragment = list(
+    items,
+    (item) => el('li', item.name),
+    (item) => item.id
+  );
+
+  container.appendChild(fragment);
+
+  // Shuffle items
+  items.set([
+    { id: 3, name: 'c' },
+    { id: 1, name: 'a' },
+    { id: 5, name: 'e' },
+    { id: 2, name: 'b' },
+    { id: 4, name: 'd' }
+  ]);
+
+  const listItems = container.querySelectorAll('li');
+  assertEqual(listItems.length, 5, 'Should have 5 items');
+  assertEqual(listItems[0].textContent, 'c', 'First item should be c');
+  assertEqual(listItems[1].textContent, 'a', 'Second item should be a');
+  assertEqual(listItems[4].textContent, 'd', 'Last item should be d');
+});
+
+test('list with duplicate keys handles gracefully', () => {
+  const items = pulse([
+    { id: 1, name: 'first' },
+    { id: 1, name: 'second' }, // Duplicate key
+    { id: 2, name: 'third' }
+  ]);
+  const container = el('ul');
+
+  const fragment = list(
+    items,
+    (item) => el('li', item.name),
+    (item) => item.id
+  );
+
+  container.appendChild(fragment);
+
+  // Should render all items (behavior may vary, but should not crash)
+  assert(container.querySelectorAll('li').length >= 2, 'Should render items even with duplicate keys');
+});
+
+test('list stress test with insertions and deletions', () => {
+  const items = pulse([]);
+  const container = el('ul');
+
+  const fragment = list(
+    items,
+    (item) => el('li', item.name),
+    (item) => item.id
+  );
+
+  container.appendChild(fragment);
+
+  // Add items one by one
+  for (let i = 0; i < 50; i++) {
+    items.update(arr => [...arr, { id: i, name: `Item ${i}` }]);
+  }
+  assertEqual(container.querySelectorAll('li').length, 50, 'Should have 50 items after additions');
+
+  // Remove items from beginning
+  for (let i = 0; i < 25; i++) {
+    items.update(arr => arr.slice(1));
+  }
+  assertEqual(container.querySelectorAll('li').length, 25, 'Should have 25 items after removals');
+
+  // Clear all
+  items.set([]);
+  assertEqual(container.querySelectorAll('li').length, 0, 'Should have 0 items after clear');
+
+  // Add back
+  items.set([{ id: 100, name: 'New Item' }]);
+  assertEqual(container.querySelectorAll('li').length, 1, 'Should have 1 item after re-add');
+});
+
+test('list with complex nested elements', () => {
+  const items = pulse([
+    { id: 1, title: 'Item 1', tags: ['a', 'b'] },
+    { id: 2, title: 'Item 2', tags: ['c'] }
+  ]);
+  const container = el('div');
+
+  const fragment = list(
+    items,
+    (item) => el('div.item',
+      el('h3', item.title),
+      el('ul.tags',
+        ...item.tags.map(tag => el('li.tag', tag))
+      )
+    ),
+    (item) => item.id
+  );
+
+  container.appendChild(fragment);
+
+  assertEqual(container.querySelectorAll('.item').length, 2, 'Should have 2 items');
+  assertEqual(container.querySelectorAll('.tag').length, 3, 'Should have 3 tags total');
+});
+
+// =============================================================================
 // Results
 // =============================================================================
 

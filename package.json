@@ -1,6 +1,6 @@
 {
   "name": "pulse-js-framework",
-  "version": "1.7.2",
+  "version": "1.7.3",
   "description": "A declarative DOM framework with CSS selector-based structure and reactive pulsations",
   "type": "module",
   "main": "index.js",
@@ -52,6 +52,9 @@
     },
     "./runtime/lru-cache": "./runtime/lru-cache.js",
     "./runtime/utils": "./runtime/utils.js",
+    "./runtime/async": "./runtime/async.js",
+    "./runtime/form": "./runtime/form.js",
+    "./runtime/devtools": "./runtime/devtools.js",
     "./compiler": {
       "types": "./types/index.d.ts",
       "default": "./compiler/index.js"
@@ -80,7 +83,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "test": "npm run test:compiler && npm run test:sourcemap && npm run test:pulse && npm run test:dom && npm run test:router && npm run test:store && npm run test:hmr && npm run test:lint && npm run test:format && npm run test:analyze && npm run test:lru-cache && npm run test:utils && npm run test:docs",
+    "test": "npm run test:compiler && npm run test:sourcemap && npm run test:pulse && npm run test:dom && npm run test:router && npm run test:store && npm run test:hmr && npm run test:lint && npm run test:format && npm run test:analyze && npm run test:lru-cache && npm run test:utils && npm run test:docs && npm run test:async && npm run test:form && npm run test:devtools",
     "test:compiler": "node test/compiler.test.js",
     "test:sourcemap": "node test/sourcemap.test.js",
     "test:pulse": "node test/pulse.test.js",
@@ -94,6 +97,9 @@
     "test:lru-cache": "node test/lru-cache.test.js",
     "test:utils": "node test/utils.test.js",
     "test:docs": "node test/docs.test.js",
+    "test:async": "node test/async.test.js",
+    "test:form": "node test/form.test.js",
+    "test:devtools": "node test/devtools.test.js",
     "build:netlify": "node scripts/build-netlify.js",
     "version": "node scripts/sync-version.js",
     "docs": "node cli/index.js dev docs"

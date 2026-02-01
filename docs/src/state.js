@@ -42,6 +42,9 @@ export const navigationFlat = [
   { path: '/core-concepts', label: '💡 Core Concepts' },
   { path: '/api-reference', label: '📖 API Reference' },
   { path: '/debugging', label: '🔍 Debugging' },
+  { path: '/security', label: '🔒 Security' },
+  { path: '/performance', label: '⚡ Performance' },
+  { path: '/error-handling', label: '🛡️ Error Handling' },
   { path: '/mobile', label: '📱 Mobile' },
   { path: '/examples', label: '✨ Examples' },
   { path: '/playground', label: '🎮 Playground' }
@@ -62,6 +65,9 @@ export const navigation = [
     children: [
       { path: '/api-reference', label: '📖 API Reference', desc: 'Complete API documentation' },
       { path: '/debugging', label: '🔍 Debugging', desc: 'Tools & troubleshooting' },
+      { path: '/security', label: '🔒 Security', desc: 'XSS prevention & safe patterns' },
+      { path: '/performance', label: '⚡ Performance', desc: 'Optimization techniques' },
+      { path: '/error-handling', label: '🛡️ Error Handling', desc: 'Error patterns & recovery' },
       { path: '/mobile', label: '📱 Mobile', desc: 'Android & iOS apps' }
     ]
   },
@@ -75,7 +81,7 @@ export const navigation = [
 ];
 
 // Current version - automatically updated by npm version script
-export const version = '1.7.2';
+export const version = '1.7.3';
 
 // =============================================================================
 // Router

@@ -1,0 +1,56 @@
+/**
+ * Todo Page
+ */
+
+@page TodoPage
+
+state {
+  items: []
+  inputText: ""
+}
+
+view {
+  .page.active {
+    .card {
+      h2.card-title "Liste de Taches"
+
+      .todo-input-row {
+        input.todo-input[type="text"][placeholder="Nouvelle tache..."] @input(onInput)
+        button.btn.btn-primary @click(addItem()) "+"
+      }
+
+      @if (items.length === 0) {
+        .empty-state {
+          p "Aucune tache"
+        }
+      }
+
+      @if (items.length > 0) {
+        ul.todo-list {
+          @for (item of items) {
+            li.todo-item {
+              span.todo-text "{item}"
+              button.todo-delete @click(removeItem(item)) "x"
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+actions {
+  onInput(event) {
+    inputText = event.target.value
+  }
+
+  addItem() {
+    const txt = inputText
+    items = items.concat(txt)
+    inputText = ""
+  }
+
+  removeItem(item) {
+    items = items.filter(function(i) { return i !== item })
+  }
+}

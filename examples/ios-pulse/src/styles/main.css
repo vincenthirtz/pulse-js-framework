@@ -1,0 +1,274 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --primary: #6366F1;
+  --primary-dark: #4F46E5;
+  --secondary: #10B981;
+  --danger: #EF4444;
+  --bg: #F9FAFB;
+  --card: #FFFFFF;
+  --text: #1F2937;
+  --text-light: #6B7280;
+  --border: #E5E7EB;
+  --shadow: 0 1px 3px rgba(0,0,0,0.1);
+  /* iOS safe area insets */
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  padding-top: var(--safe-area-top);
+  padding-bottom: var(--safe-area-bottom);
+}
+
+body.dark {
+  --bg: #111827;
+  --card: #1F2937;
+  --text: #F9FAFB;
+  --text-light: #9CA3AF;
+  --border: #374151;
+}
+
+/* Navigation */
+.nav {
+  display: flex;
+  background: var(--primary);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.nav-item {
+  flex: 1;
+  padding: 16px 8px;
+  text-align: center;
+  color: rgba(255,255,255,0.7);
+  font-weight: 500;
+  font-size: 14px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.nav-item.active {
+  color: white;
+  background: rgba(255,255,255,0.1);
+}
+
+/* Pages */
+.page {
+  padding: 16px;
+  display: none;
+}
+
+.page.active {
+  display: block;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Cards */
+.card {
+  background: var(--card);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow);
+}
+
+.card-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+/* Buttons */
+.btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: white;
+}
+
+.btn-primary:active {
+  background: var(--primary-dark);
+  transform: scale(0.98);
+}
+
+.btn-secondary {
+  background: var(--border);
+  color: var(--text);
+}
+
+.btn-icon {
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Counter */
+.counter-display {
+  font-size: 64px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--primary);
+  padding: 24px 0;
+}
+
+.counter-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+/* Todo */
+.todo-input-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.todo-input {
+  flex: 1;
+  padding: 12px 16px;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  font-size: 16px;
+  outline: none;
+  background: var(--card);
+  color: var(--text);
+  /* Prevent iOS zoom on focus */
+  font-size: 16px;
+}
+
+.todo-input:focus {
+  border-color: var(--primary);
+}
+
+.todo-list {
+  list-style: none;
+}
+
+.todo-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.todo-item.completed .todo-text {
+  text-decoration: line-through;
+  color: var(--text-light);
+}
+
+.todo-checkbox {
+  width: 24px;
+  height: 24px;
+  accent-color: var(--secondary);
+}
+
+.todo-text {
+  flex: 1;
+}
+
+.todo-delete {
+  color: var(--danger);
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.todo-stats {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  color: var(--text-light);
+  font-size: 14px;
+}
+
+/* Profile */
+.profile-header {
+  text-align: center;
+  padding: 24px 0;
+}
+
+.profile-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: white;
+  font-size: 32px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+}
+
+.profile-name {
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.profile-field {
+  margin-bottom: 16px;
+}
+
+.profile-label {
+  font-size: 14px;
+  color: var(--text-light);
+  margin-bottom: 4px;
+}
+
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 0;
+  border-top: 1px solid var(--border);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 32px;
+  color: var(--text-light);
+}
+
+.empty-state-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}

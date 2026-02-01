@@ -23,6 +23,9 @@ const log = loggers.router;
  * Lazy load helper for route components
  * Wraps a dynamic import to provide loading states and error handling
  *
+ * MEMORY SAFETY: Uses load version tracking to prevent stale promise callbacks
+ * from updating containers that are no longer in the DOM (e.g., after navigation).
+ *
  * @param {function} importFn - Dynamic import function () => import('./Component.js')
  * @param {Object} options - Lazy loading options
  * @param {function} options.loading - Loading component function
@@ -52,6 +55,8 @@ export function lazy(importFn, options = {}) {
   // Cache for loaded component
   let cachedComponent = null;
   let loadPromise = null;
+  // Version counter to invalidate stale load callbacks
+  let currentLoadVersion = 0;
 
   return function lazyHandler(ctx) {
     // Return cached component if already loaded
@@ -69,6 +74,23 @@ export function lazy(importFn, options = {}) {
     const container = el('div.lazy-route');
     let loadingTimer = null;
     let timeoutTimer = null;
+    let isAborted = false;
+
+    // Increment version and capture for this load attempt
+    const loadVersion = ++currentLoadVersion;
+
+    // Helper to check if this load is still valid
+    const isStale = () => isAborted || loadVersion !== currentLoadVersion;
+
+    // Cleanup function to abort this load attempt
+    const abort = () => {
+      isAborted = true;
+      clearTimeout(loadingTimer);
+      clearTimeout(timeoutTimer);
+    };
+
+    // Attach abort method to container for cleanup on navigation
+    container._pulseAbortLazyLoad = abort;
 
     // Start loading if not already
     if (!loadPromise) {
@@ -78,7 +100,7 @@ export function lazy(importFn, options = {}) {
     // Delay showing loading state to avoid flash
     if (LoadingComponent && delay > 0) {
       loadingTimer = setTimeout(() => {
-        if (!cachedComponent) {
+        if (!cachedComponent && !isStale()) {
           container.replaceChildren(LoadingComponent());
         }
       }, delay);
@@ -105,6 +127,11 @@ export function lazy(importFn, options = {}) {
         clearTimeout(loadingTimer);
         clearTimeout(timeoutTimer);
 
+        // Ignore if this load attempt is stale (navigation occurred)
+        if (isStale()) {
+          return;
+        }
+
         // Cache the component
         cachedComponent = module;
 
@@ -117,7 +144,7 @@ export function lazy(importFn, options = {}) {
             : Component;
 
         // Replace loading with actual component
-        if (result instanceof Node) {
+        if (result instanceof Node && !isStale()) {
           container.replaceChildren(result);
         }
       })
@@ -125,6 +152,11 @@ export function lazy(importFn, options = {}) {
         clearTimeout(loadingTimer);
         clearTimeout(timeoutTimer);
         loadPromise = null; // Allow retry
+
+        // Ignore if this load attempt is stale
+        if (isStale()) {
+          return;
+        }
 
         if (ErrorComponent) {
           container.replaceChildren(ErrorComponent(err));
@@ -432,6 +464,12 @@ const QUERY_LIMITS = {
 
 /**
  * Parse query string into object with validation
+ *
+ * SECURITY: Enforces hard limits BEFORE parsing to prevent DoS attacks.
+ * - Max total length: 2KB
+ * - Max value length: 1KB
+ * - Max parameters: 50
+ *
  * @param {string} search - Query string (with or without leading ?)
  * @returns {Object} Parsed query parameters
  */
@@ -439,14 +477,15 @@ function parseQuery(search) {
   if (!search) return {};
 
   // Remove leading ? if present
-  const queryStr = search.startsWith('?') ? search.slice(1) : search;
+  let queryStr = search.startsWith('?') ? search.slice(1) : search;
 
-  // Validate total length
+  // SECURITY: Enforce hard limit BEFORE parsing to prevent DoS
   if (queryStr.length > QUERY_LIMITS.maxTotalLength) {
     log.warn(`Query string exceeds maximum length (${QUERY_LIMITS.maxTotalLength} chars). Truncating.`);
+    queryStr = queryStr.slice(0, QUERY_LIMITS.maxTotalLength);
   }
 
-  const params = new URLSearchParams(queryStr.slice(0, QUERY_LIMITS.maxTotalLength));
+  const params = new URLSearchParams(queryStr);
   const query = {};
   let paramCount = 0;
 
@@ -808,6 +847,9 @@ export function createRouter(options = {}) {
 
   /**
    * Router outlet - renders the current route's component
+   *
+   * MEMORY SAFETY: Aborts any pending lazy loads when navigating away
+   * to prevent stale callbacks from updating the DOM.
    */
   function outlet(container) {
     if (typeof container === 'string') {
@@ -825,6 +867,10 @@ export function createRouter(options = {}) {
       // Cleanup previous view
       if (cleanup) cleanup();
       if (currentView) {
+        // Abort any pending lazy loads before removing the view
+        if (currentView._pulseAbortLazyLoad) {
+          currentView._pulseAbortLazyLoad();
+        }
         container.replaceChildren();
       }
 

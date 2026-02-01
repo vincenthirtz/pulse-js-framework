@@ -22,6 +22,9 @@ import { ExamplesPage } from './pages/ExamplesPage.js';
 import { PlaygroundPage } from './pages/PlaygroundPage.js';
 import { ChangelogPage } from './pages/ChangelogPage.js';
 import { DebuggingPage } from './pages/DebuggingPage.js';
+import { SecurityPage } from './pages/SecurityPage.js';
+import { PerformancePage } from './pages/PerformancePage.js';
+import { ErrorHandlingPage } from './pages/ErrorHandlingPage.js';
 
 // Styles & Utilities
 import { injectStyles } from './styles.js';
@@ -37,6 +40,9 @@ const routes = {
   '/core-concepts': CoreConceptsPage,
   '/api-reference': ApiReferencePage,
   '/debugging': DebuggingPage,
+  '/security': SecurityPage,
+  '/performance': PerformancePage,
+  '/error-handling': ErrorHandlingPage,
   '/mobile': MobilePage,
   '/examples': ExamplesPage,
   '/playground': PlaygroundPage,

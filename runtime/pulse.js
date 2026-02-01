@@ -524,19 +524,52 @@ function flushEffects() {
   context.isRunningEffects = true;
   let iterations = 0;
 
+  // Track effect run counts to identify infinite loop culprits
+  const effectRunCounts = new Map();
+
   try {
     while (context.pendingEffects.size > 0 && iterations < MAX_EFFECT_ITERATIONS) {
       iterations++;
       const effects = [...context.pendingEffects];
       context.pendingEffects.clear();
 
-      for (const effect of effects) {
-        runEffect(effect);
+      for (const eff of effects) {
+        // Track how many times each effect runs
+        const id = eff.id || 'unknown';
+        effectRunCounts.set(id, (effectRunCounts.get(id) || 0) + 1);
+        runEffect(eff);
       }
     }
 
     if (iterations >= MAX_EFFECT_ITERATIONS) {
-      log.warn(`Maximum effect iterations (${MAX_EFFECT_ITERATIONS}) reached. Possible infinite loop.`);
+      // Find effects that ran the most (likely causing the loop)
+      const sortedByRuns = [...effectRunCounts.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10);
+
+      const culpritDetails = sortedByRuns
+        .map(([id, count]) => `${id} (${count} runs)`)
+        .join(', ');
+
+      // Still pending effects
+      const stillPending = [...context.pendingEffects]
+        .map(e => e.id || 'unknown')
+        .slice(0, 5)
+        .join(', ');
+
+      const errorMsg =
+        `[Pulse] INFINITE LOOP DETECTED\n` +
+        `Maximum effect iterations (${MAX_EFFECT_ITERATIONS}) reached.\n` +
+        `Most active effects: [${culpritDetails}]\n` +
+        `Still pending: [${stillPending || 'none'}]\n` +
+        `Tip: Check for circular dependencies where effects trigger each other.`;
+
+      // Always use console.error directly to ensure visibility
+      console.error(errorMsg);
+
+      // Also log through the logger for consistency
+      log.error(errorMsg);
+
       context.pendingEffects.clear();
     }
   } finally {

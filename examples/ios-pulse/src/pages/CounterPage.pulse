@@ -1,0 +1,44 @@
+/**
+ * Counter Page
+ */
+
+@page CounterPage
+
+state {
+  count: 0
+}
+
+view {
+  .page.active {
+    .card {
+      h2.card-title "Compteur Reactif"
+      .counter-display "{count}"
+      .counter-buttons {
+        button.btn.btn-primary.btn-icon @click(decrement()) "-"
+        button.btn.btn-secondary @click(reset()) "Reset"
+        button.btn.btn-primary.btn-icon @click(increment()) "+"
+      }
+    }
+
+    .card {
+      h2.card-title "Valeurs Derivees"
+      p "Double: {count * 2}"
+      p "Carre: {count * count}"
+      p "Pair: {count % 2 === 0 ? 'Oui' : 'Non'}"
+    }
+  }
+}
+
+actions {
+  increment() {
+    count = count + 1
+  }
+
+  decrement() {
+    count = count - 1
+  }
+
+  reset() {
+    count = 0
+  }
+}

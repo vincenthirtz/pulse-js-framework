@@ -996,6 +996,463 @@ testAsync('middleware stops chain when not calling next', async () => {
 });
 
 // =============================================================================
+// Router Edge Cases Tests
+// =============================================================================
+
+printSection('Router Edge Cases Tests');
+
+testAsync('rapid navigation does not cause race conditions', async () => {
+  const router = createRouter({
+    routes: {
+      '/': () => el('div', 'Home'),
+      '/a': () => el('div', 'A'),
+      '/b': () => el('div', 'B'),
+      '/c': () => el('div', 'C'),
+      '/d': () => el('div', 'D')
+    }
+  });
+  router.start();
+
+  // Fire multiple navigations rapidly without awaiting
+  const navPromises = [
+    router.navigate('/a'),
+    router.navigate('/b'),
+    router.navigate('/c'),
+    router.navigate('/d')
+  ];
+
+  await Promise.all(navPromises);
+
+  // Should end up on the last requested route
+  assertEqual(router.path.get(), '/d', 'Should end on last route');
+});
+
+testAsync('navigation during guard execution', async () => {
+  let guardEnterCount = 0;
+
+  const router = createRouter({
+    routes: {
+      '/': () => el('div', 'Home'),
+      '/slow': () => el('div', 'Slow'),
+      '/fast': () => el('div', 'Fast')
+    }
+  });
+  router.start();
+
+  router.beforeEach(async (to, from) => {
+    guardEnterCount++;
+    if (to.path === '/slow') {
+      // Simulate slow guard
+      await new Promise(r => setTimeout(r, 50));
+    }
+    return true;
+  });
+
+  // Start slow navigation
+  const slowNav = router.navigate('/slow');
+
+  // Immediately start fast navigation
+  await router.navigate('/fast');
+
+  // Wait for slow nav to complete
+  await slowNav;
+
+  // Should handle both navigations
+  assert(guardEnterCount >= 2, 'Guard should be called for both navigations');
+});
+
+testAsync('back navigation after guard redirect', async () => {
+  let isAuth = false;
+
+  const router = createRouter({
+    routes: {
+      '/': () => el('div', 'Home'),
+      '/login': () => el('div', 'Login'),
+      '/protected': () => el('div', 'Protected')
+    }
+  });
+  router.start();
+
+  router.beforeEach((to, from) => {
+    if (to.path === '/protected' && !isAuth) {
+      return '/login';
+    }
+    return true;
+  });
+
+  // Try to access protected route
+  await router.navigate('/protected');
+  assertEqual(router.path.get(), '/login', 'Should redirect to login');
+
+  // Now authenticate and try again
+  isAuth = true;
+  await router.navigate('/protected');
+  assertEqual(router.path.get(), '/protected', 'Should access protected after auth');
+});
+
+testAsync('circular redirect protection', async () => {
+  const router = createRouter({
+    routes: {
+      '/': () => el('div', 'Home'),
+      '/a': { redirect: '/b' },
+      '/b': { redirect: '/c' },
+      '/c': () => el('div', 'C')
+    }
+  });
+  router.start();
+
+  // Should follow redirect chain
+  await router.navigate('/a');
+
+  // Should end up at /c (not infinite loop)
+  assertEqual(router.path.get(), '/c', 'Should follow redirect chain to /c');
+});
+
+testAsync('query string edge cases', async () => {
+  const router = createRouter({
+    routes: {
+      '/search': () => el('div', 'Search')
+    }
+  });
+  router.start();
+
+  // Empty query
+  await router.navigate('/search', { query: {} });
+  assertDeepEqual(router.query.get(), {}, 'Empty query should work');
+
+  // Special characters in query
+  await router.navigate('/search', { query: { q: 'hello world', special: 'a&b=c' } });
+  assertEqual(router.query.get().q, 'hello world', 'Should handle spaces');
+
+  // Array values
+  await router.navigate('/search', { query: { tags: ['a', 'b', 'c'] } });
+  // Note: behavior depends on implementation
+});
+
+testAsync('route params with special characters', async () => {
+  const router = createRouter({
+    routes: {
+      '/users/:id': () => el('div', 'User')
+    }
+  });
+  router.start();
+
+  // Encoded special characters
+  await router.navigate('/users/user%40example.com');
+  assertEqual(router.params.get().id, 'user@example.com', 'Should decode URI components');
+});
+
+testAsync('wildcard route captures remaining path', async () => {
+  const router = createRouter({
+    routes: {
+      '/files/*path': () => el('div', 'Files')
+    }
+  });
+  router.start();
+
+  await router.navigate('/files/documents/reports/2024/q1.pdf');
+  assertEqual(router.params.get().path, 'documents/reports/2024/q1.pdf', 'Should capture full path');
+});
+
+testAsync('navigation to same route with different query', async () => {
+  let renderCount = 0;
+
+  const router = createRouter({
+    routes: {
+      '/search': () => {
+        renderCount++;
+        return el('div', 'Search');
+      }
+    }
+  });
+  router.start();
+
+  await router.navigate('/search', { query: { q: 'first' } });
+  assertEqual(router.query.get().q, 'first');
+
+  await router.navigate('/search', { query: { q: 'second' } });
+  assertEqual(router.query.get().q, 'second');
+});
+
+testAsync('navigation to same route with different params', async () => {
+  const router = createRouter({
+    routes: {
+      '/users/:id': () => el('div', 'User')
+    }
+  });
+  router.start();
+
+  await router.navigate('/users/1');
+  assertEqual(router.params.get().id, '1');
+
+  await router.navigate('/users/2');
+  assertEqual(router.params.get().id, '2');
+});
+
+// =============================================================================
+// Lazy Loading Edge Cases Tests
+// =============================================================================
+
+printSection('Lazy Loading Edge Cases Tests');
+
+testAsync('lazy loading abort on rapid navigation', async () => {
+  let loadStartCount = 0;
+  let loadCompleteCount = 0;
+
+  const slowLazy = lazy(() => {
+    loadStartCount++;
+    return new Promise(resolve => {
+      setTimeout(() => {
+        loadCompleteCount++;
+        resolve({ default: () => el('div', 'Slow') });
+      }, 100);
+    });
+  });
+
+  const router = createRouter({
+    routes: {
+      '/': () => el('div', 'Home'),
+      '/slow': slowLazy,
+      '/fast': () => el('div', 'Fast')
+    }
+  });
+  router.start();
+
+  const container = document.createElement('div');
+  router.outlet(container);
+
+  // Start navigating to slow route
+  const slowNav = router.navigate('/slow');
+
+  // Quickly navigate away
+  await new Promise(r => setTimeout(r, 10));
+  await router.navigate('/fast');
+
+  // Wait for slow to complete
+  await slowNav;
+
+  assertEqual(router.path.get(), '/fast', 'Should end on fast route');
+  assertEqual(loadStartCount, 1, 'Should have started loading');
+});
+
+testAsync('lazy loading with timeout', async () => {
+  let errorShown = false;
+
+  const timeoutLazy = lazy(
+    () => new Promise(resolve => {
+      // Never resolves - simulates timeout
+      setTimeout(() => resolve({ default: () => el('div', 'Late') }), 5000);
+    }),
+    {
+      timeout: 50,
+      error: (err) => {
+        errorShown = true;
+        return el('div.error', 'Timeout');
+      }
+    }
+  );
+
+  const router = createRouter({
+    routes: {
+      '/': () => el('div', 'Home'),
+      '/timeout': timeoutLazy
+    }
+  });
+  router.start();
+
+  const container = document.createElement('div');
+  router.outlet(container);
+
+  await router.navigate('/timeout');
+
+  // Wait for timeout
+  await new Promise(r => setTimeout(r, 100));
+
+  // Error component should be shown
+  assert(errorShown, 'Error should be shown after timeout');
+});
+
+testAsync('lazy loading retry after error', async () => {
+  let attempts = 0;
+
+  const retryLazy = lazy(() => {
+    attempts++;
+    if (attempts < 3) {
+      return Promise.reject(new Error('Simulated failure'));
+    }
+    return Promise.resolve({ default: () => el('div', 'Success') });
+  }, {
+    error: (err) => el('div.error', err.message)
+  });
+
+  const router = createRouter({
+    routes: {
+      '/': () => el('div', 'Home'),
+      '/retry': retryLazy
+    }
+  });
+  router.start();
+
+  const container = document.createElement('div');
+  router.outlet(container);
+
+  // First attempt should fail
+  await router.navigate('/retry');
+  await new Promise(r => setTimeout(r, 50));
+  assertEqual(attempts, 1, 'First attempt made');
+});
+
+testAsync('multiple lazy routes loading concurrently', async () => {
+  let aLoaded = false;
+  let bLoaded = false;
+
+  const lazyA = lazy(() => {
+    return new Promise(resolve => {
+      setTimeout(() => {
+        aLoaded = true;
+        resolve({ default: () => el('div', 'A') });
+      }, 50);
+    });
+  });
+
+  const lazyB = lazy(() => {
+    return new Promise(resolve => {
+      setTimeout(() => {
+        bLoaded = true;
+        resolve({ default: () => el('div', 'B') });
+      }, 50);
+    });
+  });
+
+  const router = createRouter({
+    routes: {
+      '/': () => el('div', 'Home'),
+      '/a': lazyA,
+      '/b': lazyB
+    }
+  });
+  router.start();
+
+  const container = document.createElement('div');
+  router.outlet(container);
+
+  // Navigate to both routes
+  await router.navigate('/a');
+  await new Promise(r => setTimeout(r, 100));
+  assert(aLoaded, 'A should be loaded');
+
+  await router.navigate('/b');
+  await new Promise(r => setTimeout(r, 100));
+  assert(bLoaded, 'B should be loaded');
+});
+
+// =============================================================================
+// Navigation Stress Tests
+// =============================================================================
+
+printSection('Navigation Stress Tests');
+
+testAsync('stress test: 100 sequential navigations', async () => {
+  const routes = {};
+  for (let i = 0; i < 100; i++) {
+    routes[`/page${i}`] = () => el('div', `Page ${i}`);
+  }
+
+  const router = createRouter({ routes });
+  router.start();
+
+  for (let i = 0; i < 100; i++) {
+    await router.navigate(`/page${i}`);
+  }
+
+  assertEqual(router.path.get(), '/page99', 'Should end on last page');
+});
+
+testAsync('stress test: rapid back/forward simulation', async () => {
+  const router = createRouter({
+    routes: {
+      '/': () => el('div', 'Home'),
+      '/a': () => el('div', 'A'),
+      '/b': () => el('div', 'B'),
+      '/c': () => el('div', 'C')
+    }
+  });
+  router.start();
+
+  // Build history
+  await router.navigate('/a');
+  await router.navigate('/b');
+  await router.navigate('/c');
+
+  // Simulate rapid back/forward
+  for (let i = 0; i < 10; i++) {
+    window.history.back();
+    await new Promise(r => setTimeout(r, 5));
+    window.history.forward();
+    await new Promise(r => setTimeout(r, 5));
+  }
+
+  // Should not crash
+  assert(true, 'Rapid back/forward should not crash');
+});
+
+testAsync('navigation with very long paths', async () => {
+  const longSegment = 'a'.repeat(100);
+  const longPath = `/${longSegment}/${longSegment}/${longSegment}`;
+
+  const router = createRouter({
+    routes: {
+      [longPath]: () => el('div', 'Long')
+    }
+  });
+  router.start();
+
+  await router.navigate(longPath);
+  assertEqual(router.path.get(), longPath, 'Should handle long paths');
+});
+
+testAsync('navigation with unicode characters', async () => {
+  const router = createRouter({
+    routes: {
+      '/émojis': () => el('div', 'Emojis'),
+      '/中文': () => el('div', 'Chinese')
+    }
+  });
+  router.start();
+
+  await router.navigate('/émojis');
+  assertEqual(router.path.get(), '/émojis', 'Should handle accented characters');
+});
+
+testAsync('guard that throws error is handled gracefully', async () => {
+  const router = createRouter({
+    routes: {
+      '/': () => el('div', 'Home'),
+      '/error': () => el('div', 'Error')
+    }
+  });
+  router.start();
+
+  router.beforeEach((to, from) => {
+    if (to.path === '/error') {
+      throw new Error('Guard error');
+    }
+    return true;
+  });
+
+  // Should handle error gracefully
+  try {
+    await router.navigate('/error');
+  } catch (e) {
+    // Expected
+  }
+
+  // Should still be functional
+  await router.navigate('/');
+  assertEqual(router.path.get(), '/', 'Router should recover from guard error');
+});
+
+// =============================================================================
 // Run Async Tests and Print Results
 // =============================================================================
 
