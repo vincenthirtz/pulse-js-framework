@@ -17,7 +17,7 @@
 
 import { pulse, computed, effect, batch } from './pulse.js';
 import { loggers, createLogger } from './logger.js';
-import { Errors, createErrorMessage } from '../core/errors.js';
+import { Errors, createErrorMessage } from 'pulse-js-framework/core/errors';
 
 const log = loggers.store;
 
