@@ -185,28 +185,104 @@ function readRuntimeFile(filename) {
 
 /**
  * Minify JavaScript code (simple minification)
- * String-aware: preserves content inside string literals
+ * String and regex-aware: preserves content inside string and regex literals
  */
 export function minifyJS(code) {
-  // Extract strings to protect them from minification
-  const strings = [];
-  const placeholder = '\x00STR';
+  // Extract strings and regexes to protect them from minification
+  const preserved = [];
+  const placeholder = '\x00PRE';
 
-  // Replace strings with placeholders (handles ", ', and ` with escape sequences)
-  const withPlaceholders = code.replace(
-    /(["'`])(?:\\.|(?!\1)[^\\])*\1/g,
-    (match) => {
-      strings.push(match);
-      return placeholder + (strings.length - 1) + '\x00';
+  // State machine to properly handle strings and regexes
+  let result = '';
+  let i = 0;
+
+  while (i < code.length) {
+    const char = code[i];
+    const next = code[i + 1];
+
+    // Skip single-line comments
+    if (char === '/' && next === '/') {
+      while (i < code.length && code[i] !== '\n') i++;
+      continue;
     }
-  );
 
-  // Apply minification to non-string parts
-  let minified = withPlaceholders
-    // Remove single-line comments
-    .replace(/\/\/.*$/gm, '')
-    // Remove multi-line comments
-    .replace(/\/\*[\s\S]*?\*\//g, '')
+    // Skip multi-line comments
+    if (char === '/' && next === '*') {
+      i += 2;
+      while (i < code.length - 1 && !(code[i] === '*' && code[i + 1] === '/')) i++;
+      i += 2;
+      continue;
+    }
+
+    // Handle string literals
+    if (char === '"' || char === "'" || char === '`') {
+      const quote = char;
+      let str = char;
+      i++;
+      while (i < code.length) {
+        const c = code[i];
+        str += c;
+        if (c === '\\' && i + 1 < code.length) {
+          i++;
+          str += code[i];
+        } else if (c === quote) {
+          break;
+        }
+        i++;
+      }
+      i++;
+      preserved.push(str);
+      result += placeholder + (preserved.length - 1) + '\x00';
+      continue;
+    }
+
+    // Handle regex literals (after = : ( , [ ! & | ? ; { or keywords)
+    if (char === '/') {
+      // Look back to determine if this is a regex
+      const lookback = result.slice(-20).trim();
+      const isRegexContext = lookback === '' ||
+        /[=:(\[,!&|?;{]$/.test(lookback) ||
+        /\breturn$/.test(lookback) ||
+        /\bthrow$/.test(lookback) ||
+        /\btypeof$/.test(lookback);
+
+      if (isRegexContext && next !== '/' && next !== '*') {
+        let regex = char;
+        i++;
+        let inCharClass = false;
+        while (i < code.length) {
+          const c = code[i];
+          regex += c;
+          if (c === '\\' && i + 1 < code.length) {
+            i++;
+            regex += code[i];
+          } else if (c === '[') {
+            inCharClass = true;
+          } else if (c === ']') {
+            inCharClass = false;
+          } else if (c === '/' && !inCharClass) {
+            // End of regex, collect flags
+            i++;
+            while (i < code.length && /[gimsuvy]/.test(code[i])) {
+              regex += code[i];
+              i++;
+            }
+            break;
+          }
+          i++;
+        }
+        preserved.push(regex);
+        result += placeholder + (preserved.length - 1) + '\x00';
+        continue;
+      }
+    }
+
+    result += char;
+    i++;
+  }
+
+  // Apply minification to non-preserved parts
+  let minified = result
     // Remove leading/trailing whitespace per line
     .split('\n')
     .map(line => line.trim())
@@ -214,7 +290,7 @@ export function minifyJS(code) {
     .join('\n')
     // Collapse multiple newlines
     .replace(/\n{2,}/g, '\n')
-    // Remove spaces around operators (simple)
+    // Remove spaces around operators
     .replace(/\s*([{};,:])\s*/g, '$1')
     .replace(/\s*=\s*/g, '=')
     .replace(/\s*\(\s*/g, '(')
@@ -223,10 +299,10 @@ export function minifyJS(code) {
     .replace(/\s+/g, ' ')
     .trim();
 
-  // Restore strings
+  // Restore preserved strings and regexes
   minified = minified.replace(
     new RegExp(placeholder.replace('\x00', '\\x00') + '(\\d+)\\x00', 'g'),
-    (_, index) => strings[parseInt(index)]
+    (_, index) => preserved[parseInt(index)]
   );
 
   return minified;

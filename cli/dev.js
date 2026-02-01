@@ -128,7 +128,10 @@ export async function startDevServer(args) {
           });
 
           if (result.success) {
-            res.writeHead(200, { 'Content-Type': 'application/javascript' });
+            res.writeHead(200, {
+              'Content-Type': 'application/javascript',
+              'Cache-Control': 'no-cache, no-store, must-revalidate'
+            });
             res.end(result.code);
           } else {
             res.writeHead(500, { 'Content-Type': 'text/plain' });
@@ -146,7 +149,10 @@ export async function startDevServer(args) {
     if (pathname.endsWith('.js') || pathname.endsWith('.mjs')) {
       if (existsSync(filePath)) {
         const content = readFileSync(filePath, 'utf-8');
-        res.writeHead(200, { 'Content-Type': 'application/javascript' });
+        res.writeHead(200, {
+          'Content-Type': 'application/javascript',
+          'Cache-Control': 'no-cache, no-store, must-revalidate'
+        });
         res.end(content);
         return;
       }
@@ -164,7 +170,10 @@ export async function startDevServer(args) {
           });
 
           if (result.success) {
-            res.writeHead(200, { 'Content-Type': 'application/javascript' });
+            res.writeHead(200, {
+              'Content-Type': 'application/javascript',
+              'Cache-Control': 'no-cache, no-store, must-revalidate'
+            });
             res.end(result.code);
           } else {
             res.writeHead(500, { 'Content-Type': 'text/plain' });
@@ -183,7 +192,10 @@ export async function startDevServer(args) {
       const modulePath = join(root, '..', 'pulse', pathname.replace('/node_modules/pulse-js-framework/', ''));
       if (existsSync(modulePath)) {
         const content = readFileSync(modulePath, 'utf-8');
-        res.writeHead(200, { 'Content-Type': 'application/javascript' });
+        res.writeHead(200, {
+          'Content-Type': 'application/javascript',
+          'Cache-Control': 'no-cache, no-store, must-revalidate'
+        });
         res.end(content);
         return;
       }
@@ -203,7 +215,10 @@ export async function startDevServer(args) {
       for (const runtimePath of possiblePaths) {
         if (existsSync(runtimePath)) {
           const content = readFileSync(runtimePath, 'utf-8');
-          res.writeHead(200, { 'Content-Type': 'application/javascript' });
+          res.writeHead(200, {
+            'Content-Type': 'application/javascript',
+            'Cache-Control': 'no-cache, no-store, must-revalidate'
+          });
           res.end(content);
           return;
         }
