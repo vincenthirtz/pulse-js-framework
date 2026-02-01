@@ -55,7 +55,7 @@ export function HomePage() {
             <td>Hooks</td>
             <td>Proxy</td>
             <td>Compiler</td>
-            <td><strong>Signals</strong></td>
+            <td><strong>Pulses</strong></td>
           </tr>
           <tr>
             <td>Build Step</td>

@@ -150,7 +150,7 @@ pulse analyze --json  # JSON output</code></pre>
 
       <div class="faq-item">
         <h3>How does Pulse compare to React/Vue?</h3>
-        <p>Pulse is much lighter (~4kb core, ~12kb full vs 35-45kb) and uses signals instead of virtual DOM. It has zero dependencies and an optional build step. The CSS selector syntax is unique to Pulse.</p>
+        <p>Pulse is much lighter (~4kb core, ~12kb full vs 35-45kb) and uses pulses (reactive primitives) instead of virtual DOM. It has zero dependencies and an optional build step. The CSS selector syntax is unique to Pulse.</p>
       </div>
 
       <div class="faq-item">
