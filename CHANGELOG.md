@@ -5,6 +5,22 @@ All notable changes to Pulse Framework will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.4] - 2026-02-01
+
+### iOS WebView & i18n System
+
+### Changed
+
+- confirm xcode porject with pulse files
+- add i18n system no dependencies
+- use 'pulses' terminology consistently in content
+
+### Fixed
+
+- iOS WebView compatibility for Xcode compilation
+- minifyJS now correctly handles regex literals
+
+
 ## [1.7.2] - 2026-01-31
 
 ### Changed

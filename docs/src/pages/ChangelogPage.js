@@ -16,7 +16,22 @@ export function ChangelogPage() {
     
     
     
+    
     <section class="doc-section changelog-section">
+      <h2>v1.7.4 - iOS WebView & i18n System</h2>
+      <p class="release-date">February 2026</p>
+
+      <div class="changelog-group">
+        <ul class="feature-list">
+          <li><strong>Changed:</strong> confirm xcode porject with pulse files</li>
+          <li><strong>Changed:</strong> add i18n system no dependencies</li>
+          <li><strong>Changed:</strong> use 'pulses' terminology consistently in content</li>
+          <li><strong>Fixed:</strong> iOS WebView compatibility for Xcode compilation</li>
+          <li><strong>Fixed:</strong> minifyJS now correctly handles regex literals</li>
+        </ul>
+      </div>
+    </section>
+<section class="doc-section changelog-section">
       <h2>v1.7.2 - Release</h2>
       <p class="release-date">January 2026</p>
 
