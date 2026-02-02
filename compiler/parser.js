@@ -5,7 +5,7 @@
  */
 
 import { TokenType, tokenize } from './lexer.js';
-import { ParserError, SUGGESTIONS, getDocsUrl } from '../core/errors.js';
+import { ParserError, SUGGESTIONS, getDocsUrl } from '../runtime/errors.js';
 
 // AST Node types
 export const NodeType = {
