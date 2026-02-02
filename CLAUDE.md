@@ -53,7 +53,12 @@ pulse/
 │   ├── pulse.js         # Reactivity system (signals, effects, computed)
 │   ├── dom.js           # DOM creation and reactive bindings
 │   ├── router.js        # SPA routing
-│   └── store.js         # Global state management
+│   ├── store.js         # Global state management
+│   ├── form.js          # Form validation and management
+│   ├── async.js         # Async primitives (useAsync, useResource, usePolling)
+│   ├── devtools.js      # Debugging tools (time-travel, dependency graph)
+│   ├── native.js        # Mobile bridge for iOS/Android
+│   └── hmr.js           # Hot module replacement
 ├── compiler/            # .pulse file compiler
 │   ├── lexer.js         # Tokenizer
 │   ├── parser.js        # AST builder
@@ -399,6 +404,53 @@ hmr.dispose(() => {
 });
 ```
 
+### DevTools (runtime/devtools.js)
+
+```javascript
+import {
+  enableDevTools, disableDevTools,
+  trackedPulse, trackedEffect,
+  getDiagnostics, getEffectStats, getPulseList,
+  getDependencyGraph, exportGraphAsDot,
+  takeSnapshot, getHistory, travelTo, back, forward,
+  profile, mark
+} from 'pulse-js-framework/runtime/devtools';
+
+// Enable dev tools (exposes window.__PULSE_DEVTOOLS__)
+enableDevTools({ logUpdates: true, warnOnSlowEffects: true });
+
+// Tracked pulses (auto-snapshot on change)
+const count = trackedPulse(0, 'count');
+const user = trackedPulse(null, 'user');
+
+// Tracked effects (performance monitoring)
+trackedEffect(() => {
+  console.log('Count:', count.get());
+}, 'log-count');
+
+// Diagnostics
+getDiagnostics();      // { pulseCount, effectCount, avgEffectTime, ... }
+getEffectStats();      // [{ id, name, runCount, avgTime }]
+getPulseList();        // [{ id, name, value, subscriberCount }]
+
+// Dependency graph (for visualization)
+const graph = getDependencyGraph();  // { nodes, edges }
+const dot = exportGraphAsDot();      // Graphviz DOT format
+
+// Time-travel debugging
+takeSnapshot('user-login');          // Save current state
+getHistory();                        // Get all snapshots
+travelTo(0);                         // Restore to snapshot index
+back();                              // Go back one step
+forward();                           // Go forward one step
+
+// Performance profiling
+profile('data-processing', () => processLargeDataset());
+const m = mark('fetch');
+await fetch('/api/data');
+m.end();  // Logs duration
+```
+
 ### .pulse DSL Format
 
 ```pulse
@@ -447,7 +499,8 @@ style {
 | `runtime/router.js` | Router (createRouter, lazy, preload, middleware) |
 | `runtime/store.js` | Store (createStore, createActions, plugins) |
 | `runtime/form.js` | Form handling (useForm, useField, useFieldArray, validators) |
-| `runtime/async.js` | Async primitives (useAsync, useResource, usePolling) |
+| `runtime/async.js` | Async primitives (useAsync, useResource, usePolling, createVersionedAsync) |
+| `runtime/devtools.js` | Dev tools (trackedPulse, time-travel, dependency graph, profiling) |
 | `runtime/native.js` | Native mobile bridge (storage, device, UI, lifecycle) |
 | `runtime/hmr.js` | Hot module replacement (createHMRContext) |
 | `compiler/lexer.js` | Tokenizer with 50+ token types |
@@ -496,6 +549,9 @@ import { createNativeStorage, createDeviceInfo, NativeUI, NativeClipboard } from
 
 // HMR
 import { createHMRContext } from 'pulse-js-framework/runtime/hmr';
+
+// DevTools (development only)
+import { enableDevTools, trackedPulse, trackedEffect, getDependencyGraph } from 'pulse-js-framework/runtime/devtools';
 
 // Compiler
 import { compile } from 'pulse-js-framework/compiler';

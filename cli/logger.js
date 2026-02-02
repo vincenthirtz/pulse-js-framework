@@ -1,8 +1,13 @@
 /**
  * Pulse CLI Logger
- * Lightweight logger for CLI tools with support for verbose mode
+ * Adapter for CLI tools using the unified runtime logger
  * @module pulse-cli/logger
  */
+
+import { createLogger, setLogLevel, LogLevel } from '../runtime/logger.js';
+
+// Create CLI-namespaced logger
+const cliLogger = createLogger('CLI');
 
 /** @type {boolean} */
 let verboseMode = false;
@@ -17,6 +22,12 @@ let verboseMode = false;
  */
 export function setVerbose(enabled) {
   verboseMode = enabled;
+  // Update global log level to include debug when verbose
+  if (enabled) {
+    setLogLevel(LogLevel.DEBUG);
+  } else {
+    setLogLevel(LogLevel.INFO);
+  }
 }
 
 /**
@@ -33,6 +44,7 @@ export function isVerbose() {
 
 /**
  * CLI Logger object with console-like API
+ * Uses the runtime logger under the hood for consistency
  * @namespace log
  */
 export const log = {
@@ -44,6 +56,7 @@ export const log = {
    * log.info('Starting server on port', 3000);
    */
   info(...args) {
+    // Use console directly for CLI output (no namespace prefix for info)
     console.log(...args);
   },
 
@@ -66,7 +79,7 @@ export const log = {
    * log.warn('Deprecated feature used');
    */
   warn(...args) {
-    console.warn(...args);
+    cliLogger.warn(...args);
   },
 
   /**
@@ -77,7 +90,7 @@ export const log = {
    * log.error('Failed to compile:', error.message);
    */
   error(...args) {
-    console.error(...args);
+    cliLogger.error(...args);
   },
 
   /**
@@ -89,7 +102,7 @@ export const log = {
    */
   debug(...args) {
     if (verboseMode) {
-      console.log('[debug]', ...args);
+      cliLogger.debug(...args);
     }
   },
 
@@ -116,7 +129,22 @@ export const log = {
    */
   newline() {
     console.log();
+  },
+
+  /**
+   * Create a child logger with a sub-namespace
+   * @param {string} namespace - Child namespace
+   * @returns {import('../runtime/logger.js').Logger} Child logger instance
+   * @example
+   * const buildLog = log.child('Build');
+   * buildLog.info('Starting...'); // [CLI:Build] Starting...
+   */
+  child(namespace) {
+    return cliLogger.child(namespace);
   }
 };
+
+// Re-export LogLevel for convenience
+export { LogLevel };
 
 export default log;

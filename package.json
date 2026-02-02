@@ -56,8 +56,14 @@
     "./runtime/lru-cache": "./runtime/lru-cache.js",
     "./runtime/utils": "./runtime/utils.js",
     "./runtime/dom-adapter": "./runtime/dom-adapter.js",
-    "./runtime/async": "./runtime/async.js",
-    "./runtime/form": "./runtime/form.js",
+    "./runtime/async": {
+      "types": "./types/async.d.ts",
+      "default": "./runtime/async.js"
+    },
+    "./runtime/form": {
+      "types": "./types/form.d.ts",
+      "default": "./runtime/form.js"
+    },
     "./runtime/devtools": "./runtime/devtools.js",
     "./compiler": {
       "types": "./types/index.d.ts",

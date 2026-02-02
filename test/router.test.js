@@ -1302,6 +1302,52 @@ testAsync('lazy loading retry after error', async () => {
   assertEqual(attempts, 1, 'First attempt made');
 });
 
+testAsync('lazy caches component even when navigation is aborted', async () => {
+  let loadCount = 0;
+  let resolveLoad;
+  const loadPromise = new Promise(resolve => { resolveLoad = resolve; });
+
+  const lazyComponent = lazy(() => {
+    loadCount++;
+    return loadPromise;
+  }, {
+    loading: () => el('div.loading', 'Loading...')
+  });
+
+  const router = createRouter({
+    routes: {
+      '/': () => el('div', 'Home'),
+      '/lazy': lazyComponent,
+      '/other': () => el('div', 'Other')
+    }
+  });
+  router.start();
+
+  const container = document.createElement('div');
+  router.outlet(container);
+
+  // First navigation starts loading
+  const navPromise = router.navigate('/lazy');
+
+  // Wait a bit then navigate away BEFORE load completes
+  await new Promise(r => setTimeout(r, 10));
+  await router.navigate('/other');
+
+  // Now complete the load (after navigation away)
+  resolveLoad({ default: () => el('div.lazy-loaded', 'Loaded!') });
+  await navPromise;
+  await new Promise(r => setTimeout(r, 50));
+
+  assertEqual(loadCount, 1, 'Should have loaded once');
+
+  // Navigate back to the lazy route - should NOT trigger reload
+  await router.navigate('/lazy');
+  await new Promise(r => setTimeout(r, 50));
+
+  assertEqual(loadCount, 1, 'Should use cached component, not reload');
+  assertEqual(router.path.get(), '/lazy', 'Should be on lazy route');
+});
+
 testAsync('multiple lazy routes loading concurrently', async () => {
   let aLoaded = false;
   let bLoaded = false;

@@ -793,6 +793,77 @@ test('historyPlugin canUndo/canRedo return correct values', () => {
 });
 
 // =============================================================================
+// Validation Cache Tests
+// =============================================================================
+
+printSection('Validation Cache Tests');
+
+test('$setState validates updates', () => {
+  const store = createStore({ value: 'initial' });
+
+  // Valid update should work
+  store.$setState({ value: 'updated' });
+  assertEqual(store.value.get(), 'updated');
+
+  // Invalid update (function) should throw
+  let threwError = false;
+  try {
+    store.$setState({ value: () => {} });
+  } catch (e) {
+    threwError = true;
+    assert(e.message.includes('function'), 'Should mention invalid type');
+  }
+  assert(threwError, 'Should throw on function value');
+});
+
+test('$setState validation uses cache for performance', () => {
+  const store = createStore({ user: { name: 'John', age: 30 } });
+
+  // First update - full validation
+  const obj = { name: 'Jane', age: 25 };
+  store.$setState({ user: obj });
+  assertEqual(store.user.name.get(), 'Jane');
+
+  // Second update with same object reference - should use cache (no error)
+  store.$setState({ user: obj });
+  assertEqual(store.user.name.get(), 'Jane');
+
+  // Update with different object - should re-validate
+  store.$setState({ user: { name: 'Bob', age: 35 } });
+  assertEqual(store.user.name.get(), 'Bob');
+});
+
+test('validation detects circular references', () => {
+  const store = createStore({ data: null });
+
+  // Create circular reference
+  const circular = { a: 1 };
+  circular.self = circular;
+
+  let threwError = false;
+  try {
+    store.$setState({ data: circular });
+  } catch (e) {
+    threwError = true;
+    assert(e.message.includes('Circular'), 'Should mention circular reference');
+  }
+  assert(threwError, 'Should throw on circular reference');
+});
+
+test('validation rejects symbols', () => {
+  const store = createStore({ value: null });
+
+  let threwError = false;
+  try {
+    store.$setState({ value: Symbol('test') });
+  } catch (e) {
+    threwError = true;
+    assert(e.message.includes('symbol'), 'Should mention invalid type');
+  }
+  assert(threwError, 'Should throw on symbol value');
+});
+
+// =============================================================================
 // Results
 // =============================================================================
 

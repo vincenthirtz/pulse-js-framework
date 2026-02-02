@@ -5,9 +5,10 @@
  */
 
 import { fileURLToPath } from 'url';
-import { dirname, join, resolve } from 'path';
-import { existsSync, mkdirSync, writeFileSync, readFileSync, cpSync } from 'fs';
+import { dirname, join, resolve, relative } from 'path';
+import { existsSync, mkdirSync, writeFileSync, readFileSync, cpSync, watch } from 'fs';
 import { log } from './logger.js';
+import { findPulseFiles, parseArgs } from './utils/file-utils.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -24,7 +25,7 @@ const commands = {
   dev: runDev,
   build: runBuild,
   preview: runPreview,
-  compile: compileFile,
+  compile: compileFiles,
   mobile: runMobile,
   lint: runLint,
   format: runFormat,
@@ -32,6 +33,89 @@ const commands = {
   release: runReleaseCmd,
   'docs-test': runDocsTestCmd
 };
+
+// Command aliases for common typos
+const commandAliases = {
+  'complile': 'compile',
+  'comile': 'compile',
+  'complie': 'compile',
+  'buid': 'build',
+  'biuld': 'build',
+  'buildd': 'build',
+  'devv': 'dev',
+  'lnt': 'lint',
+  'lintt': 'lint',
+  'fromat': 'format',
+  'foramt': 'format',
+  'formatt': 'format',
+  'analize': 'analyze',
+  'analzye': 'analyze',
+  'anaylze': 'analyze',
+  'crate': 'create',
+  'craete': 'create',
+  'preivew': 'preview',
+  'preveiw': 'preview',
+  'moble': 'mobile',
+  'moblie': 'mobile',
+  'relase': 'release',
+  'realease': 'release'
+};
+
+/**
+ * Calculate Levenshtein distance between two strings
+ * Used for "Did you mean...?" suggestions
+ */
+function levenshteinDistance(a, b) {
+  const matrix = [];
+
+  for (let i = 0; i <= b.length; i++) {
+    matrix[i] = [i];
+  }
+  for (let j = 0; j <= a.length; j++) {
+    matrix[0][j] = j;
+  }
+
+  for (let i = 1; i <= b.length; i++) {
+    for (let j = 1; j <= a.length; j++) {
+      if (b.charAt(i - 1) === a.charAt(j - 1)) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1,
+          matrix[i][j - 1] + 1,
+          matrix[i - 1][j] + 1
+        );
+      }
+    }
+  }
+
+  return matrix[b.length][a.length];
+}
+
+/**
+ * Suggest similar commands based on input
+ */
+function suggestCommand(input) {
+  // Check aliases first
+  if (input in commandAliases) {
+    return commandAliases[input];
+  }
+
+  // Find closest command using Levenshtein distance
+  const allCommands = Object.keys(commands);
+  let closest = null;
+  let minDistance = Infinity;
+
+  for (const cmd of allCommands) {
+    const distance = levenshteinDistance(input.toLowerCase(), cmd.toLowerCase());
+    if (distance < minDistance && distance <= 3) { // Max 3 edits
+      minDistance = distance;
+      closest = cmd;
+    }
+  }
+
+  return closest;
+}
 
 /**
  * Main entry point
@@ -44,6 +128,13 @@ async function main() {
     await commands[command](args.slice(1));
   } else {
     log.error(`Unknown command: ${command}`);
+
+    // Try to suggest a similar command
+    const suggestion = suggestCommand(command);
+    if (suggestion) {
+      log.info(`Did you mean: pulse ${suggestion}?`);
+    }
+
     log.info('Run "pulse help" for usage information.');
     process.exit(1);
   }
@@ -73,11 +164,19 @@ Commands:
   version          Show version number
   help             Show this help message
 
+Compile Options:
+  --watch, -w      Watch files and recompile on changes
+  --dry-run        Show what would be compiled without writing
+  --output, -o     Output directory (default: same as input)
+
 Lint Options:
   --fix            Auto-fix fixable issues
+  --watch, -w      Watch files and re-lint on changes
+  --dry-run        Show fixes without applying (use with --fix)
 
 Format Options:
-  --check          Check formatting without writing
+  --check          Check formatting without writing (dry-run)
+  --watch, -w      Watch files and re-format on changes
   --write          Write formatted output (default)
 
 Analyze Options:
@@ -106,7 +205,10 @@ Examples:
   pulse mobile build android
   pulse mobile run ios
   pulse compile src/App.pulse
+  pulse compile src/ --watch
+  pulse compile "**/*.pulse" --dry-run
   pulse lint src/
+  pulse lint src/ --fix --dry-run
   pulse lint "**/*.pulse" --fix
   pulse format --check
   pulse format src/App.pulse
@@ -398,38 +500,201 @@ async function runDocsTestCmd(args) {
 }
 
 /**
- * Compile a single .pulse file
+ * Compile .pulse files to JavaScript
+ * Supports multiple files, watch mode, and dry-run
  */
-async function compileFile(args) {
-  const inputFile = args[0];
+async function compileFiles(args) {
+  const { options, patterns } = parseArgs(args);
+  const watchMode = options.watch || options.w || false;
+  const dryRun = options['dry-run'] || false;
+  const outputDir = options.output || options.o || null;
 
-  if (!inputFile) {
-    log.error('Please provide a file to compile.');
-    log.info('Usage: pulse compile <file.pulse>');
-    process.exit(1);
-  }
+  // Find all .pulse files matching patterns
+  const files = findPulseFiles(patterns);
 
-  if (!existsSync(inputFile)) {
-    log.error(`File not found: ${inputFile}`);
+  if (files.length === 0) {
+    log.error('No .pulse files found.');
+    log.info('Usage: pulse compile <file.pulse> [options]');
+    log.info('       pulse compile src/ --watch');
     process.exit(1);
   }
 
   const { compile } = await import('../compiler/index.js');
+  const cwd = process.cwd();
 
-  const source = readFileSync(inputFile, 'utf-8');
-  const result = compile(source);
+  /**
+   * Compile a single file and return result
+   */
+  function compileOneFile(inputFile) {
+    const relPath = relative(cwd, inputFile);
+    const source = readFileSync(inputFile, 'utf-8');
+    const result = compile(source);
 
-  if (result.success) {
-    const outputFile = inputFile.replace(/\.pulse$/, '.js');
-    writeFileSync(outputFile, result.code);
-    log.info(`Compiled: ${inputFile} -> ${outputFile}`);
-  } else {
-    log.error('Compilation failed:');
-    for (const error of result.errors) {
-      log.error(`  ${error.message}`);
+    // Determine output path
+    let outputFile;
+    if (outputDir) {
+      const baseName = inputFile.replace(/\.pulse$/, '.js').split(/[/\\]/).pop();
+      outputFile = join(outputDir, baseName);
+    } else {
+      outputFile = inputFile.replace(/\.pulse$/, '.js');
     }
-    process.exit(1);
+    const relOutput = relative(cwd, outputFile);
+
+    return { inputFile, outputFile, relPath, relOutput, result, source };
   }
+
+  /**
+   * Process compilation results
+   */
+  function processResults(compilations) {
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const { relPath, relOutput, result } of compilations) {
+      if (result.success) {
+        successCount++;
+      } else {
+        errorCount++;
+        log.error(`\n${relPath}:`);
+        for (const error of result.errors) {
+          const loc = error.line ? `:${error.line}:${error.column || 1}` : '';
+          log.error(`  ${relPath}${loc} ${error.message}`);
+        }
+      }
+    }
+
+    return { successCount, errorCount };
+  }
+
+  /**
+   * Run compilation on all files
+   */
+  async function runCompilation() {
+    const startTime = Date.now();
+    const compilations = files.map(compileOneFile);
+    const { successCount, errorCount } = processResults(compilations);
+
+    if (dryRun) {
+      // Dry run - show what would be done
+      log.info('\n[Dry Run] Would compile:');
+      for (const { relPath, relOutput, result } of compilations) {
+        if (result.success) {
+          log.info(`  ${relPath} -> ${relOutput}`);
+        }
+      }
+      log.info(`\n${successCount} file(s) would be compiled, ${errorCount} error(s)`);
+    } else {
+      // Actually write files
+      let writtenCount = 0;
+      for (const { outputFile, relPath, relOutput, result } of compilations) {
+        if (result.success) {
+          // Ensure output directory exists
+          const outDir = dirname(outputFile);
+          if (!existsSync(outDir)) {
+            mkdirSync(outDir, { recursive: true });
+          }
+          writeFileSync(outputFile, result.code);
+          log.info(`Compiled: ${relPath} -> ${relOutput}`);
+          writtenCount++;
+        }
+      }
+
+      const duration = Date.now() - startTime;
+      if (files.length > 1) {
+        log.info(`\n${writtenCount} file(s) compiled in ${duration}ms`);
+        if (errorCount > 0) {
+          log.error(`${errorCount} file(s) failed`);
+        }
+      }
+    }
+
+    return errorCount === 0;
+  }
+
+  // Initial compilation
+  const success = await runCompilation();
+
+  if (!watchMode) {
+    if (!success) {
+      process.exit(1);
+    }
+    return;
+  }
+
+  // Watch mode
+  log.info('\nWatching for changes... (Ctrl+C to stop)\n');
+
+  // Collect directories to watch
+  const dirsToWatch = new Set();
+  for (const file of files) {
+    dirsToWatch.add(dirname(file));
+  }
+
+  // Debounce mechanism
+  let debounceTimeout = null;
+  const changedFiles = new Set();
+
+  function handleChange(eventType, filename) {
+    if (!filename || !filename.endsWith('.pulse')) return;
+
+    // Find the full path of the changed file
+    for (const dir of dirsToWatch) {
+      const fullPath = join(dir, filename);
+      if (files.includes(fullPath)) {
+        changedFiles.add(fullPath);
+        break;
+      }
+    }
+
+    // Debounce: wait 100ms before processing
+    if (debounceTimeout) {
+      clearTimeout(debounceTimeout);
+    }
+    debounceTimeout = setTimeout(() => {
+      if (changedFiles.size > 0) {
+        log.info(`\nFile changed: ${[...changedFiles].map(f => relative(cwd, f)).join(', ')}`);
+        const filesToCompile = [...changedFiles];
+        changedFiles.clear();
+
+        // Recompile changed files
+        for (const file of filesToCompile) {
+          const { relPath, relOutput, outputFile, result } = compileOneFile(file);
+          if (result.success) {
+            if (!dryRun) {
+              writeFileSync(outputFile, result.code);
+            }
+            log.info(`${dryRun ? '[Dry Run] Would compile' : 'Compiled'}: ${relPath} -> ${relOutput}`);
+          } else {
+            log.error(`\n${relPath}:`);
+            for (const error of result.errors) {
+              const loc = error.line ? `:${error.line}:${error.column || 1}` : '';
+              log.error(`  ${relPath}${loc} ${error.message}`);
+            }
+          }
+        }
+      }
+    }, 100);
+  }
+
+  // Start watching directories
+  const watchers = [];
+  for (const dir of dirsToWatch) {
+    try {
+      const watcher = watch(dir, { recursive: false }, handleChange);
+      watchers.push(watcher);
+    } catch (e) {
+      log.warn(`Could not watch directory: ${dir}`);
+    }
+  }
+
+  // Keep process running
+  process.on('SIGINT', () => {
+    log.info('\nStopping watch mode...');
+    for (const watcher of watchers) {
+      watcher.close();
+    }
+    process.exit(0);
+  });
 }
 
 // Run main

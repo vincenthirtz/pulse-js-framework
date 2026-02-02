@@ -115,13 +115,14 @@ export function lazy(importFn, options = {}) {
 
     loadWithTimeout
       .then(module => {
-        // Ignore if this load attempt is stale (navigation occurred)
+        // Always cache the component, even if navigation occurred
+        // This prevents re-showing loading state on future navigations
+        cachedComponent = module;
+
+        // Skip DOM updates if this load attempt is stale (navigation occurred)
         if (loadCtx.isStale()) {
           return;
         }
-
-        // Cache the component
-        cachedComponent = module;
 
         // Get the component from module
         const Component = module.default || module;

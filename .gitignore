@@ -4,5 +4,5 @@ dist/
 *.local
 .npmrc
 *.log
-.claude
 .history
+.claude

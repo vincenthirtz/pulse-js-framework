@@ -706,10 +706,13 @@ export async function lintFile(filePath, options = {}) {
  * Lint files and return summary
  * @param {string[]} files - Files to lint
  * @param {Object} options - Lint options
+ * @param {boolean} options.fix - Auto-fix issues
+ * @param {boolean} options.dryRun - Show fixes without applying
+ * @param {boolean} options.quiet - Suppress output
  * @returns {Object} Summary with totals
  */
 async function lintFiles(files, options = {}) {
-  const { fix = false, quiet = false } = options;
+  const { fix = false, dryRun = false, quiet = false } = options;
   const timer = createTimer();
 
   let totalErrors = 0;
@@ -749,7 +752,13 @@ async function lintFiles(files, options = {}) {
 export async function runLint(args) {
   const { options, patterns } = parseArgs(args);
   const fix = options.fix || false;
+  const dryRun = options['dry-run'] || false;
   const watchMode = options.watch || options.w || false;
+
+  // Dry-run only makes sense with --fix
+  if (dryRun && !fix) {
+    log.warn('Note: --dry-run has no effect without --fix');
+  }
 
   // Find files to lint
   const files = findPulseFiles(patterns);
@@ -760,8 +769,8 @@ export async function runLint(args) {
   }
 
   // Initial lint run
-  log.info(`Linting ${files.length} file(s)...\n`);
-  const summary = await lintFiles(files, { fix });
+  log.info(`Linting ${files.length} file(s)...${dryRun ? ' (dry-run)' : ''}\n`);
+  const summary = await lintFiles(files, { fix, dryRun });
 
   // Print summary
   printLintSummary(summary, files.length);
@@ -795,7 +804,7 @@ export async function runLint(args) {
           debounceTimers.delete(filePath);
 
           log.info(`\n[${new Date().toLocaleTimeString()}] File changed: ${relativePath(filePath)}`);
-          lintFiles([filePath], { fix }).then(result => {
+          lintFiles([filePath], { fix, dryRun }).then(result => {
             printLintSummary(result, 1, true);
           });
         }, 100));
