@@ -326,13 +326,22 @@ body {
 }
 
 .lang-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 10px 14px;
-  font-size: 1.2em;
+  padding: 8px 12px;
   cursor: pointer;
   transition: all 0.2s ease;
+}
+
+.lang-btn svg {
+  width: 24px;
+  height: 16px;
+  border-radius: 2px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.2);
 }
 
 .lang-btn:hover {
@@ -388,6 +397,14 @@ body {
 
 .lang-option span {
   flex: 1;
+}
+
+.lang-option svg {
+  width: 24px;
+  height: 16px;
+  border-radius: 2px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+  flex-shrink: 0;
 }
 
 .mobile-nav {

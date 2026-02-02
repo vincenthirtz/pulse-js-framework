@@ -144,7 +144,7 @@ export function Header() {
   const langBtn = el('button.lang-btn');
   effect(() => {
     const currentLocale = locale.get();
-    langBtn.textContent = locales[currentLocale]?.flag || '🌐';
+    langBtn.innerHTML = locales[currentLocale]?.flag || '🌐';
     langBtn.title = locales[currentLocale]?.name || 'Language';
   });
   langSelector.appendChild(langBtn);
