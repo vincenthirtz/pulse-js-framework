@@ -17,7 +17,7 @@ import { pulse, effect, batch } from './pulse.js';
 import { el } from './dom.js';
 import { loggers } from './logger.js';
 import { createVersionedAsync } from './async.js';
-import { Errors } from 'pulse-js-framework/core/errors';
+import { Errors } from '../core/errors.js';
 
 const log = loggers.router;
 

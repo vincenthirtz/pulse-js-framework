@@ -19,7 +19,7 @@
  */
 
 import { loggers } from './logger.js';
-import { Errors } from 'pulse-js-framework/core/errors';
+import { Errors } from '../core/errors.js';
 
 const log = loggers.pulse;
 

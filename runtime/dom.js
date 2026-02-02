@@ -18,7 +18,7 @@ import { loggers } from './logger.js';
 import { LRUCache } from './lru-cache.js';
 import { safeSetAttribute, sanitizeUrl, safeSetStyle } from './utils.js';
 import { getAdapter } from './dom-adapter.js';
-import { Errors } from 'pulse-js-framework/core/errors';
+import { Errors } from '../core/errors.js';
 
 const log = loggers.dom;
 
