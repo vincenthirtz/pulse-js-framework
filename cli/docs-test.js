@@ -449,7 +449,51 @@ export async function runDocsTest(options = {}) {
 
   log.info(`  Imports: ${importPassed} passed, ${importFailed} failed`);
 
-  // 3. Validate .pulse files (if any in docs)
+  // 3. Check runtime files for package imports (won't work in browser)
+  log.info('');
+  log.info('Validating runtime imports (browser compatibility)...');
+
+  const runtimeDir = join(root, 'runtime');
+  const runtimeFiles = collectJsFiles(runtimeDir);
+  let runtimePassed = 0;
+  let runtimeFailed = 0;
+
+  for (const file of runtimeFiles) {
+    const relPath = relative(root, file);
+    const content = readFileSync(file, 'utf-8');
+    const errors = [];
+
+    // Find package imports (not starting with . / or /)
+    const importRegex = /^import\s+(?:[\w{}\s,*]+\s+from\s+)?['"]([^'"]+)['"]/gm;
+    let match;
+    while ((match = importRegex.exec(content)) !== null) {
+      const importPath = match[1];
+      // Package import = doesn't start with . or /
+      if (!importPath.startsWith('.') && !importPath.startsWith('/')) {
+        errors.push({
+          file,
+          importPath,
+          message: `Package import "${importPath}" won't work in browser without bundler`
+        });
+      }
+    }
+
+    if (errors.length > 0) {
+      runtimeFailed++;
+      log.error(`  ✗ ${relPath}`);
+      for (const err of errors) {
+        log.error(`    ${err.message}`);
+        allErrors.push({ type: 'runtime', ...err });
+      }
+    } else {
+      runtimePassed++;
+      if (verbose) log.info(`  ✓ ${relPath}`);
+    }
+  }
+
+  log.info(`  Runtime: ${runtimePassed} passed, ${runtimeFailed} failed`);
+
+  // 4. Validate .pulse files (if any in docs)
   const pulseFiles = collectPulseFiles(docsDir);
 
   if (pulseFiles.length > 0) {
