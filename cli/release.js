@@ -10,10 +10,11 @@
  * - Push to remote
  */
 
-import { readFileSync, writeFileSync, existsSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, unlinkSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
+import { tmpdir } from 'os';
 import { createInterface } from 'readline';
 import https from 'https';
 import { log } from './logger.js';
@@ -526,14 +527,15 @@ function gitCommitTagPush(newVersion, title, changes, dryRun = false) {
   log.info('  Running: git add -A...');
   execSync('git add -A', { cwd: root, stdio: 'inherit' });
 
-  // git commit with heredoc for proper message formatting
+  // git commit using temp file for cross-platform compatibility
   log.info('  Running: git commit...');
-  const escapedMessage = commitMessage.replace(/'/g, "'\\''");
-  execSync(`git commit -m $'${escapedMessage.replace(/\n/g, '\\n')}'`, {
-    cwd: root,
-    stdio: 'inherit',
-    shell: '/bin/bash'
-  });
+  const tempFile = join(tmpdir(), `pulse-release-${Date.now()}.txt`);
+  writeFileSync(tempFile, commitMessage, 'utf-8');
+  try {
+    execSync(`git commit -F "${tempFile}"`, { cwd: root, stdio: 'inherit' });
+  } finally {
+    unlinkSync(tempFile);
+  }
 
   // git tag
   log.info(`  Running: git tag v${newVersion}...`);
@@ -813,12 +815,13 @@ export async function runRelease(args) {
       // Only commit and tag, no push
       const commitMessage = buildCommitMessage(newVersion, title, changes);
       execSync('git add -A', { cwd: root, stdio: 'inherit' });
-      const escapedMessage = commitMessage.replace(/'/g, "'\\''");
-      execSync(`git commit -m $'${escapedMessage.replace(/\n/g, '\\n')}'`, {
-        cwd: root,
-        stdio: 'inherit',
-        shell: '/bin/bash'
-      });
+      const tempFile = join(tmpdir(), `pulse-release-${Date.now()}.txt`);
+      writeFileSync(tempFile, commitMessage, 'utf-8');
+      try {
+        execSync(`git commit -F "${tempFile}"`, { cwd: root, stdio: 'inherit' });
+      } finally {
+        unlinkSync(tempFile);
+      }
       execSync(`git tag -a v${newVersion} -m "Release v${newVersion}"`, { cwd: root, stdio: 'inherit' });
       log.info('  Created commit and tag (--no-push specified)');
     } else {

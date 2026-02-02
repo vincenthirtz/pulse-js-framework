@@ -5,6 +5,33 @@ All notable changes to Pulse Framework will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.6] - 2026-02-02
+
+### Optimizations & TypeScript Types
+
+### Added
+
+- router/store optimizations, CLI enhancements, TypeScript types, docs split
+- add async validators for server-side validation
+- add complete i18n translations for debugging and new page sections
+- add reactive translations to navigation menu
+- replace emoji flags with inline SVG for cross-platform support
+- add runtime imports validation
+- add documentation validation before release
+
+### Changed
+
+- refactor(dom): split into focused modules + add native bridge security
+- refactor(native): extract storage helpers and add comprehensive tests
+
+### Fixed
+
+- align padding between language and theme buttons
+- move errors.js to runtime for browser compatibility
+- use relative imports for errors in runtime files
+- use package imports for errors in runtime files
+
+
 ## [1.7.5] - 2026-02-01
 
 ### DX Improvements & CLI Enhancements

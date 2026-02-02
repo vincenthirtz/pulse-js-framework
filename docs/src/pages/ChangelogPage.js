@@ -18,7 +18,30 @@ export function ChangelogPage() {
     
     
     
+    
     <section class="doc-section changelog-section">
+      <h2>v1.7.6 - Optimizations & TypeScript Types</h2>
+      <p class="release-date">February 2026</p>
+
+      <div class="changelog-group">
+        <ul class="feature-list">
+          <li><strong>Added:</strong> router/store optimizations, CLI enhancements, TypeScript types, docs split</li>
+          <li><strong>Added:</strong> add async validators for server-side validation</li>
+          <li><strong>Added:</strong> add complete i18n translations for debugging and new page sections</li>
+          <li><strong>Added:</strong> add reactive translations to navigation menu</li>
+          <li><strong>Added:</strong> replace emoji flags with inline SVG for cross-platform support</li>
+          <li><strong>Added:</strong> add runtime imports validation</li>
+          <li><strong>Added:</strong> add documentation validation before release</li>
+          <li><strong>Changed:</strong> refactor(dom): split into focused modules + add native bridge security</li>
+          <li><strong>Changed:</strong> refactor(native): extract storage helpers and add comprehensive tests</li>
+          <li><strong>Fixed:</strong> align padding between language and theme buttons</li>
+          <li><strong>Fixed:</strong> move errors.js to runtime for browser compatibility</li>
+          <li><strong>Fixed:</strong> use relative imports for errors in runtime files</li>
+          <li><strong>Fixed:</strong> use package imports for errors in runtime files</li>
+        </ul>
+      </div>
+    </section>
+<section class="doc-section changelog-section">
       <h2>v1.7.5 - DX Improvements & CLI Enhancements</h2>
       <p class="release-date">February 2026</p>
 
