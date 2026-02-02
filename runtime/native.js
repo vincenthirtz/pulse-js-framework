@@ -9,6 +9,58 @@ import { loggers } from './logger.js';
 
 const log = loggers.native;
 
+// ============================================================================
+// Internal Helpers - Reduce code duplication
+// ============================================================================
+
+/**
+ * Safely parse JSON, returning the original value if parsing fails
+ * @param {string} value - Value to parse
+ * @returns {*} Parsed value or original string
+ */
+function _tryParseJson(value) {
+  try {
+    return JSON.parse(value);
+  } catch {
+    return value;
+  }
+}
+
+/**
+ * Execute a storage operation with native/localStorage fallback
+ * @param {Object} options - Operation options
+ * @param {Function} options.native - Native storage operation (async)
+ * @param {Function} options.web - localStorage fallback operation
+ * @returns {Promise<*>} Operation result
+ */
+async function _withStorageFallback({ native, web }) {
+  if (isNativeAvailable()) {
+    return native(getNative().Storage);
+  }
+  if (typeof localStorage !== 'undefined') {
+    return web(localStorage);
+  }
+  return null;
+}
+
+/**
+ * Execute a storage operation synchronously with native/localStorage fallback
+ * @param {Object} options - Operation options
+ * @param {Function} options.native - Native storage operation
+ * @param {Function} options.web - localStorage fallback operation
+ */
+function _withStorageFallbackSync({ native, web }) {
+  if (isNativeAvailable()) {
+    native(getNative().Storage);
+  } else if (typeof localStorage !== 'undefined') {
+    web(localStorage);
+  }
+}
+
+// ============================================================================
+// Public API
+// ============================================================================
+
 /**
  * Check if PulseMobile bridge is available
  */
@@ -69,26 +121,20 @@ export function createNativeStorage(prefix = '') {
       cache.set(fullKey, p);
 
       // Load initial value from storage
-      if (isNativeAvailable()) {
-        getNative().Storage.getItem(fullKey).then(value => {
+      _withStorageFallback({
+        native: async (storage) => {
+          const value = await storage.getItem(fullKey);
           if (value !== null) {
-            try {
-              p.set(JSON.parse(value));
-            } catch {
-              p.set(value);
-            }
+            p.set(_tryParseJson(value));
           }
-        });
-      } else if (typeof localStorage !== 'undefined') {
-        const value = localStorage.getItem(fullKey);
-        if (value !== null) {
-          try {
-            p.set(JSON.parse(value));
-          } catch {
-            p.set(value);
+        },
+        web: (storage) => {
+          const value = storage.getItem(fullKey);
+          if (value !== null) {
+            p.set(_tryParseJson(value));
           }
         }
-      }
+      });
 
       // Auto-persist on changes
       let initialized = false;
@@ -100,11 +146,10 @@ export function createNativeStorage(prefix = '') {
           return;
         }
         const serialized = JSON.stringify(value);
-        if (isNativeAvailable()) {
-          getNative().Storage.setItem(fullKey, serialized);
-        } else if (typeof localStorage !== 'undefined') {
-          localStorage.setItem(fullKey, serialized);
-        }
+        _withStorageFallbackSync({
+          native: (storage) => storage.setItem(fullKey, serialized),
+          web: (storage) => storage.setItem(fullKey, serialized)
+        });
       });
 
       return p;
@@ -116,11 +161,10 @@ export function createNativeStorage(prefix = '') {
     async remove(key) {
       const fullKey = prefix + key;
       cache.delete(fullKey);
-      if (isNativeAvailable()) {
-        await getNative().Storage.removeItem(fullKey);
-      } else if (typeof localStorage !== 'undefined') {
-        localStorage.removeItem(fullKey);
-      }
+      await _withStorageFallback({
+        native: (storage) => storage.removeItem(fullKey),
+        web: (storage) => storage.removeItem(fullKey)
+      });
     },
 
     /**
@@ -128,25 +172,28 @@ export function createNativeStorage(prefix = '') {
      */
     async clear() {
       cache.clear();
-      if (isNativeAvailable()) {
-        const keys = await getNative().Storage.keys();
-        for (const key of keys) {
-          if (key.startsWith(prefix)) {
-            await getNative().Storage.removeItem(key);
+      await _withStorageFallback({
+        native: async (storage) => {
+          const keys = await storage.keys();
+          for (const key of keys) {
+            if (key.startsWith(prefix)) {
+              await storage.removeItem(key);
+            }
+          }
+        },
+        web: (storage) => {
+          const keysToRemove = [];
+          for (let i = 0; i < storage.length; i++) {
+            const key = storage.key(i);
+            if (key && key.startsWith(prefix)) {
+              keysToRemove.push(key);
+            }
+          }
+          for (const key of keysToRemove) {
+            storage.removeItem(key);
           }
         }
-      } else if (typeof localStorage !== 'undefined') {
-        const keysToRemove = [];
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          if (key && key.startsWith(prefix)) {
-            keysToRemove.push(key);
-          }
-        }
-        for (const key of keysToRemove) {
-          localStorage.removeItem(key);
-        }
-      }
+      });
     }
   };
 }
