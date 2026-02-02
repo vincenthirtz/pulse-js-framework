@@ -54,7 +54,9 @@ const {
   onBackButton,
   onNativeReady,
   exitApp,
-  minimizeApp
+  minimizeApp,
+  clearBridgeValidationCache,
+  getBridgeValidationError
 } = await import('../runtime/native.js');
 
 // =============================================================================
@@ -74,6 +76,202 @@ test('getPlatform returns web when not native', () => {
 
 test('isNative returns false on web', () => {
   assertEqual(isNative(), false);
+});
+
+// =============================================================================
+// Bridge Security Validation Tests
+// =============================================================================
+
+printSection('Bridge Security Tests');
+
+test('clearBridgeValidationCache clears cached result', () => {
+  clearBridgeValidationCache();
+  assertEqual(getBridgeValidationError(), null);
+});
+
+test('isNativeAvailable rejects non-object bridge', () => {
+  clearBridgeValidationCache();
+  global.window.PulseMobile = 'not an object';
+  assertEqual(isNativeAvailable(), false);
+  assert(getBridgeValidationError().includes('not a valid object'), 'Should report invalid object');
+  delete global.window.PulseMobile;
+  clearBridgeValidationCache();
+});
+
+test('isNativeAvailable rejects bridge without version', () => {
+  clearBridgeValidationCache();
+  global.window.PulseMobile = { platform: 'android' };
+  assertEqual(isNativeAvailable(), false);
+  assert(getBridgeValidationError().includes('missing version'), 'Should report missing version');
+  delete global.window.PulseMobile;
+  clearBridgeValidationCache();
+});
+
+test('isNativeAvailable rejects bridge with old version', () => {
+  clearBridgeValidationCache();
+  global.window.PulseMobile = {
+    platform: 'android',
+    version: '0.5.0',
+    isNative: true
+  };
+  assertEqual(isNativeAvailable(), false);
+  assert(getBridgeValidationError().includes('below minimum'), 'Should report version too low');
+  delete global.window.PulseMobile;
+  clearBridgeValidationCache();
+});
+
+test('isNativeAvailable rejects bridge with invalid platform', () => {
+  clearBridgeValidationCache();
+  global.window.PulseMobile = {
+    platform: 'windows',
+    version: '1.0.0',
+    isNative: true
+  };
+  assertEqual(isNativeAvailable(), false);
+  assert(getBridgeValidationError().includes('invalid platform'), 'Should report invalid platform');
+  delete global.window.PulseMobile;
+  clearBridgeValidationCache();
+});
+
+test('isNativeAvailable rejects bridge missing required API', () => {
+  clearBridgeValidationCache();
+  global.window.PulseMobile = {
+    platform: 'android',
+    version: '1.0.0',
+    isNative: true,
+    Storage: { getItem: () => {} } // Missing other methods
+  };
+  assertEqual(isNativeAvailable(), false);
+  assert(getBridgeValidationError().includes('missing required'), 'Should report missing API');
+  delete global.window.PulseMobile;
+  clearBridgeValidationCache();
+});
+
+test('isNativeAvailable accepts valid bridge', () => {
+  clearBridgeValidationCache();
+
+  // Create a fully valid mock bridge
+  global.window.PulseMobile = {
+    platform: 'android',
+    version: '1.0.0',
+    isNative: true,
+    isAndroid: true,
+    Storage: {
+      getItem: () => Promise.resolve(null),
+      setItem: () => Promise.resolve(),
+      removeItem: () => Promise.resolve(),
+      keys: () => Promise.resolve([])
+    },
+    Device: {
+      getInfo: () => Promise.resolve({}),
+      getNetworkStatus: () => Promise.resolve({ connected: true, type: 'wifi' }),
+      onNetworkChange: () => {}
+    },
+    UI: {
+      showToast: () => Promise.resolve(),
+      vibrate: () => Promise.resolve()
+    },
+    App: {
+      onPause: () => {},
+      onResume: () => {},
+      onBackButton: () => {},
+      minimize: () => Promise.resolve(),
+      exit: () => Promise.resolve()
+    },
+    Clipboard: {
+      copy: () => Promise.resolve(),
+      read: () => Promise.resolve('')
+    }
+  };
+
+  assertEqual(isNativeAvailable(), true);
+  assertEqual(getBridgeValidationError(), null);
+
+  delete global.window.PulseMobile;
+  clearBridgeValidationCache();
+});
+
+test('isNativeAvailable caches validation result', () => {
+  clearBridgeValidationCache();
+
+  // Create a valid bridge
+  global.window.PulseMobile = {
+    platform: 'ios',
+    version: '1.2.0',
+    isNative: true,
+    Storage: { getItem: () => {}, setItem: () => {}, removeItem: () => {}, keys: () => {} },
+    Device: { getInfo: () => {}, getNetworkStatus: () => {}, onNetworkChange: () => {} },
+    UI: { showToast: () => {}, vibrate: () => {} },
+    App: { onPause: () => {}, onResume: () => {}, onBackButton: () => {}, minimize: () => {} },
+    Clipboard: { copy: () => {}, read: () => {} }
+  };
+
+  // First call validates and caches true
+  assertEqual(isNativeAvailable(), true);
+
+  // Second call uses cached result (no re-validation)
+  assertEqual(isNativeAvailable(), true);
+
+  // Modify bridge to be invalid - but cache should still return true
+  global.window.PulseMobile.platform = 'invalid';
+  assertEqual(isNativeAvailable(), true);
+
+  // Clear cache - now re-validates and should fail
+  clearBridgeValidationCache();
+  assertEqual(isNativeAvailable(), false);
+
+  delete global.window.PulseMobile;
+  clearBridgeValidationCache();
+});
+
+test('isNativeAvailable validates signature structure if present', () => {
+  clearBridgeValidationCache();
+
+  global.window.PulseMobile = {
+    platform: 'android',
+    version: '1.0.0',
+    isNative: true,
+    Storage: { getItem: () => {}, setItem: () => {}, removeItem: () => {}, keys: () => {} },
+    Device: { getInfo: () => {}, getNetworkStatus: () => {}, onNetworkChange: () => {} },
+    UI: { showToast: () => {}, vibrate: () => {} },
+    App: { onPause: () => {}, onResume: () => {}, onBackButton: () => {}, minimize: () => {} },
+    Clipboard: { copy: () => {}, read: () => {} },
+    // Invalid signature - missing required fields
+    _signature: { timestamp: Date.now() }
+  };
+
+  assertEqual(isNativeAvailable(), false);
+  assert(getBridgeValidationError().includes('signature verification failed'), 'Should report signature failure');
+
+  delete global.window.PulseMobile;
+  clearBridgeValidationCache();
+});
+
+test('isNativeAvailable accepts valid signature', () => {
+  clearBridgeValidationCache();
+
+  global.window.PulseMobile = {
+    platform: 'android',
+    version: '1.0.0',
+    isNative: true,
+    Storage: { getItem: () => {}, setItem: () => {}, removeItem: () => {}, keys: () => {} },
+    Device: { getInfo: () => {}, getNetworkStatus: () => {}, onNetworkChange: () => {} },
+    UI: { showToast: () => {}, vibrate: () => {} },
+    App: { onPause: () => {}, onResume: () => {}, onBackButton: () => {}, minimize: () => {} },
+    Clipboard: { copy: () => {}, read: () => {} },
+    // Valid signature structure
+    _signature: {
+      timestamp: Date.now(),
+      nonce: 'abc123',
+      hash: 'a'.repeat(64) // 64 hex chars
+    }
+  };
+
+  assertEqual(isNativeAvailable(), true);
+  assertEqual(getBridgeValidationError(), null);
+
+  delete global.window.PulseMobile;
+  clearBridgeValidationCache();
 });
 
 // =============================================================================
