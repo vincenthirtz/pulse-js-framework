@@ -490,7 +490,7 @@ for (const locale of supportedLocales) {
     assert(content.includes('performance:'), `${locale} pages.js should have performance section`);
     assert(content.includes('lazyComputed:'), `${locale} pages.js should have lazyComputed key`);
     assert(content.includes('listKeying:'), `${locale} pages.js should have listKeying key`);
-    assert(content.includes('batchingUpdates:'), `${locale} pages.js should have batchingUpdates key`);
+    assert(content.includes('batching:'), `${locale} pages.js should have batching key`);
     assert(content.includes('memoization:'), `${locale} pages.js should have memoization key`);
   });
 }
