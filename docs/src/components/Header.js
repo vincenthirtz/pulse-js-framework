@@ -92,7 +92,9 @@ export function Header() {
       const trigger = el('button.nav-link.nav-dropdown-trigger');
       const triggerText = el('span');
       trigger.appendChild(triggerText);
-      trigger.innerHTML += ' <span class="dropdown-arrow">▾</span>';
+      trigger.appendChild(document.createTextNode(' '));
+      const arrow = el('span.dropdown-arrow', '▾');
+      trigger.appendChild(arrow);
 
       // Update trigger label when locale changes
       effect(() => {

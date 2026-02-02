@@ -7,7 +7,7 @@ import { createRouter } from '/runtime/router.js';
 import { locale, localePath, isValidLocale, defaultLocale, t } from './i18n/index.js';
 
 // Re-export i18n for convenience
-export { locale, localePath, t, setLocale, getPathWithoutLocale } from './i18n/index.js';
+export { locale, localePath, t, setLocale, getPathWithoutLocale, translations } from './i18n/index.js';
 export { locales, isValidLocale, defaultLocale } from './i18n/locales.js';
 
 // =============================================================================
@@ -27,7 +27,7 @@ effect(() => {
 });
 
 export function toggleTheme() {
-  theme.update(t => t === 'dark' ? 'light' : 'dark');
+  theme.update(current => current === 'dark' ? 'light' : 'dark');
 }
 
 // =============================================================================

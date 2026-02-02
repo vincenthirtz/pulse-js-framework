@@ -139,6 +139,22 @@ export default {
   apiReference: {
     title: '📖 API Referenco',
     searchPlaceholder: 'Serĉi API...',
+    filter: 'Filtri:',
+    typescriptSupport: 'TypeScript Subteno',
+    typescriptSupportDesc: 'Pulse inkluzivas plenajn TypeScript difinaĵojn por IDE aŭtokompleto.',
+    reactivity: 'Reageco',
+    reactivityDesc: 'Signal-bazita reageco-sistemo.',
+    domSection: 'DOM',
+    domSectionDesc: 'Helpantoj por krei kaj manipuli DOM.',
+    routerSection: 'Vojigilo',
+    routerSectionDesc: 'SPA vojigilo kun nestitaj vojoj kaj gardistoj.',
+    storeSection: 'Stokejo',
+    storeSectionDesc: 'Tutmonda stato-administrado.',
+    hmrSection: 'HMR',
+    hmrSectionDesc: 'Varma Modula Anstataŭigo.',
+    resultsFound: 'rezulto(j) trovita(j)',
+    noResults: 'Neniuj rezultoj trovitaj',
+    nextMobile: 'Sekva: Poŝtelefonaj Aplikaĵoj →',
     categories: {
       all: 'Ĉiuj',
       types: 'Tipoj',
@@ -175,22 +191,142 @@ export default {
     share: 'Kunhavigi'
   },
 
-  // Other pages
+  // Debugging page
   debugging: {
-    title: '🔍 Sencimigado'
+    title: '🔍 Sencimigado',
+    intro: 'Iloj kaj teknikoj por sencimigi Pulse aplikaĵojn.',
+    sourceMaps: 'Fontmapoj',
+    sourceMapsDesc: 'Pulse v1.4.9+ generas V3 fontmapojn por kompilitaj .pulse dosieroj.',
+    enablingSourceMaps: 'Ebligi Fontmapojn',
+    viteIntegration: 'Vite Integriĝo',
+    viteIntegrationDesc: 'La Vite kromaĵo aŭtomate generas fontmapojn en evolumoduso.',
+    usingSourceMaps: 'Uzi Fontmapojn en DevTools',
+    usingSourceMapsSteps: [
+      'Malfermu Chrome/Firefox DevTools (F12)',
+      'Iru al la Sources langeto',
+      'Trovu viajn .pulse dosierojn en la arbo',
+      'Metu haltokomunkojn sur originalaj linioj',
+      'Erarstakoj montros originalajn linioumerojn'
+    ],
+    loggerApi: 'Logger API',
+    loggerApiDesc: 'Uzu la enkonstruitan protokolilon por strukturita sencimiga eligo.',
+    logLevels: 'Protokolo-Niveloj',
+    reactivityDebugging: 'Reageco-Sencimigado',
+    reactivityDebuggingDesc: 'Teknikoj por sencimigi reagan staton kaj efikojn.',
+    trackingDependencies: 'Spuri Dependecojn',
+    debuggingComputed: 'Sencimigi Kalkulitajn Valorojn',
+    batchDebugging: 'Ara Sencimigado',
+    routerDebugging: 'Vojigilo-Sencimigado',
+    routerDebuggingDesc: 'Sencimigi navigadon kaj vojo-kongruon.',
+    hmrDebugging: 'HMR Sencimigado',
+    hmrDebuggingDesc: 'Sencimigi Varma Modula Anstataŭiga problemojn.',
+    commonErrors: 'Oftaj Eraroj',
+    performanceProfiling: 'Efikeco-Profilado',
+    performanceProfilingDesc: 'Konsiloj por identigi botelneck-ojn.',
+    nextApiReference: 'Sekva: API Referenco →'
   },
+
+  // Security page
   security: {
-    title: '🔒 Sekureco'
+    title: '🔒 Sekureco',
+    intro: 'Plej bonaj praktikoj por konstrui sekurajn Pulse aplikaĵojn.',
+    xssPrevention: 'XSS Prevento',
+    xssPreventionDesc: 'Cross-Site Scripting (XSS) estas unu el la plej oftaj retaj vundeblecoj.',
+    safeByDefault: 'Sekura Defaŭlte: Teksta Enhavo',
+    safeByDefaultDesc: 'La el() funkcio kun ĉenoj-infanoj aŭtomate eskapas HTML.',
+    dangerousInnerHtml: 'Danĝera: innerHTML',
+    dangerousInnerHtmlDesc: 'Neniam uzu innerHTML kun nefidinda enhavo.',
+    safePatterns: 'Sekuraj Ŝablonoj por Dinamika Enhavo',
+    urlSanitization: 'URL Sanigado',
+    urlSanitizationDesc: 'Ĉiam sanigu uzant-provizitajn URL-ojn.',
+    formSecurity: 'Formulara Sekureco',
+    formSecurityDesc: 'Sekura traktado de formularaj datumoj.',
+    inputValidation: 'Eniga Validigo',
+    sensitiveData: 'Sentemaj Datumoj',
+    csp: 'Content Security Policy',
+    cspDesc: 'Rekomenditaj CSP kapoj por Pulse aplikaĵoj.',
+    apiSecurity: 'API Sekureco',
+    apiSecurityDesc: 'Sekuraj ŝablonoj por datuma prenado.',
+    securityChecklist: 'Sekureca Kontrollisto',
+    nextPerformance: 'Sekva: Efikeco-Gvidilo'
   },
+
+  // Performance page
   performance: {
-    title: '⚡ Efikeco'
+    title: '⚡ Efikeco',
+    intro: 'Optimumigu viajn Pulse aplikaĵojn por maksimuma efikeco.',
+    lazyComputed: 'Maldiligentaj Kalkulitaj Valoroj',
+    lazyComputedDesc: 'Defaŭlte, kalkulitaj valoroj taksas tuj. Uzu maldiligenta taksado por multekostaj kalkuloj.',
+    whenToUseLazy: 'Kiam Uzi Maldiligenta',
+    listKeying: 'Listoŝlosilado',
+    listKeyingDesc: 'Ĝusta ŝlosilado estas kritika por listo-efikeco.',
+    goodVsBadKeys: 'Bonaj vs Malbonaj Ŝlosiloj',
+    performanceImpact: 'Efikeco-Efiko',
+    batchingUpdates: 'Ara Ĝisdatigo',
+    batchingUpdatesDesc: 'Aru plurajn stato-ŝanĝojn por eviti mez-redesegnojn.',
+    automaticBatching: 'Aŭtomata Arado',
+    memoization: 'Memorigado',
+    memoizationDesc: 'Kaŝmemoru multekostajn kalkulojn por eviti reduncan laboron.',
+    lazyLoadingRoutes: 'Maldiligenta Ŝargado de Vojoj',
+    lazyLoadingRoutesDesc: 'Dividu vian aplikaĵon en eroj ŝargitaj laŭ postulo.',
+    avoidUnnecessaryReactivity: 'Evitu Malnecesajn Reagecon',
+    avoidUnnecessaryReactivityDesc: 'Ne ĉio bezonas esti reaga.',
+    effectOptimization: 'Efiko-Optimumigo',
+    effectOptimizationDesc: 'Tenu efikojn rapidaj kaj fokusitaj.',
+    resourceCaching: 'Rimeda Kaŝmemoro',
+    resourceCachingDesc: 'Uzu la kaŝmemorajn funkciojn de la async modulo.',
+    performanceMonitoring: 'Efikeco-Monitorado',
+    performanceMonitoringDesc: 'Uzu la devtools modulon por monitori efikecon.',
+    performanceChecklist: 'Efikeco-Kontrollisto',
+    nextErrorHandling: 'Sekva: Erartraktado'
   },
+
+  // Error Handling page
   errorHandling: {
-    title: '🛡️ Erartraktado'
+    title: '🛡️ Erartraktado',
+    intro: 'Firmaj erartraktaj strategioj por Pulse aplikaĵoj.',
+    effectErrorHandling: 'Efiko-Erartraktado',
+    effectErrorHandlingDesc: 'Efikoj povas malsukcesi. Traktu erarojn gracie.',
+    perEffectHandler: 'Per-Efika Erartraktilo',
+    globalEffectHandler: 'Tutmonda Efiko-Erartraktilo',
+    asyncErrorHandling: 'Async Erartraktado',
+    asyncErrorHandlingDesc: 'La async modulo provizas enkonstruitan erarstato-traktadon.',
+    formValidation: 'Formulara Validigo-Eraroj',
+    formValidationDesc: 'Traktu formularan validigon per la form modulo.',
+    routerErrorHandling: 'Vojigilo-Erartraktado',
+    routerErrorHandlingDesc: 'Traktu navigado-erarojn kaj 404 paĝojn.',
+    userFeedback: 'Uzanta Respondo',
+    userFeedbackDesc: 'Montru erarojn al uzantoj taŭge.',
+    errorBoundaries: 'Erarlimoj',
+    errorBoundariesDesc: 'Enfermu erarojn por malhelpi tutajn aplikaĵo-kraŝojn.',
+    loggingErrors: 'Erarprotokolo',
+    loggingErrorsDesc: 'Protokolu erarojn por sencimigado kaj monitorado.',
+    errorChecklist: 'Erartraktado-Kontrollisto',
+    nextMobile: 'Sekva: Poŝtelefona Evoluo'
   },
+
+  // Mobile page
   mobile: {
-    title: '📱 Poŝtelefona Evoluo'
+    title: '📱 Poŝtelefona Evoluo',
+    intro: 'Konstruu indiĝenajn poŝtelefonajn aplikaĵojn per Pulse.',
+    gettingStarted: 'Komenci',
+    gettingStartedDesc: 'Agordu vian poŝtelefonan evolumedion.',
+    platformDetection: 'Platforma Detekto',
+    platformDetectionDesc: 'Detektu la nunan platformon kaj adaptu konduton.',
+    nativeStorage: 'Indiĝena Stokado',
+    nativeStorageDesc: 'Persistema stokado kiu funkcias rete kaj indiĝene.',
+    deviceInfo: 'Aparatinformoj',
+    deviceInfoDesc: 'Aliru aparatinformojn kaj retstaton.',
+    nativeUi: 'Indiĝena UI',
+    nativeUiDesc: 'Aliru indiĝenajn UI elementojn kiel toastoj kaj vibrado.',
+    appLifecycle: 'Aplikaĵa Vivciklo',
+    appLifecycleDesc: 'Traktu paŭzon, rekomencadon, kaj malantaŭ-butonan eventojn.',
+    buildingApps: 'Konstrui Aplikaĵojn',
+    buildingAppsDesc: 'Konstruu kaj pakumu vian aplikaĵon por distribuado.',
+    nextChangelog: 'Sekva: Ŝanĝoprotokolo'
   },
+
+  // Changelog page
   changelog: {
     title: '📋 Ŝanĝoprotokolo'
   }

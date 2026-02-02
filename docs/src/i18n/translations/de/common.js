@@ -264,6 +264,29 @@ export default {
     suggestions: 'Vorschläge'
   },
 
+  // API Reference Page
+  apiReference: {
+    title: '📖 API-Referenz',
+    searchPlaceholder: 'API durchsuchen...',
+    filter: 'Filtern:',
+    typescriptSupport: 'TypeScript-Unterstützung',
+    reactivity: 'Reaktivität',
+    domSection: 'DOM',
+    routerSection: 'Router',
+    storeSection: 'Store',
+    hmrSection: 'HMR',
+    nextMobile: 'Native Mobil',
+    categories: {
+      all: 'Alle',
+      types: 'Typen',
+      reactivity: 'Reaktivität',
+      dom: 'DOM',
+      router: 'Router',
+      store: 'Store',
+      hmr: 'HMR'
+    }
+  },
+
   // Playground
   playground: {
     title: '🎮 Spielplatz',

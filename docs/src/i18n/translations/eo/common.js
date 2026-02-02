@@ -264,6 +264,29 @@ export default {
     suggestions: 'Sugestoj'
   },
 
+  // API Reference Page
+  apiReference: {
+    title: '📖 API Referenco',
+    searchPlaceholder: 'Serĉi en API...',
+    filter: 'Filtri:',
+    typescriptSupport: 'TypeScript Subteno',
+    reactivity: 'Reageco',
+    domSection: 'DOM',
+    routerSection: 'Vojigilo',
+    storeSection: 'Stokejo',
+    hmrSection: 'HMR',
+    nextMobile: 'Denaska Poŝtelefono',
+    categories: {
+      all: 'Ĉiuj',
+      types: 'Tipoj',
+      reactivity: 'Reageco',
+      dom: 'DOM',
+      router: 'Vojigilo',
+      store: 'Stokejo',
+      hmr: 'HMR'
+    }
+  },
+
   // Playground
   playground: {
     title: '🎮 Ludejo',

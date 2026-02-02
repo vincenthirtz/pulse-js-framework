@@ -139,6 +139,22 @@ export default {
   apiReference: {
     title: '📖 APIリファレンス',
     searchPlaceholder: 'APIを検索...',
+    filter: 'フィルター:',
+    typescriptSupport: 'TypeScriptサポート',
+    typescriptSupportDesc: 'PulseはIDE自動補完のための完全なTypeScript定義を含みます。',
+    reactivity: 'リアクティビティ',
+    reactivityDesc: 'シグナルベースのリアクティビティシステム。',
+    domSection: 'DOM',
+    domSectionDesc: 'DOM作成・操作のヘルパー。',
+    routerSection: 'ルーター',
+    routerSectionDesc: 'ネストルートとガード付きSPAルーター。',
+    storeSection: 'ストア',
+    storeSectionDesc: 'グローバル状態管理。',
+    hmrSection: 'HMR',
+    hmrSectionDesc: 'ホットモジュールリプレースメント。',
+    resultsFound: '件見つかりました',
+    noResults: '結果が見つかりません',
+    nextMobile: '次: モバイルアプリ →',
     categories: {
       all: 'すべて',
       types: '型',
@@ -175,22 +191,142 @@ export default {
     share: '共有'
   },
 
-  // Other pages
+  // Debugging page
   debugging: {
-    title: '🔍 デバッグ'
+    title: '🔍 デバッグ',
+    intro: 'Pulseアプリケーションをデバッグするためのツールとテクニック。',
+    sourceMaps: 'ソースマップ',
+    sourceMapsDesc: 'Pulse v1.4.9以降は、コンパイルされた.pulseファイル用のV3ソースマップを生成します。',
+    enablingSourceMaps: 'ソースマップの有効化',
+    viteIntegration: 'Vite統合',
+    viteIntegrationDesc: 'Viteプラグインは開発モードで自動的にソースマップを生成します。',
+    usingSourceMaps: 'DevToolsでソースマップを使用',
+    usingSourceMapsSteps: [
+      'Chrome/Firefox DevToolsを開く（F12）',
+      'Sourcesタブに移動',
+      'ファイルツリーで.pulseファイルを見つける',
+      '元のソース行にブレークポイントを設定',
+      'エラースタックトレースは元の行番号を表示'
+    ],
+    loggerApi: 'Logger API',
+    loggerApiDesc: '構造化されたデバッグ出力には組み込みロガーを使用。',
+    logLevels: 'ログレベル',
+    reactivityDebugging: 'リアクティビティデバッグ',
+    reactivityDebuggingDesc: 'リアクティブ状態とエフェクトをデバッグするテクニック。',
+    trackingDependencies: '依存関係の追跡',
+    debuggingComputed: '計算値のデバッグ',
+    batchDebugging: 'バッチデバッグ',
+    routerDebugging: 'ルーターデバッグ',
+    routerDebuggingDesc: 'ナビゲーションとルートマッチングのデバッグ。',
+    hmrDebugging: 'HMRデバッグ',
+    hmrDebuggingDesc: 'ホットモジュールリプレースメントの問題をデバッグ。',
+    commonErrors: 'よくあるエラー',
+    performanceProfiling: 'パフォーマンスプロファイリング',
+    performanceProfilingDesc: 'ボトルネックを特定するためのヒント。',
+    nextApiReference: '次へ: APIリファレンス →'
   },
+
+  // Security page
   security: {
-    title: '🔒 セキュリティ'
+    title: '🔒 セキュリティ',
+    intro: '安全なPulseアプリケーションを構築するためのベストプラクティス。',
+    xssPrevention: 'XSS対策',
+    xssPreventionDesc: 'クロスサイトスクリプティング（XSS）は最も一般的なWeb脆弱性の1つです。',
+    safeByDefault: 'デフォルトで安全：テキストコンテンツ',
+    safeByDefaultDesc: '文字列の子要素を持つel()関数は自動的にHTMLをエスケープします。',
+    dangerousInnerHtml: '危険：innerHTML',
+    dangerousInnerHtmlDesc: '信頼できないコンテンツにはinnerHTMLを使用しないでください。',
+    safePatterns: '動的コンテンツの安全なパターン',
+    urlSanitization: 'URLのサニタイズ',
+    urlSanitizationDesc: 'ユーザー提供のURLは常にサニタイズしてください。',
+    formSecurity: 'フォームセキュリティ',
+    formSecurityDesc: 'フォームデータの安全な処理。',
+    inputValidation: '入力検証',
+    sensitiveData: '機密データ',
+    csp: 'Content Security Policy',
+    cspDesc: 'Pulseアプリケーション用の推奨CSPヘッダー。',
+    apiSecurity: 'APIセキュリティ',
+    apiSecurityDesc: 'データ取得の安全なパターン。',
+    securityChecklist: 'セキュリティチェックリスト',
+    nextPerformance: '次へ: パフォーマンスガイド'
   },
+
+  // Performance page
   performance: {
-    title: '⚡ パフォーマンス'
+    title: '⚡ パフォーマンス',
+    intro: '最高のパフォーマンスのためにPulseアプリケーションを最適化。',
+    lazyComputed: '遅延計算値',
+    lazyComputedDesc: 'デフォルトでは計算値は即座に評価されます。高コストな計算には遅延評価を使用。',
+    whenToUseLazy: '遅延を使用するタイミング',
+    listKeying: 'リストキー',
+    listKeyingDesc: '適切なキー設定はリストパフォーマンスに不可欠です。',
+    goodVsBadKeys: '良いキー vs 悪いキー',
+    performanceImpact: 'パフォーマンスへの影響',
+    batchingUpdates: '更新のバッチ処理',
+    batchingUpdatesDesc: '中間の再レンダリングを避けるために複数の状態変更をバッチ処理。',
+    automaticBatching: '自動バッチ処理',
+    memoization: 'メモ化',
+    memoizationDesc: '冗長な作業を避けるために高コストな計算をキャッシュ。',
+    lazyLoadingRoutes: 'ルートの遅延読み込み',
+    lazyLoadingRoutesDesc: 'アプリをオンデマンドで読み込まれるチャンクに分割。',
+    avoidUnnecessaryReactivity: '不要なリアクティビティを避ける',
+    avoidUnnecessaryReactivityDesc: 'すべてがリアクティブである必要はありません。',
+    effectOptimization: 'エフェクトの最適化',
+    effectOptimizationDesc: 'エフェクトを高速で焦点を絞ったものに保つ。',
+    resourceCaching: 'リソースキャッシング',
+    resourceCachingDesc: 'asyncモジュールのキャッシング機能を使用。',
+    performanceMonitoring: 'パフォーマンス監視',
+    performanceMonitoringDesc: 'devtoolsモジュールを使用してパフォーマンスを監視。',
+    performanceChecklist: 'パフォーマンスチェックリスト',
+    nextErrorHandling: '次へ: エラー処理'
   },
+
+  // Error Handling page
   errorHandling: {
-    title: '🛡️ エラー処理'
+    title: '🛡️ エラー処理',
+    intro: 'Pulseアプリケーション用の堅牢なエラー処理戦略。',
+    effectErrorHandling: 'エフェクトのエラー処理',
+    effectErrorHandlingDesc: 'エフェクトは失敗する可能性があります。エラーを適切に処理してください。',
+    perEffectHandler: 'エフェクトごとのエラーハンドラー',
+    globalEffectHandler: 'グローバルエフェクトエラーハンドラー',
+    asyncErrorHandling: '非同期エラー処理',
+    asyncErrorHandlingDesc: 'asyncモジュールは組み込みのエラー状態処理を提供。',
+    formValidation: 'フォームバリデーションエラー',
+    formValidationDesc: 'formモジュールでフォームバリデーションを処理。',
+    routerErrorHandling: 'ルーターエラー処理',
+    routerErrorHandlingDesc: 'ナビゲーションエラーと404ページを処理。',
+    userFeedback: 'ユーザーフィードバック',
+    userFeedbackDesc: 'ユーザーに適切にエラーを表示。',
+    errorBoundaries: 'エラー境界',
+    errorBoundariesDesc: 'アプリ全体のクラッシュを防ぐためにエラーを封じ込める。',
+    loggingErrors: 'エラーログ',
+    loggingErrorsDesc: 'デバッグと監視のためにエラーをログ。',
+    errorChecklist: 'エラー処理チェックリスト',
+    nextMobile: '次へ: モバイル開発'
   },
+
+  // Mobile page
   mobile: {
-    title: '📱 モバイル開発'
+    title: '📱 モバイル開発',
+    intro: 'Pulseでネイティブモバイルアプリを構築。',
+    gettingStarted: 'はじめに',
+    gettingStartedDesc: 'モバイル開発環境をセットアップ。',
+    platformDetection: 'プラットフォーム検出',
+    platformDetectionDesc: '現在のプラットフォームを検出して動作を適応。',
+    nativeStorage: 'ネイティブストレージ',
+    nativeStorageDesc: 'Webとネイティブで動作する永続ストレージ。',
+    deviceInfo: 'デバイス情報',
+    deviceInfoDesc: 'デバイス情報とネットワーク状態にアクセス。',
+    nativeUi: 'ネイティブUI',
+    nativeUiDesc: 'トーストやバイブレーションなどのネイティブUI要素にアクセス。',
+    appLifecycle: 'アプリライフサイクル',
+    appLifecycleDesc: 'アプリの一時停止、再開、戻るボタンイベントを処理。',
+    buildingApps: 'アプリのビルド',
+    buildingAppsDesc: '配布用にアプリをビルドしてパッケージ化。',
+    nextChangelog: '次へ: 変更履歴'
   },
+
+  // Changelog page
   changelog: {
     title: '📋 変更履歴'
   }

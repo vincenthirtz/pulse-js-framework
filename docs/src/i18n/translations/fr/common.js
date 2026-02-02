@@ -264,6 +264,29 @@ export default {
     suggestions: 'Suggestions'
   },
 
+  // API Reference Page
+  apiReference: {
+    title: '📖 Référence API',
+    searchPlaceholder: 'Rechercher dans l\'API...',
+    filter: 'Filtrer:',
+    typescriptSupport: 'Support TypeScript',
+    reactivity: 'Réactivité',
+    domSection: 'DOM',
+    routerSection: 'Routeur',
+    storeSection: 'Store',
+    hmrSection: 'HMR',
+    nextMobile: 'Mobile Natif',
+    categories: {
+      all: 'Tout',
+      types: 'Types',
+      reactivity: 'Réactivité',
+      dom: 'DOM',
+      router: 'Routeur',
+      store: 'Store',
+      hmr: 'HMR'
+    }
+  },
+
   // Playground
   playground: {
     title: '🎮 Bac à sable',

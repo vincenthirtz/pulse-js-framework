@@ -391,6 +391,20 @@ export default {
   mobile: {
     title: '📱 Mobile Entwicklung',
     intro: 'Erstellen Sie native Android- und iOS-Apps aus Ihrem Pulse-Projekt.',
+    gettingStarted: 'Erste Schritte',
+    gettingStartedDesc: 'Richten Sie Ihre mobile Entwicklungsumgebung ein.',
+    platformDetection: 'Plattformerkennung',
+    platformDetectionDesc: 'Erkennen Sie die aktuelle Plattform und passen Sie das Verhalten an.',
+    nativeStorage: 'Nativer Speicher',
+    nativeStorageDesc: 'Persistenter Speicher, der auf Web und nativ funktioniert.',
+    deviceInfo: 'Geräteinformationen',
+    deviceInfoDesc: 'Zugriff auf Geräteinformationen und Netzwerkstatus.',
+    nativeUi: 'Native UI',
+    nativeUiDesc: 'Zugriff auf native UI-Elemente wie Toasts und Vibration.',
+    appLifecycle: 'App-Lebenszyklus',
+    appLifecycleDesc: 'Behandeln Sie Pause-, Wiederaufnahme- und Zurück-Taste-Ereignisse.',
+    buildingApps: 'Apps erstellen',
+    buildingAppsDesc: 'Erstellen und verpacken Sie Ihre App zur Verteilung.',
     overview: 'Übersicht',
     overviewDesc: 'Pulse Mobile ermöglicht es Ihnen, Ihre Web-App in eine native mobile App zu verpacken - ohne externe Abhängigkeiten.',
     features: {
@@ -411,7 +425,8 @@ export default {
     requirements: 'Voraussetzungen',
     requirementsAndroid: 'Android',
     requirementsIos: 'iOS',
-    nextExamples: 'Weiter: Beispiele →'
+    nextExamples: 'Weiter: Beispiele →',
+    nextChangelog: 'Weiter: Änderungsprotokoll'
   },
 
   // Changelog page

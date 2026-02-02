@@ -2,35 +2,35 @@
  * Pulse Documentation - API Reference Page
  */
 
-import { el } from '/runtime/index.js';
-import { t } from '../state.js';
+import { el, effect } from '/runtime/index.js';
+import { t, locale, translations } from '../state.js';
 
 export function ApiReferencePage() {
   const page = el('.page.docs-page');
 
   page.innerHTML = `
-    <h1>${t('apiReference.title')}</h1>
+    <h1 data-i18n="apiReference.title"></h1>
 
     <div class="api-search">
-      <input type="text" id="api-search-input" placeholder="${t('apiReference.searchPlaceholder')}" autocomplete="off">
+      <input type="text" id="api-search-input" data-i18n-placeholder="apiReference.searchPlaceholder" autocomplete="off">
       <kbd class="api-search-kbd" id="api-search-kbd">/</kbd>
       <span class="api-search-clear" id="api-search-clear">&times;</span>
       <div class="api-search-results" id="api-search-results"></div>
     </div>
 
     <div class="api-filters" id="api-filters">
-      <span class="filter-label">${t('apiReference.filter')}</span>
-      <button class="filter-btn active" data-filter="all">${t('apiReference.categories.all')}</button>
-      <button class="filter-btn" data-filter="types">${t('apiReference.categories.types')}</button>
-      <button class="filter-btn" data-filter="reactivity">${t('apiReference.categories.reactivity')}</button>
-      <button class="filter-btn" data-filter="dom">${t('apiReference.categories.dom')}</button>
-      <button class="filter-btn" data-filter="router">${t('apiReference.categories.router')}</button>
-      <button class="filter-btn" data-filter="store">${t('apiReference.categories.store')}</button>
-      <button class="filter-btn" data-filter="hmr">${t('apiReference.categories.hmr')}</button>
+      <span class="filter-label" data-i18n="apiReference.filter"></span>
+      <button class="filter-btn active" data-filter="all" data-i18n="apiReference.categories.all"></button>
+      <button class="filter-btn" data-filter="types" data-i18n="apiReference.categories.types"></button>
+      <button class="filter-btn" data-filter="reactivity" data-i18n="apiReference.categories.reactivity"></button>
+      <button class="filter-btn" data-filter="dom" data-i18n="apiReference.categories.dom"></button>
+      <button class="filter-btn" data-filter="router" data-i18n="apiReference.categories.router"></button>
+      <button class="filter-btn" data-filter="store" data-i18n="apiReference.categories.store"></button>
+      <button class="filter-btn" data-filter="hmr" data-i18n="apiReference.categories.hmr"></button>
     </div>
 
     <section class="doc-section" data-category="types">
-      <h2>${t('apiReference.typescriptSupport')}</h2>
+      <h2 data-i18n="apiReference.typescriptSupport"></h2>
       <p>Pulse includes full TypeScript definitions for IDE autocomplete. Types are automatically detected:</p>
       <div class="code-block">
         <pre><code>import { pulse, effect, computed, Pulse } from 'pulse-js-framework/runtime';
@@ -43,7 +43,7 @@ const doubled = computed(() => count.get() * 2);</code></pre>
     </section>
 
     <section class="doc-section" data-category="reactivity">
-      <h2>${t('apiReference.reactivity')}</h2>
+      <h2 data-i18n="apiReference.reactivity"></h2>
 
       <div class="api-item">
         <h3><code>pulse(initialValue, options?)</code></h3>
@@ -165,7 +165,7 @@ state.items$filter(x => x !== 'b');</code></pre>
     </section>
 
     <section class="doc-section" data-category="dom">
-      <h2>${t('apiReference.domSection')}</h2>
+      <h2 data-i18n="apiReference.domSection"></h2>
 
       <div class="api-item">
         <h3><code>el(selector, ...children)</code></h3>
@@ -290,7 +290,7 @@ portal(
     </section>
 
     <section class="doc-section" data-category="router">
-      <h2>${t('apiReference.routerSection')}</h2>
+      <h2 data-i18n="apiReference.routerSection"></h2>
 
       <div class="api-item">
         <h3><code>createRouter(options)</code></h3>
@@ -440,7 +440,7 @@ unsubscribe();</code></pre>
     </section>
 
     <section class="doc-section" data-category="store">
-      <h2>${t('apiReference.storeSection')}</h2>
+      <h2 data-i18n="apiReference.storeSection"></h2>
 
       <div class="api-item">
         <h3><code>createStore(initialState, options?)</code></h3>
@@ -462,7 +462,7 @@ store.$reset();</code></pre>
     </section>
 
     <section class="doc-section" data-category="hmr">
-      <h2>${t('apiReference.hmrSection')}</h2>
+      <h2 data-i18n="apiReference.hmrSection"></h2>
 
       <div class="api-item">
         <h3><code>createHMRContext(moduleId)</code></h3>
@@ -542,11 +542,25 @@ console.log(hmr.data.myCustomState); // { x: 1, y: 2 }</code></pre>
     </section>
 
     <div class="next-section">
-      <button class="btn btn-primary" onclick="window.docs.navigate('/mobile')">
-        ${t('apiReference.nextMobile')}
-      </button>
+      <button class="btn btn-primary" onclick="window.docs.navigate('/mobile')" data-i18n="apiReference.nextMobile"></button>
     </div>
   `;
+
+  // Reactive i18n: update all translated elements when locale/translations change
+  effect(() => {
+    locale.get(); // Track locale changes
+    translations.get(); // Track when translations are loaded
+
+    // Update text content
+    page.querySelectorAll('[data-i18n]').forEach(el => {
+      el.textContent = t(el.dataset.i18n);
+    });
+
+    // Update placeholders
+    page.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+      el.placeholder = t(el.dataset.i18nPlaceholder);
+    });
+  });
 
   // Setup search and filter functionality after DOM is ready
   setTimeout(() => {

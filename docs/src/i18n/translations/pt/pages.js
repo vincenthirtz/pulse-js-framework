@@ -139,6 +139,22 @@ export default {
   apiReference: {
     title: '📖 Referência da API',
     searchPlaceholder: 'Pesquisar API...',
+    filter: 'Filtrar:',
+    typescriptSupport: 'Suporte TypeScript',
+    typescriptSupportDesc: 'Pulse inclui definições TypeScript completas para autocompletar no IDE.',
+    reactivity: 'Reatividade',
+    reactivityDesc: 'Sistema de reatividade baseado em sinais.',
+    domSection: 'DOM',
+    domSectionDesc: 'Helpers para criar e manipular o DOM.',
+    routerSection: 'Router',
+    routerSectionDesc: 'Router SPA com rotas aninhadas e guards.',
+    storeSection: 'Store',
+    storeSectionDesc: 'Gerenciamento de estado global.',
+    hmrSection: 'HMR',
+    hmrSectionDesc: 'Hot Module Replacement.',
+    resultsFound: 'resultado(s) encontrado(s)',
+    noResults: 'Nenhum resultado encontrado',
+    nextMobile: 'Próximo: Apps Móveis →',
     categories: {
       all: 'Todos',
       types: 'Tipos',
@@ -175,22 +191,142 @@ export default {
     share: 'Compartilhar'
   },
 
-  // Other pages
+  // Debugging page
   debugging: {
-    title: '🔍 Depuração'
+    title: '🔍 Depuração',
+    intro: 'Ferramentas e técnicas para depurar aplicações Pulse.',
+    sourceMaps: 'Source Maps',
+    sourceMapsDesc: 'Pulse v1.4.9+ gera source maps V3 para arquivos .pulse compilados.',
+    enablingSourceMaps: 'Habilitando Source Maps',
+    viteIntegration: 'Integração Vite',
+    viteIntegrationDesc: 'O plugin Vite gera automaticamente source maps no modo de desenvolvimento.',
+    usingSourceMaps: 'Usando Source Maps no DevTools',
+    usingSourceMapsSteps: [
+      'Abra o Chrome/Firefox DevTools (F12)',
+      'Vá para a aba Sources',
+      'Encontre seus arquivos .pulse na árvore',
+      'Defina breakpoints nas linhas originais',
+      'Stack traces mostrarão números de linha originais'
+    ],
+    loggerApi: 'API Logger',
+    loggerApiDesc: 'Use o logger integrado para saída de depuração estruturada.',
+    logLevels: 'Níveis de Log',
+    reactivityDebugging: 'Depuração de Reatividade',
+    reactivityDebuggingDesc: 'Técnicas para depurar estado reativo e effects.',
+    trackingDependencies: 'Rastreando Dependências',
+    debuggingComputed: 'Depurando Valores Computados',
+    batchDebugging: 'Depuração de Batch',
+    routerDebugging: 'Depuração do Router',
+    routerDebuggingDesc: 'Depurar navegação e matching de rotas.',
+    hmrDebugging: 'Depuração HMR',
+    hmrDebuggingDesc: 'Depurar problemas de Hot Module Replacement.',
+    commonErrors: 'Erros Comuns',
+    performanceProfiling: 'Profiling de Performance',
+    performanceProfilingDesc: 'Dicas para identificar gargalos.',
+    nextApiReference: 'Próximo: Referência da API →'
   },
+
+  // Security page
   security: {
-    title: '🔒 Segurança'
+    title: '🔒 Segurança',
+    intro: 'Melhores práticas para construir aplicações Pulse seguras.',
+    xssPrevention: 'Prevenção de XSS',
+    xssPreventionDesc: 'Cross-Site Scripting (XSS) é uma das vulnerabilidades web mais comuns.',
+    safeByDefault: 'Seguro por Padrão: Conteúdo de Texto',
+    safeByDefaultDesc: 'A função el() com filhos string escapa HTML automaticamente.',
+    dangerousInnerHtml: 'Perigoso: innerHTML',
+    dangerousInnerHtmlDesc: 'Nunca use innerHTML com conteúdo não confiável.',
+    safePatterns: 'Padrões Seguros para Conteúdo Dinâmico',
+    urlSanitization: 'Sanitização de URLs',
+    urlSanitizationDesc: 'Sempre sanitize URLs fornecidas pelo usuário.',
+    formSecurity: 'Segurança de Formulários',
+    formSecurityDesc: 'Manipulação segura de dados de formulário.',
+    inputValidation: 'Validação de Entrada',
+    sensitiveData: 'Dados Sensíveis',
+    csp: 'Content Security Policy',
+    cspDesc: 'Headers CSP recomendados para aplicações Pulse.',
+    apiSecurity: 'Segurança de API',
+    apiSecurityDesc: 'Padrões seguros para busca de dados.',
+    securityChecklist: 'Checklist de Segurança',
+    nextPerformance: 'Próximo: Guia de Performance'
   },
+
+  // Performance page
   performance: {
-    title: '⚡ Desempenho'
+    title: '⚡ Desempenho',
+    intro: 'Otimize suas aplicações Pulse para performance máxima.',
+    lazyComputed: 'Valores Computados Lazy',
+    lazyComputedDesc: 'Por padrão, valores computados avaliam imediatamente. Use avaliação lazy para cálculos custosos.',
+    whenToUseLazy: 'Quando Usar Lazy',
+    listKeying: 'Chaves de Lista',
+    listKeyingDesc: 'Chaves adequadas são críticas para performance de listas.',
+    goodVsBadKeys: 'Boas vs Más Chaves',
+    performanceImpact: 'Impacto na Performance',
+    batchingUpdates: 'Agrupando Atualizações',
+    batchingUpdatesDesc: 'Agrupe múltiplas mudanças de estado para evitar re-renders intermediários.',
+    automaticBatching: 'Batching Automático',
+    memoization: 'Memoização',
+    memoizationDesc: 'Cache cálculos custosos para evitar trabalho redundante.',
+    lazyLoadingRoutes: 'Carregamento Lazy de Rotas',
+    lazyLoadingRoutesDesc: 'Divida seu app em chunks carregados sob demanda.',
+    avoidUnnecessaryReactivity: 'Evite Reatividade Desnecessária',
+    avoidUnnecessaryReactivityDesc: 'Nem tudo precisa ser reativo.',
+    effectOptimization: 'Otimização de Effects',
+    effectOptimizationDesc: 'Mantenha effects rápidos e focados.',
+    resourceCaching: 'Cache de Recursos',
+    resourceCachingDesc: 'Use os recursos de cache do módulo async.',
+    performanceMonitoring: 'Monitoramento de Performance',
+    performanceMonitoringDesc: 'Use o módulo devtools para monitorar performance.',
+    performanceChecklist: 'Checklist de Performance',
+    nextErrorHandling: 'Próximo: Tratamento de Erros'
   },
+
+  // Error Handling page
   errorHandling: {
-    title: '🛡️ Tratamento de Erros'
+    title: '🛡️ Tratamento de Erros',
+    intro: 'Estratégias robustas de tratamento de erros para aplicações Pulse.',
+    effectErrorHandling: 'Tratamento de Erros em Effects',
+    effectErrorHandlingDesc: 'Effects podem falhar. Trate erros graciosamente.',
+    perEffectHandler: 'Handler de Erro por Effect',
+    globalEffectHandler: 'Handler Global de Erro de Effect',
+    asyncErrorHandling: 'Tratamento de Erros Async',
+    asyncErrorHandlingDesc: 'O módulo async fornece tratamento de estado de erro integrado.',
+    formValidation: 'Erros de Validação de Formulário',
+    formValidationDesc: 'Trate validação de formulário com o módulo form.',
+    routerErrorHandling: 'Tratamento de Erros do Router',
+    routerErrorHandlingDesc: 'Trate erros de navegação e páginas 404.',
+    userFeedback: 'Feedback ao Usuário',
+    userFeedbackDesc: 'Exiba erros aos usuários apropriadamente.',
+    errorBoundaries: 'Error Boundaries',
+    errorBoundariesDesc: 'Contenha erros para prevenir crashes do app inteiro.',
+    loggingErrors: 'Logging de Erros',
+    loggingErrorsDesc: 'Registre erros para depuração e monitoramento.',
+    errorChecklist: 'Checklist de Tratamento de Erros',
+    nextMobile: 'Próximo: Desenvolvimento Mobile'
   },
+
+  // Mobile page
   mobile: {
-    title: '📱 Desenvolvimento Mobile'
+    title: '📱 Desenvolvimento Mobile',
+    intro: 'Construa apps mobile nativos com Pulse.',
+    gettingStarted: 'Primeiros Passos',
+    gettingStartedDesc: 'Configure seu ambiente de desenvolvimento mobile.',
+    platformDetection: 'Detecção de Plataforma',
+    platformDetectionDesc: 'Detecte a plataforma atual e adapte o comportamento.',
+    nativeStorage: 'Storage Nativo',
+    nativeStorageDesc: 'Storage persistente que funciona na web e nativo.',
+    deviceInfo: 'Info do Dispositivo',
+    deviceInfoDesc: 'Acesse informações do dispositivo e status de rede.',
+    nativeUi: 'UI Nativa',
+    nativeUiDesc: 'Acesse elementos de UI nativos como toasts e vibração.',
+    appLifecycle: 'Ciclo de Vida do App',
+    appLifecycleDesc: 'Trate eventos de pausa, resumo e botão voltar.',
+    buildingApps: 'Construindo Apps',
+    buildingAppsDesc: 'Construa e empacote seu app para distribuição.',
+    nextChangelog: 'Próximo: Changelog'
   },
+
+  // Changelog page
   changelog: {
     title: '📋 Changelog'
   }

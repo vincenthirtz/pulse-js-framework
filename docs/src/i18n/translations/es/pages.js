@@ -389,6 +389,20 @@ export default {
   mobile: {
     title: '📱 Desarrollo móvil',
     intro: 'Construye apps Android e iOS nativas desde tu proyecto Pulse.',
+    gettingStarted: 'Primeros pasos',
+    gettingStartedDesc: 'Configura tu entorno de desarrollo móvil.',
+    platformDetection: 'Detección de plataforma',
+    platformDetectionDesc: 'Detecta la plataforma actual y adapta el comportamiento.',
+    nativeStorage: 'Almacenamiento nativo',
+    nativeStorageDesc: 'Almacenamiento persistente que funciona en web y nativo.',
+    deviceInfo: 'Info del dispositivo',
+    deviceInfoDesc: 'Accede a información del dispositivo y estado de red.',
+    nativeUi: 'UI nativa',
+    nativeUiDesc: 'Accede a elementos de UI nativos como toasts y vibración.',
+    appLifecycle: 'Ciclo de vida de la app',
+    appLifecycleDesc: 'Maneja eventos de pausa, reanudación y botón atrás.',
+    buildingApps: 'Construcción de apps',
+    buildingAppsDesc: 'Construye y empaqueta tu app para distribución.',
     overview: 'Visión general',
     overviewDesc: 'Pulse Mobile te permite empaquetar tu app web como app móvil nativa sin dependencias externas.',
     features: {
@@ -409,7 +423,8 @@ export default {
     requirements: 'Requisitos',
     requirementsAndroid: 'Android',
     requirementsIos: 'iOS',
-    nextExamples: 'Siguiente: Ejemplos →'
+    nextExamples: 'Siguiente: Ejemplos →',
+    nextChangelog: 'Siguiente: Historial de versiones'
   },
 
   // Changelog page

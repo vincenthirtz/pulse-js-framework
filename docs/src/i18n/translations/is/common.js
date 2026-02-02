@@ -264,6 +264,29 @@ export default {
     suggestions: 'Tillögur'
   },
 
+  // API Reference Page
+  apiReference: {
+    title: '📖 API Tilvísun',
+    searchPlaceholder: 'Leita í API...',
+    filter: 'Sía:',
+    typescriptSupport: 'TypeScript Stuðningur',
+    reactivity: 'Viðbragðsgeta',
+    domSection: 'DOM',
+    routerSection: 'Leiðir',
+    storeSection: 'Geymsla',
+    hmrSection: 'HMR',
+    nextMobile: 'Innfæddur Farsími',
+    categories: {
+      all: 'Allt',
+      types: 'Tegundir',
+      reactivity: 'Viðbragðsgeta',
+      dom: 'DOM',
+      router: 'Leiðir',
+      store: 'Geymsla',
+      hmr: 'HMR'
+    }
+  },
+
   // Playground
   playground: {
     title: '🎮 Leikvöllur',

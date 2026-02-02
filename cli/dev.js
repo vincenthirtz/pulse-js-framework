@@ -242,6 +242,20 @@ export async function startDevServer(args) {
       return;
     }
 
+    // SPA fallback: serve index.html for routes without file extensions
+    // This handles client-side routing (e.g., /fr/, /getting-started, /fr/api-reference)
+    const ext = extname(pathname);
+    if (!ext || ext === '') {
+      const indexPath = join(root, 'index.html');
+      if (existsSync(indexPath)) {
+        let content = readFileSync(indexPath, 'utf-8');
+        content = content.replace('</body>', LIVERELOAD_SCRIPT);
+        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.end(content);
+        return;
+      }
+    }
+
     // 404
     res.writeHead(404, { 'Content-Type': 'text/plain' });
     res.end('Not Found');

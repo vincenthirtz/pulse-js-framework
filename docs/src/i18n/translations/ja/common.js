@@ -264,6 +264,29 @@ export default {
     suggestions: '候補'
   },
 
+  // API Reference Page
+  apiReference: {
+    title: '📖 APIリファレンス',
+    searchPlaceholder: 'APIを検索...',
+    filter: 'フィルター：',
+    typescriptSupport: 'TypeScriptサポート',
+    reactivity: 'リアクティビティ',
+    domSection: 'DOM',
+    routerSection: 'ルーター',
+    storeSection: 'ストア',
+    hmrSection: 'HMR',
+    nextMobile: 'ネイティブモバイル',
+    categories: {
+      all: 'すべて',
+      types: '型',
+      reactivity: 'リアクティビティ',
+      dom: 'DOM',
+      router: 'ルーター',
+      store: 'ストア',
+      hmr: 'HMR'
+    }
+  },
+
   // Playground
   playground: {
     title: '🎮 プレイグラウンド',
