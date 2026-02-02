@@ -156,6 +156,22 @@ export function ExamplesPage() {
           ${t('examples.viewDemo')}
         </a>
       </div>
+
+      <div class="example-card">
+        <div class="example-icon">⚽</div>
+        <h3>${t('examples.sportsNews.title')}</h3>
+        <p>${t('examples.sportsNews.desc')}</p>
+        <ul class="example-features">
+          <li>✓ ${t('examples.sportsNews.features.0')}</li>
+          <li>✓ ${t('examples.sportsNews.features.1')}</li>
+          <li>✓ ${t('examples.sportsNews.features.2')}</li>
+          <li>✓ ${t('examples.sportsNews.features.3')}</li>
+          <li>✓ ${t('examples.sportsNews.features.4')}</li>
+        </ul>
+        <a href="/examples/sports/" class="btn btn-primary">
+          ${t('examples.viewDemo')}
+        </a>
+      </div>
     </div>
 
     <section class="doc-section">
@@ -198,6 +214,10 @@ npm run dev -- 3007
 cd pulse/examples/dashboard
 npm run dev -- 3008
 
+# Sports News (port 3009)
+cd pulse/examples/sports
+npm run dev -- 3009
+
 # Documentation (port 3000)
 cd pulse/docs
 npm run dev</code></pre>
@@ -219,9 +239,12 @@ npm run dev</code></pre>
       <h2>${t('examples.mobileExamples')}</h2>
       <p>${t('examples.mobileExamplesDesc')}</p>
       <ul>
+        <li><strong>iOS WebView</strong> - Native iOS app with WKWebView and Swift bridge (<code>examples/ios-webview</code>)</li>
+        <li><strong>iOS Pulse</strong> - Full iOS app with native bridge API (<code>examples/ios-pulse</code>)</li>
         <li><strong>Android WebView</strong> - Native Android app wrapping a Pulse web app (<code>examples/android-webview</code>)</li>
+        <li><strong>Android Pulse</strong> - Full Android app with native bridge API (<code>examples/android-pulse</code>)</li>
       </ul>
-      <p class="text-muted" style="font-size: 0.9em; opacity: 0.7;">Open the project in Android Studio to build and run.</p>
+      <p class="text-muted" style="font-size: 0.9em; opacity: 0.7;">Open iOS projects in Xcode, Android projects in Android Studio.</p>
     </section>
   `;
 

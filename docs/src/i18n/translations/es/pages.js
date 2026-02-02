@@ -225,6 +225,11 @@ export default {
       desc: 'Interfaz admin completa demostrando todas las características.',
       features: ['Auth y guards', 'Gráficos, tablas, modales', 'Operaciones CRUD', 'Temas y configuración', 'Todas las características reactivas']
     },
+    sportsNews: {
+      title: '⚽ Noticias Deportivas',
+      desc: 'App de noticias con cliente HTTP y obtención reactiva de datos.',
+      features: ['Integración cliente HTTP', 'Filtrado por categoría', 'Búsqueda con debounce', 'Sistema de favoritos', 'Modo oscuro']
+    },
 
     viewDemo: 'Ver demo →',
     viewSource: 'Ver código',

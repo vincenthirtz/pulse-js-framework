@@ -280,6 +280,17 @@ export default {
         'Dark mode'
       ]
     },
+    sportsNews: {
+      title: 'Sports News',
+      desc: 'News app with HTTP client and reactive data fetching.',
+      features: [
+        'HTTP client integration',
+        'Category filtering',
+        'Search with debounce',
+        'Favorites system',
+        'Dark mode'
+      ]
+    },
     runLocally: 'Run Examples Locally',
     runLocallyDesc: 'Clone the repository and run any example with the dev server:',
     createYourOwn: 'Create Your Own',

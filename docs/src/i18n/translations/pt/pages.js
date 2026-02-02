@@ -280,6 +280,17 @@ export default {
         'Todas as funcionalidades reativas'
       ]
     },
+    sportsNews: {
+      title: '⚽ Notícias Esportivas',
+      desc: 'App de notícias com cliente HTTP e busca de dados reativa.',
+      features: [
+        'Integração cliente HTTP',
+        'Filtragem por categoria',
+        'Busca com debounce',
+        'Sistema de favoritos',
+        'Modo escuro'
+      ]
+    },
     runLocally: 'Executar Exemplos Localmente',
     runLocallyDesc: 'Para executar os projetos de exemplo na sua máquina:',
     createYourOwn: 'Crie o Seu',

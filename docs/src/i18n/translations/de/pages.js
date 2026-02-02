@@ -226,6 +226,11 @@ export default {
       desc: 'Vollständige Admin-Oberfläche, die alle Funktionen demonstriert.',
       features: ['Auth und Guards', 'Diagramme, Tabellen, Modals', 'CRUD-Operationen', 'Themes und Einstellungen', 'Alle reaktiven Funktionen']
     },
+    sportsNews: {
+      title: '⚽ Sport-News',
+      desc: 'News-App mit HTTP-Client und reaktivem Datenabruf.',
+      features: ['HTTP-Client-Integration', 'Kategoriefilterung', 'Suche mit Debounce', 'Favoritensystem', 'Dunkelmodus']
+    },
 
     viewDemo: 'Demo ansehen →',
     viewSource: 'Quellcode ansehen',

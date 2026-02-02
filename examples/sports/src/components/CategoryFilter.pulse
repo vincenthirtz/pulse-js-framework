@@ -1,0 +1,72 @@
+/**
+ * Sports News - Category Filter Component
+ */
+
+@page CategoryFilter
+
+props {
+  categories: []
+  selected: "all"
+  onSelect: null
+}
+
+view {
+  nav.categories {
+    @for (cat of categories) {
+      button.category-btn[class={selected === cat.id ? "active" : ""}] @click(handleSelect(cat.id)) {
+        span.cat-icon "{cat.icon}"
+        span.cat-name "{cat.name}"
+      }
+    }
+  }
+}
+
+actions {
+  handleSelect(categoryId) {
+    if (onSelect) onSelect(categoryId)
+  }
+}
+
+style {
+  .categories {
+    display: flex;
+    gap: 8px;
+    padding: 16px 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .categories::-webkit-scrollbar {
+    display: none;
+  }
+
+  .category-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 16px;
+    border: 2px solid var(--border);
+    background: var(--card-bg);
+    color: var(--text);
+    border-radius: 25px;
+    font-size: 0.9em;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+  }
+
+  .category-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+
+  .category-btn.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+  }
+
+  .cat-name {
+    font-weight: 500;
+  }
+}

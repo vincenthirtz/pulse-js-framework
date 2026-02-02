@@ -1,0 +1,144 @@
+/**
+ * Sports News - News List Component
+ */
+
+import NewsCard from './NewsCard.pulse'
+
+@page NewsList
+
+props {
+  news: []
+  loading: false
+  error: null
+  favorites: []
+  showFavorites: false
+  onFavorite: null
+  onRetry: null
+}
+
+view {
+  .news-container {
+    @if (loading) {
+      .loader {
+        .spinner
+        p "Loading news..."
+      }
+    }
+    @if (error && !loading) {
+      .error-state {
+        span.error-icon "⚠️"
+        p "{error}"
+        button.retry-btn @click(onRetry) "Retry"
+      }
+    }
+    @if (!loading && !error && news.length === 0) {
+      .empty-state {
+        @if (showFavorites) {
+          span.empty-icon "💔"
+          p "No favorites yet"
+          span.empty-hint "Heart articles to save them here"
+        }
+        @if (!showFavorites) {
+          span.empty-icon "🔍"
+          p "No news found"
+          span.empty-hint "Try a different category or search"
+        }
+      }
+    }
+    @if (!loading && !error && news.length > 0) {
+      .news-stats "{news.length} articles"
+      .news-grid {
+        @for (article of news) {
+          NewsCard(
+            article={article},
+            isFavorite={favorites.includes(article.id)},
+            onFavorite={onFavorite}
+          )
+        }
+      }
+    }
+  }
+}
+
+style {
+  .news-container {
+    min-height: 400px;
+  }
+
+  .news-stats {
+    color: var(--text-muted);
+    font-size: 0.9em;
+    margin-bottom: 16px;
+  }
+
+  .news-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+  }
+
+  .loader {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px;
+    color: var(--text-muted);
+  }
+
+  .spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--border);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 16px;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .empty-state, .error-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px;
+    text-align: center;
+  }
+
+  .empty-icon, .error-icon {
+    font-size: 3em;
+    margin-bottom: 16px;
+  }
+
+  .empty-hint {
+    color: var(--text-muted);
+    font-size: 0.9em;
+    margin-top: 8px;
+  }
+
+  .retry-btn {
+    margin-top: 16px;
+    padding: 10px 24px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 25px;
+    font-size: 1em;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .retry-btn:hover {
+    background: var(--primary-hover);
+  }
+
+  @media (max-width: 640px) {
+    .news-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+}

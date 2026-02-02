@@ -904,7 +904,7 @@ test('All locales have same number of lines in pages.js', () => {
 
     // Allow larger variance for formatting differences (e.g., single-line vs multi-line arrays)
     const diff = Math.abs(lineCount - refLineCount);
-    assert(diff <= 55, `${locale}/pages.js has ${lineCount} lines, expected ~${refLineCount} (diff: ${diff})`);
+    assert(diff <= 60, `${locale}/pages.js has ${lineCount} lines, expected ~${refLineCount} (diff: ${diff})`);
   }
 });
 

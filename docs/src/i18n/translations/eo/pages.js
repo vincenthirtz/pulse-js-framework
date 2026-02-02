@@ -280,6 +280,17 @@ export default {
         'Ĉiuj reagaj funkcioj'
       ]
     },
+    sportsNews: {
+      title: '⚽ Sporta Novaĵoj',
+      desc: 'Novaĵa aplikaĵo kun HTTP kliento kaj reaktiva datenricevado.',
+      features: [
+        'HTTP kliento integrado',
+        'Kategoria filtrado',
+        'Serĉo kun debounce',
+        'Favoritaj sistemo',
+        'Malhela reĝimo'
+      ]
+    },
     runLocally: 'Ruli Ekzemplojn Loke',
     runLocallyDesc: 'Por ruli la ekzemplajn projektojn sur via maŝino:',
     createYourOwn: 'Kreu Vian Propran',

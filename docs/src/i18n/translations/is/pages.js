@@ -280,6 +280,17 @@ export default {
         'Allar viðbragðsaðgerðir'
       ]
     },
+    sportsNews: {
+      title: '⚽ Íþróttafréttir',
+      desc: 'Fréttaforrit með HTTP biðlara og viðbragðsgagnasókn.',
+      features: [
+        'HTTP biðlara samþætting',
+        'Flokkunarsíun',
+        'Leit með debounce',
+        'Uppáhaldskerfi',
+        'Dökkur hamur'
+      ]
+    },
     runLocally: 'Keyra Dæmi Staðbundið',
     runLocallyDesc: 'Til að keyra sýnishornaverkefni á vélinni þinni:',
     createYourOwn: 'Búðu Til Þitt Eigið',

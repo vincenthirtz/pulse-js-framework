@@ -1,0 +1,235 @@
+/**
+ * Sports News App - Main Application
+ * Demonstrates Pulse HTTP Client with reactive data fetching
+ */
+
+import Header from './components/Header.pulse'
+import CategoryFilter from './components/CategoryFilter.pulse'
+import NewsList from './components/NewsList.pulse'
+
+@page App
+
+state {
+  category: "all"
+  search: ""
+  darkMode: false
+  favorites: []
+  showFavorites: false
+  news: { data: null, loading: true, error: null }
+}
+
+view {
+  .sports-app {
+    Header(
+      darkMode={darkMode},
+      showFavorites={showFavorites},
+      onToggleDark={toggleDarkMode},
+      onToggleFavorites={toggleShowFavorites},
+      onSearch={handleSearch}
+    )
+    CategoryFilter(
+      categories={getCategories()},
+      selected={category},
+      onSelect={setCategory}
+    )
+    NewsList(
+      news={getFilteredNews()},
+      loading={news.loading},
+      error={news.error},
+      favorites={favorites},
+      showFavorites={showFavorites},
+      onFavorite={toggleFavorite},
+      onRetry={fetchNews}
+    )
+    footer.app-footer "Built with ✨ Pulse Framework • Zero-Dependency HTTP Client"
+  }
+}
+
+actions {
+  init() {
+    const savedDark = localStorage.getItem("sports-dark")
+    if (savedDark === "true") {
+      darkMode = true
+      document.body.classList.add("dark")
+    }
+
+    const savedFavs = localStorage.getItem("sports-favorites")
+    if (savedFavs) {
+      favorites = JSON.parse(savedFavs)
+    }
+
+    fetchNews()
+  }
+
+  getCategories() {
+    return [
+      { id: "all", name: "All Sports", icon: "🏅" },
+      { id: "football", name: "Football", icon: "⚽" },
+      { id: "basketball", name: "Basketball", icon: "🏀" },
+      { id: "tennis", name: "Tennis", icon: "🎾" },
+      { id: "f1", name: "Formula 1", icon: "🏎️" },
+      { id: "mma", name: "MMA", icon: "🥊" },
+      { id: "cycling", name: "Cycling", icon: "🚴" }
+    ]
+  }
+
+  setCategory(cat) {
+    category = cat
+    fetchNews()
+  }
+
+  handleSearch(query) {
+    search = query
+    fetchNews()
+  }
+
+  async fetchNews() {
+    news = { data: null, loading: true, error: null }
+
+    try {
+      const result = await mockFetchNews(category, search)
+      news = { data: result, loading: false, error: null }
+    } catch (err) {
+      news = { data: null, loading: false, error: err.message }
+    }
+  }
+
+  async mockFetchNews(cat, query) {
+    await delay(500)
+
+    const MOCK_DATA = getMockData()
+    let articles = []
+
+    if (cat === "all") {
+      articles = Object.values(MOCK_DATA).flat()
+    } else if (MOCK_DATA[cat]) {
+      articles = MOCK_DATA[cat]
+    }
+
+    if (query) {
+      const q = query.toLowerCase()
+      articles = articles.filter(a =>
+        a.title.toLowerCase().includes(q) ||
+        a.summary.toLowerCase().includes(q)
+      )
+    }
+
+    return { articles: articles, total: articles.length }
+  }
+
+  delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms))
+  }
+
+  getMockData() {
+    return {
+      football: [
+        { id: 1, title: "Champions League Final Preview", category: "football", image: "⚽", time: "2h ago", source: "ESPN", summary: "The biggest match in European football is upon us." },
+        { id: 2, title: "Transfer Window: Top 10 Deals", category: "football", image: "💰", time: "4h ago", source: "Sky Sports", summary: "This summer's biggest transfers that shaped the leagues." },
+        { id: 3, title: "Premier League Title Race", category: "football", image: "🏆", time: "6h ago", source: "BBC Sport", summary: "Three teams within points of each other." }
+      ],
+      basketball: [
+        { id: 4, title: "NBA Finals Game 7 Thriller", category: "basketball", image: "🏀", time: "1h ago", source: "NBA.com", summary: "Historic overtime finish decides the championship." },
+        { id: 5, title: "Rookie of the Year Announced", category: "basketball", image: "⭐", time: "3h ago", source: "ESPN", summary: "The standout first-year player takes home the award." }
+      ],
+      tennis: [
+        { id: 6, title: "Wimbledon Draw Released", category: "tennis", image: "🎾", time: "30m ago", source: "ATP Tour", summary: "Top seeds learn their paths to the title." },
+        { id: 7, title: "New World No. 1 Crowned", category: "tennis", image: "👑", time: "2h ago", source: "WTA", summary: "Rankings shake-up after thrilling tournament finale." }
+      ],
+      f1: [
+        { id: 8, title: "Monaco GP: Qualifying Results", category: "f1", image: "🏎️", time: "45m ago", source: "F1.com", summary: "Pole position secured in dramatic fashion." },
+        { id: 9, title: "New Team Joins the Grid", category: "f1", image: "🆕", time: "4h ago", source: "Autosport", summary: "Expansion brings new competition to Formula 1." }
+      ],
+      mma: [
+        { id: 10, title: "UFC Title Fight Announced", category: "mma", image: "🥊", time: "1h ago", source: "UFC", summary: "The most anticipated matchup of the year is official." }
+      ],
+      cycling: [
+        { id: 11, title: "Tour de France Stage Results", category: "cycling", image: "🚴", time: "3h ago", source: "Cycling News", summary: "Yellow jersey changes hands in mountain stage." }
+      ]
+    }
+  }
+
+  getFilteredNews() {
+    if (!news.data) return []
+
+    let articles = news.data.articles
+
+    if (showFavorites) {
+      articles = articles.filter(a => favorites.includes(a.id))
+    }
+
+    return articles
+  }
+
+  toggleDarkMode() {
+    darkMode = !darkMode
+    localStorage.setItem("sports-dark", darkMode)
+    document.body.classList.toggle("dark", darkMode)
+  }
+
+  toggleFavorite(articleId) {
+    if (favorites.includes(articleId)) {
+      favorites = favorites.filter(id => id !== articleId)
+    } else {
+      favorites = [...favorites, articleId]
+    }
+    localStorage.setItem("sports-favorites", JSON.stringify(favorites))
+  }
+
+  toggleShowFavorites() {
+    showFavorites = !showFavorites
+  }
+}
+
+style {
+  :root {
+    --bg: #f0f2f5;
+    --card-bg: #ffffff;
+    --text: #1a1a2e;
+    --text-muted: #6b7280;
+    --primary: #3b82f6;
+    --primary-hover: #2563eb;
+    --accent: #ef4444;
+    --border: #e5e7eb;
+    --shadow: 0 1px 3px rgba(0,0,0,0.1);
+    --shadow-lg: 0 10px 25px rgba(0,0,0,0.1);
+    --radius: 12px;
+  }
+
+  body.dark {
+    --bg: #0f172a;
+    --card-bg: #1e293b;
+    --text: #f1f5f9;
+    --text-muted: #94a3b8;
+    --border: #334155;
+    --shadow: 0 1px 3px rgba(0,0,0,0.3);
+    --shadow-lg: 0 10px 25px rgba(0,0,0,0.4);
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    transition: background 0.3s, color 0.3s;
+  }
+
+  .sports-app {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+
+  .app-footer {
+    text-align: center;
+    padding: 24px;
+    color: var(--text-muted);
+    font-size: 0.9em;
+  }
+}

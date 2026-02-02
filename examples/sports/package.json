@@ -1,0 +1,10 @@
+{
+  "name": "pulse-sports-news",
+  "version": "1.0.0",
+  "description": "Sports News App built with Pulse Framework HTTP Client",
+  "type": "module",
+  "scripts": {
+    "dev": "pulse dev",
+    "build": "pulse build"
+  }
+}

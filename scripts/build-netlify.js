@@ -14,7 +14,7 @@ import { compile } from '../compiler/index.js';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..');
 
-const EXAMPLES = ['hmr', 'blog', 'todo', 'chat', 'ecommerce', 'meteo', 'router', 'store', 'dashboard'];
+const EXAMPLES = ['hmr', 'blog', 'todo', 'chat', 'ecommerce', 'meteo', 'router', 'store', 'dashboard', 'sports'];
 
 console.log('🚀 Building Pulse for Netlify...\n');
 
@@ -266,6 +266,12 @@ const examplesIndexHtml = `<!DOCTYPE html>
         <span class="arrow">→</span>
         <h2>📊 Admin Dashboard</h2>
         <p>Complete admin UI with auth, routing, store, charts, tables, and modals.</p>
+      </a>
+
+      <a href="/examples/sports/" class="example">
+        <span class="arrow">→</span>
+        <h2>⚽ Sports News</h2>
+        <p>News app with HTTP client, categories, search, favorites, and dark mode.</p>
       </a>
     </div>
 
