@@ -20,7 +20,18 @@ export function ChangelogPage() {
     
     
     
+    
     <section class="doc-section changelog-section">
+      <h2>v1.7.8 - Test fix</h2>
+      <p class="release-date">February 2026</p>
+
+      <div class="changelog-group">
+        <ul class="feature-list">
+          <li><strong>Changed:</strong> Fix test to use renamed translation key</li>
+        </ul>
+      </div>
+    </section>
+<section class="doc-section changelog-section">
       <h2>v1.7.7 - Clean Code</h2>
       <p class="release-date">February 2026</p>
 
