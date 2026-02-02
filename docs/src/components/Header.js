@@ -3,7 +3,7 @@
  */
 
 import { effect, el } from '/runtime/index.js';
-import { mobileMenuOpen, theme, toggleTheme, navigation, navigationFlat, router, version, locale, locales, setLocale, navigateLocale, getPathWithoutLocale } from '../state.js';
+import { mobileMenuOpen, theme, toggleTheme, getNavigation, getNavigationFlat, router, version, locale, locales, setLocale, navigateLocale, getPathWithoutLocale, t } from '../state.js';
 
 export function Header() {
   const header = el('header.header');
@@ -54,23 +54,71 @@ export function Header() {
   // Desktop navigation with dropdowns
   const nav = el('nav.nav');
 
-  for (const item of navigation) {
+  // Navigation structure (paths only, labels are reactive)
+  const navStructure = [
+    { path: '/', labelKey: 'nav.home' },
+    {
+      labelKey: 'nav.learn',
+      children: [
+        { path: '/getting-started', labelKey: 'nav.gettingStarted', descKey: 'nav.gettingStartedDesc' },
+        { path: '/core-concepts', labelKey: 'nav.coreConcepts', descKey: 'nav.coreConceptsDesc' }
+      ]
+    },
+    {
+      labelKey: 'nav.reference',
+      children: [
+        { path: '/api-reference', labelKey: 'nav.apiReference', descKey: 'nav.apiReferenceDesc' },
+        { path: '/debugging', labelKey: 'nav.debugging', descKey: 'nav.debuggingDesc' },
+        { path: '/security', labelKey: 'nav.security', descKey: 'nav.securityDesc' },
+        { path: '/performance', labelKey: 'nav.performance', descKey: 'nav.performanceDesc' },
+        { path: '/error-handling', labelKey: 'nav.errorHandling', descKey: 'nav.errorHandlingDesc' },
+        { path: '/mobile', labelKey: 'nav.mobile', descKey: 'nav.mobileDesc' }
+      ]
+    },
+    {
+      labelKey: 'nav.examples',
+      children: [
+        { path: '/examples', labelKey: 'nav.examplesPage', descKey: 'nav.examplesDesc' },
+        { path: '/playground', labelKey: 'nav.playground', descKey: 'nav.playgroundDesc' }
+      ]
+    }
+  ];
+
+  for (const item of navStructure) {
     if (item.children) {
       // Dropdown menu
       const dropdown = el('.nav-dropdown');
 
       const trigger = el('button.nav-link.nav-dropdown-trigger');
-      trigger.innerHTML = `${item.label} <span class="dropdown-arrow">▾</span>`;
+      const triggerText = el('span');
+      trigger.appendChild(triggerText);
+      trigger.innerHTML += ' <span class="dropdown-arrow">▾</span>';
+
+      // Update trigger label when locale changes
+      effect(() => {
+        locale.get(); // Track locale
+        triggerText.textContent = t(item.labelKey);
+      });
+
       dropdown.appendChild(trigger);
 
       const menu = el('.dropdown-menu');
       for (const child of item.children) {
         const menuItem = el('a.dropdown-item');
         menuItem.href = child.path;
-        menuItem.innerHTML = `
-          <span class="dropdown-item-label">${child.label}</span>
-          ${child.desc ? `<span class="dropdown-item-desc">${child.desc}</span>` : ''}
-        `;
+
+        const labelSpan = el('span.dropdown-item-label');
+        const descSpan = el('span.dropdown-item-desc');
+        menuItem.appendChild(labelSpan);
+        menuItem.appendChild(descSpan);
+
+        // Update labels when locale changes
+        effect(() => {
+          locale.get(); // Track locale
+          labelSpan.textContent = t(child.labelKey);
+          descSpan.textContent = t(child.descKey);
+        });
+
         menuItem.addEventListener('click', (e) => {
           e.preventDefault();
           navigateLocale(child.path);
@@ -110,7 +158,13 @@ export function Header() {
       // Simple link with locale-aware navigation
       const link = el('a.nav-link');
       link.href = item.path;
-      link.textContent = item.label;
+
+      // Update label when locale changes
+      effect(() => {
+        locale.get(); // Track locale
+        link.textContent = t(item.labelKey);
+      });
+
       link.addEventListener('click', (e) => {
         e.preventDefault();
         navigateLocale(item.path);
@@ -190,8 +244,9 @@ export function Header() {
   // Theme toggle button
   const themeBtn = el('button.theme-btn');
   effect(() => {
+    locale.get(); // Track locale for translations
     themeBtn.textContent = theme.get() === 'dark' ? '☀️' : '🌙';
-    themeBtn.title = theme.get() === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
+    themeBtn.title = theme.get() === 'dark' ? t('theme.switchToLight') : t('theme.switchToDark');
   });
   themeBtn.addEventListener('click', toggleTheme);
   headerActions.appendChild(themeBtn);
@@ -208,10 +263,32 @@ export function Header() {
   effect(() => {
     mobileNav.className = `mobile-nav ${mobileMenuOpen.get() ? 'open' : ''}`;
   });
-  for (const item of navigationFlat) {
+
+  // Mobile navigation structure
+  const mobileNavStructure = [
+    { path: '/', labelKey: 'nav.home' },
+    { path: '/getting-started', labelKey: 'nav.gettingStarted' },
+    { path: '/core-concepts', labelKey: 'nav.coreConcepts' },
+    { path: '/api-reference', labelKey: 'nav.apiReference' },
+    { path: '/debugging', labelKey: 'nav.debugging' },
+    { path: '/security', labelKey: 'nav.security' },
+    { path: '/performance', labelKey: 'nav.performance' },
+    { path: '/error-handling', labelKey: 'nav.errorHandling' },
+    { path: '/mobile', labelKey: 'nav.mobile' },
+    { path: '/examples', labelKey: 'nav.examplesPage' },
+    { path: '/playground', labelKey: 'nav.playground' }
+  ];
+
+  for (const item of mobileNavStructure) {
     const link = el('a.nav-link');
     link.href = item.path;
-    link.textContent = item.label;
+
+    // Update label when locale changes
+    effect(() => {
+      locale.get(); // Track locale
+      link.textContent = t(item.labelKey);
+    });
+
     link.addEventListener('click', (e) => {
       e.preventDefault();
       navigateLocale(item.path);

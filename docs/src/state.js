@@ -4,7 +4,7 @@
 
 import { pulse, effect } from '/runtime/index.js';
 import { createRouter } from '/runtime/router.js';
-import { locale, localePath, isValidLocale, defaultLocale } from './i18n/index.js';
+import { locale, localePath, isValidLocale, defaultLocale, t } from './i18n/index.js';
 
 // Re-export i18n for convenience
 export { locale, localePath, t, setLocale, getPathWithoutLocale } from './i18n/index.js';
@@ -37,10 +37,63 @@ export function toggleTheme() {
 export const mobileMenuOpen = pulse(false);
 
 // =============================================================================
-// Navigation Data
+// Navigation Data (with translation functions)
 // =============================================================================
 
-// Flat navigation for mobile menu
+/**
+ * Get flat navigation for mobile menu (translated)
+ */
+export function getNavigationFlat() {
+  return [
+    { path: '/', label: t('nav.home') },
+    { path: '/getting-started', label: t('nav.gettingStarted') },
+    { path: '/core-concepts', label: t('nav.coreConcepts') },
+    { path: '/api-reference', label: t('nav.apiReference') },
+    { path: '/debugging', label: t('nav.debugging') },
+    { path: '/security', label: t('nav.security') },
+    { path: '/performance', label: t('nav.performance') },
+    { path: '/error-handling', label: t('nav.errorHandling') },
+    { path: '/mobile', label: t('nav.mobile') },
+    { path: '/examples', label: t('nav.examplesPage') },
+    { path: '/playground', label: t('nav.playground') }
+  ];
+}
+
+/**
+ * Get grouped navigation for desktop with dropdowns (translated)
+ */
+export function getNavigation() {
+  return [
+    { path: '/', label: t('nav.home') },
+    {
+      label: t('nav.learn'),
+      children: [
+        { path: '/getting-started', label: t('nav.gettingStarted'), desc: t('nav.gettingStartedDesc') },
+        { path: '/core-concepts', label: t('nav.coreConcepts'), desc: t('nav.coreConceptsDesc') }
+      ]
+    },
+    {
+      label: t('nav.reference'),
+      children: [
+        { path: '/api-reference', label: t('nav.apiReference'), desc: t('nav.apiReferenceDesc') },
+        { path: '/debugging', label: t('nav.debugging'), desc: t('nav.debuggingDesc') },
+        { path: '/security', label: t('nav.security'), desc: t('nav.securityDesc') },
+        { path: '/performance', label: t('nav.performance'), desc: t('nav.performanceDesc') },
+        { path: '/error-handling', label: t('nav.errorHandling'), desc: t('nav.errorHandlingDesc') },
+        { path: '/mobile', label: t('nav.mobile'), desc: t('nav.mobileDesc') }
+      ]
+    },
+    {
+      label: t('nav.examples'),
+      children: [
+        { path: '/examples', label: t('nav.examplesPage'), desc: t('nav.examplesDesc') },
+        { path: '/playground', label: t('nav.playground'), desc: t('nav.playgroundDesc') }
+      ]
+    }
+  ];
+}
+
+// Legacy static exports (for backwards compatibility)
 export const navigationFlat = [
   { path: '/', label: '🏠 Home' },
   { path: '/getting-started', label: '🚀 Getting Started' },
@@ -55,7 +108,6 @@ export const navigationFlat = [
   { path: '/playground', label: '🎮 Playground' }
 ];
 
-// Grouped navigation for desktop with dropdowns
 export const navigation = [
   { path: '/', label: '🏠 Home' },
   {
