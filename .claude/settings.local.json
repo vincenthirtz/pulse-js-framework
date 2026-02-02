@@ -10,7 +10,12 @@
       "Bash(node -e:*)",
       "Bash(node test/lint.test.js:*)",
       "Bash(tree:*)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(curl:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill //F //PID 30448)",
+      "Bash(npm run dev:*)"
     ]
   }
 }
