@@ -15,6 +15,8 @@ export default {
     coreConceptsDesc: 'Réactivité, DOM, routage',
     apiReference: '📖 API',
     apiReferenceDesc: 'Documentation complète de l\'API',
+    http: '🌐 Client HTTP',
+    httpDesc: 'Requêtes HTTP sans dépendance',
     debugging: '🔍 Débogage',
     debuggingDesc: 'Outils et dépannage',
     security: '🔒 Sécurité',

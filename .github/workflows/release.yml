@@ -76,16 +76,47 @@ jobs:
           PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
           echo "PREV_TAG=$PREV_TAG" >> $GITHUB_OUTPUT
 
-      - name: Generate changelog
+      - name: Validate CHANGELOG.md entry
+        id: validate_changelog
+        run: |
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          if grep -q "## \[$VERSION\]" CHANGELOG.md; then
+            echo "::notice::Found CHANGELOG.md entry for version $VERSION"
+            echo "HAS_ENTRY=true" >> $GITHUB_OUTPUT
+          else
+            echo "::warning::CHANGELOG.md does not contain an entry for version $VERSION. Please update CHANGELOG.md before releasing."
+            echo "HAS_ENTRY=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Extract changelog from CHANGELOG.md
         id: changelog
         run: |
-          if [ -n "${{ steps.prev_tag.outputs.PREV_TAG }}" ]; then
-            CHANGES=$(git log ${{ steps.prev_tag.outputs.PREV_TAG }}..HEAD --pretty=format:"- %s" --no-merges)
-          else
-            CHANGES=$(git log --pretty=format:"- %s" --no-merges -20)
+          VERSION="${{ steps.version.outputs.VERSION }}"
+
+          # Extract the section for this version from CHANGELOG.md
+          # Matches from "## [VERSION]" until the next "## [" or end of file
+          CHANGELOG_SECTION=$(awk -v ver="$VERSION" '
+            BEGIN { found=0; content="" }
+            /^## \[/ {
+              if (found) exit
+              if ($0 ~ "\\[" ver "\\]") { found=1; next }
+            }
+            found { content = content $0 "\n" }
+            END { print content }
+          ' CHANGELOG.md)
+
+          # Fallback to git log if section not found in CHANGELOG.md
+          if [ -z "$CHANGELOG_SECTION" ] || [ "$CHANGELOG_SECTION" = $'\n' ]; then
+            echo "::notice::Version $VERSION not found in CHANGELOG.md, using git log"
+            if [ -n "${{ steps.prev_tag.outputs.PREV_TAG }}" ]; then
+              CHANGELOG_SECTION=$(git log ${{ steps.prev_tag.outputs.PREV_TAG }}..HEAD --pretty=format:"- %s" --no-merges)
+            else
+              CHANGELOG_SECTION=$(git log --pretty=format:"- %s" --no-merges -20)
+            fi
           fi
+
           echo "CHANGES<<EOF" >> $GITHUB_OUTPUT
-          echo "$CHANGES" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG_SECTION" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Download build artifacts
@@ -104,9 +135,9 @@ jobs:
         with:
           name: v${{ steps.version.outputs.VERSION }}
           body: |
-            ## Changes
-
             ${{ steps.changelog.outputs.CHANGES }}
+
+            ---
 
             ## Installation
 
@@ -122,6 +153,9 @@ jobs:
             npm install
             npm run dev
             ```
+
+            ---
+            📋 [Full Changelog](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md)
           files: |
             pulse-${{ steps.version.outputs.VERSION }}.zip
           draft: false

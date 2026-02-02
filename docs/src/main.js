@@ -26,6 +26,7 @@ import { DebuggingPage } from './pages/DebuggingPage.js';
 import { SecurityPage } from './pages/SecurityPage.js';
 import { PerformancePage } from './pages/PerformancePage.js';
 import { ErrorHandlingPage } from './pages/ErrorHandlingPage.js';
+import { HttpPage } from './pages/HttpPage.js';
 
 // Styles & Utilities
 import { injectStyles } from './styles.js';
@@ -41,6 +42,7 @@ const baseRoutes = {
   '/getting-started': GettingStartedPage,
   '/core-concepts': CoreConceptsPage,
   '/api-reference': ApiReferencePage,
+  '/http': HttpPage,
   '/debugging': DebuggingPage,
   '/security': SecurityPage,
   '/performance': PerformancePage,

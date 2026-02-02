@@ -15,6 +15,8 @@ export default {
     coreConceptsDesc: 'Reageco, DOM, vojigo',
     apiReference: '📖 API Referenco',
     apiReferenceDesc: 'Kompleta API dokumentado',
+    http: '🌐 HTTP Kliento',
+    httpDesc: 'HTTP petoj sen dependecoj',
     debugging: '🔍 Sencimigado',
     debuggingDesc: 'Iloj kaj problemsolvado',
     security: '🔒 Sekureco',

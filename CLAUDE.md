@@ -328,6 +328,131 @@ async function search(query) {
 }
 ```
 
+### HTTP (runtime/http.js)
+
+```javascript
+import { createHttp, http, HttpError, useHttp, useHttpResource } from 'pulse-js-framework/runtime/http';
+
+// Create HTTP client instance
+const api = createHttp({
+  baseURL: 'https://api.example.com',
+  timeout: 5000,                    // Request timeout (ms)
+  headers: { 'Authorization': 'Bearer token' },
+  retries: 3,                       // Retry on failure
+  retryDelay: 1000,                 // Delay between retries (ms)
+  withCredentials: false,           // Include cookies
+  responseType: 'json'              // json | text | blob | arrayBuffer
+});
+
+// HTTP methods
+const users = await api.get('/users');
+const user = await api.get('/users/1', { params: { include: 'posts' } });
+const created = await api.post('/users', { name: 'John' });
+await api.put('/users/1', { name: 'Jane' });
+await api.patch('/users/1', { active: true });
+await api.delete('/users/1');
+
+// Response structure
+response.data;       // Parsed response body
+response.status;     // HTTP status code
+response.statusText; // Status text
+response.headers;    // Response headers
+response.config;     // Request config
+
+// Request interceptors
+api.interceptors.request.use(
+  config => {
+    config.headers['X-Request-Time'] = Date.now();
+    return config;
+  },
+  error => Promise.reject(error)
+);
+
+// Response interceptors
+api.interceptors.response.use(
+  response => response,
+  error => {
+    if (error.status === 401) {
+      router.navigate('/login');
+    }
+    throw error;
+  }
+);
+
+// Remove interceptor
+const id = api.interceptors.request.use(fn);
+api.interceptors.request.eject(id);
+api.interceptors.request.clear();  // Remove all
+
+// Child instance (inherits config)
+const adminApi = api.create({
+  baseURL: 'https://api.example.com/admin',
+  headers: { 'X-Admin': 'true' }
+});
+
+// Request cancellation
+const controller = new AbortController();
+api.get('/users', { signal: controller.signal });
+controller.abort();  // Cancel request
+api.isCancel(error); // Check if error is cancellation
+
+// Error handling
+try {
+  await api.get('/users');
+} catch (error) {
+  if (HttpError.isHttpError(error)) {
+    error.code;      // 'TIMEOUT' | 'NETWORK' | 'ABORT' | 'HTTP_ERROR' | 'PARSE_ERROR'
+    error.status;    // HTTP status code (if available)
+    error.config;    // Request config
+    error.response;  // Response object (if available)
+    error.isTimeout();      // true if timeout
+    error.isNetworkError(); // true if network failure
+    error.isAborted();      // true if cancelled
+  }
+}
+
+// Custom retry condition
+const api = createHttp({
+  retries: 3,
+  retryCondition: (error) => {
+    // Only retry on network errors, not 4xx
+    return error.code === 'NETWORK' || error.status >= 500;
+  }
+});
+
+// Reactive integration with useHttp
+const { data, loading, error, execute, abort, reset } = useHttp(
+  () => api.get('/users'),
+  {
+    immediate: true,     // Execute immediately
+    retries: 3,          // Retry attempts
+    onSuccess: (response) => console.log('Got:', response.data),
+    onError: (error) => console.error('Failed:', error)
+  }
+);
+
+// Use in effects
+effect(() => {
+  if (loading.get()) console.log('Loading...');
+  if (data.get()) console.log('Users:', data.get());
+});
+
+// Resource with caching (SWR pattern)
+const users = useHttpResource(
+  'users',
+  () => api.get('/users'),
+  {
+    refreshInterval: 30000,    // Auto-refresh every 30s
+    refreshOnFocus: true,      // Refresh when window gains focus
+    staleTime: 5000            // Data fresh for 5s
+  }
+);
+
+// Default instance (pre-configured)
+import { http } from 'pulse-js-framework/runtime/http';
+const response = await http.get('https://api.example.com/users');
+```
+
 ### Native (runtime/native.js)
 
 ```javascript
@@ -500,6 +625,7 @@ style {
 | `runtime/store.js` | Store (createStore, createActions, plugins) |
 | `runtime/form.js` | Form handling (useForm, useField, useFieldArray, validators) |
 | `runtime/async.js` | Async primitives (useAsync, useResource, usePolling, createVersionedAsync) |
+| `runtime/http.js` | HTTP client (createHttp, HttpError, useHttp, useHttpResource, interceptors) |
 | `runtime/devtools.js` | Dev tools (trackedPulse, time-travel, dependency graph, profiling) |
 | `runtime/native.js` | Native mobile bridge (storage, device, UI, lifecycle) |
 | `runtime/hmr.js` | Hot module replacement (createHMRContext) |
@@ -543,6 +669,9 @@ import { useForm, useField, useFieldArray, validators } from 'pulse-js-framework
 
 // Async
 import { useAsync, useResource, usePolling, createVersionedAsync } from 'pulse-js-framework/runtime/async';
+
+// HTTP
+import { createHttp, http, HttpError, useHttp, useHttpResource } from 'pulse-js-framework/runtime/http';
 
 // Native (mobile)
 import { createNativeStorage, createDeviceInfo, NativeUI, NativeClipboard } from 'pulse-js-framework/runtime/native';

@@ -15,6 +15,8 @@ export default {
     coreConceptsDesc: 'リアクティビティ、DOM、ルーティング',
     apiReference: '📖 APIリファレンス',
     apiReferenceDesc: '完全なAPIドキュメント',
+    http: '🌐 HTTPクライアント',
+    httpDesc: '依存関係なしのHTTPリクエスト',
     debugging: '🔍 デバッグ',
     debuggingDesc: 'ツールとトラブルシューティング',
     security: '🔒 セキュリティ',

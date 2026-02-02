@@ -15,6 +15,8 @@ export default {
     coreConceptsDesc: 'Viðbragðsgeta, DOM, leiðir',
     apiReference: '📖 API Tilvísun',
     apiReferenceDesc: 'Fullkomin API skjölun',
+    http: '🌐 HTTP Viðskiptavinur',
+    httpDesc: 'HTTP beiðnir án háðra',
     debugging: '🔍 Villuleit',
     debuggingDesc: 'Verkfæri og úrræðaleit',
     security: '🔒 Öryggi',

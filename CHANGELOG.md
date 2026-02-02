@@ -84,6 +84,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - minifyJS now correctly handles regex literals
 
 
+## [1.7.3] - 2026-02-01
+
+### Documentation & Performance Improvements
+
+### Changed
+
+- Documentation and performance improvements
+
+
 ## [1.7.2] - 2026-01-31
 
 ### Changed
@@ -105,6 +114,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add Android WebView example
 
 
+## [1.6.0] - 2026-01-31
+
+### Lite Build & Bundle Optimization
+
+### Changed
+
+- Lite build, Discord notifications, bundle optimization
+
+
 ## [1.5.3] - 2026-01-31
 
 ### Security, errors handling, nested objects, routes async, memory leaks, tests
@@ -112,6 +130,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Add non-interactive options to pulse release
+
+
+## [1.5.2] - 2026-01-31
+
+### Security & Error Handling
+
+### Changed
+
+- Security improvements and error handling enhancements
 
 
 ## [1.5.1] - 2026-01-31
@@ -170,6 +197,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Router now uses radix trie for O(path length) route matching
 - Updated TypeScript definitions with new router types
 
+## [1.4.8] - 2026-01-31
+
+### IntelliJ Plugin & Dev Server Improvements
+
+### Added
+
+- IntelliJ IDEA plugin for .pulse files
+- GitHub stars badge to docs header
+
+### Fixed
+
+- StateDebug and Notes components
+- App component call to use render() method
+- ThemeSwitcher.pulse syntax and improve dev server regex
+- Dev server to compile .pulse files requested as .js
+
+
+## [1.4.7] - 2026-01-30
+
+### HMR Example
+
+### Added
+
+- HMR example with .pulse components
+- HMR example to Netlify build script
+- HMR example to docs and Netlify config
+- HMR example app
+- HMR documentation
+
+
 ## [1.4.6] - 2026-01-30
 
 ### Added
@@ -200,7 +257,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - VSCode extension with lightning bolt icons for .pulse files
 - File icons for light and dark themes
 
-## [1.4.4] - Previous
+## [1.4.4] - 2026-01-29
 
 ### Added
 
@@ -208,7 +265,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Syntax highlighting and snippets
 - Language configuration for bracket matching
 
-## [1.4.0] - Previous
+
+## [1.4.3] - 2026-01-30
+
+### Fixed
+
+- Fix package name references to pulse-js-framework
+
+
+## [1.4.2] - 2026-01-30
+
+### Added
+
+- Automatic release workflow
+
+
+## [1.4.1] - 2026-01-30
+
+### Fixed
+
+- Router guard 'to' parameter usage
+
+
+## [1.4.0] - 2026-01-29
 
 ### Added
 
@@ -216,3 +295,71 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `@link`, `@outlet`, `@navigate` directives
 - Store with `state`, `getters`, `actions` blocks
 - Built-in persistence support
+
+
+## [1.3.0] - 2026-01-30
+
+### Router & Compiler Improvements
+
+### Changed
+
+- Refactor documentation into modular files with Pulse router
+- Add dark/light mode toggle to documentation
+- Fix GitHub URLs to use correct repository name
+
+
+## [1.2.0] - 2026-01-29
+
+### Pulse Mobile
+
+### Added
+
+- Pulse Mobile - zero-dependency mobile platform
+- Comprehensive Admin Dashboard example
+- GitHub Actions CI badge to README
+- Comprehensive core tests and GitHub Actions CI
+
+### Changed
+
+- Update documentation with Pulse Mobile and latest features
+- Improve dashboard responsive layout for desktop
+
+### Fixed
+
+- Getter usage in dashboard example
+- Store plugin usage in dashboard example
+- Code block first line offset in documentation
+- Lexer keyword tokenization
+
+
+## [1.1.0] - 2026-01-29
+
+### Core Improvements
+
+### Added
+
+- Core improvements and changelog page
+- Store example project demonstrating Pulse Store features
+
+### Fixed
+
+- Playground el parser to handle multiple attributes
+- Playground: use string concatenation for iframe HTML
+- Playground: inline Pulse runtime for srcdoc iframe
+
+
+## [1.0.0] - 2026-01-29
+
+### Initial Release
+
+### Added
+
+- Core reactivity system (pulse, effect, computed, batch)
+- DOM helpers (el, text, bind, on, model, list, when)
+- SPA Router with guards and lazy loading
+- Global state management with Store
+- Form validation system
+- Async primitives (useAsync, useResource, usePolling)
+- .pulse DSL compiler
+- CLI tools (create, dev, build, preview)
+- Zero external dependencies

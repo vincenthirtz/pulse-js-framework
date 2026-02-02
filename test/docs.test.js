@@ -874,6 +874,40 @@ test('All locales have same number of keys in pages.js', () => {
   }
 });
 
+// Test line count consistency for common.js
+test('All locales have same number of lines in common.js', () => {
+  const refContent = readFileSync(join(docsDir, `src/i18n/translations/${referenceLocale}/common.js`), 'utf-8');
+  const refLineCount = refContent.split('\n').length;
+
+  for (const locale of supportedLocales) {
+    if (locale === referenceLocale) continue;
+
+    const content = readFileSync(join(docsDir, `src/i18n/translations/${locale}/common.js`), 'utf-8');
+    const lineCount = content.split('\n').length;
+
+    // Allow small variance for formatting differences
+    const diff = Math.abs(lineCount - refLineCount);
+    assert(diff <= 5, `${locale}/common.js has ${lineCount} lines, expected ~${refLineCount} (diff: ${diff})`);
+  }
+});
+
+// Test line count consistency for pages.js
+test('All locales have same number of lines in pages.js', () => {
+  const refContent = readFileSync(join(docsDir, `src/i18n/translations/${referenceLocale}/pages.js`), 'utf-8');
+  const refLineCount = refContent.split('\n').length;
+
+  for (const locale of supportedLocales) {
+    if (locale === referenceLocale) continue;
+
+    const content = readFileSync(join(docsDir, `src/i18n/translations/${locale}/pages.js`), 'utf-8');
+    const lineCount = content.split('\n').length;
+
+    // Allow larger variance for formatting differences (e.g., single-line vs multi-line arrays)
+    const diff = Math.abs(lineCount - refLineCount);
+    assert(diff <= 55, `${locale}/pages.js has ${lineCount} lines, expected ~${refLineCount} (diff: ${diff})`);
+  }
+});
+
 // ============================================================================
 // Changelog Tests
 // ============================================================================
