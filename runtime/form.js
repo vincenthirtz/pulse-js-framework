@@ -24,6 +24,15 @@ import { pulse, effect, computed, batch } from './pulse.js';
  */
 
 /**
+ * Check if a validator is async
+ * @param {ValidationRule} rule - Validation rule
+ * @returns {boolean}
+ */
+function isAsyncValidator(rule) {
+  return rule.async === true;
+}
+
+/**
  * Built-in validation rules
  */
 export const validators = {
@@ -161,6 +170,112 @@ export const validators = {
       }
       return true;
     }
+  }),
+
+  // ============================================================================
+  // Async Validators
+  // ============================================================================
+
+  /**
+   * Async custom validation function
+   * @param {function(any, Object): Promise<boolean|string>} fn - Async validation function
+   * @param {Object} [options] - Options
+   * @param {number} [options.debounce=300] - Debounce delay in ms
+   *
+   * @example
+   * validators.asyncCustom(async (value) => {
+   *   const exists = await checkUsername(value);
+   *   return exists ? 'Username already taken' : true;
+   * })
+   */
+  asyncCustom: (fn, options = {}) => ({
+    async: true,
+    debounce: options.debounce ?? 300,
+    validate: fn
+  }),
+
+  /**
+   * Async email validation (check availability via API)
+   * @param {function(string): Promise<boolean>} checkFn - Returns true if email is available
+   * @param {string} [message='Email is already taken']
+   * @param {Object} [options] - Options
+   * @param {number} [options.debounce=300] - Debounce delay in ms
+   *
+   * @example
+   * validators.asyncEmail(
+   *   async (email) => {
+   *     const res = await fetch(`/api/check-email?email=${email}`);
+   *     const { available } = await res.json();
+   *     return available;
+   *   },
+   *   'This email is already registered'
+   * )
+   */
+  asyncEmail: (checkFn, message = 'Email is already taken', options = {}) => ({
+    async: true,
+    debounce: options.debounce ?? 300,
+    validate: async (value, allValues) => {
+      if (!value) return true;
+      // First check format synchronously
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(value)) {
+        return 'Invalid email address';
+      }
+      // Then check availability
+      const available = await checkFn(value, allValues);
+      return available ? true : message;
+    }
+  }),
+
+  /**
+   * Async unique validation (check uniqueness via API)
+   * @param {function(any, Object): Promise<boolean>} checkFn - Returns true if value is unique
+   * @param {string} [message='This value is already taken']
+   * @param {Object} [options] - Options
+   * @param {number} [options.debounce=300] - Debounce delay in ms
+   *
+   * @example
+   * validators.asyncUnique(
+   *   async (username) => {
+   *     const res = await fetch(`/api/check-username?q=${username}`);
+   *     return (await res.json()).available;
+   *   },
+   *   'Username is already taken'
+   * )
+   */
+  asyncUnique: (checkFn, message = 'This value is already taken', options = {}) => ({
+    async: true,
+    debounce: options.debounce ?? 300,
+    validate: async (value, allValues) => {
+      if (!value) return true;
+      const unique = await checkFn(value, allValues);
+      return unique ? true : message;
+    }
+  }),
+
+  /**
+   * Async server-side validation
+   * @param {function(any, Object): Promise<string|null>} validateFn - Returns error message or null
+   * @param {Object} [options] - Options
+   * @param {number} [options.debounce=300] - Debounce delay in ms
+   *
+   * @example
+   * validators.asyncServer(async (value) => {
+   *   const res = await fetch('/api/validate', {
+   *     method: 'POST',
+   *     body: JSON.stringify({ value })
+   *   });
+   *   const { error } = await res.json();
+   *   return error; // null if valid, error message if invalid
+   * })
+   */
+  asyncServer: (validateFn, options = {}) => ({
+    async: true,
+    debounce: options.debounce ?? 300,
+    validate: async (value, allValues) => {
+      const error = await validateFn(value, allValues);
+      return error === null ? true : error;
+    }
   })
 };
 
@@ -213,28 +328,123 @@ export function useForm(initialValues, validationSchema = {}, options = {}) {
   const fields = {};
   const fieldNames = Object.keys(initialValues);
 
+  // Version counters for async validation race condition handling
+  const validationVersions = {};
+  const debounceTimers = {};
+
   for (const name of fieldNames) {
     const initialValue = initialValues[name];
     const rules = validationSchema[name] || [];
 
+    // Separate sync and async rules
+    const syncRules = rules.filter(r => !isAsyncValidator(r));
+    const asyncRules = rules.filter(r => isAsyncValidator(r));
+
     const value = pulse(initialValue);
     const error = pulse(null);
     const touched = pulse(false);
+    const validating = pulse(false);
     const dirty = computed(() => value.get() !== initialValue);
-    const valid = computed(() => error.get() === null);
+    const valid = computed(() => error.get() === null && !validating.get());
 
-    // Validate a single field
-    const validateField = () => {
+    // Initialize version counter
+    validationVersions[name] = 0;
+    debounceTimers[name] = new Map();
+
+    /**
+     * Run sync validators only
+     */
+    const validateFieldSync = () => {
       const currentValue = value.get();
       const allValues = getValues();
 
-      for (const rule of rules) {
+      for (const rule of syncRules) {
         const result = rule.validate(currentValue, allValues);
         if (result !== true) {
           error.set(typeof result === 'string' ? result : rule.message || 'Invalid');
           return false;
         }
       }
+      return true;
+    };
+
+    /**
+     * Run async validators with debouncing
+     */
+    const validateFieldAsync = async () => {
+      if (asyncRules.length === 0) return true;
+
+      const version = ++validationVersions[name];
+      validating.set(true);
+
+      try {
+        const currentValue = value.get();
+        const allValues = getValues();
+
+        for (const rule of asyncRules) {
+          // Cancel previous debounce timer for this rule
+          const existingTimer = debounceTimers[name].get(rule);
+          if (existingTimer) {
+            clearTimeout(existingTimer);
+          }
+
+          // Debounce async validation
+          await new Promise((resolve) => {
+            const timer = setTimeout(resolve, rule.debounce || 300);
+            debounceTimers[name].set(rule, timer);
+          });
+
+          // Check if this validation is still current
+          if (version !== validationVersions[name]) {
+            return null; // Cancelled
+          }
+
+          const result = await rule.validate(currentValue, allValues);
+
+          // Check again after async operation
+          if (version !== validationVersions[name]) {
+            return null; // Cancelled
+          }
+
+          if (result !== true) {
+            error.set(typeof result === 'string' ? result : rule.message || 'Invalid');
+            validating.set(false);
+            return false;
+          }
+        }
+
+        // All async validations passed
+        if (version === validationVersions[name]) {
+          error.set(null);
+          validating.set(false);
+        }
+        return true;
+      } catch (err) {
+        if (version === validationVersions[name]) {
+          error.set(err.message || 'Validation failed');
+          validating.set(false);
+        }
+        return false;
+      }
+    };
+
+    /**
+     * Full validation (sync + async)
+     */
+    const validateField = async () => {
+      // First run sync validators
+      if (!validateFieldSync()) {
+        validating.set(false);
+        return false;
+      }
+
+      // Then run async validators
+      if (asyncRules.length > 0) {
+        const result = await validateFieldAsync();
+        if (result === null) return null; // Cancelled
+        return result;
+      }
+
       error.set(null);
       return true;
     };
@@ -250,7 +460,14 @@ export function useForm(initialValues, validationSchema = {}, options = {}) {
       value.set(newValue);
 
       if (validateOnChange && (mode === 'onChange' || touched.get())) {
-        validateField();
+        // Run sync validation immediately
+        validateFieldSync();
+        // Trigger async validation (debounced)
+        if (asyncRules.length > 0) {
+          validateField();
+        } else {
+          error.set(null);
+        }
       }
     };
 
@@ -271,15 +488,19 @@ export function useForm(initialValues, validationSchema = {}, options = {}) {
       touched,
       dirty,
       valid,
+      validating,
       validate: validateField,
+      validateSync: validateFieldSync,
       onChange,
       onBlur,
       onFocus,
       reset: () => {
+        validationVersions[name]++; // Cancel pending async validation
         batch(() => {
           value.set(initialValue);
           error.set(null);
           touched.set(false);
+          validating.set(false);
         });
       },
       setError: (msg) => error.set(msg),
@@ -294,6 +515,10 @@ export function useForm(initialValues, validationSchema = {}, options = {}) {
   // Computed form state
   const isValid = computed(() => {
     return fieldNames.every(name => fields[name].valid.get());
+  });
+
+  const isValidating = computed(() => {
+    return fieldNames.some(name => fields[name].validating.get());
   });
 
   const isDirty = computed(() => {
@@ -354,15 +579,38 @@ export function useForm(initialValues, validationSchema = {}, options = {}) {
   }
 
   /**
-   * Validate all fields
+   * Validate all fields (sync only, for immediate check)
    */
-  function validateAll() {
+  function validateAllSync() {
     let allValid = true;
     for (const name of fieldNames) {
-      if (!fields[name].validate()) {
+      if (!fields[name].validateSync()) {
         allValid = false;
       }
     }
+    return allValid;
+  }
+
+  /**
+   * Validate all fields (sync + async)
+   * @returns {Promise<boolean>}
+   */
+  async function validateAll() {
+    // First run all sync validations
+    let allValid = validateAllSync();
+
+    // Then run async validations in parallel
+    const asyncResults = await Promise.all(
+      fieldNames.map(name => fields[name].validate())
+    );
+
+    // Check results (null means cancelled, which we treat as valid for now)
+    for (const result of asyncResults) {
+      if (result === false) {
+        allValid = false;
+      }
+    }
+
     return allValid;
   }
 
@@ -400,7 +648,7 @@ export function useForm(initialValues, validationSchema = {}, options = {}) {
 
     // Validate if required
     if (validateOnSubmit) {
-      const valid = validateAll();
+      const valid = await validateAll();
       if (!valid) {
         if (onError) {
           onError(errors.get());
@@ -453,6 +701,7 @@ export function useForm(initialValues, validationSchema = {}, options = {}) {
   return {
     fields,
     isValid,
+    isValidating,
     isDirty,
     isTouched,
     isSubmitting,
@@ -462,6 +711,7 @@ export function useForm(initialValues, validationSchema = {}, options = {}) {
     setValues,
     setValue,
     validateAll,
+    validateAllSync,
     reset,
     handleSubmit,
     setErrors,
@@ -474,32 +724,148 @@ export function useForm(initialValues, validationSchema = {}, options = {}) {
  *
  * @param {any} initialValue - Initial field value
  * @param {ValidationRule[]} [rules=[]] - Validation rules
+ * @param {Object} [options={}] - Field options
+ * @param {boolean} [options.validateOnChange=true] - Validate on change (after touched)
+ * @param {boolean} [options.validateOnBlur=true] - Validate on blur
  * @returns {Object} Field state and controls
  *
  * @example
  * const email = useField('', [validators.required(), validators.email()]);
  *
+ * // With async validation
+ * const username = useField('', [
+ *   validators.required(),
+ *   validators.asyncUnique(async (value) => checkUsernameAvailable(value))
+ * ]);
+ *
  * // Bind to input
  * el('input', { value: email.value.get(), onInput: email.onChange, onBlur: email.onBlur });
  */
-export function useField(initialValue, rules = []) {
+export function useField(initialValue, rules = [], options = {}) {
+  const { validateOnChange = true, validateOnBlur = true } = options;
+
   const value = pulse(initialValue);
   const error = pulse(null);
   const touched = pulse(false);
+  const validating = pulse(false);
   const dirty = computed(() => value.get() !== initialValue);
-  const valid = computed(() => error.get() === null);
+  const valid = computed(() => error.get() === null && !validating.get());
 
-  const validate = () => {
-    const currentValue = value.get();
+  // Separate sync and async rules
+  const syncRules = rules.filter(r => !isAsyncValidator(r));
+  const asyncRules = rules.filter(r => isAsyncValidator(r));
 
-    for (const rule of rules) {
-      const result = rule.validate(currentValue, {});
+  // Version counter for race condition handling
+  let validationVersion = 0;
+
+  // Debounce timers per async rule
+  const debounceTimers = new Map();
+
+  /**
+   * Run synchronous validators
+   */
+  const validateSync = (currentValue, allValues = {}) => {
+    for (const rule of syncRules) {
+      const result = rule.validate(currentValue, allValues);
       if (result !== true) {
         error.set(typeof result === 'string' ? result : rule.message || 'Invalid');
         return false;
       }
     }
+    return true;
+  };
+
+  /**
+   * Run async validators with debouncing and race condition handling
+   */
+  const validateAsync = async (currentValue, allValues = {}) => {
+    if (asyncRules.length === 0) return true;
+
+    const version = ++validationVersion;
+    validating.set(true);
+
+    try {
+      for (const rule of asyncRules) {
+        // Cancel previous debounce timer for this rule
+        const existingTimer = debounceTimers.get(rule);
+        if (existingTimer) {
+          clearTimeout(existingTimer);
+        }
+
+        // Debounce async validation
+        await new Promise((resolve) => {
+          const timer = setTimeout(resolve, rule.debounce || 300);
+          debounceTimers.set(rule, timer);
+        });
+
+        // Check if this validation is still current
+        if (version !== validationVersion) {
+          return null; // Cancelled
+        }
+
+        const result = await rule.validate(currentValue, allValues);
+
+        // Check again after async operation
+        if (version !== validationVersion) {
+          return null; // Cancelled
+        }
+
+        if (result !== true) {
+          error.set(typeof result === 'string' ? result : rule.message || 'Invalid');
+          validating.set(false);
+          return false;
+        }
+      }
+
+      // All async validations passed
+      if (version === validationVersion) {
+        error.set(null);
+        validating.set(false);
+      }
+      return true;
+    } catch (err) {
+      if (version === validationVersion) {
+        error.set(err.message || 'Validation failed');
+        validating.set(false);
+      }
+      return false;
+    }
+  };
+
+  /**
+   * Full validation (sync + async)
+   */
+  const validate = async (allValues = {}) => {
+    const currentValue = value.get();
+
+    // First run sync validators
+    if (!validateSync(currentValue, allValues)) {
+      validating.set(false);
+      return false;
+    }
+
+    // Then run async validators
+    if (asyncRules.length > 0) {
+      const result = await validateAsync(currentValue, allValues);
+      if (result === null) return null; // Cancelled
+      return result;
+    }
+
     error.set(null);
+    return true;
+  };
+
+  /**
+   * Sync-only validation (for immediate feedback)
+   */
+  const validateSyncOnly = (allValues = {}) => {
+    const currentValue = value.get();
+    if (!validateSync(currentValue, allValues)) {
+      return false;
+    }
+    if (syncRules.length > 0 && asyncRules.length === 0) {
+      error.set(null);
+    }
     return true;
   };
 
@@ -512,21 +878,30 @@ export function useField(initialValue, rules = []) {
 
     value.set(newValue);
 
-    if (touched.get()) {
-      validate();
+    if (validateOnChange && touched.get()) {
+      // Run sync validation immediately
+      validateSyncOnly();
+      // Trigger async validation (debounced)
+      if (asyncRules.length > 0) {
+        validate();
+      }
     }
   };
 
   const onBlur = () => {
     touched.set(true);
-    validate();
+    if (validateOnBlur) {
+      validate();
+    }
   };
 
   const reset = () => {
+    validationVersion++; // Cancel any pending async validation
     batch(() => {
       value.set(initialValue);
       error.set(null);
       touched.set(false);
+      validating.set(false);
     });
   };
 
@@ -536,7 +911,9 @@ export function useField(initialValue, rules = []) {
     touched,
     dirty,
     valid,
+    validating,
     validate,
+    validateSync: validateSyncOnly,
     onChange,
     onBlur,
     reset,
@@ -628,10 +1005,27 @@ export function useFieldArray(initialValues = [], itemRules = []) {
     fieldsArray.set(newValues.map(createField));
   };
 
-  const validateAll = () => {
-    // Use map instead of every to validate ALL fields (every short-circuits)
-    const results = fieldsArray.get().map(f => f.validate());
+  /**
+   * Validate all fields synchronously only
+   */
+  const validateAllSync = () => {
+    const results = fieldsArray.get().map(f => f.validateSync());
     return results.every(r => r);
+  };
+
+  /**
+   * Validate all fields (sync + async)
+   */
+  const validateAll = async () => {
+    // First run sync validation on all
+    const syncResults = validateAllSync();
+
+    // Then run async validation on all
+    const asyncResults = await Promise.all(
+      fieldsArray.get().map(f => f.validate())
+    );
+
+    return asyncResults.every(r => r === true);
   };
 
   return {
@@ -647,7 +1041,8 @@ export function useFieldArray(initialValues = [], itemRules = []) {
     swap,
     replace,
     reset,
-    validateAll
+    validateAll,
+    validateAllSync
   };
 }
 

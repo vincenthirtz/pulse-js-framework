@@ -17,6 +17,8 @@ import { effect } from '../runtime/pulse.js';
 
 import {
   test,
+  testAsync,
+  runAsyncTests,
   assert,
   assertEqual,
   assertDeepEqual,
@@ -184,21 +186,21 @@ test('useField dirty tracks value changes', () => {
   assertEqual(field.dirty.get(), false);
 });
 
-test('useField validate runs validation rules', () => {
+testAsync('useField validate runs validation rules', async () => {
   const field = useField('', [
     validators.required(),
     validators.minLength(5)
   ]);
 
-  assertEqual(field.validate(), false);
+  assertEqual(await field.validate(), false);
   assertEqual(field.error.get(), 'This field is required');
 
   field.onChange('abc');
-  assertEqual(field.validate(), false);
+  assertEqual(await field.validate(), false);
   assertEqual(field.error.get(), 'Must be at least 5 characters');
 
   field.onChange('abcde');
-  assertEqual(field.validate(), true);
+  assertEqual(await field.validate(), true);
   assertEqual(field.error.get(), null);
 });
 
@@ -280,7 +282,7 @@ test('useForm setValue updates single field', () => {
   assertEqual(fields.name.value.get(), 'John');
 });
 
-test('useForm validates with schema', () => {
+testAsync('useForm validates with schema', async () => {
   const { fields, isValid, validateAll } = useForm(
     { email: '', password: '' },
     {
@@ -290,18 +292,18 @@ test('useForm validates with schema', () => {
   );
 
   // Initially empty, so validation will fail
-  assertEqual(validateAll(), false);
+  assertEqual(await validateAll(), false);
   assertEqual(isValid.get(), false);
 
   fields.email.onChange('invalid');
   fields.password.onChange('short');
-  validateAll();
+  await validateAll();
   assertEqual(fields.email.error.get(), 'Invalid email address');
   assertEqual(fields.password.error.get(), 'Must be at least 8 characters');
 
   fields.email.onChange('valid@email.com');
   fields.password.onChange('longpassword');
-  validateAll();
+  await validateAll();
   assertEqual(isValid.get(), true);
 });
 
@@ -331,7 +333,7 @@ test('useForm isTouched tracks any field interaction', () => {
   assertEqual(isTouched.get(), true);
 });
 
-test('useForm errors computed returns all errors', () => {
+testAsync('useForm errors computed returns all errors', async () => {
   const { fields, errors, validateAll } = useForm(
     { email: '', password: '' },
     {
@@ -340,7 +342,7 @@ test('useForm errors computed returns all errors', () => {
     }
   );
 
-  validateAll();
+  await validateAll();
 
   const errs = errors.get();
   assertEqual(errs.email, 'This field is required');
@@ -540,13 +542,13 @@ test('useFieldArray reset with new values', () => {
   assertDeepEqual(values.get(), ['x', 'y', 'z']);
 });
 
-test('useFieldArray validates all items', () => {
+testAsync('useFieldArray validates all items', async () => {
   const { fields, isValid, validateAll } = useFieldArray(
     ['valid', ''],
     [validators.required()]
   );
 
-  assertEqual(validateAll(), false);
+  assertEqual(await validateAll(), false);
   assertEqual(isValid.get(), false);
 
   // First field should be valid
@@ -555,13 +557,13 @@ test('useFieldArray validates all items', () => {
   assertEqual(fields.get()[1].valid.get(), false);
 });
 
-test('useFieldArray errors shows field errors', () => {
+testAsync('useFieldArray errors shows field errors', async () => {
   const { fields, validateAll } = useFieldArray(
     ['', ''],
     [validators.required()]
   );
 
-  validateAll();
+  await validateAll();
 
   // Check individual field errors (errors computed may have tracking limitations)
   const fieldList = fields.get();
@@ -570,8 +572,323 @@ test('useFieldArray errors shows field errors', () => {
 });
 
 // =============================================================================
+// Async Validators Tests
+// =============================================================================
+
+printSection('Async Validators Tests');
+
+test('validators.asyncCustom creates async validator', () => {
+  const rule = validators.asyncCustom(async (value) => {
+    return value === 'valid' ? true : 'Invalid value';
+  });
+
+  assertEqual(rule.async, true);
+  assertEqual(typeof rule.validate, 'function');
+  assertEqual(rule.debounce, 300);
+});
+
+test('validators.asyncCustom with custom debounce', () => {
+  const rule = validators.asyncCustom(
+    async () => true,
+    { debounce: 500 }
+  );
+
+  assertEqual(rule.debounce, 500);
+});
+
+test('validators.asyncEmail creates async email validator', () => {
+  const rule = validators.asyncEmail(async () => true);
+
+  assertEqual(rule.async, true);
+  assertEqual(typeof rule.validate, 'function');
+});
+
+testAsync('validators.asyncEmail validates format before async check', async () => {
+  let apiCalled = false;
+  const rule = validators.asyncEmail(async () => {
+    apiCalled = true;
+    return true;
+  });
+
+  // Invalid format should fail before API call
+  const result = await rule.validate('invalid-email', {});
+  assertEqual(result, 'Invalid email address');
+  assertEqual(apiCalled, false);
+});
+
+testAsync('validators.asyncEmail calls check function for valid format', async () => {
+  let apiCalled = false;
+  const rule = validators.asyncEmail(async (email) => {
+    apiCalled = true;
+    return email !== 'taken@example.com';
+  });
+
+  // Valid format should trigger API check
+  const result1 = await rule.validate('available@example.com', {});
+  assertEqual(result1, true);
+  assertEqual(apiCalled, true);
+
+  // Reset and test taken email
+  apiCalled = false;
+  const result2 = await rule.validate('taken@example.com', {});
+  assertEqual(result2, 'Email is already taken');
+});
+
+test('validators.asyncUnique creates async unique validator', () => {
+  const rule = validators.asyncUnique(async () => true);
+
+  assertEqual(rule.async, true);
+  assertEqual(typeof rule.validate, 'function');
+});
+
+testAsync('validators.asyncUnique validates uniqueness', async () => {
+  const takenValues = ['john', 'jane'];
+  const rule = validators.asyncUnique(
+    async (value) => !takenValues.includes(value),
+    'Username is taken'
+  );
+
+  const result1 = await rule.validate('newuser', {});
+  assertEqual(result1, true);
+
+  const result2 = await rule.validate('john', {});
+  assertEqual(result2, 'Username is taken');
+});
+
+test('validators.asyncServer creates server validator', () => {
+  const rule = validators.asyncServer(async () => null);
+
+  assertEqual(rule.async, true);
+  assertEqual(typeof rule.validate, 'function');
+});
+
+testAsync('validators.asyncServer handles server response', async () => {
+  const rule = validators.asyncServer(async (value) => {
+    if (value.length < 3) return 'Too short (server)';
+    return null;
+  });
+
+  const result1 = await rule.validate('ab', {});
+  assertEqual(result1, 'Too short (server)');
+
+  const result2 = await rule.validate('abc', {});
+  assertEqual(result2, true);
+});
+
+// =============================================================================
+// Async useField Tests
+// =============================================================================
+
+printSection('Async useField Tests');
+
+test('useField has validating state for async validators', () => {
+  const field = useField('', [
+    validators.asyncCustom(async () => true)
+  ]);
+
+  assert(field.validating !== undefined, 'Should have validating pulse');
+  assertEqual(field.validating.get(), false);
+});
+
+testAsync('useField async validation sets validating state', async () => {
+  let resolveValidation;
+  const validationPromise = new Promise(r => { resolveValidation = r; });
+
+  const field = useField('', [
+    validators.asyncCustom(async () => {
+      await validationPromise;
+      return true;
+    }, { debounce: 0 })
+  ]);
+
+  // Start validation
+  const validatePromise = field.validate();
+
+  // Should be validating after debounce
+  await new Promise(r => setTimeout(r, 10));
+  assertEqual(field.validating.get(), true);
+
+  // Resolve validation
+  resolveValidation();
+  await validatePromise;
+
+  assertEqual(field.validating.get(), false);
+});
+
+testAsync('useField runs sync validators before async', async () => {
+  let asyncCalled = false;
+  const field = useField('', [
+    validators.required(),
+    validators.asyncCustom(async () => {
+      asyncCalled = true;
+      return true;
+    }, { debounce: 0 })
+  ]);
+
+  // Empty value should fail sync validation first
+  const result = await field.validate();
+  assertEqual(result, false);
+  assertEqual(field.error.get(), 'This field is required');
+  assertEqual(asyncCalled, false);
+});
+
+testAsync('useField async validation with valid sync passes to async', async () => {
+  let asyncValue = null;
+  const field = useField('test', [
+    validators.required(),
+    validators.asyncCustom(async (value) => {
+      asyncValue = value;
+      return value === 'valid' ? true : 'Must be valid';
+    }, { debounce: 0 })
+  ]);
+
+  const result = await field.validate();
+  assertEqual(result, false);
+  assertEqual(asyncValue, 'test');
+  assertEqual(field.error.get(), 'Must be valid');
+});
+
+testAsync('useField reset cancels pending async validation', async () => {
+  let validationCount = 0;
+  let shouldSetError = true;
+
+  const field = useField('value', [
+    validators.asyncCustom(async () => {
+      validationCount++;
+      await new Promise(r => setTimeout(r, 100));
+      return shouldSetError ? 'Error' : true;
+    }, { debounce: 0 })
+  ]);
+
+  // Start validation
+  const validatePromise = field.validate();
+
+  // Reset immediately
+  field.reset();
+
+  // Wait for validation to complete
+  await validatePromise;
+
+  // Error should not be set because reset cancelled it
+  assertEqual(field.error.get(), null);
+});
+
+// =============================================================================
+// Async useForm Tests
+// =============================================================================
+
+printSection('Async useForm Tests');
+
+test('useForm has isValidating computed', () => {
+  const { isValidating } = useForm(
+    { email: '' },
+    { email: [validators.asyncCustom(async () => true)] }
+  );
+
+  assert(isValidating !== undefined, 'Should have isValidating computed');
+  assertEqual(isValidating.get(), false);
+});
+
+testAsync('useForm validates async validators on submit', async () => {
+  let apiChecked = false;
+  let submittedValues = null;
+
+  const { handleSubmit } = useForm(
+    { email: 'test@example.com' },
+    {
+      email: [
+        validators.required(),
+        validators.email(),
+        validators.asyncEmail(async () => {
+          apiChecked = true;
+          return true;
+        }, 'Email taken', { debounce: 0 })
+      ]
+    },
+    {
+      onSubmit: (values) => { submittedValues = values; }
+    }
+  );
+
+  const result = await handleSubmit();
+
+  assertEqual(apiChecked, true);
+  assertEqual(result, true);
+  assertDeepEqual(submittedValues, { email: 'test@example.com' });
+});
+
+testAsync('useForm blocks submit on async validation failure', async () => {
+  let errorsCalled = null;
+
+  const { handleSubmit } = useForm(
+    { username: 'taken' },
+    {
+      username: [
+        validators.asyncUnique(async (value) => value !== 'taken', 'Username taken', { debounce: 0 })
+      ]
+    },
+    {
+      onError: (errs) => { errorsCalled = errs; }
+    }
+  );
+
+  const result = await handleSubmit();
+
+  assertEqual(result, false);
+  assertEqual(errorsCalled.username, 'Username taken');
+});
+
+testAsync('useForm isValidating reflects async validation state', async () => {
+  let resolveValidation;
+  const validationPromise = new Promise(r => { resolveValidation = r; });
+
+  const { fields, isValidating, validateAll } = useForm(
+    { email: 'test@example.com' },
+    {
+      email: [
+        validators.asyncCustom(async () => {
+          await validationPromise;
+          return true;
+        }, { debounce: 0 })
+      ]
+    }
+  );
+
+  // Start validation
+  const validatePromise = validateAll();
+
+  // Should be validating after starting
+  await new Promise(r => setTimeout(r, 10));
+  assertEqual(isValidating.get(), true);
+
+  // Resolve validation
+  resolveValidation();
+  await validatePromise;
+
+  assertEqual(isValidating.get(), false);
+});
+
+testAsync('useForm fields have validateSync for immediate feedback', async () => {
+  const { fields } = useForm(
+    { email: '' },
+    {
+      email: [
+        validators.required(),
+        validators.asyncEmail(async () => true, 'Email taken', { debounce: 0 })
+      ]
+    }
+  );
+
+  // validateSync should only run sync validators
+  const syncResult = fields.email.validateSync();
+  assertEqual(syncResult, false);
+  assertEqual(fields.email.error.get(), 'This field is required');
+});
+
+// =============================================================================
 // Results
 // =============================================================================
 
+await runAsyncTests();
 printResults();
 exitWithCode();

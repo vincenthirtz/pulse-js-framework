@@ -220,7 +220,7 @@ errors.get();         // { email: 'Invalid email', ... }
 fields.email.dirty.get();    // true if value changed from initial
 fields.email.touched.get();  // true if field was blurred
 
-// Built-in validators
+// Built-in validators (sync)
 validators.required(message?)
 validators.minLength(length, message?)
 validators.maxLength(length, message?)
@@ -231,6 +231,26 @@ validators.min(value, message?)
 validators.max(value, message?)
 validators.matches(fieldName, message?)
 validators.custom((value, allValues) => true | 'error message')
+
+// Async validators (for server-side checks)
+validators.asyncCustom(async (value) => true | 'error', { debounce: 300 })
+validators.asyncEmail(async (email) => isAvailable, message?, { debounce: 300 })
+validators.asyncUnique(async (value) => isUnique, message?, { debounce: 300 })
+validators.asyncServer(async (value) => null | 'error', { debounce: 300 })
+
+// Field with async validation
+const username = useField('', [
+  validators.required(),
+  validators.asyncUnique(async (value) => {
+    const res = await fetch(`/api/check-username?q=${value}`);
+    return (await res.json()).available;
+  }, 'Username is taken')
+]);
+username.validating.get();  // true while async validation runs
+
+// Form with async validation
+const { isValidating } = useForm(initialValues, schema, options);
+isValidating.get();  // true if any field is validating
 
 // Single field outside form
 const email = useField('', [validators.required(), validators.email()]);
@@ -545,6 +565,8 @@ node --test test/*.js
 | `min(n)` | Must be at least {n} |
 | `max(n)` | Must be at most {n} |
 | `matches(field)` | Must match {field} |
+| `asyncEmail` | Email is already taken |
+| `asyncUnique` | This value is already taken |
 
 ## Performance Guide
 
