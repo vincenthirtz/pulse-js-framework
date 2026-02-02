@@ -1,21 +1,21 @@
 /**
  * Pulse Sports News App
  * Demonstrates the HTTP Client system with reactive data fetching
+ * News sources: L'Équipe & Sports.fr style
  */
 
 import { pulse, effect, mount, el } from '/runtime/index.js';
-import { createHttp, useHttp, useHttpResource } from '/runtime/http.js';
+import { createHttp } from '/runtime/http.js';
 
 // =============================================================================
 // HTTP Client Configuration
 // =============================================================================
 
-// Create HTTP client instance with default configuration
+// Create HTTP client for RSS/API fetching
 export const api = createHttp({
-  baseURL: 'https://api.example.com', // Would be real API in production
   timeout: 10000,
   headers: {
-    'Accept': 'application/json'
+    'Accept': 'application/json, application/xml, text/xml'
   }
 });
 
@@ -35,56 +35,68 @@ api.interceptors.response.use(
 );
 
 // =============================================================================
-// Mock Data (simulates API responses)
+// News Data - French Sports Sources (L'Équipe & Sports.fr style)
 // =============================================================================
 
-const MOCK_NEWS = {
+const NEWS_DATA = {
   football: [
-    { id: 1, title: 'Champions League Final Preview', category: 'football', image: '⚽', time: '2h ago', source: 'ESPN', summary: 'The biggest match in European football is upon us. Teams prepare for glory.' },
-    { id: 2, title: 'Transfer Window: Top 10 Deals', category: 'football', image: '💰', time: '4h ago', source: 'Sky Sports', summary: 'This summer\'s biggest transfers that shaped the leagues.' },
-    { id: 3, title: 'Premier League Title Race Heats Up', category: 'football', image: '🏆', time: '6h ago', source: 'BBC Sport', summary: 'Three teams within points of each other as season reaches climax.' },
-    { id: 4, title: 'World Cup Qualifiers Results', category: 'football', image: '🌍', time: '8h ago', source: 'FIFA', summary: 'All the results from last night\'s qualifying matches.' },
+    { id: 1, title: 'PSG : Dembélé buteur, Paris s\'impose face à Monaco', category: 'football', image: '⚽', time: 'Il y a 1h', source: "L'Équipe", summary: 'Le Paris Saint-Germain a dominé l\'AS Monaco (3-1) grâce à un doublé de Dembélé et un but de Barcola.', url: 'https://www.lequipe.fr' },
+    { id: 2, title: 'Mercato : L\'OM proche de boucler un gros coup', category: 'football', image: '💰', time: 'Il y a 2h', source: 'Sports.fr', summary: 'L\'Olympique de Marseille serait sur le point de finaliser le transfert d\'un international français.', url: 'https://www.sports.fr' },
+    { id: 3, title: 'Ligue 1 : Le classement après la 25e journée', category: 'football', image: '🏆', time: 'Il y a 3h', source: "L'Équipe", summary: 'Le PSG creuse l\'écart en tête, Monaco et Lille se disputent la deuxième place.', url: 'https://www.lequipe.fr' },
+    { id: 4, title: 'Équipe de France : Deschamps dévoile sa liste', category: 'football', image: '🇫🇷', time: 'Il y a 4h', source: 'Sports.fr', summary: 'Le sélectionneur a convoqué 23 joueurs pour les prochains matchs de qualification.', url: 'https://www.sports.fr' },
+    { id: 5, title: 'Real Madrid : Mbappé encore décisif en Liga', category: 'football', image: '⭐', time: 'Il y a 5h', source: "L'Équipe", summary: 'Kylian Mbappé a inscrit son 15e but de la saison lors de la victoire face à Séville.', url: 'https://www.lequipe.fr' },
   ],
-  basketball: [
-    { id: 5, title: 'NBA Finals Game 7 Thriller', category: 'basketball', image: '🏀', time: '1h ago', source: 'NBA.com', summary: 'Historic overtime finish decides the championship.' },
-    { id: 6, title: 'Rookie of the Year Announced', category: 'basketball', image: '⭐', time: '3h ago', source: 'ESPN', summary: 'The standout first-year player takes home the award.' },
-    { id: 7, title: 'All-Star Game Rosters Revealed', category: 'basketball', image: '✨', time: '5h ago', source: 'Bleacher Report', summary: 'The best players selected for the showcase event.' },
+  rugby: [
+    { id: 6, title: 'XV de France : Victoire historique face aux All Blacks', category: 'rugby', image: '🏉', time: 'Il y a 30min', source: "L'Équipe", summary: 'Les Bleus s\'imposent 28-23 à Auckland, une première depuis 15 ans.', url: 'https://www.lequipe.fr' },
+    { id: 7, title: 'Top 14 : Toulouse confirme sa domination', category: 'rugby', image: '🔴', time: 'Il y a 2h', source: 'Sports.fr', summary: 'Le Stade Toulousain s\'impose largement face à La Rochelle et conforte sa place de leader.', url: 'https://www.sports.fr' },
+    { id: 8, title: 'Tournoi des 6 Nations : Le calendrier dévoilé', category: 'rugby', image: '📅', time: 'Il y a 4h', source: "L'Équipe", summary: 'La France débutera à domicile face à l\'Irlande le 1er février.', url: 'https://www.lequipe.fr' },
   ],
   tennis: [
-    { id: 8, title: 'Wimbledon Draw Released', category: 'tennis', image: '🎾', time: '30m ago', source: 'ATP Tour', summary: 'Top seeds learn their paths to the title.' },
-    { id: 9, title: 'New World No. 1 Crowned', category: 'tennis', image: '👑', time: '2h ago', source: 'WTA', summary: 'Rankings shake-up after thrilling tournament finale.' },
-    { id: 10, title: 'Grand Slam Record Broken', category: 'tennis', image: '📊', time: '1d ago', source: 'Tennis Magazine', summary: 'A new milestone in tennis history achieved.' },
+    { id: 9, title: 'Roland-Garros : Le tirage au sort effectué', category: 'tennis', image: '🎾', time: 'Il y a 1h', source: "L'Équipe", summary: 'Les Français héritent de tableaux abordables pour le premier tour.', url: 'https://www.lequipe.fr' },
+    { id: 10, title: 'ATP : Djokovic de retour au sommet', category: 'tennis', image: '👑', time: 'Il y a 3h', source: 'Sports.fr', summary: 'Le Serbe récupère la place de numéro 1 mondial après sa victoire à Indian Wells.', url: 'https://www.sports.fr' },
+    { id: 11, title: 'WTA : Garcia en demi-finale à Miami', category: 'tennis', image: '🇫🇷', time: 'Il y a 5h', source: "L'Équipe", summary: 'Caroline Garcia poursuit son excellent parcours et affrontera Swiatek.', url: 'https://www.lequipe.fr' },
   ],
   f1: [
-    { id: 11, title: 'Monaco GP: Qualifying Results', category: 'f1', image: '🏎️', time: '45m ago', source: 'F1.com', summary: 'Pole position secured in dramatic fashion.' },
-    { id: 12, title: 'New Team Joins the Grid', category: 'f1', image: '🆕', time: '4h ago', source: 'Autosport', summary: 'Expansion brings new competition to Formula 1.' },
-    { id: 13, title: 'Driver Championship Standings', category: 'f1', image: '📈', time: '1d ago', source: 'Motorsport', summary: 'The battle for the title intensifies.' },
+    { id: 12, title: 'GP de Monaco : Verstappen en pole position', category: 'f1', image: '🏎️', time: 'Il y a 45min', source: "L'Équipe", summary: 'Le triple champion du monde s\'élancera en tête demain dans les rues de la Principauté.', url: 'https://www.lequipe.fr' },
+    { id: 13, title: 'Alpine : Gasly prolonge jusqu\'en 2027', category: 'f1', image: '🇫🇷', time: 'Il y a 2h', source: 'Sports.fr', summary: 'Le pilote français s\'engage sur le long terme avec l\'écurie tricolore.', url: 'https://www.sports.fr' },
+    { id: 14, title: 'Classement F1 : Verstappen creuse l\'écart', category: 'f1', image: '📊', time: 'Il y a 6h', source: "L'Équipe", summary: 'Le Néerlandais compte désormais 50 points d\'avance sur Leclerc.', url: 'https://www.lequipe.fr' },
   ],
-  mma: [
-    { id: 14, title: 'UFC Title Fight Announced', category: 'mma', image: '🥊', time: '1h ago', source: 'UFC', summary: 'The most anticipated matchup of the year is official.' },
-    { id: 15, title: 'Fighter Rankings Updated', category: 'mma', image: '📋', time: '6h ago', source: 'MMA Fighting', summary: 'New contenders emerge after weekend results.' },
+  cyclisme: [
+    { id: 15, title: 'Tour de France : Le parcours 2025 dévoilé', category: 'cyclisme', image: '🚴', time: 'Il y a 1h', source: "L'Équipe", summary: 'La Grande Boucle partira de Lille et traversera les Pyrénées avant les Alpes.', url: 'https://www.lequipe.fr' },
+    { id: 16, title: 'Pogačar remporte le Giro', category: 'cyclisme', image: '🏆', time: 'Il y a 3h', source: 'Sports.fr', summary: 'Le Slovène signe un doublé historique Giro-Tour en dominant la montagne.', url: 'https://www.sports.fr' },
+    { id: 17, title: 'Paris-Roubaix : Van der Poel intouchable', category: 'cyclisme', image: '🪨', time: 'Il y a 1j', source: "L'Équipe", summary: 'Le Néerlandais s\'impose en solitaire sur l\'Enfer du Nord.', url: 'https://www.lequipe.fr' },
   ],
-  cycling: [
-    { id: 16, title: 'Tour de France Stage Results', category: 'cycling', image: '🚴', time: '3h ago', source: 'Cycling News', summary: 'Yellow jersey changes hands in mountain stage.' },
-    { id: 17, title: 'Olympic Team Selection', category: 'cycling', image: '🥇', time: '1d ago', source: 'UCI', summary: 'National federations announce their representatives.' },
+  basket: [
+    { id: 18, title: 'NBA : Wembanyama bat un nouveau record', category: 'basket', image: '🏀', time: 'Il y a 2h', source: "L'Équipe", summary: 'Le Français réalise un triple-double historique face aux Lakers.', url: 'https://www.lequipe.fr' },
+    { id: 19, title: 'Équipe de France : Les Bleus qualifiés pour les JO', category: 'basket', image: '🇫🇷', time: 'Il y a 4h', source: 'Sports.fr', summary: 'La France valide son billet pour Paris 2024 après sa victoire en TQO.', url: 'https://www.sports.fr' },
+    { id: 20, title: 'Euroleague : Monaco en playoffs', category: 'basket', image: '🔴', time: 'Il y a 6h', source: "L'Équipe", summary: 'L\'AS Monaco basket se qualifie pour la phase finale de l\'Euroleague.', url: 'https://www.lequipe.fr' },
+  ],
+  handball: [
+    { id: 21, title: 'Mondial : Les Experts en finale', category: 'handball', image: '🤾', time: 'Il y a 1h', source: "L'Équipe", summary: 'L\'équipe de France domine le Danemark et retrouve la finale du Mondial.', url: 'https://www.lequipe.fr' },
+    { id: 22, title: 'Starligue : Montpellier champion', category: 'handball', image: '🏆', time: 'Il y a 5h', source: 'Sports.fr', summary: 'Le MHB remporte son 15e titre de champion de France.', url: 'https://www.sports.fr' },
   ]
 };
 
-// Simulate API delay
+// =============================================================================
+// Fetch Functions
+// =============================================================================
+
+// Simulate API delay for realistic UX
 function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// Mock fetch function (simulates real API)
-async function mockFetch(category = 'all', search = '') {
-  await delay(500 + Math.random() * 500); // Simulate network latency
+// Fetch news (uses local data, could be connected to real RSS feeds via proxy)
+async function fetchSportsNews(category = 'all', search = '') {
+  // Simulate network latency
+  await delay(400 + Math.random() * 400);
 
   let news = [];
 
   if (category === 'all') {
-    news = Object.values(MOCK_NEWS).flat();
-  } else if (MOCK_NEWS[category]) {
-    news = MOCK_NEWS[category];
+    news = Object.values(NEWS_DATA).flat();
+  } else if (NEWS_DATA[category]) {
+    news = NEWS_DATA[category];
   }
 
   // Apply search filter
@@ -96,10 +108,52 @@ async function mockFetch(category = 'all', search = '') {
     );
   }
 
-  // Sort by recency (mock)
-  news = news.sort(() => Math.random() - 0.5);
+  // Sort by time (most recent first in mock data)
+  return { articles: news, total: news.length, sources: ["L'Équipe", "Sports.fr"] };
+}
 
-  return { articles: news, total: news.length };
+// Try to fetch from real RSS feed (requires CORS proxy in production)
+async function fetchFromRSS(feedUrl) {
+  try {
+    // Using a CORS proxy for demo - in production use your own backend
+    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(feedUrl)}`;
+    const response = await api.get(proxyUrl);
+
+    if (response.data?.contents) {
+      // Parse RSS XML
+      const parser = new DOMParser();
+      const xml = parser.parseFromString(response.data.contents, 'text/xml');
+      const items = xml.querySelectorAll('item');
+
+      return Array.from(items).slice(0, 10).map((item, index) => ({
+        id: `rss-${index}`,
+        title: item.querySelector('title')?.textContent || 'Sans titre',
+        summary: item.querySelector('description')?.textContent?.replace(/<[^>]*>/g, '').slice(0, 150) + '...' || '',
+        url: item.querySelector('link')?.textContent || '#',
+        time: formatDate(item.querySelector('pubDate')?.textContent),
+        source: "L'Équipe",
+        category: 'football',
+        image: '⚽'
+      }));
+    }
+  } catch (error) {
+    console.warn('[RSS] Failed to fetch, using local data:', error.message);
+  }
+  return null;
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return 'Récent';
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now - date;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffMins < 60) return `Il y a ${diffMins}min`;
+  if (diffHours < 24) return `Il y a ${diffHours}h`;
+  return `Il y a ${diffDays}j`;
 }
 
 // =============================================================================
@@ -111,19 +165,22 @@ export const search = pulse('');
 export const darkMode = pulse(localStorage.getItem('sports-dark') === 'true');
 export const favorites = pulse(JSON.parse(localStorage.getItem('sports-favorites') || '[]'));
 export const showFavorites = pulse(false);
-
-// =============================================================================
-// Data Fetching with HTTP Client Patterns
-// =============================================================================
-
-// Reactive news fetching using useHttp pattern
 export const newsState = pulse({ data: null, loading: true, error: null });
+
+// =============================================================================
+// Data Fetching
+// =============================================================================
 
 export async function fetchNews() {
   newsState.set({ data: null, loading: true, error: null });
 
   try {
-    const result = await mockFetch(category.get(), search.get());
+    // Try RSS first, fall back to local data
+    // Uncomment to try real RSS (requires CORS proxy):
+    // const rssData = await fetchFromRSS('https://www.lequipe.fr/rss/actu_rss.xml');
+    // if (rssData) { ... }
+
+    const result = await fetchSportsNews(category.get(), search.get());
     newsState.set({ data: result, loading: false, error: null });
   } catch (err) {
     newsState.set({ data: null, loading: false, error: err.message });
@@ -132,8 +189,8 @@ export async function fetchNews() {
 
 // Watch for category/search changes and refetch
 effect(() => {
-  const currentCategory = category.get();
-  const currentSearch = search.get();
+  category.get();
+  search.get();
   fetchNews();
 });
 
@@ -165,10 +222,6 @@ export function toggleFavorite(articleId) {
   });
 }
 
-export function isFavorite(articleId) {
-  return favorites.get().includes(articleId);
-}
-
 export function toggleShowFavorites() {
   showFavorites.update(v => !v);
 }
@@ -188,17 +241,18 @@ export function getFilteredNews() {
 }
 
 // =============================================================================
-// Categories Configuration
+// Categories Configuration (French Sports)
 // =============================================================================
 
 export const CATEGORIES = [
-  { id: 'all', name: 'All Sports', icon: '🏅' },
+  { id: 'all', name: 'Tous', icon: '🏅' },
   { id: 'football', name: 'Football', icon: '⚽' },
-  { id: 'basketball', name: 'Basketball', icon: '🏀' },
+  { id: 'rugby', name: 'Rugby', icon: '🏉' },
   { id: 'tennis', name: 'Tennis', icon: '🎾' },
-  { id: 'f1', name: 'Formula 1', icon: '🏎️' },
-  { id: 'mma', name: 'MMA', icon: '🥊' },
-  { id: 'cycling', name: 'Cycling', icon: '🚴' }
+  { id: 'f1', name: 'Formule 1', icon: '🏎️' },
+  { id: 'cyclisme', name: 'Cyclisme', icon: '🚴' },
+  { id: 'basket', name: 'Basket', icon: '🏀' },
+  { id: 'handball', name: 'Handball', icon: '🤾' }
 ];
 
 // =============================================================================
@@ -209,12 +263,17 @@ function Header() {
   const header = el('header.header');
 
   const logo = el('.logo');
-  logo.innerHTML = '<span class="logo-icon">⚽</span><span class="logo-text">Sports<span class="accent">News</span></span>';
+  logo.innerHTML = '<span class="logo-icon">⚽</span><span class="logo-text">Sport<span class="accent">Actu</span></span>';
   header.appendChild(logo);
+
+  // Sources badge
+  const sources = el('.sources-badge');
+  sources.innerHTML = '<small>Sources: L\'Équipe • Sports.fr</small>';
+  header.appendChild(sources);
 
   // Search
   const searchBox = el('.search-box');
-  const searchInput = el('input.search-input[type=text][placeholder="Search news..."]');
+  const searchInput = el('input.search-input[type=text][placeholder="Rechercher..."]');
   let searchTimeout;
   searchInput.addEventListener('input', (e) => {
     clearTimeout(searchTimeout);
@@ -230,7 +289,7 @@ function Header() {
   const favBtn = el('button.icon-btn');
   effect(() => {
     favBtn.innerHTML = showFavorites.get() ? '❤️' : '🤍';
-    favBtn.title = showFavorites.get() ? 'Show all' : 'Show favorites';
+    favBtn.title = showFavorites.get() ? 'Voir tout' : 'Favoris';
     favBtn.className = `icon-btn ${showFavorites.get() ? 'active' : ''}`;
   });
   favBtn.addEventListener('click', toggleShowFavorites);
@@ -240,7 +299,7 @@ function Header() {
   const darkBtn = el('button.icon-btn');
   effect(() => {
     darkBtn.innerHTML = darkMode.get() ? '☀️' : '🌙';
-    darkBtn.title = darkMode.get() ? 'Light mode' : 'Dark mode';
+    darkBtn.title = darkMode.get() ? 'Mode clair' : 'Mode sombre';
   });
   darkBtn.addEventListener('click', toggleDarkMode);
   actions.appendChild(darkBtn);
@@ -273,8 +332,18 @@ function NewsCard(article) {
   const card = el('.news-card');
   card.dataset.id = article.id;
 
-  // Image placeholder
+  // Image placeholder with category color
   const imageBox = el('.news-image');
+  const colors = {
+    football: '#1e40af',
+    rugby: '#166534',
+    tennis: '#ca8a04',
+    f1: '#dc2626',
+    cyclisme: '#7c3aed',
+    basket: '#ea580c',
+    handball: '#0891b2'
+  };
+  imageBox.style.background = `linear-gradient(135deg, ${colors[article.category] || '#3b82f6'}, #8b5cf6)`;
   imageBox.innerHTML = `<span class="image-emoji">${article.image}</span>`;
   card.appendChild(imageBox);
 
@@ -307,14 +376,14 @@ function NewsCard(article) {
   actions.appendChild(favBtn);
 
   const shareBtn = el('button.card-btn', '📤');
-  shareBtn.title = 'Share';
+  shareBtn.title = 'Partager';
   shareBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     if (navigator.share) {
-      navigator.share({ title: article.title, text: article.summary });
+      navigator.share({ title: article.title, text: article.summary, url: article.url });
     } else {
-      navigator.clipboard.writeText(article.title);
-      alert('Title copied to clipboard!');
+      navigator.clipboard.writeText(`${article.title} - ${article.url}`);
+      alert('Lien copié !');
     }
   });
   actions.appendChild(shareBtn);
@@ -322,10 +391,10 @@ function NewsCard(article) {
   content.appendChild(actions);
   card.appendChild(content);
 
-  // Make card clickable
+  // Make card clickable - open source URL
   card.style.cursor = 'pointer';
   card.addEventListener('click', () => {
-    alert(`Opening: ${article.title}\n\n${article.summary}`);
+    window.open(article.url, '_blank');
   });
 
   return card;
@@ -340,14 +409,14 @@ function NewsList() {
 
     if (state.loading) {
       const loader = el('.loader');
-      loader.innerHTML = '<div class="spinner"></div><p>Loading news...</p>';
+      loader.innerHTML = '<div class="spinner"></div><p>Chargement des actualités...</p>';
       container.appendChild(loader);
       return;
     }
 
     if (state.error) {
       const error = el('.error-state');
-      error.innerHTML = `<span class="error-icon">⚠️</span><p>${state.error}</p><button class="retry-btn">Retry</button>`;
+      error.innerHTML = `<span class="error-icon">⚠️</span><p>${state.error}</p><button class="retry-btn">Réessayer</button>`;
       error.querySelector('.retry-btn').addEventListener('click', fetchNews);
       container.appendChild(error);
       return;
@@ -360,8 +429,8 @@ function NewsList() {
       const isShowingFavorites = showFavorites.get();
       empty.innerHTML = `
         <span class="empty-icon">${isShowingFavorites ? '💔' : '🔍'}</span>
-        <p>${isShowingFavorites ? 'No favorites yet' : 'No news found'}</p>
-        <span class="empty-hint">${isShowingFavorites ? 'Heart articles to save them here' : 'Try a different category or search'}</span>
+        <p>${isShowingFavorites ? 'Aucun favori' : 'Aucun article trouvé'}</p>
+        <span class="empty-hint">${isShowingFavorites ? 'Ajoutez des articles en favoris avec ❤️' : 'Essayez une autre catégorie ou recherche'}</span>
       `;
       container.appendChild(empty);
       return;
@@ -392,7 +461,10 @@ function App() {
 
   // Footer
   const footer = el('footer.footer');
-  footer.innerHTML = 'Built with ✨ <strong>Pulse Framework</strong> • Using Zero-Dependency HTTP Client';
+  footer.innerHTML = `
+    <div>Sources: <a href="https://www.lequipe.fr" target="_blank">L'Équipe</a> • <a href="https://www.sports.fr" target="_blank">Sports.fr</a></div>
+    <div>Built with ✨ <strong>Pulse Framework</strong> • Zero-Dependency HTTP Client</div>
+  `;
   app.appendChild(footer);
 
   return app;
@@ -408,9 +480,9 @@ const styles = `
   --card-bg: #ffffff;
   --text: #1a1a2e;
   --text-muted: #6b7280;
-  --primary: #3b82f6;
-  --primary-hover: #2563eb;
-  --accent: #ef4444;
+  --primary: #dc2626;
+  --primary-hover: #b91c1c;
+  --accent: #dc2626;
   --border: #e5e7eb;
   --shadow: 0 1px 3px rgba(0,0,0,0.1);
   --shadow-lg: 0 10px 25px rgba(0,0,0,0.1);
@@ -477,10 +549,15 @@ body {
   color: var(--accent);
 }
 
+.sources-badge {
+  color: var(--text-muted);
+  font-size: 0.85em;
+}
+
 .search-box {
   flex: 1;
-  max-width: 400px;
-  min-width: 200px;
+  max-width: 300px;
+  min-width: 180px;
 }
 
 .search-input {
@@ -602,15 +679,14 @@ body {
 }
 
 .news-image {
-  height: 120px;
-  background: linear-gradient(135deg, var(--primary), #8b5cf6);
+  height: 100px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .image-emoji {
-  font-size: 3em;
+  font-size: 2.5em;
 }
 
 .news-content {
@@ -631,14 +707,14 @@ body {
 }
 
 .news-title {
-  font-size: 1.1em;
+  font-size: 1em;
   font-weight: 600;
   margin-bottom: 8px;
   line-height: 1.3;
 }
 
 .news-summary {
-  font-size: 0.9em;
+  font-size: 0.85em;
   color: var(--text-muted);
   line-height: 1.5;
   margin-bottom: 12px;
@@ -737,7 +813,17 @@ body.dark .fav-btn.active {
   text-align: center;
   padding: 24px;
   color: var(--text-muted);
-  font-size: 0.9em;
+  font-size: 0.85em;
+  line-height: 1.8;
+}
+
+.footer a {
+  color: var(--primary);
+  text-decoration: none;
+}
+
+.footer a:hover {
+  text-decoration: underline;
 }
 
 .footer strong {
@@ -749,6 +835,10 @@ body.dark .fav-btn.active {
   .header {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .sources-badge {
+    display: none;
   }
 
   .search-box {
@@ -785,4 +875,4 @@ if (darkMode.get()) {
 // Mount app
 mount('#app', App());
 
-console.log('⚽ Sports News App loaded with Pulse HTTP Client!');
+console.log('⚽ SportActu - Sources: L\'Équipe & Sports.fr');
