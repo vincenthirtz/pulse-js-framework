@@ -17,6 +17,7 @@ import { execSync } from 'child_process';
 import { createInterface } from 'readline';
 import https from 'https';
 import { log } from './logger.js';
+import { runDocsTest } from './docs-test.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..');
@@ -559,12 +560,13 @@ Types:
   major     Bump major version (1.0.0 -> 2.0.0)
 
 Options:
-  --dry-run        Show what would be done without making changes
-  --no-push        Create commit and tag but don't push
-  --title <text>   Release title (e.g., "Performance Improvements")
-  --skip-prompt    Use empty changelog (for automated releases)
-  --from-commits   Auto-extract changelog from git commits since last tag
-  --yes, -y        Auto-confirm all prompts
+  --dry-run         Show what would be done without making changes
+  --no-push         Create commit and tag but don't push
+  --title <text>    Release title (e.g., "Performance Improvements")
+  --skip-prompt     Use empty changelog (for automated releases)
+  --skip-docs-test  Skip documentation validation before release
+  --from-commits    Auto-extract changelog from git commits since last tag
+  --yes, -y         Auto-confirm all prompts
   --changes <json> Pass changelog as JSON (e.g., '{"added":["Feature 1"],"fixed":["Bug 1"]}')
   --added <items>  Comma-separated list of added features
   --changed <items> Comma-separated list of changes
@@ -599,6 +601,7 @@ export async function runRelease(args) {
   const skipPrompt = args.includes('--skip-prompt');
   const fromCommits = args.includes('--from-commits');
   const autoConfirm = args.includes('--yes') || args.includes('-y');
+  const skipDocsTest = args.includes('--skip-docs-test');
 
   let title = '';
   const titleIndex = args.indexOf('--title');
@@ -673,6 +676,30 @@ export async function runRelease(args) {
   } catch (error) {
     log.error('Failed to check git status');
     process.exit(1);
+  }
+
+  // Run documentation tests
+  if (!skipDocsTest) {
+    log.info('');
+    log.info('Running documentation tests...');
+
+    const docsTestResult = await runDocsTest({ verbose: false, httpTest: true });
+
+    if (!docsTestResult.success) {
+      log.error('Documentation tests failed. Fix errors before releasing.');
+      if (!autoConfirm) {
+        const proceed = await prompt('Continue anyway? (y/N) ');
+        if (proceed.toLowerCase() !== 'y') {
+          log.info('Aborted.');
+          process.exit(1);
+        }
+      } else {
+        log.error('Aborting release due to documentation errors.');
+        process.exit(1);
+      }
+    }
+  } else {
+    log.warn('Skipping documentation tests (--skip-docs-test)');
   }
 
   // Collect changelog entries

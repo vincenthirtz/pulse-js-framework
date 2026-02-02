@@ -29,7 +29,8 @@ const commands = {
   lint: runLint,
   format: runFormat,
   analyze: runAnalyze,
-  release: runReleaseCmd
+  release: runReleaseCmd,
+  'docs-test': runDocsTestCmd
 };
 
 /**
@@ -68,6 +69,7 @@ Commands:
   format [files]   Format .pulse files consistently
   analyze          Analyze bundle size and dependencies
   release <type>   Create a new release (patch, minor, major)
+  docs-test        Test documentation (syntax, imports, HTTP)
   version          Show version number
   help             Show this help message
 
@@ -83,11 +85,16 @@ Analyze Options:
   --verbose        Show detailed metrics
 
 Release Options:
-  --dry-run        Show what would be done without making changes
-  --no-push        Create commit and tag but don't push
-  --title <text>   Release title for changelog
-  --skip-prompt    Use empty changelog (for automation)
-  --from-commits   Auto-extract changelog from git commits since last tag
+  --dry-run         Show what would be done without making changes
+  --no-push         Create commit and tag but don't push
+  --title <text>    Release title for changelog
+  --skip-prompt     Use empty changelog (for automation)
+  --skip-docs-test  Skip documentation tests before release
+  --from-commits    Auto-extract changelog from git commits since last tag
+
+Docs-test Options:
+  --verbose, -v    Show detailed output
+  --no-http        Skip HTTP server tests
 
 Examples:
   pulse create my-app
@@ -109,6 +116,8 @@ Examples:
   pulse release minor --title "New Features"
   pulse release major --dry-run
   pulse release patch --from-commits
+  pulse docs-test
+  pulse docs-test --verbose
 
 Documentation: https://github.com/vincenthirtz/pulse-js-framework
   `);
@@ -378,6 +387,14 @@ async function runAnalyze(args) {
 async function runReleaseCmd(args) {
   const { runRelease } = await import('./release.js');
   await runRelease(args);
+}
+
+/**
+ * Run documentation tests
+ */
+async function runDocsTestCmd(args) {
+  const { runDocsTestCli } = await import('./docs-test.js');
+  await runDocsTestCli(args);
 }
 
 /**
