@@ -120,19 +120,28 @@ export default {
   // Core Concepts page
   coreConcepts: {
     title: '💡 コアコンセプト',
-    intro: 'Pulseは4つのコアコンセプトで構築されています：パルス（リアクティブ状態）、エフェクト（副作用）、DOMヘルパー、そしてオプションの.pulse DSL。',
     pulses: 'パルス（リアクティブ状態）',
     pulsesDesc: 'パルスは値が変更されたときにサブスクライバーに通知するリアクティブコンテナです。',
     effects: 'エフェクト',
     effectsDesc: 'エフェクトは依存関係が変更されると自動的に実行されます。',
-    computed: '計算値',
-    computedDesc: '自動的に更新される派生値。',
-    domHelpers: 'DOMヘルパー',
-    domHelpersDesc: 'CSSセレクター構文を使用してDOM要素を作成。',
-    reactiveBindings: 'リアクティブバインディング',
-    conditionalList: '条件付き＆リストレンダリング',
-    pulseDsl: '.pulse DSL',
-    pulseDslDesc: 'オプションのDSLは、コンポーネント用のよりクリーンな構文を提供します。'
+    cssSelectorSyntax: 'CSSセレクター構文',
+    cssSelectorSyntaxDesc: 'おなじみのCSSセレクター構文でDOM要素を作成。',
+    pulseFileSyntax: '.pulseファイル構文',
+    pulseFileSyntaxDesc: '.pulse DSLは、コンポーネントを書くためのクリーンで宣言的な方法を提供します。',
+    blocks: 'ブロック',
+    imports: 'インポート',
+    directives: 'ディレクティブ',
+    slots: 'スロット（コンテンツ投影）',
+    slotsDesc: 'スロットを使用して動的コンテンツでコンポーネントを構成。',
+    cssScoping: 'CSSスコープ',
+    cssScopingDesc: '.pulseファイル内のスタイルは自動的にコンポーネントにスコープされます。',
+    advancedRouting: '高度なルーティング',
+    advancedRoutingDesc: 'Pulseルーターは遅延読み込み、ミドルウェア、コード分割をサポート。',
+    lazyLoading: '遅延読み込み',
+    lazyLoadingDesc: '初期バンドルサイズを削減するためにルートコンポーネントをオンデマンドで読み込み。',
+    middleware: 'ミドルウェア',
+    middlewareDesc: '柔軟なナビゲーション制御のためのKoaスタイルミドルウェア。',
+    nextApiReference: '次へ: APIリファレンス →'
   },
 
   // API Reference page
@@ -170,25 +179,139 @@ export default {
   examples: {
     title: '✨ サンプル',
     intro: 'Pulseの動作を確認するためのサンプルアプリケーションをご覧ください。',
-    todoApp: 'Todoアプリ',
-    todoDesc: 'ローカルストレージ永続化付きの定番Todoリスト。',
-    chatApp: 'チャットアプリ',
-    chatDesc: 'メッセージ履歴付きのリアルタイムチャットインターフェース。',
-    ecommerce: 'Eコマース',
-    ecommerceDesc: 'カートとチェックアウト付きの商品カタログ。',
-    weather: '天気アプリ',
-    weatherDesc: 'API統合付きの天気ダッシュボード。',
-    viewDemo: 'デモを見る',
-    viewSource: 'ソースを見る'
+    viewDemo: 'デモを見る →',
+    viewSource: 'ソースを見る',
+    hmrDemo: {
+      title: 'HMRデモ',
+      desc: '状態保持付きホットモジュールリプレースメント。',
+      features: [
+        'HMR中の状態保持',
+        'エフェクトの自動クリーンアップ',
+        'テーマ切り替え',
+        'メモの永続化',
+        'HMR更新カウンター'
+      ]
+    },
+    blog: {
+      title: '📰 ブログ',
+      desc: 'CRUD、カテゴリ、検索機能付きの完全なブログアプリ。',
+      features: [
+        'CRUD操作',
+        'カテゴリフィルタリング',
+        '検索機能',
+        'ライト/ダークモード',
+        'レスポンシブデザイン'
+      ]
+    },
+    todoApp: {
+      title: '📝 Todoアプリ',
+      desc: 'ダークモードと永続化付きの完全なTodoアプリ。',
+      features: [
+        '追加、編集、削除',
+        'ステータスフィルター',
+        'ダークモード',
+        'LocalStorage永続化',
+        '進捗トラッキング'
+      ]
+    },
+    weatherApp: {
+      title: '🌤️ 天気アプリ',
+      desc: 'Open-Meteo APIを使用したリアルタイム天気アプリ。',
+      features: [
+        '都市検索',
+        '現在の状況',
+        '7日間予報',
+        'お気に入り都市',
+        '°C/°F切り替え'
+      ]
+    },
+    ecommerce: {
+      title: '🛒 ECショップ',
+      desc: 'カートとチェックアウト付きの完全なショッピング体験。',
+      features: [
+        '商品カタログ',
+        '検索とフィルター',
+        'ショッピングカート',
+        'チェックアウトフロー',
+        'LocalStorage永続化'
+      ]
+    },
+    chatApp: {
+      title: '💬 チャットアプリ',
+      desc: 'ルームとシミュレートユーザー付きリアルタイムメッセージング。',
+      features: [
+        '複数ルーム',
+        'ユーザープレゼンス',
+        'シミュレートボット返信',
+        '絵文字ピッカー',
+        'メッセージ永続化'
+      ]
+    },
+    routerDemo: {
+      title: '🧭 ルーターデモ',
+      desc: 'ナビゲーション、ガード、動的ルート付きSPAルーティング。',
+      features: [
+        'ルートパラメータ',
+        'クエリストリング',
+        'ルートガード',
+        'アクティブリンクスタイル',
+        '保護されたルート'
+      ]
+    },
+    storeDemo: {
+      title: '📝 ストアデモ',
+      desc: 'Pulseストアシステムによるグローバル状態管理。',
+      features: [
+        '永続化付きcreateStore',
+        'アクションとゲッター',
+        '元に戻す/やり直し',
+        'モジュラーストア',
+        'ロガープラグイン'
+      ]
+    },
+    dashboard: {
+      title: '📊 管理ダッシュボード',
+      desc: 'すべての機能を実演する完全な管理インターフェース。',
+      features: [
+        '認証とガード',
+        'チャート、テーブル、モーダル',
+        'CRUD操作',
+        'テーマと設定',
+        'すべてのリアクティブ機能'
+      ]
+    },
+    runLocally: 'ローカルで実行',
+    runLocallyDesc: 'マシンでサンプルプロジェクトを実行するには：',
+    createYourOwn: '自分で作成',
+    createYourOwnDesc: '新しいPulseプロジェクトを開始：',
+    mobileExamples: '📱 モバイルサンプル',
+    mobileExamplesDesc: 'PulseはWebView経由でモバイルプラットフォームでも実行できます。'
   },
 
   // Playground page
   playground: {
     title: '🎮 プレイグラウンド',
     intro: 'ブラウザでPulseを試してみましょう。コードを編集して結果を即座に確認できます。',
-    run: '実行',
-    reset: 'リセット',
-    share: '共有'
+    codeEditor: '📝 コードエディター',
+    preview: '👁️ プレビュー',
+    run: '▶ 実行',
+    reset: '↺ リセット',
+    share: '共有',
+    ready: '準備完了',
+    running: '実行中...',
+    success: '✓ 成功',
+    errorPrefix: 'エラー:',
+    templates: '📋 クイックテンプレート',
+    templateCounter: 'カウンター',
+    templateTodo: 'Todoリスト',
+    templateTimer: 'タイマー',
+    templateForm: 'フォーム',
+    templateCalculator: '電卓',
+    templateTabs: 'タブ',
+    templateTheme: 'テーマ',
+    templateSearch: '検索',
+    templateCart: 'カート',
+    templateAnimation: 'アニメーション'
   },
 
   // Debugging page
@@ -247,7 +370,7 @@ export default {
     cspDesc: 'Pulseアプリケーション用の推奨CSPヘッダー。',
     apiSecurity: 'APIセキュリティ',
     apiSecurityDesc: 'データ取得の安全なパターン。',
-    securityChecklist: 'セキュリティチェックリスト',
+    checklist: 'セキュリティチェックリスト',
     nextPerformance: '次へ: パフォーマンスガイド'
   },
 
@@ -262,22 +385,22 @@ export default {
     listKeyingDesc: '適切なキー設定はリストパフォーマンスに不可欠です。',
     goodVsBadKeys: '良いキー vs 悪いキー',
     performanceImpact: 'パフォーマンスへの影響',
-    batchingUpdates: '更新のバッチ処理',
-    batchingUpdatesDesc: '中間の再レンダリングを避けるために複数の状態変更をバッチ処理。',
+    batching: '更新のバッチ処理',
+    batchingDesc: '中間の再レンダリングを避けるために複数の状態変更をバッチ処理。',
     automaticBatching: '自動バッチ処理',
     memoization: 'メモ化',
     memoizationDesc: '冗長な作業を避けるために高コストな計算をキャッシュ。',
-    lazyLoadingRoutes: 'ルートの遅延読み込み',
-    lazyLoadingRoutesDesc: 'アプリをオンデマンドで読み込まれるチャンクに分割。',
-    avoidUnnecessaryReactivity: '不要なリアクティビティを避ける',
-    avoidUnnecessaryReactivityDesc: 'すべてがリアクティブである必要はありません。',
+    lazyRoutes: 'ルートの遅延読み込み',
+    lazyRoutesDesc: 'アプリをオンデマンドで読み込まれるチャンクに分割。',
+    avoidReactivity: '不要なリアクティビティを避ける',
+    avoidReactivityDesc: 'すべてがリアクティブである必要はありません。',
     effectOptimization: 'エフェクトの最適化',
     effectOptimizationDesc: 'エフェクトを高速で焦点を絞ったものに保つ。',
     resourceCaching: 'リソースキャッシング',
     resourceCachingDesc: 'asyncモジュールのキャッシング機能を使用。',
-    performanceMonitoring: 'パフォーマンス監視',
-    performanceMonitoringDesc: 'devtoolsモジュールを使用してパフォーマンスを監視。',
-    performanceChecklist: 'パフォーマンスチェックリスト',
+    monitoring: 'パフォーマンス監視',
+    monitoringDesc: 'devtoolsモジュールを使用してパフォーマンスを監視。',
+    checklist: 'パフォーマンスチェックリスト',
     nextErrorHandling: '次へ: エラー処理'
   },
 
@@ -285,49 +408,52 @@ export default {
   errorHandling: {
     title: '🛡️ エラー処理',
     intro: 'Pulseアプリケーション用の堅牢なエラー処理戦略。',
-    effectErrorHandling: 'エフェクトのエラー処理',
-    effectErrorHandlingDesc: 'エフェクトは失敗する可能性があります。エラーを適切に処理してください。',
-    perEffectHandler: 'エフェクトごとのエラーハンドラー',
-    globalEffectHandler: 'グローバルエフェクトエラーハンドラー',
-    asyncErrorHandling: '非同期エラー処理',
-    asyncErrorHandlingDesc: 'asyncモジュールは組み込みのエラー状態処理を提供。',
-    formValidation: 'フォームバリデーションエラー',
-    formValidationDesc: 'formモジュールでフォームバリデーションを処理。',
-    routerErrorHandling: 'ルーターエラー処理',
-    routerErrorHandlingDesc: 'ナビゲーションエラーと404ページを処理。',
-    userFeedback: 'ユーザーフィードバック',
-    userFeedbackDesc: 'ユーザーに適切にエラーを表示。',
-    errorBoundaries: 'エラー境界',
-    errorBoundariesDesc: 'アプリ全体のクラッシュを防ぐためにエラーを封じ込める。',
-    loggingErrors: 'エラーログ',
-    loggingErrorsDesc: 'デバッグと監視のためにエラーをログ。',
-    errorChecklist: 'エラー処理チェックリスト',
-    nextMobile: '次へ: モバイル開発'
+    effectErrors: 'エフェクトエラー',
+    asyncErrors: '非同期エラー',
+    formErrors: 'フォームエラー',
+    routerErrors: 'ルーターエラー',
+    boundaries: 'エラー境界',
+    logging: 'ログとレポート',
+    gracefulDegradation: 'グレースフルデグラデーション',
+    summary: 'まとめ',
+    nextApiReference: '次へ: APIリファレンス →'
   },
 
   // Mobile page
   mobile: {
     title: '📱 モバイル開発',
     intro: 'Pulseでネイティブモバイルアプリを構築。',
-    gettingStarted: 'はじめに',
-    gettingStartedDesc: 'モバイル開発環境をセットアップ。',
-    platformDetection: 'プラットフォーム検出',
-    platformDetectionDesc: '現在のプラットフォームを検出して動作を適応。',
-    nativeStorage: 'ネイティブストレージ',
-    nativeStorageDesc: 'Webとネイティブで動作する永続ストレージ。',
-    deviceInfo: 'デバイス情報',
-    deviceInfoDesc: 'デバイス情報とネットワーク状態にアクセス。',
-    nativeUi: 'ネイティブUI',
-    nativeUiDesc: 'トーストやバイブレーションなどのネイティブUI要素にアクセス。',
-    appLifecycle: 'アプリライフサイクル',
-    appLifecycleDesc: 'アプリの一時停止、再開、戻るボタンイベントを処理。',
-    buildingApps: 'アプリのビルド',
-    buildingAppsDesc: '配布用にアプリをビルドしてパッケージ化。',
-    nextChangelog: '次へ: 変更履歴'
+    overview: '概要',
+    quickStart: 'クイックスタート',
+    cliCommands: 'CLIコマンド',
+    configuration: '設定',
+    configurationDesc: 'pulse.mobile.jsonファイルでモバイルアプリを設定。',
+    nativeApis: 'ネイティブAPI',
+    requirements: '要件',
+    requirementsAndroid: 'Android',
+    requirementsIos: 'iOS',
+    nextExamples: '次へ: 例 →'
   },
 
   // Changelog page
   changelog: {
-    title: '📋 変更履歴'
+    title: '📋 変更履歴',
+    intro: 'Pulse Frameworkの最近の更新と改善。',
+    version: 'バージョン',
+    releaseDate: 'リリース日',
+    changes: '変更点',
+    added: '追加',
+    changed: '変更',
+    fixed: '修正',
+    removed: '削除',
+    deprecated: '非推奨',
+    security: 'セキュリティ',
+    breaking: '破壊的変更',
+    features: '機能',
+    bugFixes: 'バグ修正',
+    improvements: '改善',
+    documentation: 'ドキュメント',
+    performance: 'パフォーマンス',
+    tests: 'テスト'
   }
 };

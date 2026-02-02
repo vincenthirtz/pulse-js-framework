@@ -39,6 +39,7 @@ export function HomePage() {
             <th>${t('home.comparison.feature')}</th>
             <th>${t('comparison.react')}</th>
             <th>${t('comparison.vue')}</th>
+            <th>${t('comparison.angular')}</th>
             <th>${t('comparison.svelte')}</th>
             <th><strong>${t('comparison.pulse')}</strong></th>
           </tr>
@@ -48,6 +49,7 @@ export function HomePage() {
             <td>${t('home.comparison.uiStructure')}</td>
             <td>JSX</td>
             <td>Templates</td>
+            <td>Templates</td>
             <td>HTML+</td>
             <td><strong>${t('home.comparison.cssSelectors')}</strong></td>
           </tr>
@@ -55,11 +57,13 @@ export function HomePage() {
             <td>${t('home.comparison.reactivity')}</td>
             <td>Hooks</td>
             <td>Proxy</td>
+            <td>RxJS/Signals</td>
             <td>Compiler</td>
             <td><strong>${t('home.comparison.pulses')}</strong></td>
           </tr>
           <tr>
             <td>${t('home.comparison.buildStep')}</td>
+            <td>${t('home.comparison.required')}</td>
             <td>${t('home.comparison.required')}</td>
             <td>${t('home.comparison.required')}</td>
             <td>${t('home.comparison.required')}</td>
@@ -69,6 +73,7 @@ export function HomePage() {
             <td>${t('home.comparison.bundleSize')}</td>
             <td>~45kb</td>
             <td>~35kb</td>
+            <td>~130kb</td>
             <td>~2kb</td>
             <td><strong>~4kb</strong></td>
           </tr>
@@ -76,6 +81,7 @@ export function HomePage() {
             <td>${t('home.comparison.dependencies')}</td>
             <td>${t('home.comparison.many')}</td>
             <td>${t('home.comparison.some')}</td>
+            <td>${t('home.comparison.many')}</td>
             <td>${t('home.comparison.few')}</td>
             <td><strong>${t('home.comparison.zero')}</strong></td>
           </tr>
@@ -83,6 +89,7 @@ export function HomePage() {
             <td>${t('home.comparison.buildSpeed')}</td>
             <td>${t('home.comparison.slow')}</td>
             <td>${t('home.comparison.medium')}</td>
+            <td>${t('home.comparison.slow')}</td>
             <td>${t('home.comparison.fast')}</td>
             <td><strong>${t('home.comparison.instant')}</strong></td>
           </tr>
@@ -90,6 +97,7 @@ export function HomePage() {
             <td>${t('home.comparison.learningCurve')}</td>
             <td>${t('home.comparison.steep')}</td>
             <td>${t('home.comparison.moderate')}</td>
+            <td>${t('home.comparison.steep')}</td>
             <td>${t('home.comparison.easy')}</td>
             <td><strong>${t('home.comparison.minimal')}</strong></td>
           </tr>
@@ -97,6 +105,7 @@ export function HomePage() {
             <td>${t('home.comparison.fileExtension')}</td>
             <td>.jsx/.tsx</td>
             <td>.vue</td>
+            <td>.ts/.html</td>
             <td>.svelte</td>
             <td><strong>.pulse / .js</strong></td>
           </tr>
@@ -104,11 +113,13 @@ export function HomePage() {
             <td>${t('home.comparison.mobileApps')}</td>
             <td>React Native</td>
             <td>Capacitor</td>
+            <td>Ionic</td>
             <td>Capacitor</td>
             <td><strong>${t('home.comparison.builtIn')}</strong></td>
           </tr>
           <tr>
             <td>${t('home.comparison.typescript')}</td>
+            <td>${t('home.comparison.builtIn')}</td>
             <td>${t('home.comparison.builtIn')}</td>
             <td>${t('home.comparison.builtIn')}</td>
             <td>${t('home.comparison.builtIn')}</td>

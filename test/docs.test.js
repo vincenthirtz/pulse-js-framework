@@ -427,13 +427,32 @@ for (const locale of supportedLocales) {
   });
 }
 
-// Check coreConcepts page keys in pages.js
+// Check coreConcepts page keys in pages.js (keys used by CoreConceptsPage.js)
 for (const locale of supportedLocales) {
   test(`${locale}/pages.js has coreConcepts page keys`, () => {
     const content = readFileSync(join(docsDir, `src/i18n/translations/${locale}/pages.js`), 'utf-8');
     assert(content.includes('coreConcepts:'), `${locale} pages.js should have coreConcepts section`);
     assert(content.includes('pulses:'), `${locale} pages.js should have pulses key`);
+    assert(content.includes('pulsesDesc:'), `${locale} pages.js should have pulsesDesc key`);
     assert(content.includes('effects:'), `${locale} pages.js should have effects key`);
+    assert(content.includes('effectsDesc:'), `${locale} pages.js should have effectsDesc key`);
+    assert(content.includes('cssSelectorSyntax:'), `${locale} pages.js should have cssSelectorSyntax key`);
+    assert(content.includes('cssSelectorSyntaxDesc:'), `${locale} pages.js should have cssSelectorSyntaxDesc key`);
+    assert(content.includes('pulseFileSyntax:'), `${locale} pages.js should have pulseFileSyntax key`);
+    assert(content.includes('pulseFileSyntaxDesc:'), `${locale} pages.js should have pulseFileSyntaxDesc key`);
+    assert(content.includes('blocks:'), `${locale} pages.js should have blocks key`);
+    assert(content.includes('imports:'), `${locale} pages.js should have imports key`);
+    assert(content.includes('directives:'), `${locale} pages.js should have directives key`);
+    assert(content.includes('slots:'), `${locale} pages.js should have slots key`);
+    assert(content.includes('slotsDesc:'), `${locale} pages.js should have slotsDesc key`);
+    assert(content.includes('cssScoping:'), `${locale} pages.js should have cssScoping key`);
+    assert(content.includes('cssScopingDesc:'), `${locale} pages.js should have cssScopingDesc key`);
+    assert(content.includes('advancedRouting:'), `${locale} pages.js should have advancedRouting key`);
+    assert(content.includes('advancedRoutingDesc:'), `${locale} pages.js should have advancedRoutingDesc key`);
+    assert(content.includes('lazyLoading:'), `${locale} pages.js should have lazyLoading key`);
+    assert(content.includes('lazyLoadingDesc:'), `${locale} pages.js should have lazyLoadingDesc key`);
+    assert(content.includes('middleware:'), `${locale} pages.js should have middleware key`);
+    assert(content.includes('middlewareDesc:'), `${locale} pages.js should have middlewareDesc key`);
   });
 }
 
@@ -476,26 +495,146 @@ for (const locale of supportedLocales) {
   });
 }
 
-// Check errorHandling page keys in pages.js
+// Check errorHandling page keys in pages.js (keys used by ErrorHandlingPage.js)
 for (const locale of supportedLocales) {
   test(`${locale}/pages.js has errorHandling page keys`, () => {
     const content = readFileSync(join(docsDir, `src/i18n/translations/${locale}/pages.js`), 'utf-8');
     assert(content.includes('errorHandling:'), `${locale} pages.js should have errorHandling section`);
-    assert(content.includes('effectErrorHandling:'), `${locale} pages.js should have effectErrorHandling key`);
-    assert(content.includes('asyncErrorHandling:'), `${locale} pages.js should have asyncErrorHandling key`);
-    assert(content.includes('formValidation:'), `${locale} pages.js should have formValidation key`);
+    assert(content.includes('effectErrors:'), `${locale} pages.js should have effectErrors key`);
+    assert(content.includes('asyncErrors:'), `${locale} pages.js should have asyncErrors key`);
+    assert(content.includes('formErrors:'), `${locale} pages.js should have formErrors key`);
+    assert(content.includes('routerErrors:'), `${locale} pages.js should have routerErrors key`);
+    assert(content.includes('boundaries:'), `${locale} pages.js should have boundaries key`);
+    assert(content.includes('logging:'), `${locale} pages.js should have logging key`);
+    assert(content.includes('gracefulDegradation:'), `${locale} pages.js should have gracefulDegradation key`);
+    assert(content.includes('summary:'), `${locale} pages.js should have summary key`);
   });
 }
 
-// Check mobile page keys in pages.js
+// Check mobile page keys in pages.js (keys used by MobilePage.js)
 for (const locale of supportedLocales) {
   test(`${locale}/pages.js has mobile page keys`, () => {
     const content = readFileSync(join(docsDir, `src/i18n/translations/${locale}/pages.js`), 'utf-8');
     assert(content.includes('mobile:'), `${locale} pages.js should have mobile section`);
-    assert(content.includes('platformDetection:'), `${locale} pages.js should have platformDetection key`);
-    assert(content.includes('nativeStorage:'), `${locale} pages.js should have nativeStorage key`);
-    assert(content.includes('deviceInfo:'), `${locale} pages.js should have deviceInfo key`);
-    assert(content.includes('appLifecycle:'), `${locale} pages.js should have appLifecycle key`);
+    assert(content.includes('overview:'), `${locale} pages.js should have overview key`);
+    assert(content.includes('quickStart:'), `${locale} pages.js should have quickStart key`);
+    assert(content.includes('cliCommands:'), `${locale} pages.js should have cliCommands key`);
+    assert(content.includes('configuration:'), `${locale} pages.js should have configuration key`);
+    assert(content.includes('configurationDesc:'), `${locale} pages.js should have configurationDesc key`);
+    assert(content.includes('nativeApis:'), `${locale} pages.js should have nativeApis key`);
+    assert(content.includes('requirements:'), `${locale} pages.js should have requirements key`);
+    assert(content.includes('requirementsAndroid:'), `${locale} pages.js should have requirementsAndroid key`);
+    assert(content.includes('requirementsIos:'), `${locale} pages.js should have requirementsIos key`);
+    assert(content.includes('nextExamples:'), `${locale} pages.js should have nextExamples key`);
+  });
+}
+
+// Check playground page keys in pages.js (full translations)
+for (const locale of supportedLocales) {
+  test(`${locale}/pages.js has full playground page keys`, () => {
+    const content = readFileSync(join(docsDir, `src/i18n/translations/${locale}/pages.js`), 'utf-8');
+    assert(content.includes('playground:'), `${locale} pages.js should have playground section`);
+    assert(content.includes('codeEditor:'), `${locale} pages.js should have codeEditor key`);
+    assert(content.includes('preview:'), `${locale} pages.js should have preview key`);
+    assert(content.includes('run:'), `${locale} pages.js should have run key`);
+    assert(content.includes('reset:'), `${locale} pages.js should have reset key`);
+    assert(content.includes('share:'), `${locale} pages.js should have share key`);
+    assert(content.includes('ready:'), `${locale} pages.js should have ready key`);
+    assert(content.includes('running:'), `${locale} pages.js should have running key`);
+    assert(content.includes('success:'), `${locale} pages.js should have success key`);
+    assert(content.includes('errorPrefix:'), `${locale} pages.js should have errorPrefix key`);
+    assert(content.includes('templates:'), `${locale} pages.js should have templates key`);
+    assert(content.includes('templateCounter:'), `${locale} pages.js should have templateCounter key`);
+    assert(content.includes('templateTodo:'), `${locale} pages.js should have templateTodo key`);
+    assert(content.includes('templateTimer:'), `${locale} pages.js should have templateTimer key`);
+    assert(content.includes('templateForm:'), `${locale} pages.js should have templateForm key`);
+    assert(content.includes('templateCalculator:'), `${locale} pages.js should have templateCalculator key`);
+    assert(content.includes('templateTabs:'), `${locale} pages.js should have templateTabs key`);
+    assert(content.includes('templateTheme:'), `${locale} pages.js should have templateTheme key`);
+    assert(content.includes('templateSearch:'), `${locale} pages.js should have templateSearch key`);
+    assert(content.includes('templateCart:'), `${locale} pages.js should have templateCart key`);
+    assert(content.includes('templateAnimation:'), `${locale} pages.js should have templateAnimation key`);
+  });
+}
+
+// Check examples page keys in pages.js (full translations with example cards)
+for (const locale of supportedLocales) {
+  test(`${locale}/pages.js has full examples page keys`, () => {
+    const content = readFileSync(join(docsDir, `src/i18n/translations/${locale}/pages.js`), 'utf-8');
+    assert(content.includes('examples:'), `${locale} pages.js should have examples section`);
+    assert(content.includes('viewDemo:'), `${locale} pages.js should have viewDemo key`);
+    assert(content.includes('viewSource:'), `${locale} pages.js should have viewSource key`);
+    assert(content.includes('runLocally:'), `${locale} pages.js should have runLocally key`);
+    assert(content.includes('runLocallyDesc:'), `${locale} pages.js should have runLocallyDesc key`);
+    assert(content.includes('createYourOwn:'), `${locale} pages.js should have createYourOwn key`);
+    assert(content.includes('createYourOwnDesc:'), `${locale} pages.js should have createYourOwnDesc key`);
+    assert(content.includes('mobileExamples:'), `${locale} pages.js should have mobileExamples key`);
+    assert(content.includes('mobileExamplesDesc:'), `${locale} pages.js should have mobileExamplesDesc key`);
+  });
+}
+
+// Check examples page has all example card keys
+for (const locale of supportedLocales) {
+  test(`${locale}/pages.js has hmrDemo example keys`, () => {
+    const content = readFileSync(join(docsDir, `src/i18n/translations/${locale}/pages.js`), 'utf-8');
+    assert(content.includes('hmrDemo:'), `${locale} pages.js should have hmrDemo section`);
+    assert(content.includes('features:'), `${locale} pages.js should have features array`);
+  });
+}
+
+for (const locale of supportedLocales) {
+  test(`${locale}/pages.js has blog example keys`, () => {
+    const content = readFileSync(join(docsDir, `src/i18n/translations/${locale}/pages.js`), 'utf-8');
+    assert(content.includes('blog:'), `${locale} pages.js should have blog section`);
+  });
+}
+
+for (const locale of supportedLocales) {
+  test(`${locale}/pages.js has todoApp example keys`, () => {
+    const content = readFileSync(join(docsDir, `src/i18n/translations/${locale}/pages.js`), 'utf-8');
+    assert(content.includes('todoApp:'), `${locale} pages.js should have todoApp section`);
+  });
+}
+
+for (const locale of supportedLocales) {
+  test(`${locale}/pages.js has weatherApp example keys`, () => {
+    const content = readFileSync(join(docsDir, `src/i18n/translations/${locale}/pages.js`), 'utf-8');
+    assert(content.includes('weatherApp:'), `${locale} pages.js should have weatherApp section`);
+  });
+}
+
+for (const locale of supportedLocales) {
+  test(`${locale}/pages.js has ecommerce example keys`, () => {
+    const content = readFileSync(join(docsDir, `src/i18n/translations/${locale}/pages.js`), 'utf-8');
+    assert(content.includes('ecommerce:'), `${locale} pages.js should have ecommerce section`);
+  });
+}
+
+for (const locale of supportedLocales) {
+  test(`${locale}/pages.js has chatApp example keys`, () => {
+    const content = readFileSync(join(docsDir, `src/i18n/translations/${locale}/pages.js`), 'utf-8');
+    assert(content.includes('chatApp:'), `${locale} pages.js should have chatApp section`);
+  });
+}
+
+for (const locale of supportedLocales) {
+  test(`${locale}/pages.js has routerDemo example keys`, () => {
+    const content = readFileSync(join(docsDir, `src/i18n/translations/${locale}/pages.js`), 'utf-8');
+    assert(content.includes('routerDemo:'), `${locale} pages.js should have routerDemo section`);
+  });
+}
+
+for (const locale of supportedLocales) {
+  test(`${locale}/pages.js has storeDemo example keys`, () => {
+    const content = readFileSync(join(docsDir, `src/i18n/translations/${locale}/pages.js`), 'utf-8');
+    assert(content.includes('storeDemo:'), `${locale} pages.js should have storeDemo section`);
+  });
+}
+
+for (const locale of supportedLocales) {
+  test(`${locale}/pages.js has dashboard example keys`, () => {
+    const content = readFileSync(join(docsDir, `src/i18n/translations/${locale}/pages.js`), 'utf-8');
+    assert(content.includes('dashboard:'), `${locale} pages.js should have dashboard section`);
   });
 }
 
@@ -554,6 +693,186 @@ for (const locale of supportedLocales) {
     assert(content.includes('networkError:'), `${locale} should have networkError key`);
   });
 }
+
+// ============================================================================
+// Translation Key Consistency Tests
+// ============================================================================
+
+console.log('\nTranslation Key Consistency:');
+
+/**
+ * Extract top-level section names from translation file
+ */
+function extractSections(content) {
+  const sections = [];
+  const sectionPattern = /^\s{2}(\w+)\s*:\s*\{/gm;
+  let match;
+  while ((match = sectionPattern.exec(content)) !== null) {
+    sections.push(match[1]);
+  }
+  return sections.sort();
+}
+
+/**
+ * Extract keys within a specific section
+ */
+function extractSectionKeys(content, section) {
+  const keys = [];
+  // Find the section
+  const sectionRegex = new RegExp(`^\\s{2}${section}\\s*:\\s*\\{`, 'm');
+  const sectionMatch = content.match(sectionRegex);
+  if (!sectionMatch) return keys;
+
+  const startIndex = sectionMatch.index + sectionMatch[0].length;
+  let braceCount = 1;
+  let currentPos = startIndex;
+  let sectionContent = '';
+
+  while (braceCount > 0 && currentPos < content.length) {
+    const char = content[currentPos];
+    if (char === '{') braceCount++;
+    else if (char === '}') braceCount--;
+    if (braceCount > 0) sectionContent += char;
+    currentPos++;
+  }
+
+  // Extract keys from section content (first level only for simplicity)
+  const keyPattern = /^\s*(['"]?)(\w+)\1\s*:/gm;
+  let match;
+  while ((match = keyPattern.exec(sectionContent)) !== null) {
+    keys.push(match[2]);
+  }
+
+  return keys.sort();
+}
+
+// Reference locale (English)
+const referenceLocale = 'en';
+
+// Test that all locales have the same sections in common.js
+test('All locales have same sections in common.js', () => {
+  const refContent = readFileSync(join(docsDir, `src/i18n/translations/${referenceLocale}/common.js`), 'utf-8');
+  const refSections = extractSections(refContent);
+
+  for (const locale of supportedLocales) {
+    if (locale === referenceLocale) continue;
+
+    const content = readFileSync(join(docsDir, `src/i18n/translations/${locale}/common.js`), 'utf-8');
+    const sections = extractSections(content);
+
+    // Check for missing sections
+    const missing = refSections.filter(s => !sections.includes(s));
+    assert(missing.length === 0, `${locale}/common.js missing sections: ${missing.join(', ')}`);
+
+    // Check for extra sections
+    const extra = sections.filter(s => !refSections.includes(s));
+    assert(extra.length === 0, `${locale}/common.js has extra sections: ${extra.join(', ')}`);
+  }
+});
+
+// Test that all locales have the same sections in pages.js
+test('All locales have same sections in pages.js', () => {
+  const refContent = readFileSync(join(docsDir, `src/i18n/translations/${referenceLocale}/pages.js`), 'utf-8');
+  const refSections = extractSections(refContent);
+
+  for (const locale of supportedLocales) {
+    if (locale === referenceLocale) continue;
+
+    const content = readFileSync(join(docsDir, `src/i18n/translations/${locale}/pages.js`), 'utf-8');
+    const sections = extractSections(content);
+
+    // Check for missing sections
+    const missing = refSections.filter(s => !sections.includes(s));
+    assert(missing.length === 0, `${locale}/pages.js missing sections: ${missing.join(', ')}`);
+
+    // Check for extra sections
+    const extra = sections.filter(s => !refSections.includes(s));
+    assert(extra.length === 0, `${locale}/pages.js has extra sections: ${extra.join(', ')}`);
+  }
+});
+
+// Key sections to check for consistency
+const commonSections = ['nav', 'theme', 'actions', 'footer', 'errors', 'categories', 'playground'];
+const pageSections = ['home', 'gettingStarted', 'coreConcepts', 'apiReference', 'examples', 'playground', 'debugging', 'security', 'performance', 'errorHandling', 'mobile', 'changelog'];
+
+// Test key consistency for each section in common.js
+for (const section of commonSections) {
+  test(`All locales have same keys in common.js ${section} section`, () => {
+    const refContent = readFileSync(join(docsDir, `src/i18n/translations/${referenceLocale}/common.js`), 'utf-8');
+    const refKeys = extractSectionKeys(refContent, section);
+
+    for (const locale of supportedLocales) {
+      if (locale === referenceLocale) continue;
+
+      const content = readFileSync(join(docsDir, `src/i18n/translations/${locale}/common.js`), 'utf-8');
+      const keys = extractSectionKeys(content, section);
+
+      // Check for missing keys
+      const missing = refKeys.filter(k => !keys.includes(k));
+      assert(missing.length === 0, `${locale}/common.js ${section} missing keys: ${missing.join(', ')}`);
+
+      // Check for extra keys
+      const extra = keys.filter(k => !refKeys.includes(k));
+      assert(extra.length === 0, `${locale}/common.js ${section} has extra keys: ${extra.join(', ')}`);
+    }
+  });
+}
+
+// Test key consistency for each section in pages.js
+for (const section of pageSections) {
+  test(`All locales have same keys in pages.js ${section} section`, () => {
+    const refContent = readFileSync(join(docsDir, `src/i18n/translations/${referenceLocale}/pages.js`), 'utf-8');
+    const refKeys = extractSectionKeys(refContent, section);
+
+    for (const locale of supportedLocales) {
+      if (locale === referenceLocale) continue;
+
+      const content = readFileSync(join(docsDir, `src/i18n/translations/${locale}/pages.js`), 'utf-8');
+      const keys = extractSectionKeys(content, section);
+
+      // Check for missing keys
+      const missing = refKeys.filter(k => !keys.includes(k));
+      assert(missing.length === 0, `${locale}/pages.js ${section} missing keys: ${missing.join(', ')}`);
+
+      // Check for extra keys
+      const extra = keys.filter(k => !refKeys.includes(k));
+      assert(extra.length === 0, `${locale}/pages.js ${section} has extra keys: ${extra.join(', ')}`);
+    }
+  });
+}
+
+// Test total key count consistency
+test('All locales have same number of keys in common.js', () => {
+  const refContent = readFileSync(join(docsDir, `src/i18n/translations/${referenceLocale}/common.js`), 'utf-8');
+  const refKeyCount = (refContent.match(/^\s+\w+\s*:/gm) || []).length;
+
+  for (const locale of supportedLocales) {
+    if (locale === referenceLocale) continue;
+
+    const content = readFileSync(join(docsDir, `src/i18n/translations/${locale}/common.js`), 'utf-8');
+    const keyCount = (content.match(/^\s+\w+\s*:/gm) || []).length;
+
+    // Allow small variance for nested objects
+    const diff = Math.abs(keyCount - refKeyCount);
+    assert(diff <= 5, `${locale}/common.js has ${keyCount} keys, expected ~${refKeyCount} (diff: ${diff})`);
+  }
+});
+
+test('All locales have same number of keys in pages.js', () => {
+  const refContent = readFileSync(join(docsDir, `src/i18n/translations/${referenceLocale}/pages.js`), 'utf-8');
+  const refKeyCount = (refContent.match(/^\s+\w+\s*:/gm) || []).length;
+
+  for (const locale of supportedLocales) {
+    if (locale === referenceLocale) continue;
+
+    const content = readFileSync(join(docsDir, `src/i18n/translations/${locale}/pages.js`), 'utf-8');
+    const keyCount = (content.match(/^\s+\w+\s*:/gm) || []).length;
+
+    // Allow small variance for nested objects
+    const diff = Math.abs(keyCount - refKeyCount);
+    assert(diff <= 10, `${locale}/pages.js has ${keyCount} keys, expected ~${refKeyCount} (diff: ${diff})`);
+  }
+});
 
 // ============================================================================
 // Changelog Tests

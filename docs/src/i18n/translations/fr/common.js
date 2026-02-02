@@ -198,6 +198,7 @@ export default {
     pulse: 'Pulse',
     react: 'React',
     vue: 'Vue',
+    angular: 'Angular',
     svelte: 'Svelte',
     yes: 'Oui',
     no: 'Non',

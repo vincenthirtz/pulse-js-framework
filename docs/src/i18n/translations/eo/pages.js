@@ -120,19 +120,28 @@ export default {
   // Core Concepts page
   coreConcepts: {
     title: '💡 Kernaj Konceptoj',
-    intro: 'Pulse estas konstruita sur kvar kernaj konceptoj: Pulsoj (reaga stato), Efikoj (kromefikoj), DOM helpantoj, kaj la nedeviga .pulse DSL.',
     pulses: 'Pulsoj (Reaga Stato)',
     pulsesDesc: 'Pulso estas reaga ujo kiu sciigas abonantojn kiam ĝia valoro ŝanĝiĝas.',
     effects: 'Efikoj',
     effectsDesc: 'Efikoj aŭtomate rulas kiam iliaj dependecoj ŝanĝiĝas.',
-    computed: 'Kalkulitaj Valoroj',
-    computedDesc: 'Derivitaj valoroj kiuj aŭtomate ĝisdatiĝas.',
-    domHelpers: 'DOM Helpantoj',
-    domHelpersDesc: 'Kreu DOM elementojn uzante CSS elektilo-sintakson.',
-    reactiveBindings: 'Reagaj Ligadoj',
-    conditionalList: 'Kondiĉa & Lista Bildigo',
-    pulseDsl: '.pulse DSL',
-    pulseDslDesc: 'La nedeviga DSL provizas pli puran sintakson por komponentoj.'
+    cssSelectorSyntax: 'CSS Elektilo-Sintakso',
+    cssSelectorSyntaxDesc: 'Kreu DOM elementojn uzante familiaran CSS elektilo-sintakson.',
+    pulseFileSyntax: '.pulse Dosiera Sintakso',
+    pulseFileSyntaxDesc: 'La .pulse DSL ofertas puran, deklaran manieron skribi komponentojn.',
+    blocks: 'Blokoj',
+    imports: 'Importoj',
+    directives: 'Direktivoj',
+    slots: 'Enmetiloj (Enhavo-Projekcio)',
+    slotsDesc: 'Uzu enmetilojn por komponi komponentojn kun dinamika enhavo.',
+    cssScoping: 'CSS Amplekso',
+    cssScopingDesc: 'Stiloj en .pulse dosieroj estas aŭtomate ampleksitaj al la komponento.',
+    advancedRouting: 'Altnivela Vojigado',
+    advancedRoutingDesc: 'La Pulse vojigilo subtenas maldiligenta ŝargado, interware, kaj koda dividado.',
+    lazyLoading: 'Maldiligenta Ŝargado',
+    lazyLoadingDesc: 'Ŝargu vojajn komponentojn laŭpostule por redukti komencan pakaĵgrandon.',
+    middleware: 'Interware',
+    middlewareDesc: 'Koa-stila interware por fleksebla navigada kontrolo.',
+    nextApiReference: 'Sekva: API Referenco →'
   },
 
   // API Reference page
@@ -170,25 +179,139 @@ export default {
   examples: {
     title: '✨ Ekzemploj',
     intro: 'Esploru ĉi tiujn ekzemplajn aplikaĵojn por vidi Pulse en ago.',
-    todoApp: 'Tasklisto',
-    todoDesc: 'Klasika tasklisto kun loka stokado-persisteco.',
-    chatApp: 'Babila Aplikaĵo',
-    chatDesc: 'Realtempo babila interfaco kun mesaĝhistorio.',
-    ecommerce: 'Reta Komerco',
-    ecommerceDesc: 'Produkta katalogo kun ĉareto kaj eligo.',
-    weather: 'Vetera Aplikaĵo',
-    weatherDesc: 'Vetera panelo kun API integriĝo.',
-    viewDemo: 'Vidi Demonstron',
-    viewSource: 'Vidi Fontkodon'
+    viewDemo: 'Vidi Demonstron →',
+    viewSource: 'Vidi Fontkodon',
+    hmrDemo: {
+      title: 'HMR Demonstro',
+      desc: 'Varma Modula Anstataŭigo kun stato-konservado.',
+      features: [
+        'Stato konservita dum HMR',
+        'Aŭtomata efiko-purigado',
+        'Tema ŝanĝo',
+        'Notoj-persisteco',
+        'HMR ĝisdatiga kalkulilo'
+      ]
+    },
+    blog: {
+      title: '📰 Blogo',
+      desc: 'Plena bloga aplikaĵo kun CRUD, kategorioj kaj serĉo.',
+      features: [
+        'CRUD operacioj',
+        'Kategoria filtrado',
+        'Serĉfunkcio',
+        'Hela/malhela reĝimo',
+        'Responiva dezajno'
+      ]
+    },
+    todoApp: {
+      title: '📝 Tasklisto',
+      desc: 'Plena taskoj-aplikaĵo kun malhela reĝimo kaj persisteco.',
+      features: [
+        'Aldoni, redakti, forigi',
+        'Filtri laŭ statuso',
+        'Malhela reĝimo',
+        'LocalStorage persisteco',
+        'Progreso-spurado'
+      ]
+    },
+    weatherApp: {
+      title: '🌤️ Vetera Aplikaĵo',
+      desc: 'Realtempo vetera aplikaĵo kun Open-Meteo API.',
+      features: [
+        'Urba serĉo',
+        'Nunaj kondiĉoj',
+        '7-taga prognozo',
+        'Favoritaj urboj',
+        '°C/°F ŝanĝo'
+      ]
+    },
+    ecommerce: {
+      title: '🛒 Reta Komerco',
+      desc: 'Plena aĉetsperto kun ĉareto kaj eligo.',
+      features: [
+        'Produkta katalogo',
+        'Serĉo kaj filtroj',
+        'Aĉetĉareto',
+        'Eligfluo',
+        'LocalStorage persisteco'
+      ]
+    },
+    chatApp: {
+      title: '💬 Babila Aplikaĵo',
+      desc: 'Realtempo mesaĝado kun ĉambroj kaj simulitaj uzantoj.',
+      features: [
+        'Pluraj ĉambroj',
+        'Uzanta ĉeesto',
+        'Simulitaj robotaj respondoj',
+        'Emoji-elektilo',
+        'Mesaĝa persisteco'
+      ]
+    },
+    routerDemo: {
+      title: '🧭 Vojigilo Demonstro',
+      desc: 'SPA vojigado kun navigado, gardistoj kaj dinamikaj vojoj.',
+      features: [
+        'Vojaj parametroj',
+        'Demandostringoj',
+        'Voja gardistoj',
+        'Aktiva ligila stilo',
+        'Protektitaj vojoj'
+      ]
+    },
+    storeDemo: {
+      title: '📝 Stokejo Demonstro',
+      desc: 'Tutmonda stato-administrado kun Pulse Stokejo-sistemo.',
+      features: [
+        'createStore kun persisteco',
+        'Agoj kaj getters',
+        'Malfari/Refari',
+        'Modulaj stokeoj',
+        'Logger kromaĵo'
+      ]
+    },
+    dashboard: {
+      title: '📊 Admin Panelo',
+      desc: 'Plena admin-interfaco demonstranta ĉiujn funkciojn.',
+      features: [
+        'Auth kaj gardistoj',
+        'Diagramoj, tabeloj, modaloj',
+        'CRUD operacioj',
+        'Temoj kaj agordoj',
+        'Ĉiuj reagaj funkcioj'
+      ]
+    },
+    runLocally: 'Ruli Ekzemplojn Loke',
+    runLocallyDesc: 'Por ruli la ekzemplajn projektojn sur via maŝino:',
+    createYourOwn: 'Kreu Vian Propran',
+    createYourOwnDesc: 'Komenci novan Pulse projekton:',
+    mobileExamples: '📱 Poŝtelefonaj Ekzemploj',
+    mobileExamplesDesc: 'Pulse ankaŭ povas ruli sur poŝtelefonaj platformoj per WebView.'
   },
 
   // Playground page
   playground: {
     title: '🎮 Ludejo',
     intro: 'Provu Pulse en via retumilo. Redaktu la kodon kaj vidu la rezultojn tuj.',
-    run: 'Ruli',
-    reset: 'Restarigi',
-    share: 'Kunhavigi'
+    codeEditor: '📝 Koda Redaktilo',
+    preview: '👁️ Antaŭvido',
+    run: '▶ Ruli',
+    reset: '↺ Restarigi',
+    share: 'Kunhavigi',
+    ready: 'Preta',
+    running: 'Rulante...',
+    success: '✓ Sukceso',
+    errorPrefix: 'Eraro:',
+    templates: '📋 Rapidaj Ŝablonoj',
+    templateCounter: 'Kalkulilo',
+    templateTodo: 'Tasklisto',
+    templateTimer: 'Tempigilo',
+    templateForm: 'Formularo',
+    templateCalculator: 'Kalkulilo',
+    templateTabs: 'Langetoj',
+    templateTheme: 'Temo',
+    templateSearch: 'Serĉo',
+    templateCart: 'Ĉareto',
+    templateAnimation: 'Animacio'
   },
 
   // Debugging page
@@ -247,7 +370,7 @@ export default {
     cspDesc: 'Rekomenditaj CSP kapoj por Pulse aplikaĵoj.',
     apiSecurity: 'API Sekureco',
     apiSecurityDesc: 'Sekuraj ŝablonoj por datuma prenado.',
-    securityChecklist: 'Sekureca Kontrollisto',
+    checklist: 'Sekureca Kontrollisto',
     nextPerformance: 'Sekva: Efikeco-Gvidilo'
   },
 
@@ -262,22 +385,22 @@ export default {
     listKeyingDesc: 'Ĝusta ŝlosilado estas kritika por listo-efikeco.',
     goodVsBadKeys: 'Bonaj vs Malbonaj Ŝlosiloj',
     performanceImpact: 'Efikeco-Efiko',
-    batchingUpdates: 'Ara Ĝisdatigo',
-    batchingUpdatesDesc: 'Aru plurajn stato-ŝanĝojn por eviti mez-redesegnojn.',
+    batching: 'Ara Ĝisdatigo',
+    batchingDesc: 'Aru plurajn stato-ŝanĝojn por eviti mez-redesegnojn.',
     automaticBatching: 'Aŭtomata Arado',
     memoization: 'Memorigado',
     memoizationDesc: 'Kaŝmemoru multekostajn kalkulojn por eviti reduncan laboron.',
-    lazyLoadingRoutes: 'Maldiligenta Ŝargado de Vojoj',
-    lazyLoadingRoutesDesc: 'Dividu vian aplikaĵon en eroj ŝargitaj laŭ postulo.',
-    avoidUnnecessaryReactivity: 'Evitu Malnecesajn Reagecon',
-    avoidUnnecessaryReactivityDesc: 'Ne ĉio bezonas esti reaga.',
+    lazyRoutes: 'Maldiligenta Ŝargado de Vojoj',
+    lazyRoutesDesc: 'Dividu vian aplikaĵon en eroj ŝargitaj laŭ postulo.',
+    avoidReactivity: 'Evitu Malnecesajn Reagecon',
+    avoidReactivityDesc: 'Ne ĉio bezonas esti reaga.',
     effectOptimization: 'Efiko-Optimumigo',
     effectOptimizationDesc: 'Tenu efikojn rapidaj kaj fokusitaj.',
     resourceCaching: 'Rimeda Kaŝmemoro',
     resourceCachingDesc: 'Uzu la kaŝmemorajn funkciojn de la async modulo.',
-    performanceMonitoring: 'Efikeco-Monitorado',
-    performanceMonitoringDesc: 'Uzu la devtools modulon por monitori efikecon.',
-    performanceChecklist: 'Efikeco-Kontrollisto',
+    monitoring: 'Efikeco-Monitorado',
+    monitoringDesc: 'Uzu la devtools modulon por monitori efikecon.',
+    checklist: 'Efikeco-Kontrollisto',
     nextErrorHandling: 'Sekva: Erartraktado'
   },
 
@@ -285,49 +408,52 @@ export default {
   errorHandling: {
     title: '🛡️ Erartraktado',
     intro: 'Firmaj erartraktaj strategioj por Pulse aplikaĵoj.',
-    effectErrorHandling: 'Efiko-Erartraktado',
-    effectErrorHandlingDesc: 'Efikoj povas malsukcesi. Traktu erarojn gracie.',
-    perEffectHandler: 'Per-Efika Erartraktilo',
-    globalEffectHandler: 'Tutmonda Efiko-Erartraktilo',
-    asyncErrorHandling: 'Async Erartraktado',
-    asyncErrorHandlingDesc: 'La async modulo provizas enkonstruitan erarstato-traktadon.',
-    formValidation: 'Formulara Validigo-Eraroj',
-    formValidationDesc: 'Traktu formularan validigon per la form modulo.',
-    routerErrorHandling: 'Vojigilo-Erartraktado',
-    routerErrorHandlingDesc: 'Traktu navigado-erarojn kaj 404 paĝojn.',
-    userFeedback: 'Uzanta Respondo',
-    userFeedbackDesc: 'Montru erarojn al uzantoj taŭge.',
-    errorBoundaries: 'Erarlimoj',
-    errorBoundariesDesc: 'Enfermu erarojn por malhelpi tutajn aplikaĵo-kraŝojn.',
-    loggingErrors: 'Erarprotokolo',
-    loggingErrorsDesc: 'Protokolu erarojn por sencimigado kaj monitorado.',
-    errorChecklist: 'Erartraktado-Kontrollisto',
-    nextMobile: 'Sekva: Poŝtelefona Evoluo'
+    effectErrors: 'Efikaj Eraroj',
+    asyncErrors: 'Async Eraroj',
+    formErrors: 'Formularaj Eraroj',
+    routerErrors: 'Vojigilo-Eraroj',
+    boundaries: 'Erarlimoj',
+    logging: 'Protokolado kaj Raportado',
+    gracefulDegradation: 'Gracia Degradado',
+    summary: 'Resumo',
+    nextApiReference: 'Sekva: API Referenco →'
   },
 
   // Mobile page
   mobile: {
     title: '📱 Poŝtelefona Evoluo',
     intro: 'Konstruu indiĝenajn poŝtelefonajn aplikaĵojn per Pulse.',
-    gettingStarted: 'Komenci',
-    gettingStartedDesc: 'Agordu vian poŝtelefonan evolumedion.',
-    platformDetection: 'Platforma Detekto',
-    platformDetectionDesc: 'Detektu la nunan platformon kaj adaptu konduton.',
-    nativeStorage: 'Indiĝena Stokado',
-    nativeStorageDesc: 'Persistema stokado kiu funkcias rete kaj indiĝene.',
-    deviceInfo: 'Aparatinformoj',
-    deviceInfoDesc: 'Aliru aparatinformojn kaj retstaton.',
-    nativeUi: 'Indiĝena UI',
-    nativeUiDesc: 'Aliru indiĝenajn UI elementojn kiel toastoj kaj vibrado.',
-    appLifecycle: 'Aplikaĵa Vivciklo',
-    appLifecycleDesc: 'Traktu paŭzon, rekomencadon, kaj malantaŭ-butonan eventojn.',
-    buildingApps: 'Konstrui Aplikaĵojn',
-    buildingAppsDesc: 'Konstruu kaj pakumu vian aplikaĵon por distribuado.',
-    nextChangelog: 'Sekva: Ŝanĝoprotokolo'
+    overview: 'Superrigardo',
+    quickStart: 'Rapida Komenco',
+    cliCommands: 'CLI Komandoj',
+    configuration: 'Agordo',
+    configurationDesc: 'La pulse.mobile.json dosiero agordas vian poŝtelefonan aplikaĵon.',
+    nativeApis: 'Indiĝenaj API-oj',
+    requirements: 'Postuloj',
+    requirementsAndroid: 'Android',
+    requirementsIos: 'iOS',
+    nextExamples: 'Sekva: Ekzemploj →'
   },
 
   // Changelog page
   changelog: {
-    title: '📋 Ŝanĝoprotokolo'
+    title: '📋 Ŝanĝoprotokolo',
+    intro: 'Lastaj ĝisdatigoj kaj plibonigoj de Pulse Framework.',
+    version: 'Versio',
+    releaseDate: 'Eldondato',
+    changes: 'Ŝanĝoj',
+    added: 'Aldonita',
+    changed: 'Ŝanĝita',
+    fixed: 'Riparita',
+    removed: 'Forigita',
+    deprecated: 'Malrekomendita',
+    security: 'Sekureco',
+    breaking: 'Rompa ŝanĝo',
+    features: 'Funkcioj',
+    bugFixes: 'Cimoriparoj',
+    improvements: 'Plibonigoj',
+    documentation: 'Dokumentado',
+    performance: 'Efikeco',
+    tests: 'Testoj'
   }
 };

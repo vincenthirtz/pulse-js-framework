@@ -120,19 +120,28 @@ export default {
   // Core Concepts page
   coreConcepts: {
     title: '💡 Conceitos Básicos',
-    intro: 'Pulse é construído sobre quatro conceitos básicos: Pulsos (estado reativo), Effects (efeitos colaterais), helpers DOM e a DSL .pulse opcional.',
     pulses: 'Pulsos (Estado Reativo)',
     pulsesDesc: 'Um pulso é um container reativo que notifica assinantes quando seu valor muda.',
     effects: 'Effects',
     effectsDesc: 'Effects são executados automaticamente quando suas dependências mudam.',
-    computed: 'Valores Computados',
-    computedDesc: 'Valores derivados que atualizam automaticamente.',
-    domHelpers: 'Helpers DOM',
-    domHelpersDesc: 'Crie elementos DOM usando sintaxe de seletores CSS.',
-    reactiveBindings: 'Bindings Reativos',
-    conditionalList: 'Renderização Condicional & Lista',
-    pulseDsl: 'DSL .pulse',
-    pulseDslDesc: 'A DSL opcional fornece uma sintaxe mais limpa para componentes.'
+    cssSelectorSyntax: 'Sintaxe de Seletores CSS',
+    cssSelectorSyntaxDesc: 'Crie elementos DOM usando a sintaxe familiar de seletores CSS.',
+    pulseFileSyntax: 'Sintaxe de Arquivos .pulse',
+    pulseFileSyntaxDesc: 'A DSL .pulse oferece uma forma limpa e declarativa de escrever componentes.',
+    blocks: 'Blocos',
+    imports: 'Imports',
+    directives: 'Diretivas',
+    slots: 'Slots (Projeção de Conteúdo)',
+    slotsDesc: 'Use slots para compor componentes com conteúdo dinâmico.',
+    cssScoping: 'Escopo CSS',
+    cssScopingDesc: 'Estilos em arquivos .pulse são automaticamente escopados ao componente.',
+    advancedRouting: 'Roteamento Avançado',
+    advancedRoutingDesc: 'O router do Pulse suporta lazy loading, middleware e code splitting.',
+    lazyLoading: 'Lazy Loading',
+    lazyLoadingDesc: 'Carregue componentes de rota sob demanda para reduzir o tamanho inicial do bundle.',
+    middleware: 'Middleware',
+    middlewareDesc: 'Middleware estilo Koa para controle flexível de navegação.',
+    nextApiReference: 'Próximo: Referência da API →'
   },
 
   // API Reference page
@@ -170,25 +179,139 @@ export default {
   examples: {
     title: '✨ Exemplos',
     intro: 'Explore estas aplicações de exemplo para ver Pulse em ação.',
-    todoApp: 'App de Tarefas',
-    todoDesc: 'Lista de tarefas clássica com persistência em local storage.',
-    chatApp: 'App de Chat',
-    chatDesc: 'Interface de chat em tempo real com histórico de mensagens.',
-    ecommerce: 'E-Commerce',
-    ecommerceDesc: 'Catálogo de produtos com carrinho e checkout.',
-    weather: 'App de Clima',
-    weatherDesc: 'Dashboard de clima com integração de API.',
-    viewDemo: 'Ver Demo',
-    viewSource: 'Ver Código'
+    viewDemo: 'Ver Demo →',
+    viewSource: 'Ver Código',
+    hmrDemo: {
+      title: 'Demo HMR',
+      desc: 'Hot Module Replacement com preservação de estado.',
+      features: [
+        'Estado preservado durante HMR',
+        'Limpeza automática de effects',
+        'Troca de tema',
+        'Persistência de notas',
+        'Contador de atualizações HMR'
+      ]
+    },
+    blog: {
+      title: '📰 Blog',
+      desc: 'Aplicação de blog completa com CRUD, categorias e busca.',
+      features: [
+        'Operações CRUD',
+        'Filtragem por categoria',
+        'Funcionalidade de busca',
+        'Modo claro/escuro',
+        'Design responsivo'
+      ]
+    },
+    todoApp: {
+      title: '📝 App de Tarefas',
+      desc: 'App de tarefas completo com modo escuro e persistência.',
+      features: [
+        'Adicionar, editar, excluir',
+        'Filtrar por status',
+        'Modo escuro',
+        'Persistência LocalStorage',
+        'Acompanhamento de progresso'
+      ]
+    },
+    weatherApp: {
+      title: '🌤️ App de Clima',
+      desc: 'Aplicação de clima em tempo real com API Open-Meteo.',
+      features: [
+        'Busca de cidade',
+        'Condições atuais',
+        'Previsão de 7 dias',
+        'Cidades favoritas',
+        'Alternar °C/°F'
+      ]
+    },
+    ecommerce: {
+      title: '🛒 Loja E-Commerce',
+      desc: 'Experiência de compra completa com carrinho e checkout.',
+      features: [
+        'Catálogo de produtos',
+        'Busca e filtros',
+        'Carrinho de compras',
+        'Fluxo de checkout',
+        'Persistência LocalStorage'
+      ]
+    },
+    chatApp: {
+      title: '💬 App de Chat',
+      desc: 'Mensagens em tempo real com salas e usuários simulados.',
+      features: [
+        'Múltiplas salas',
+        'Presença de usuário',
+        'Respostas de bot simuladas',
+        'Seletor de emoji',
+        'Persistência de mensagens'
+      ]
+    },
+    routerDemo: {
+      title: '🧭 Demo Router',
+      desc: 'Roteamento SPA com navegação, guards e rotas dinâmicas.',
+      features: [
+        'Parâmetros de rota',
+        'Query strings',
+        'Guards de rota',
+        'Estilo de link ativo',
+        'Rotas protegidas'
+      ]
+    },
+    storeDemo: {
+      title: '📝 Demo Store',
+      desc: 'Gerenciamento de estado global com o sistema Store do Pulse.',
+      features: [
+        'createStore com persistência',
+        'Actions e getters',
+        'Desfazer/Refazer',
+        'Stores modulares',
+        'Plugin Logger'
+      ]
+    },
+    dashboard: {
+      title: '📊 Dashboard Admin',
+      desc: 'Interface admin completa demonstrando todas as funcionalidades.',
+      features: [
+        'Auth e guards',
+        'Gráficos, tabelas, modais',
+        'Operações CRUD',
+        'Temas e configurações',
+        'Todas as funcionalidades reativas'
+      ]
+    },
+    runLocally: 'Executar Exemplos Localmente',
+    runLocallyDesc: 'Para executar os projetos de exemplo na sua máquina:',
+    createYourOwn: 'Crie o Seu',
+    createYourOwnDesc: 'Inicie um novo projeto Pulse:',
+    mobileExamples: '📱 Exemplos Mobile',
+    mobileExamplesDesc: 'Pulse também pode rodar em plataformas mobile via WebView.'
   },
 
   // Playground page
   playground: {
     title: '🎮 Playground',
     intro: 'Experimente Pulse no seu navegador. Edite o código e veja os resultados instantaneamente.',
-    run: 'Executar',
-    reset: 'Resetar',
-    share: 'Compartilhar'
+    codeEditor: '📝 Editor de Código',
+    preview: '👁️ Pré-visualização',
+    run: '▶ Executar',
+    reset: '↺ Resetar',
+    share: 'Compartilhar',
+    ready: 'Pronto',
+    running: 'Executando...',
+    success: '✓ Sucesso',
+    errorPrefix: 'Erro:',
+    templates: '📋 Templates Rápidos',
+    templateCounter: 'Contador',
+    templateTodo: 'Lista de Tarefas',
+    templateTimer: 'Temporizador',
+    templateForm: 'Formulário',
+    templateCalculator: 'Calculadora',
+    templateTabs: 'Abas',
+    templateTheme: 'Tema',
+    templateSearch: 'Busca',
+    templateCart: 'Carrinho',
+    templateAnimation: 'Animação'
   },
 
   // Debugging page
@@ -247,7 +370,7 @@ export default {
     cspDesc: 'Headers CSP recomendados para aplicações Pulse.',
     apiSecurity: 'Segurança de API',
     apiSecurityDesc: 'Padrões seguros para busca de dados.',
-    securityChecklist: 'Checklist de Segurança',
+    checklist: 'Checklist de Segurança',
     nextPerformance: 'Próximo: Guia de Performance'
   },
 
@@ -262,22 +385,22 @@ export default {
     listKeyingDesc: 'Chaves adequadas são críticas para performance de listas.',
     goodVsBadKeys: 'Boas vs Más Chaves',
     performanceImpact: 'Impacto na Performance',
-    batchingUpdates: 'Agrupando Atualizações',
-    batchingUpdatesDesc: 'Agrupe múltiplas mudanças de estado para evitar re-renders intermediários.',
+    batching: 'Agrupando Atualizações',
+    batchingDesc: 'Agrupe múltiplas mudanças de estado para evitar re-renders intermediários.',
     automaticBatching: 'Batching Automático',
     memoization: 'Memoização',
     memoizationDesc: 'Cache cálculos custosos para evitar trabalho redundante.',
-    lazyLoadingRoutes: 'Carregamento Lazy de Rotas',
-    lazyLoadingRoutesDesc: 'Divida seu app em chunks carregados sob demanda.',
-    avoidUnnecessaryReactivity: 'Evite Reatividade Desnecessária',
-    avoidUnnecessaryReactivityDesc: 'Nem tudo precisa ser reativo.',
+    lazyRoutes: 'Carregamento Lazy de Rotas',
+    lazyRoutesDesc: 'Divida seu app em chunks carregados sob demanda.',
+    avoidReactivity: 'Evite Reatividade Desnecessária',
+    avoidReactivityDesc: 'Nem tudo precisa ser reativo.',
     effectOptimization: 'Otimização de Effects',
     effectOptimizationDesc: 'Mantenha effects rápidos e focados.',
     resourceCaching: 'Cache de Recursos',
     resourceCachingDesc: 'Use os recursos de cache do módulo async.',
-    performanceMonitoring: 'Monitoramento de Performance',
-    performanceMonitoringDesc: 'Use o módulo devtools para monitorar performance.',
-    performanceChecklist: 'Checklist de Performance',
+    monitoring: 'Monitoramento de Performance',
+    monitoringDesc: 'Use o módulo devtools para monitorar performance.',
+    checklist: 'Checklist de Performance',
     nextErrorHandling: 'Próximo: Tratamento de Erros'
   },
 
@@ -285,49 +408,52 @@ export default {
   errorHandling: {
     title: '🛡️ Tratamento de Erros',
     intro: 'Estratégias robustas de tratamento de erros para aplicações Pulse.',
-    effectErrorHandling: 'Tratamento de Erros em Effects',
-    effectErrorHandlingDesc: 'Effects podem falhar. Trate erros graciosamente.',
-    perEffectHandler: 'Handler de Erro por Effect',
-    globalEffectHandler: 'Handler Global de Erro de Effect',
-    asyncErrorHandling: 'Tratamento de Erros Async',
-    asyncErrorHandlingDesc: 'O módulo async fornece tratamento de estado de erro integrado.',
-    formValidation: 'Erros de Validação de Formulário',
-    formValidationDesc: 'Trate validação de formulário com o módulo form.',
-    routerErrorHandling: 'Tratamento de Erros do Router',
-    routerErrorHandlingDesc: 'Trate erros de navegação e páginas 404.',
-    userFeedback: 'Feedback ao Usuário',
-    userFeedbackDesc: 'Exiba erros aos usuários apropriadamente.',
-    errorBoundaries: 'Error Boundaries',
-    errorBoundariesDesc: 'Contenha erros para prevenir crashes do app inteiro.',
-    loggingErrors: 'Logging de Erros',
-    loggingErrorsDesc: 'Registre erros para depuração e monitoramento.',
-    errorChecklist: 'Checklist de Tratamento de Erros',
-    nextMobile: 'Próximo: Desenvolvimento Mobile'
+    effectErrors: 'Erros em Effects',
+    asyncErrors: 'Erros Async',
+    formErrors: 'Erros de Formulário',
+    routerErrors: 'Erros do Router',
+    boundaries: 'Error Boundaries',
+    logging: 'Logging e Relatórios',
+    gracefulDegradation: 'Degradação Graciosa',
+    summary: 'Resumo',
+    nextApiReference: 'Próximo: Referência API →'
   },
 
   // Mobile page
   mobile: {
     title: '📱 Desenvolvimento Mobile',
     intro: 'Construa apps mobile nativos com Pulse.',
-    gettingStarted: 'Primeiros Passos',
-    gettingStartedDesc: 'Configure seu ambiente de desenvolvimento mobile.',
-    platformDetection: 'Detecção de Plataforma',
-    platformDetectionDesc: 'Detecte a plataforma atual e adapte o comportamento.',
-    nativeStorage: 'Storage Nativo',
-    nativeStorageDesc: 'Storage persistente que funciona na web e nativo.',
-    deviceInfo: 'Info do Dispositivo',
-    deviceInfoDesc: 'Acesse informações do dispositivo e status de rede.',
-    nativeUi: 'UI Nativa',
-    nativeUiDesc: 'Acesse elementos de UI nativos como toasts e vibração.',
-    appLifecycle: 'Ciclo de Vida do App',
-    appLifecycleDesc: 'Trate eventos de pausa, resumo e botão voltar.',
-    buildingApps: 'Construindo Apps',
-    buildingAppsDesc: 'Construa e empacote seu app para distribuição.',
-    nextChangelog: 'Próximo: Changelog'
+    overview: 'Visão Geral',
+    quickStart: 'Início Rápido',
+    cliCommands: 'Comandos CLI',
+    configuration: 'Configuração',
+    configurationDesc: 'O arquivo pulse.mobile.json configura seu app mobile.',
+    nativeApis: 'APIs Nativas',
+    requirements: 'Requisitos',
+    requirementsAndroid: 'Android',
+    requirementsIos: 'iOS',
+    nextExamples: 'Próximo: Exemplos →'
   },
 
   // Changelog page
   changelog: {
-    title: '📋 Changelog'
+    title: '📋 Changelog',
+    intro: 'Atualizações e melhorias recentes do Pulse Framework.',
+    version: 'Versão',
+    releaseDate: 'Data de Lançamento',
+    changes: 'Alterações',
+    added: 'Adicionado',
+    changed: 'Alterado',
+    fixed: 'Corrigido',
+    removed: 'Removido',
+    deprecated: 'Descontinuado',
+    security: 'Segurança',
+    breaking: 'Mudança Importante',
+    features: 'Funcionalidades',
+    bugFixes: 'Correções de Bugs',
+    improvements: 'Melhorias',
+    documentation: 'Documentação',
+    performance: 'Performance',
+    tests: 'Testes'
   }
 };

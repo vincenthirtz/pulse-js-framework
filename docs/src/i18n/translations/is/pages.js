@@ -120,19 +120,28 @@ export default {
   // Core Concepts page
   coreConcepts: {
     title: '💡 Grunnhugtök',
-    intro: 'Pulse er byggt á fjórum grunnhugtökum: Púlsar (viðbragðsástand), Áhrif (aukaverkanir), DOM hjálpar, og valfrjálsa .pulse DSL.',
     pulses: 'Púlsar (Viðbragðsástand)',
     pulsesDesc: 'Púls er viðbragðsílát sem tilkynnir áskrifendum þegar gildi hans breytist.',
     effects: 'Áhrif',
     effectsDesc: 'Áhrif keyra sjálfkrafa þegar ósjálfstæði þeirra breytist.',
-    computed: 'Reiknuð Gildi',
-    computedDesc: 'Afleidd gildi sem uppfærast sjálfkrafa.',
-    domHelpers: 'DOM Hjálpar',
-    domHelpersDesc: 'Búðu til DOM einingar með CSS velja setningafræði.',
-    reactiveBindings: 'Viðbragðsbindingar',
-    conditionalList: 'Skilyrt & Lista Birting',
-    pulseDsl: '.pulse DSL',
-    pulseDslDesc: 'Valfrjálsa DSL veitir hreinni setningafræði fyrir íhluti.'
+    cssSelectorSyntax: 'CSS Velja Setningafræði',
+    cssSelectorSyntaxDesc: 'Búðu til DOM einingar með kunnuglegri CSS velja setningafræði.',
+    pulseFileSyntax: '.pulse Skráasetningafræði',
+    pulseFileSyntaxDesc: '.pulse DSL býður upp á hreint, yfirlýsandi leið til að skrifa íhluti.',
+    blocks: 'Blokkir',
+    imports: 'Innflutningur',
+    directives: 'Tilskipanir',
+    slots: 'Rifur (Efnisvarpa)',
+    slotsDesc: 'Notaðu rifur til að setja saman íhluti með kviku efni.',
+    cssScoping: 'CSS Umfang',
+    cssScopingDesc: 'Stílar í .pulse skrám eru sjálfkrafa umfangsbundnir við íhlutinn.',
+    advancedRouting: 'Ítarleg Leiðing',
+    advancedRoutingDesc: 'Pulse leiðirinn styður lata hleðslu, milliliði og kóðaskiptingu.',
+    lazyLoading: 'Lat Hleðsla',
+    lazyLoadingDesc: 'Hlaðaðu leiðaríhlutum eftir þörfum til að minnka upphaflega bunka stærð.',
+    middleware: 'Milliliðir',
+    middlewareDesc: 'Koa-stíl milliliðir fyrir sveigjanlega siglinga stjórn.',
+    nextApiReference: 'Næst: API Tilvísun →'
   },
 
   // API Reference page
@@ -170,25 +179,139 @@ export default {
   examples: {
     title: '✨ Dæmi',
     intro: 'Kannaðu þessi sýnishorn til að sjá Pulse í verki.',
-    todoApp: 'Verkefnalisti',
-    todoDesc: 'Klassískur verkefnalisti með staðbundinni geymslu.',
-    chatApp: 'Spjallforrit',
-    chatDesc: 'Rauntíma spjallviðmót með skilaboðasögu.',
-    ecommerce: 'Netverslun',
-    ecommerceDesc: 'Vörulisti með körfu og útskráningu.',
-    weather: 'Veðurforrit',
-    weatherDesc: 'Veðurstjórnborð með API samþættingu.',
-    viewDemo: 'Skoða Kynningu',
-    viewSource: 'Skoða Kóða'
+    viewDemo: 'Skoða Kynningu →',
+    viewSource: 'Skoða Kóða',
+    hmrDemo: {
+      title: 'HMR Kynning',
+      desc: 'Heit einingaskipti með ástandsvarðveislu.',
+      features: [
+        'Ástand varðveitt í HMR',
+        'Sjálfvirk áhrifahreinsun',
+        'Þemaskipti',
+        'Minnisvarðveisla',
+        'HMR uppfærsluteljarari'
+      ]
+    },
+    blog: {
+      title: '📰 Blogg',
+      desc: 'Fullkomin bloggforrit með CRUD, flokkum og leit.',
+      features: [
+        'CRUD aðgerðir',
+        'Flokkasíun',
+        'Leitaraðgerð',
+        'Ljós/dökkur hamur',
+        'Móttækileg hönnun'
+      ]
+    },
+    todoApp: {
+      title: '📝 Verkefnaforrit',
+      desc: 'Fullkomið verkefnaforrit með dökkum ham og varðveislu.',
+      features: [
+        'Bæta við, breyta, eyða',
+        'Sía eftir stöðu',
+        'Dökkur hamur',
+        'LocalStorage varðveisla',
+        'Framvindueftirlit'
+      ]
+    },
+    weatherApp: {
+      title: '🌤️ Veðurforrit',
+      desc: 'Rauntíma veðurforrit með Open-Meteo API.',
+      features: [
+        'Borgarleit',
+        'Núverandi aðstæður',
+        '7 daga spá',
+        'Uppáhaldsborgar',
+        '°C/°F skipti'
+      ]
+    },
+    ecommerce: {
+      title: '🛒 Netverslun',
+      desc: 'Full verslunarupplifun með körfu og útskráningu.',
+      features: [
+        'Vörulisti',
+        'Leit og síur',
+        'Innkaupakerra',
+        'Útskráningarflæði',
+        'LocalStorage varðveisla'
+      ]
+    },
+    chatApp: {
+      title: '💬 Spjallforrit',
+      desc: 'Rauntíma skilaboð með herbergjum og eftirlíkingum notenda.',
+      features: [
+        'Mörg herbergi',
+        'Notandanávist',
+        'Eftirlíking vélmennasvara',
+        'Emoji valinn',
+        'Skilaboðavarðveisla'
+      ]
+    },
+    routerDemo: {
+      title: '🧭 Leiðarkynning',
+      desc: 'SPA leiðing með siglingu, vörðum og kraftmiklum leiðum.',
+      features: [
+        'Leiðarfæribreytur',
+        'Fyrirspurnarstrengir',
+        'Leiðarverðir',
+        'Virkur tengistíll',
+        'Verndaðar leiðir'
+      ]
+    },
+    storeDemo: {
+      title: '📝 Geymslukynning',
+      desc: 'Alhliða stöðustjórnun með Pulse geymslukerfi.',
+      features: [
+        'createStore með varðveislu',
+        'Aðgerðir og getters',
+        'Afturkalla/Endurgera',
+        'Einingar geymslur',
+        'Logger viðbót'
+      ]
+    },
+    dashboard: {
+      title: '📊 Stjórnborð',
+      desc: 'Fullkomið stjórnviðmót sem sýnir allar aðgerðir.',
+      features: [
+        'Auðkenning og verðir',
+        'Línurit, töflur, gluggar',
+        'CRUD aðgerðir',
+        'Þemu og stillingar',
+        'Allar viðbragðsaðgerðir'
+      ]
+    },
+    runLocally: 'Keyra Dæmi Staðbundið',
+    runLocallyDesc: 'Til að keyra sýnishornaverkefni á vélinni þinni:',
+    createYourOwn: 'Búðu Til Þitt Eigið',
+    createYourOwnDesc: 'Byrjaðu nýtt Pulse verkefni:',
+    mobileExamples: '📱 Farsímadæmi',
+    mobileExamplesDesc: 'Pulse getur einnig keyrt á farsímapöllum gegnum WebView.'
   },
 
   // Playground page
   playground: {
     title: '🎮 Leikvöllur',
     intro: 'Prófaðu Pulse í vafranum þínum. Breyttu kóðanum og sjáðu niðurstöðurnar samstundis.',
-    run: 'Keyra',
-    reset: 'Endurstilla',
-    share: 'Deila'
+    codeEditor: '📝 Kóðaritill',
+    preview: '👁️ Forskoðun',
+    run: '▶ Keyra',
+    reset: '↺ Endurstilla',
+    share: 'Deila',
+    ready: 'Tilbúið',
+    running: 'Keyrir...',
+    success: '✓ Tókst',
+    errorPrefix: 'Villa:',
+    templates: '📋 Snögg Sniðmát',
+    templateCounter: 'Teljari',
+    templateTodo: 'Verkefnalisti',
+    templateTimer: 'Tímamælir',
+    templateForm: 'Eyðublað',
+    templateCalculator: 'Reiknivél',
+    templateTabs: 'Flipar',
+    templateTheme: 'Þema',
+    templateSearch: 'Leit',
+    templateCart: 'Karfa',
+    templateAnimation: 'Hreyfimynd'
   },
 
   // Debugging page
@@ -247,7 +370,7 @@ export default {
     cspDesc: 'Ráðlagðir CSP hausar fyrir Pulse forrit.',
     apiSecurity: 'API Öryggi',
     apiSecurityDesc: 'Örugg mynstur fyrir gagnasækni.',
-    securityChecklist: 'Öryggisgátlisti',
+    checklist: 'Öryggisgátlisti',
     nextPerformance: 'Næst: Afkastaleiðbeiningar'
   },
 
@@ -262,22 +385,22 @@ export default {
     listKeyingDesc: 'Rétt lyklun er mikilvæg fyrir listaafköst.',
     goodVsBadKeys: 'Góðir vs Slæmir Lyklar',
     performanceImpact: 'Afkastaáhrif',
-    batchingUpdates: 'Runuuppfærslur',
-    batchingUpdatesDesc: 'Runaðu margar stöðubreytingar til að forðast millibilsendurteiknun.',
+    batching: 'Runuuppfærslur',
+    batchingDesc: 'Runaðu margar stöðubreytingar til að forðast millibilsendurteiknun.',
     automaticBatching: 'Sjálfvirk Runun',
     memoization: 'Minnislagning',
     memoizationDesc: 'Skyndiminndu dýra útreikninga til að forðast ofaukna vinnu.',
-    lazyLoadingRoutes: 'Latur Hleðsla Leiða',
-    lazyLoadingRoutesDesc: 'Skiptu forritinu þínu í hluta sem hlaðast eftir þörfum.',
-    avoidUnnecessaryReactivity: 'Forðist Óþarfa Viðbragð',
-    avoidUnnecessaryReactivityDesc: 'Ekki þarf allt að vera viðbragðsþolið.',
+    lazyRoutes: 'Latur Hleðsla Leiða',
+    lazyRoutesDesc: 'Skiptu forritinu þínu í hluta sem hlaðast eftir þörfum.',
+    avoidReactivity: 'Forðist Óþarfa Viðbragð',
+    avoidReactivityDesc: 'Ekki þarf allt að vera viðbragðsþolið.',
     effectOptimization: 'Áhrifabæting',
     effectOptimizationDesc: 'Haltu áhrifum hröðum og einbeittum.',
     resourceCaching: 'Auðlinda Skyndiminni',
     resourceCachingDesc: 'Notaðu skyndiminniseiginleika async einingarinnar.',
-    performanceMonitoring: 'Afkastamælingar',
-    performanceMonitoringDesc: 'Notaðu devtools eininguna til að fylgjast með afköstum.',
-    performanceChecklist: 'Afkastagátlisti',
+    monitoring: 'Afkastamælingar',
+    monitoringDesc: 'Notaðu devtools eininguna til að fylgjast með afköstum.',
+    checklist: 'Afkastagátlisti',
     nextErrorHandling: 'Næst: Villumeðferð'
   },
 
@@ -285,49 +408,52 @@ export default {
   errorHandling: {
     title: '🛡️ Villumeðferð',
     intro: 'Traustir villumeðferðaraðferðir fyrir Pulse forrit.',
-    effectErrorHandling: 'Áhrifa Villumeðferð',
-    effectErrorHandlingDesc: 'Áhrif geta bilað. Meðhöndlaðu villur fallega.',
-    perEffectHandler: 'Villumeðferðari Eftir Áhrifum',
-    globalEffectHandler: 'Alhliða Áhrifavillumeðferðari',
-    asyncErrorHandling: 'Async Villumeðferð',
-    asyncErrorHandlingDesc: 'Async einingin veitir innbyggða villustöðumeðferð.',
-    formValidation: 'Eyðublað Staðfestingarvillur',
-    formValidationDesc: 'Meðhöndlaðu eyðublaðsstaðfestingu með form einingunni.',
-    routerErrorHandling: 'Leiðarvillumeðferð',
-    routerErrorHandlingDesc: 'Meðhöndlaðu siglingavillur og 404 síður.',
-    userFeedback: 'Notendaviðbrögð',
-    userFeedbackDesc: 'Sýndu notendum villur á viðeigandi hátt.',
-    errorBoundaries: 'Villumörk',
-    errorBoundariesDesc: 'Takmarkaðu villur til að koma í veg fyrir hrun alls forritsins.',
-    loggingErrors: 'Villuskráning',
-    loggingErrorsDesc: 'Skráðu villur fyrir kemb ingu og eftirlit.',
-    errorChecklist: 'Villumeðferðargátlisti',
-    nextMobile: 'Næst: Farsímaþróun'
+    effectErrors: 'Áhrifavillur',
+    asyncErrors: 'Async Villur',
+    formErrors: 'Eyðublaðsvillur',
+    routerErrors: 'Leiðavillur',
+    boundaries: 'Villumörk',
+    logging: 'Skráning og Skýrslur',
+    gracefulDegradation: 'Þokkafull Niðurfelling',
+    summary: 'Samantekt',
+    nextApiReference: 'Næst: API Tilvísun →'
   },
 
   // Mobile page
   mobile: {
     title: '📱 Farsímaþróun',
     intro: 'Byggðu innfædd farsímaforrit með Pulse.',
-    gettingStarted: 'Byrjun',
-    gettingStartedDesc: 'Settu upp farsímaþróunarumhverfið þitt.',
-    platformDetection: 'Pallgreining',
-    platformDetectionDesc: 'Greindu núverandi pall og aðlagaðu hegðun.',
-    nativeStorage: 'Innfædd Geymsla',
-    nativeStorageDesc: 'Varanleg geymsla sem virkar á vef og innfædd.',
-    deviceInfo: 'Tækjaupplýsingar',
-    deviceInfoDesc: 'Fáðu aðgang að tækjaupplýsingum og netstöðu.',
-    nativeUi: 'Innfædd UI',
-    nativeUiDesc: 'Fáðu aðgang að innfæddum UI einingum eins og skoppskilaboðum og titringi.',
-    appLifecycle: 'App Líftími',
-    appLifecycleDesc: 'Meðhöndlaðu hlé, endurupptöku og bakhnappa atburði.',
-    buildingApps: 'Byggja Forrit',
-    buildingAppsDesc: 'Byggðu og pakkaðu forritinu þínu til dreifingar.',
-    nextChangelog: 'Næst: Breytingaskrá'
+    overview: 'Yfirlit',
+    quickStart: 'Skyndibyrjun',
+    cliCommands: 'CLI Skipanir',
+    configuration: 'Uppsetning',
+    configurationDesc: 'pulse.mobile.json skráin stillir farsímaforritið þitt.',
+    nativeApis: 'Innfædd API',
+    requirements: 'Kröfur',
+    requirementsAndroid: 'Android',
+    requirementsIos: 'iOS',
+    nextExamples: 'Næst: Dæmi →'
   },
 
   // Changelog page
   changelog: {
-    title: '📋 Breytingaskrá'
+    title: '📋 Breytingaskrá',
+    intro: 'Nýlegar uppfærslur og endurbætur á Pulse Framework.',
+    version: 'Útgáfa',
+    releaseDate: 'Útgáfudagur',
+    changes: 'Breytingar',
+    added: 'Bætt við',
+    changed: 'Breytt',
+    fixed: 'Lagað',
+    removed: 'Fjarlægt',
+    deprecated: 'Úrelt',
+    security: 'Öryggi',
+    breaking: 'Mikilvæg breyting',
+    features: 'Eiginleikar',
+    bugFixes: 'Villuleiðréttingar',
+    improvements: 'Endurbætur',
+    documentation: 'Skjölun',
+    performance: 'Afköst',
+    tests: 'Prófanir'
   }
 };
