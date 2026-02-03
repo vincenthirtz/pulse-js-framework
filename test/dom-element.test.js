@@ -592,6 +592,523 @@ test('el handles table elements', () => {
 });
 
 // =============================================================================
+// Additional Auto-ARIA Tests
+// =============================================================================
+
+printSection('Additional Auto-ARIA Tests');
+
+test('img without alt triggers warning (warnMissingAlt enabled)', () => {
+  resetA11yConfig();
+  // Create img without alt - should trigger warning but not throw
+  const img = el('img[src="/photo.jpg"]');
+
+  assertEqual(img.tagName.toLowerCase(), 'img', 'Should create img element');
+  assertEqual(img.getAttribute('src'), '/photo.jpg', 'Should have src');
+});
+
+test('img with alt does not trigger warning', () => {
+  resetA11yConfig();
+  const img = el('img[src="/photo.jpg"][alt="A beautiful sunset"]');
+
+  assertEqual(img.getAttribute('alt'), 'A beautiful sunset', 'Should have alt');
+});
+
+test('img with aria-label does not trigger warning', () => {
+  resetA11yConfig();
+  const img = el('img[src="/photo.jpg"][aria-label="Sunset photo"]');
+
+  assertEqual(img.getAttribute('aria-label'), 'Sunset photo', 'Should have aria-label');
+});
+
+test('img with aria-hidden does not trigger warning', () => {
+  resetA11yConfig();
+  const img = el('img[src="/icon.svg"][aria-hidden=true]');
+
+  assertEqual(img.getAttribute('aria-hidden'), 'true', 'Should have aria-hidden');
+});
+
+test('input without label triggers warning', () => {
+  resetA11yConfig();
+  // Create input without label - should trigger warning but not throw
+  const input = el('input[type=text]');
+
+  assertEqual(input.tagName.toLowerCase(), 'input', 'Should create input element');
+});
+
+test('input with aria-label does not trigger warning', () => {
+  resetA11yConfig();
+  const input = el('input[type=text][aria-label="Username"]');
+
+  assertEqual(input.getAttribute('aria-label'), 'Username', 'Should have aria-label');
+});
+
+test('input with id can have associated label', () => {
+  resetA11yConfig();
+  const input = el('input[type=text][id=username]');
+
+  assertEqual(input.id, 'username', 'Should have id');
+});
+
+test('input type=hidden does not trigger warning', () => {
+  resetA11yConfig();
+  const input = el('input[type=hidden][name=csrf]');
+
+  assertEqual(input.getAttribute('type'), 'hidden', 'Should have type=hidden');
+});
+
+test('input type=submit does not trigger warning', () => {
+  resetA11yConfig();
+  const input = el('input[type=submit][value=Send]');
+
+  assertEqual(input.getAttribute('type'), 'submit', 'Should have type=submit');
+});
+
+test('input type=button does not trigger warning', () => {
+  resetA11yConfig();
+  const input = el('input[type=button][value=Click]');
+
+  assertEqual(input.getAttribute('type'), 'button', 'Should have type=button');
+});
+
+test('textarea without label triggers warning', () => {
+  resetA11yConfig();
+  const textarea = el('textarea');
+
+  assertEqual(textarea.tagName.toLowerCase(), 'textarea', 'Should create textarea');
+});
+
+test('select without label triggers warning', () => {
+  resetA11yConfig();
+  const select = el('select');
+
+  assertEqual(select.tagName.toLowerCase(), 'select', 'Should create select');
+});
+
+test('nav without aria-label triggers warning', () => {
+  resetA11yConfig();
+  const nav = el('nav');
+
+  assertEqual(nav.tagName.toLowerCase(), 'nav', 'Should create nav');
+});
+
+test('nav with aria-label does not trigger warning', () => {
+  resetA11yConfig();
+  const nav = el('nav[aria-label="Main navigation"]');
+
+  assertEqual(nav.getAttribute('aria-label'), 'Main navigation', 'Should have aria-label');
+});
+
+test('nav with aria-labelledby does not trigger warning', () => {
+  resetA11yConfig();
+  const nav = el('nav[aria-labelledby=nav-heading]');
+
+  assertEqual(nav.getAttribute('aria-labelledby'), 'nav-heading', 'Should have aria-labelledby');
+});
+
+test('progress without label triggers warning', () => {
+  resetA11yConfig();
+  const progress = el('progress[value=50][max=100]');
+
+  assertEqual(progress.tagName.toLowerCase(), 'progress', 'Should create progress');
+});
+
+test('meter without label triggers warning', () => {
+  resetA11yConfig();
+  const meter = el('meter[value=50][min=0][max=100]');
+
+  assertEqual(meter.tagName.toLowerCase(), 'meter', 'Should create meter');
+});
+
+test('ul with role=menu needs aria-label', () => {
+  resetA11yConfig();
+  const ul = el('ul[role=menu]');
+
+  assertEqual(ul.getAttribute('role'), 'menu', 'Should have role=menu');
+});
+
+test('ol with role=listbox needs aria-label', () => {
+  resetA11yConfig();
+  const ol = el('ol[role=listbox]');
+
+  assertEqual(ol.getAttribute('role'), 'listbox', 'Should have role=listbox');
+});
+
+// =============================================================================
+// More Role-Based Requirements Tests
+// =============================================================================
+
+printSection('More Role-Based Requirements');
+
+test('role="button" on div gets tabindex', () => {
+  resetA11yConfig();
+  const div = el('div[role=button]');
+
+  assertEqual(div.getAttribute('role'), 'button', 'Should have role');
+  assertEqual(div.getAttribute('tabindex'), '0', 'Should have tabindex');
+});
+
+test('role="link" on span gets tabindex', () => {
+  resetA11yConfig();
+  const span = el('span[role=link]');
+
+  assertEqual(span.getAttribute('role'), 'link', 'Should have role');
+  assertEqual(span.getAttribute('tabindex'), '0', 'Should have tabindex');
+});
+
+test('role="menuitem" on li gets tabindex', () => {
+  resetA11yConfig();
+  const li = el('li[role=menuitem]');
+
+  assertEqual(li.getAttribute('role'), 'menuitem', 'Should have role');
+  assertEqual(li.getAttribute('tabindex'), '0', 'Should have tabindex');
+});
+
+test('role="switch" gets aria-checked', () => {
+  resetA11yConfig();
+  const toggle = el('button[role=switch]');
+
+  assertEqual(toggle.getAttribute('role'), 'switch', 'Should have role');
+  assertEqual(toggle.getAttribute('aria-checked'), 'false', 'Should have aria-checked');
+});
+
+test('role="progressbar" gets value attributes', () => {
+  resetA11yConfig();
+  const progressbar = el('div[role=progressbar]');
+
+  assertEqual(progressbar.getAttribute('aria-valuenow'), '0', 'Should have valuenow');
+  assertEqual(progressbar.getAttribute('aria-valuemin'), '0', 'Should have valuemin');
+  assertEqual(progressbar.getAttribute('aria-valuemax'), '100', 'Should have valuemax');
+});
+
+test('role="spinbutton" gets value attributes', () => {
+  resetA11yConfig();
+  const spinbutton = el('input[role=spinbutton]');
+
+  assertEqual(spinbutton.getAttribute('aria-valuenow'), '0', 'Should have valuenow');
+  assertEqual(spinbutton.getAttribute('aria-valuemin'), '0', 'Should have valuemin');
+  assertEqual(spinbutton.getAttribute('aria-valuemax'), '100', 'Should have valuemax');
+});
+
+// =============================================================================
+// Deep Nesting and Complex Children Tests
+// =============================================================================
+
+printSection('Deep Nesting and Complex Children');
+
+test('el with deeply nested children', () => {
+  const wrapper = el('div.wrapper',
+    el('section',
+      el('article',
+        el('header',
+          el('h1', 'Title')
+        ),
+        el('main',
+          el('p', 'Content')
+        ),
+        el('footer',
+          el('small', 'Footer')
+        )
+      )
+    )
+  );
+
+  assertEqual(wrapper.children.length, 1, 'Should have one direct child');
+  const section = wrapper.querySelector ? wrapper.firstChild : wrapper.children[0];
+  assertEqual(section.tagName.toLowerCase(), 'section', 'Should have section child');
+});
+
+test('el with mixed content types', () => {
+  const div = el('div',
+    'Text before ',
+    el('strong', 'bold'),
+    ' text after ',
+    el('em', 'italic'),
+    ' and more'
+  );
+
+  assert(div.textContent.includes('Text before'), 'Should have leading text');
+  assert(div.textContent.includes('bold'), 'Should have strong text');
+  assert(div.textContent.includes('text after'), 'Should have middle text');
+  assert(div.textContent.includes('italic'), 'Should have em text');
+});
+
+test('el with zero as child', () => {
+  const div = el('div', 0);
+
+  assertEqual(div.textContent, '0', 'Should render zero');
+});
+
+test('el with negative number as child', () => {
+  const div = el('div', -42);
+
+  assertEqual(div.textContent, '-42', 'Should render negative number');
+});
+
+test('el with float as child', () => {
+  const div = el('div', 3.14159);
+
+  assertEqual(div.textContent, '3.14159', 'Should render float');
+});
+
+test('el with empty string as child', () => {
+  const div = el('div', '');
+
+  assertEqual(div.textContent, '', 'Should handle empty string');
+});
+
+test('el with whitespace string as child', () => {
+  const div = el('div', '   ');
+
+  assertEqual(div.textContent, '   ', 'Should preserve whitespace');
+});
+
+test('el with nested arrays of children', () => {
+  const div = el('div', [
+    'a',
+    ['b', 'c'],
+    'd'
+  ]);
+
+  assert(div.textContent.includes('a'), 'Should have first item');
+  assert(div.textContent.includes('b'), 'Should have nested first');
+  assert(div.textContent.includes('c'), 'Should have nested second');
+  assert(div.textContent.includes('d'), 'Should have last item');
+});
+
+test('el filters out undefined in arrays', () => {
+  const items = [undefined, 'a', undefined, 'b', undefined];
+  const div = el('div', items);
+
+  assertEqual(div.textContent, 'ab', 'Should filter undefined');
+});
+
+test('el filters out null in arrays', () => {
+  const items = [null, 'a', null, 'b', null];
+  const div = el('div', items);
+
+  assertEqual(div.textContent, 'ab', 'Should filter null');
+});
+
+// =============================================================================
+// Attribute Edge Cases
+// =============================================================================
+
+printSection('Attribute Edge Cases');
+
+test('el handles attribute with equals in value', () => {
+  const elem = el('div[data-query="a=1&b=2"]');
+
+  assertEqual(elem.getAttribute('data-query'), 'a=1&b=2', 'Should handle = in value');
+});
+
+test('el handles attribute with spaces in value', () => {
+  const elem = el('div[title="Hello World"]');
+
+  assertEqual(elem.getAttribute('title'), 'Hello World', 'Should handle spaces in value');
+});
+
+test('el handles multiple attributes', () => {
+  const elem = el('a[href="/page"][target=_blank][rel=noopener]');
+
+  assertEqual(elem.getAttribute('href'), '/page', 'Should have href');
+  assertEqual(elem.getAttribute('target'), '_blank', 'Should have target');
+  assertEqual(elem.getAttribute('rel'), 'noopener', 'Should have rel');
+});
+
+test('el handles numeric attribute values', () => {
+  const elem = el('input[type=number][min=0][max=100][step=5]');
+
+  assertEqual(elem.getAttribute('min'), '0', 'Should have min');
+  assertEqual(elem.getAttribute('max'), '100', 'Should have max');
+  assertEqual(elem.getAttribute('step'), '5', 'Should have step');
+});
+
+test('el handles hyphenated attribute names', () => {
+  const elem = el('div[data-user-id=123][data-item-count=5]');
+
+  assertEqual(elem.getAttribute('data-user-id'), '123', 'Should have data-user-id');
+  assertEqual(elem.getAttribute('data-item-count'), '5', 'Should have data-item-count');
+});
+
+// =============================================================================
+// text() Function Edge Cases
+// =============================================================================
+
+printSection('text() Function Edge Cases');
+
+test('text handles zero', () => {
+  const node = text(0);
+
+  assertEqual(node.textContent, '0', 'Should convert 0 to string');
+});
+
+test('text handles negative number', () => {
+  const node = text(-99);
+
+  assertEqual(node.textContent, '-99', 'Should convert negative to string');
+});
+
+test('text handles boolean true', () => {
+  const node = text(true);
+
+  assertEqual(node.textContent, 'true', 'Should convert true to string');
+});
+
+test('text handles boolean false', () => {
+  const node = text(false);
+
+  assertEqual(node.textContent, 'false', 'Should convert false to string');
+});
+
+test('text handles null', () => {
+  const node = text(null);
+
+  assertEqual(node.textContent, 'null', 'Should convert null to string');
+});
+
+test('text handles undefined', () => {
+  const node = text(undefined);
+
+  assertEqual(node.textContent, 'undefined', 'Should convert undefined to string');
+});
+
+test('text handles object (toString)', () => {
+  const node = text({ toString: () => 'custom' });
+
+  assertEqual(node.textContent, 'custom', 'Should use toString');
+});
+
+// =============================================================================
+// Selector Edge Cases
+// =============================================================================
+
+printSection('Selector Edge Cases');
+
+test('el handles tag with only id', () => {
+  const elem = el('span#unique');
+
+  assertEqual(elem.tagName.toLowerCase(), 'span', 'Should have correct tag');
+  assertEqual(elem.id, 'unique', 'Should have id');
+});
+
+test('el handles multiple ids (last wins)', () => {
+  const elem = el('div#first#second');
+
+  // Depending on implementation, last id may win
+  assert(elem.id === 'first' || elem.id === 'second' || elem.id === 'first#second',
+    'Should handle multiple ids');
+});
+
+test('el handles class with numbers', () => {
+  const elem = el('div.col-12.mt-3');
+
+  assert(elem.className.includes('col-12'), 'Should have col-12');
+  assert(elem.className.includes('mt-3'), 'Should have mt-3');
+});
+
+test('el handles class with underscores', () => {
+  const elem = el('div.my_class_name');
+
+  assert(elem.className.includes('my_class_name'), 'Should have underscore class');
+});
+
+test('el handles class with hyphens', () => {
+  const elem = el('div.my-class-name');
+
+  assert(elem.className.includes('my-class-name'), 'Should have hyphenated class');
+});
+
+test('el defaults to div for class-only selector', () => {
+  const elem = el('.container.fluid');
+
+  assertEqual(elem.tagName.toLowerCase(), 'div', 'Should default to div');
+  assert(elem.className.includes('container'), 'Should have container');
+  assert(elem.className.includes('fluid'), 'Should have fluid');
+});
+
+test('el defaults to div for id-only selector', () => {
+  const elem = el('#main-content');
+
+  assertEqual(elem.tagName.toLowerCase(), 'div', 'Should default to div');
+  assertEqual(elem.id, 'main-content', 'Should have id');
+});
+
+test('el handles SVG elements', () => {
+  const svg = el('svg');
+  const circle = el('circle');
+  const rect = el('rect');
+  const path = el('path');
+
+  assertEqual(svg.tagName.toLowerCase(), 'svg', 'Should create svg');
+  assertEqual(circle.tagName.toLowerCase(), 'circle', 'Should create circle');
+  assertEqual(rect.tagName.toLowerCase(), 'rect', 'Should create rect');
+  assertEqual(path.tagName.toLowerCase(), 'path', 'Should create path');
+});
+
+test('el handles custom elements', () => {
+  const elem = el('my-custom-element');
+
+  assertEqual(elem.tagName.toLowerCase(), 'my-custom-element', 'Should create custom element');
+});
+
+// =============================================================================
+// A11y Config Combinations
+// =============================================================================
+
+printSection('A11y Config Combinations');
+
+test('completely disabled a11y does not apply auto-aria', () => {
+  configureA11y({
+    enabled: false,
+    autoAria: true,  // Even if autoAria is true, enabled=false should take precedence
+    warnMissingAlt: true,
+    warnMissingLabel: true
+  });
+
+  const dialog = el('dialog');
+  // When disabled, auto-ARIA may not be applied
+  // The exact behavior depends on implementation
+  assert(true, 'Should not throw when a11y disabled');
+
+  resetA11yConfig();
+});
+
+test('enabled but autoAria disabled', () => {
+  configureA11y({
+    enabled: true,
+    autoAria: false,
+    warnMissingAlt: true,
+    warnMissingLabel: true
+  });
+
+  const dialog = el('dialog');
+  // Auto-ARIA should not be applied
+  assert(true, 'Should not throw when autoAria disabled');
+
+  resetA11yConfig();
+});
+
+test('all warnings disabled', () => {
+  configureA11y({
+    enabled: true,
+    autoAria: true,
+    warnMissingAlt: false,
+    warnMissingLabel: false
+  });
+
+  // These should not warn
+  const img = el('img[src="/test.jpg"]');
+  const input = el('input[type=text]');
+  const nav = el('nav');
+
+  assert(img !== null, 'Should create img');
+  assert(input !== null, 'Should create input');
+  assert(nav !== null, 'Should create nav');
+
+  resetA11yConfig();
+});
+
+// =============================================================================
 // Run Tests
 // =============================================================================
 

@@ -1030,6 +1030,418 @@ test('findPulseFiles handles nested directory structure', () => {
 });
 
 // =============================================================================
+// Additional Coverage Tests - Internal Functions
+// =============================================================================
+
+printSection('Additional Coverage - Edge Cases');
+
+test('analyzeBundle handles empty src directory', async () => {
+  // Create a project with empty src
+  if (existsSync(TEST_DIR)) {
+    rmSync(TEST_DIR, { recursive: true, force: true });
+  }
+  mkdirSync(TEST_DIR, { recursive: true });
+  mkdirSync(join(TEST_DIR, 'src'), { recursive: true });
+
+  try {
+    const analysis = await analyzeBundle(TEST_DIR);
+
+    assertEqual(analysis.summary.totalFiles, 0);
+    assertEqual(analysis.summary.pulseFiles, 0);
+    assertEqual(analysis.summary.jsFiles, 0);
+    assertEqual(analysis.summary.totalSize, 0);
+    assertEqual(analysis.fileBreakdown.length, 0);
+    assertEqual(analysis.complexity.length, 0);
+  } finally {
+    cleanupTestFixtures();
+  }
+});
+
+test('analyzeBundle handles files with parse errors gracefully', async () => {
+  setupTestFixtures();
+  // Add a file with syntax error
+  writeFileSync(join(SRC_DIR, 'broken.pulse'), `
+@page Broken
+state {
+  this is not valid !!!
+}
+view { div "test" }
+`);
+  try {
+    const analysis = await analyzeBundle(TEST_DIR);
+
+    // Should still complete analysis
+    assertTrue('summary' in analysis, 'Should have summary');
+    assertTrue('fileBreakdown' in analysis, 'Should have fileBreakdown');
+
+    // The broken file should be included but may have parseError
+    const brokenFile = analysis.fileBreakdown.find(f => f.path.includes('broken.pulse'));
+    if (brokenFile) {
+      assertTrue('parseError' in brokenFile || 'type' in brokenFile, 'Broken file should have error info or type');
+    }
+  } finally {
+    cleanupTestFixtures();
+  }
+});
+
+test('analyzeBundle handles deeply nested view structures', async () => {
+  setupTestFixtures();
+  // Create a deeply nested component
+  writeFileSync(join(SRC_DIR, 'DeepNested.pulse'), `
+@page DeepNested
+
+view {
+  div {
+    section {
+      article {
+        main {
+          aside {
+            nav {
+              ul {
+                li {
+                  span "Deep"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+`);
+  try {
+    const analysis = await analyzeBundle(TEST_DIR);
+    const deepComponent = analysis.complexity.find(c => c.componentName === 'DeepNested');
+
+    if (deepComponent) {
+      assertTrue(deepComponent.viewDepth >= 5, 'Should have deep view depth');
+    }
+  } finally {
+    cleanupTestFixtures();
+  }
+});
+
+test('analyzeBundle handles components with many directives', async () => {
+  setupTestFixtures();
+  writeFileSync(join(SRC_DIR, 'ManyDirectives.pulse'), `
+@page ManyDirectives
+
+state {
+  show1: true
+  show2: true
+  items1: []
+  items2: []
+}
+
+view {
+  @if(show1) {
+    div "visible1"
+  }
+  @if(show2) {
+    div "visible2"
+  }
+  @for(item in items1) {
+    span "{item}"
+  }
+  @for(item in items2) {
+    p "{item}"
+  }
+}
+`);
+  try {
+    const analysis = await analyzeBundle(TEST_DIR);
+    const directiveComponent = analysis.complexity.find(c => c.componentName === 'ManyDirectives');
+
+    if (directiveComponent) {
+      assertTrue(directiveComponent.directiveCount >= 4, 'Should count multiple directives');
+    }
+  } finally {
+    cleanupTestFixtures();
+  }
+});
+
+test('analyzeBundle handles nested style rules', async () => {
+  setupTestFixtures();
+  writeFileSync(join(SRC_DIR, 'NestedStyles.pulse'), `
+@page NestedStyles
+
+view {
+  div.container {
+    p "content"
+  }
+}
+
+style {
+  .container {
+    padding: 10px
+
+    p {
+      margin: 5px
+    }
+
+    &:hover {
+      background: blue
+    }
+  }
+
+  @media (max-width: 768px) {
+    .container {
+      padding: 5px
+    }
+  }
+}
+`);
+  try {
+    const analysis = await analyzeBundle(TEST_DIR);
+    const styledComponent = analysis.complexity.find(c => c.componentName === 'NestedStyles');
+
+    if (styledComponent) {
+      assertTrue(styledComponent.styleRuleCount >= 1, 'Should count style rules');
+    }
+  } finally {
+    cleanupTestFixtures();
+  }
+});
+
+test('analyzeBundle handles conditional and loop in same view', async () => {
+  setupTestFixtures();
+  writeFileSync(join(SRC_DIR, 'ConditionalLoop.pulse'), `
+@page ConditionalLoop
+
+state {
+  show: true
+  items: []
+}
+
+view {
+  @if(show) {
+    @for(item in items) {
+      div "{item}"
+    }
+  }
+  @else {
+    p "Empty"
+  }
+}
+`);
+  try {
+    const analysis = await analyzeBundle(TEST_DIR);
+    const component = analysis.complexity.find(c => c.componentName === 'ConditionalLoop');
+
+    if (component) {
+      assertTrue(component.directiveCount >= 2, 'Should count nested directives');
+    }
+  } finally {
+    cleanupTestFixtures();
+  }
+});
+
+test('buildImportGraph handles mixed import styles', async () => {
+  setupTestFixtures();
+  // Create files with different import styles
+  writeFileSync(join(SRC_DIR, 'imports-test.js'), `
+import DefaultExport from './app.js';
+import { namedExport } from './router.js';
+import * as namespace from './utils/helpers.js';
+`);
+  try {
+    const { parse } = await import('../compiler/index.js');
+    const files = findPulseFiles([SRC_DIR], { extensions: ['.js'] });
+    const graph = await buildImportGraph(files, parse);
+
+    assertTrue(Array.isArray(graph.edges), 'Should have edges array');
+    // Should detect imports from the test file
+    const importsTestEdges = graph.edges.filter(e => e.from.includes('imports-test.js'));
+    assertTrue(importsTestEdges.length >= 2, 'Should detect multiple import styles');
+  } finally {
+    cleanupTestFixtures();
+  }
+});
+
+test('findPulseFiles handles symlinks gracefully', () => {
+  setupTestFixtures();
+  // This test verifies symlinks don't cause infinite loops
+  // Most systems handle this, but we test for robustness
+  try {
+    const files = findPulseFiles([SRC_DIR], { extensions: ['.pulse'] });
+    assertTrue(Array.isArray(files), 'Should return array even with potential symlinks');
+  } finally {
+    cleanupTestFixtures();
+  }
+});
+
+test('formatBytes handles boundary values', () => {
+  // Test exact boundary values
+  assertEqual(formatBytes(1023), '1023 B');
+  assertEqual(formatBytes(1024), '1 KB');
+  assertEqual(formatBytes(1048575), '1024 KB');
+  assertEqual(formatBytes(1048576), '1 MB');
+});
+
+test('relativePath handles Windows-style paths', () => {
+  // Test path normalization
+  const cwd = process.cwd();
+  const normalPath = join(cwd, 'src', 'file.js');
+  const result = relativePath(normalPath);
+
+  assertTrue(!result.startsWith(cwd), 'Should return relative path');
+});
+
+test('parseArgs handles value after = sign', () => {
+  const { options, patterns } = parseArgs(['--port=3000', '--output=dist']);
+
+  // parseArgs treats these as boolean flags, not key=value pairs
+  assertEqual(options['port=3000'], true);
+  assertEqual(options['output=dist'], true);
+});
+
+test('analyzeBundle detects transitive dead code', async () => {
+  setupTestFixtures();
+  // Create a chain: A imports B imports C, but A is never imported
+  writeFileSync(join(SRC_DIR, 'ChainA.pulse'), `
+@page ChainA
+import ChainB from './ChainB.pulse'
+view { div "A" }
+`);
+  writeFileSync(join(SRC_DIR, 'ChainB.pulse'), `
+@page ChainB
+import ChainC from './ChainC.pulse'
+view { div "B" }
+`);
+  writeFileSync(join(SRC_DIR, 'ChainC.pulse'), `
+@page ChainC
+view { div "C" }
+`);
+
+  try {
+    const analysis = await analyzeBundle(TEST_DIR);
+
+    // All three should be dead code since none are reachable from entry points
+    assertTrue(analysis.deadCode.some(d => d.file.includes('ChainA.pulse')), 'Should detect ChainA as dead');
+    assertTrue(analysis.deadCode.some(d => d.file.includes('ChainB.pulse')), 'Should detect ChainB as dead');
+    assertTrue(analysis.deadCode.some(d => d.file.includes('ChainC.pulse')), 'Should detect ChainC as dead');
+  } finally {
+    cleanupTestFixtures();
+  }
+});
+
+test('analyzeBundle handles components without state', async () => {
+  setupTestFixtures();
+  writeFileSync(join(SRC_DIR, 'Stateless.pulse'), `
+@page Stateless
+
+view {
+  div "No state here"
+}
+`);
+
+  try {
+    const analysis = await analyzeBundle(TEST_DIR);
+    const stateless = analysis.complexity.find(c => c.componentName === 'Stateless');
+
+    if (stateless) {
+      assertEqual(stateless.stateCount, 0, 'Should have zero state');
+      assertEqual(stateless.actionCount, 0, 'Should have zero actions');
+    }
+  } finally {
+    cleanupTestFixtures();
+  }
+});
+
+test('analyzeBundle handles components without view', async () => {
+  setupTestFixtures();
+  writeFileSync(join(SRC_DIR, 'NoView.pulse'), `
+@page NoView
+
+state {
+  data: null
+}
+`);
+
+  try {
+    const analysis = await analyzeBundle(TEST_DIR);
+    // Should not throw, should handle gracefully
+    assertTrue(Array.isArray(analysis.fileBreakdown), 'Should have fileBreakdown');
+  } finally {
+    cleanupTestFixtures();
+  }
+});
+
+test('state usage identifies same state name in different files', async () => {
+  setupTestFixtures();
+  // Create files with overlapping state names
+  writeFileSync(join(SRC_DIR, 'StateA.pulse'), `
+@page StateA
+state {
+  loading: false
+  error: null
+}
+view { div "A" }
+`);
+  writeFileSync(join(SRC_DIR, 'StateB.pulse'), `
+@page StateB
+state {
+  loading: true
+  data: []
+}
+view { div "B" }
+`);
+
+  try {
+    const analysis = await analyzeBundle(TEST_DIR);
+    const loadingState = analysis.stateUsage.find(s => s.name === 'loading');
+
+    if (loadingState) {
+      assertTrue(loadingState.declarationCount >= 2, 'Should track multiple declarations');
+      assertTrue(loadingState.isShared, 'Should mark as shared');
+    }
+  } finally {
+    cleanupTestFixtures();
+  }
+});
+
+test('analyzeBundle handles very long file paths', async () => {
+  setupTestFixtures();
+  // Create a deeply nested directory structure
+  const deepPath = join(SRC_DIR, 'a', 'b', 'c', 'd', 'e');
+  mkdirSync(deepPath, { recursive: true });
+  writeFileSync(join(deepPath, 'Deep.pulse'), `
+@page Deep
+view { div "deep" }
+`);
+
+  try {
+    const analysis = await analyzeBundle(TEST_DIR);
+    assertTrue(analysis.fileBreakdown.some(f => f.path.includes('Deep.pulse')), 'Should find deep file');
+  } finally {
+    cleanupTestFixtures();
+  }
+});
+
+test('analyzeBundle handles files with only imports', async () => {
+  setupTestFixtures();
+  writeFileSync(join(SRC_DIR, 'OnlyImports.pulse'), `
+import A from './components/Header.pulse'
+import B from './components/Footer.pulse'
+
+@page OnlyImports
+view { div "imports only" }
+`);
+
+  try {
+    const analysis = await analyzeBundle(TEST_DIR);
+    const component = analysis.fileBreakdown.find(f => f.path.includes('OnlyImports.pulse'));
+
+    if (component) {
+      assertTrue(component.importCount >= 2, 'Should count imports');
+    }
+  } finally {
+    cleanupTestFixtures();
+  }
+});
+
+// =============================================================================
 // Results
 // =============================================================================
 

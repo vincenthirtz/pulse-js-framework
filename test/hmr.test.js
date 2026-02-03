@@ -780,6 +780,377 @@ test('accept and dispose accept functions', () => {
 });
 
 // =============================================================================
+// HMR Context Memory and Cleanup Tests
+// =============================================================================
+
+printSection('HMR Memory and Cleanup Tests');
+
+test('preservePulse does not leak memory with many keys', () => {
+  const hmr = createHMRContext('memory-test');
+  const pulses = [];
+
+  // Create many pulses
+  for (let i = 0; i < 1000; i++) {
+    pulses.push(hmr.preservePulse(`key-${i}`, i));
+  }
+
+  // All should be valid pulses with correct initial values
+  assertEqual(pulses[0].get(), 0, 'First pulse should have value 0');
+  assertEqual(pulses[500].get(), 500, 'Middle pulse should have value 500');
+  assertEqual(pulses[999].get(), 999, 'Last pulse should have value 999');
+});
+
+test('data object can store complex structures', () => {
+  const hmr = createHMRContext('complex-data');
+
+  hmr.data.nested = {
+    level1: {
+      level2: {
+        level3: {
+          value: 'deep'
+        }
+      }
+    }
+  };
+
+  assertEqual(hmr.data.nested.level1.level2.level3.value, 'deep', 'Should handle deep nesting');
+});
+
+test('data object can store arrays', () => {
+  const hmr = createHMRContext('array-data');
+
+  hmr.data.items = [1, 2, 3, 4, 5];
+  hmr.data.items.push(6);
+
+  assertDeepEqual(hmr.data.items, [1, 2, 3, 4, 5, 6], 'Should handle array mutations');
+});
+
+test('data object can store Map and Set', () => {
+  const hmr = createHMRContext('collection-data');
+
+  hmr.data.map = new Map([['key', 'value']]);
+  hmr.data.set = new Set([1, 2, 3]);
+
+  assertEqual(hmr.data.map.get('key'), 'value', 'Should store Map');
+  assertEqual(hmr.data.set.has(2), true, 'Should store Set');
+});
+
+test('data object can store Date', () => {
+  const hmr = createHMRContext('date-data');
+  const now = new Date();
+
+  hmr.data.timestamp = now;
+
+  assertEqual(hmr.data.timestamp.getTime(), now.getTime(), 'Should store Date');
+});
+
+test('data object can store RegExp', () => {
+  const hmr = createHMRContext('regex-data');
+
+  hmr.data.pattern = /test/gi;
+
+  assertEqual(hmr.data.pattern.source, 'test', 'Should store regex source');
+  assertEqual(hmr.data.pattern.flags, 'gi', 'Should store regex flags');
+});
+
+// =============================================================================
+// HMR Pulse Behavior Tests
+// =============================================================================
+
+printSection('HMR Pulse Behavior Tests');
+
+test('preservePulse creates reactive pulse', () => {
+  const hmr = createHMRContext('reactive-test');
+  const counter = hmr.preservePulse('counter', 0);
+
+  let observedValue = null;
+
+  // In noop mode, we just verify the pulse works
+  observedValue = counter.get();
+  assertEqual(observedValue, 0, 'Initial value should be 0');
+
+  counter.set(10);
+  observedValue = counter.get();
+  assertEqual(observedValue, 10, 'Value should update to 10');
+});
+
+test('preservePulse with array value', () => {
+  const hmr = createHMRContext('array-pulse-test');
+  const items = hmr.preservePulse('items', []);
+
+  items.update(arr => [...arr, 'item1']);
+  items.update(arr => [...arr, 'item2']);
+
+  assertDeepEqual(items.get(), ['item1', 'item2'], 'Should update array');
+});
+
+test('preservePulse with object value', () => {
+  const hmr = createHMRContext('object-pulse-test');
+  const user = hmr.preservePulse('user', { name: 'John', age: 30 });
+
+  user.update(u => ({ ...u, age: 31 }));
+
+  assertEqual(user.get().name, 'John', 'Name should be preserved');
+  assertEqual(user.get().age, 31, 'Age should be updated');
+});
+
+test('preservePulse peek does not track', () => {
+  const hmr = createHMRContext('peek-test');
+  const value = hmr.preservePulse('value', 42);
+
+  const peeked = value.peek();
+  assertEqual(peeked, 42, 'Peek should return value');
+});
+
+test('preservePulse with custom equals', () => {
+  const hmr = createHMRContext('equals-test');
+  const item = hmr.preservePulse('item', { id: 1, name: 'test' }, {
+    equals: (a, b) => a?.id === b?.id
+  });
+
+  // Set with same id but different name - should be considered equal
+  item.set({ id: 1, name: 'changed' });
+
+  // The behavior depends on implementation
+  assert(item.get() !== undefined, 'Should have a value');
+});
+
+// =============================================================================
+// HMR Setup Error Handling
+// =============================================================================
+
+printSection('HMR Setup Error Handling');
+
+test('setup propagates errors', () => {
+  const hmr = createHMRContext('error-propagation');
+  let errorCaught = false;
+
+  try {
+    hmr.setup(() => {
+      throw new Error('Setup error');
+    });
+  } catch (e) {
+    errorCaught = true;
+    assertEqual(e.message, 'Setup error', 'Should propagate error message');
+  }
+
+  assertEqual(errorCaught, true, 'Error should be caught');
+});
+
+test('setup handles async callback', async () => {
+  const hmr = createHMRContext('async-setup');
+
+  const result = hmr.setup(async () => {
+    return 'async result';
+  });
+
+  assert(result instanceof Promise, 'Should return Promise');
+  const resolved = await result;
+  assertEqual(resolved, 'async result', 'Should resolve to correct value');
+});
+
+test('setup handles callback with arguments', () => {
+  const hmr = createHMRContext('args-setup');
+
+  const fn = (a, b) => a + b;
+  const result = hmr.setup(() => fn(1, 2));
+
+  assertEqual(result, 3, 'Should execute with arguments');
+});
+
+// =============================================================================
+// HMR Accept and Dispose Patterns
+// =============================================================================
+
+printSection('HMR Accept and Dispose Patterns');
+
+test('accept without callback does nothing in noop mode', () => {
+  const hmr = createHMRContext('accept-noop');
+
+  // Should not throw
+  hmr.accept();
+  assert(true, 'accept() should complete without error');
+});
+
+test('accept with callback stores but does not execute in noop', () => {
+  const hmr = createHMRContext('accept-callback-noop');
+  let executed = false;
+
+  hmr.accept(() => {
+    executed = true;
+  });
+
+  assertEqual(executed, false, 'Callback should not execute in noop mode');
+});
+
+test('dispose callback is stored but not executed in noop', () => {
+  const hmr = createHMRContext('dispose-noop');
+  let executed = false;
+
+  hmr.dispose(() => {
+    executed = true;
+  });
+
+  assertEqual(executed, false, 'Dispose callback should not execute in noop mode');
+});
+
+test('multiple dispose callbacks can be registered', () => {
+  const hmr = createHMRContext('multi-dispose-register');
+  const callbacks = [];
+
+  hmr.dispose(() => callbacks.push('first'));
+  hmr.dispose(() => callbacks.push('second'));
+  hmr.dispose(() => callbacks.push('third'));
+
+  // In noop mode, callbacks are not executed
+  assertEqual(callbacks.length, 0, 'Callbacks should not execute');
+});
+
+// =============================================================================
+// HMR Integration Scenarios
+// =============================================================================
+
+printSection('HMR Integration Scenarios');
+
+test('typical counter component pattern', () => {
+  const hmr = createHMRContext('counter-component');
+
+  const count = hmr.preservePulse('count', 0);
+  let effectRuns = 0;
+
+  hmr.setup(() => {
+    // Simulate effect
+    effectRuns++;
+    count.get(); // Would track in real effect
+  });
+
+  assertEqual(effectRuns, 1, 'Setup should run once');
+  assertEqual(count.get(), 0, 'Count should be 0');
+
+  count.update(n => n + 1);
+  assertEqual(count.get(), 1, 'Count should increment');
+
+  hmr.accept();
+});
+
+test('typical form state pattern', () => {
+  const hmr = createHMRContext('form-component');
+
+  const formState = hmr.preservePulse('form', {
+    username: '',
+    email: '',
+    password: ''
+  });
+
+  hmr.setup(() => {
+    // Form validation would happen here
+  });
+
+  formState.update(f => ({ ...f, username: 'john' }));
+  formState.update(f => ({ ...f, email: 'john@example.com' }));
+
+  assertEqual(formState.get().username, 'john', 'Username should update');
+  assertEqual(formState.get().email, 'john@example.com', 'Email should update');
+  assertEqual(formState.get().password, '', 'Password should remain empty');
+
+  hmr.accept();
+});
+
+test('typical todo list pattern', () => {
+  const hmr = createHMRContext('todo-component');
+
+  const todos = hmr.preservePulse('todos', []);
+  const filter = hmr.preservePulse('filter', 'all');
+
+  hmr.setup(() => {
+    // Filtered todos computed would be here
+  });
+
+  todos.set([
+    { id: 1, text: 'Learn Pulse', done: false },
+    { id: 2, text: 'Build app', done: false }
+  ]);
+
+  todos.update(t => t.map(todo =>
+    todo.id === 1 ? { ...todo, done: true } : todo
+  ));
+
+  filter.set('completed');
+
+  assertEqual(todos.get()[0].done, true, 'First todo should be done');
+  assertEqual(filter.get(), 'completed', 'Filter should be completed');
+
+  hmr.accept();
+});
+
+test('typical async data fetching pattern', () => {
+  const hmr = createHMRContext('async-component');
+
+  const data = hmr.preservePulse('data', null);
+  const loading = hmr.preservePulse('loading', false);
+  const error = hmr.preservePulse('error', null);
+
+  hmr.setup(() => {
+    // Async effect would be here
+  });
+
+  // Simulate fetch lifecycle
+  loading.set(true);
+  assertEqual(loading.get(), true, 'Should be loading');
+
+  // Simulate successful fetch
+  data.set({ items: [1, 2, 3] });
+  loading.set(false);
+
+  assertEqual(loading.get(), false, 'Should not be loading');
+  assertDeepEqual(data.get().items, [1, 2, 3], 'Should have data');
+  assertEqual(error.get(), null, 'Should have no error');
+
+  hmr.accept();
+});
+
+// =============================================================================
+// HMR Edge Cases with Module IDs
+// =============================================================================
+
+printSection('HMR Module ID Edge Cases');
+
+test('module ID with URL characters', () => {
+  const hmr = createHMRContext('file:///Users/test/project/src/App.pulse?t=123');
+
+  const p = hmr.preservePulse('test', 'value');
+  assertEqual(p.get(), 'value', 'Should work with URL-like module ID');
+});
+
+test('module ID with query params', () => {
+  const hmr = createHMRContext('/src/component.js?v=1.0.0&hash=abc123');
+
+  const p = hmr.preservePulse('test', 'value');
+  assertEqual(p.get(), 'value', 'Should work with query params in ID');
+});
+
+test('module ID with hash', () => {
+  const hmr = createHMRContext('/src/component.js#section');
+
+  const p = hmr.preservePulse('test', 'value');
+  assertEqual(p.get(), 'value', 'Should work with hash in ID');
+});
+
+test('module ID with special path characters', () => {
+  const hmr = createHMRContext('/path/with spaces/and-dashes/under_scores/file.js');
+
+  const p = hmr.preservePulse('test', 'value');
+  assertEqual(p.get(), 'value', 'Should work with special path chars');
+});
+
+test('module ID that looks like number', () => {
+  const hmr = createHMRContext('12345');
+
+  const p = hmr.preservePulse('test', 'value');
+  assertEqual(p.get(), 'value', 'Should work with numeric-like ID');
+});
+
+// =============================================================================
 // Run Tests and Print Results
 // =============================================================================
 

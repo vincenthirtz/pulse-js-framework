@@ -609,6 +609,304 @@ test('minifyJS output is shorter than input', () => {
 });
 
 // =============================================================================
+// Additional minifyJS Edge Cases
+// =============================================================================
+
+printSection('JavaScript Minification - Additional Edge Cases');
+
+test('minifyJS handles regex after typeof', () => {
+  const input = `typeof /test/ === 'object'`;
+  const output = minifyJS(input);
+
+  assert(output.includes('/test/'), 'Should recognize regex after typeof');
+});
+
+test('minifyJS handles empty function body', () => {
+  const input = `function noop() {}`;
+  const output = minifyJS(input);
+
+  assert(output.includes('function noop(){}'), 'Should handle empty function');
+});
+
+test('minifyJS handles empty object literal', () => {
+  const input = `const obj = {};`;
+  const output = minifyJS(input);
+
+  assert(output.includes('const obj={}'), 'Should handle empty object');
+});
+
+test('minifyJS handles empty array literal', () => {
+  const input = `const arr = [];`;
+  const output = minifyJS(input);
+
+  assert(output.includes('const arr=[]'), 'Should handle empty array');
+});
+
+test('minifyJS handles template literal with newlines', () => {
+  const input = 'const str = `line1\nline2\nline3`;';
+  const output = minifyJS(input);
+
+  assert(output.includes('`line1\nline2\nline3`'), 'Should preserve newlines in template');
+});
+
+test('minifyJS handles regex with escaped backslash', () => {
+  const input = `const re = /path\\\\/file/;`;
+  const output = minifyJS(input);
+
+  assert(output.includes('/path\\\\/file/'), 'Should preserve escaped backslash in regex');
+});
+
+test('minifyJS handles multiple regex on one line', () => {
+  const input = `const re1 = /a/, re2 = /b/, re3 = /c/;`;
+  const output = minifyJS(input);
+
+  assert(output.includes('/a/'), 'Should preserve first regex');
+  assert(output.includes('/b/'), 'Should preserve second regex');
+  assert(output.includes('/c/'), 'Should preserve third regex');
+});
+
+test('minifyJS handles regex after logical operators', () => {
+  const input = `const result = x || /default/;`;
+  const output = minifyJS(input);
+
+  assert(output.includes('/default/'), 'Should recognize regex after ||');
+});
+
+test('minifyJS handles string concatenation', () => {
+  const input = `const str = "Hello, " + "World!";`;
+  const output = minifyJS(input);
+
+  assert(output.includes('"Hello, "'), 'Should preserve first string');
+  assert(output.includes('"World!"'), 'Should preserve second string');
+});
+
+test('minifyJS handles JSDoc comments removal', () => {
+  const input = `
+    /**
+     * @param {number} a - First number
+     * @param {number} b - Second number
+     * @returns {number} Sum
+     */
+    function add(a, b) {
+      return a + b;
+    }
+  `;
+  const output = minifyJS(input);
+
+  assert(!output.includes('@param'), 'Should remove JSDoc');
+  assert(output.includes('function add'), 'Should preserve function');
+});
+
+test('minifyJS handles conditional comments removal', () => {
+  const input = `
+    const x = 1;
+    // TODO: refactor this
+    // FIXME: fix this later
+    // @ts-ignore
+    const y = 2;
+  `;
+  const output = minifyJS(input);
+
+  assert(!output.includes('TODO'), 'Should remove TODO comments');
+  assert(!output.includes('FIXME'), 'Should remove FIXME comments');
+  assert(!output.includes('@ts-ignore'), 'Should remove ts-ignore comments');
+});
+
+test('minifyJS handles nested template literals with functions', () => {
+  const input = 'const html = `<div>${items.map(i => `<span>${i}</span>`).join("")}</div>`;';
+  const output = minifyJS(input);
+
+  assert(output.includes('`<div>${items.map'), 'Should preserve outer template');
+  assert(output.includes('`<span>${i}</span>`'), 'Should preserve inner template');
+});
+
+test('minifyJS handles multiline strings with backslash continuation', () => {
+  const input = `const str = "This is a very \\\nlong string";`;
+  const output = minifyJS(input);
+
+  // The backslash-newline continuation should be in the preserved string
+  assert(output.includes('"This is a very'), 'Should preserve multiline string');
+});
+
+test('minifyJS handles comment between tokens', () => {
+  const input = `const x = 1 /* comment */ + 2;`;
+  const output = minifyJS(input);
+
+  assert(!output.includes('comment'), 'Should remove inline comment');
+  assert(output.includes('1') && output.includes('2'), 'Should preserve numbers');
+});
+
+test('minifyJS handles tab characters', () => {
+  const input = `const x\t=\t1;\nconst y\t=\t2;`;
+  const output = minifyJS(input);
+
+  assert(output.includes('const x=1'), 'Should collapse tabs around assignment');
+});
+
+test('minifyJS handles regex after assignment operators', () => {
+  const input = `let pattern = /test/; pattern = /new/;`;
+  const output = minifyJS(input);
+
+  assert(output.includes('/test/'), 'Should preserve first regex');
+  assert(output.includes('/new/'), 'Should preserve reassigned regex');
+});
+
+test('minifyJS handles labeled statements', () => {
+  const input = `outer: for (let i = 0; i < 10; i++) { break outer; }`;
+  const output = minifyJS(input);
+
+  assert(output.includes('outer:'), 'Should preserve label');
+  assert(output.includes('break outer'), 'Should preserve break with label');
+});
+
+test('minifyJS handles getter and setter', () => {
+  const input = `
+    const obj = {
+      _value: 0,
+      get value() { return this._value; },
+      set value(v) { this._value = v; }
+    };
+  `;
+  const output = minifyJS(input);
+
+  assert(output.includes('get value'), 'Should preserve getter');
+  assert(output.includes('set value'), 'Should preserve setter');
+});
+
+test('minifyJS handles static class members', () => {
+  const input = `
+    class MyClass {
+      static count = 0;
+      static increment() { MyClass.count++; }
+    }
+  `;
+  const output = minifyJS(input);
+
+  assert(output.includes('static count'), 'Should preserve static field');
+  assert(output.includes('static increment'), 'Should preserve static method');
+});
+
+test('minifyJS handles private class fields', () => {
+  const input = `
+    class MyClass {
+      #privateField = 0;
+      getPrivate() { return this.#privateField; }
+    }
+  `;
+  const output = minifyJS(input);
+
+  assert(output.includes('#privateField'), 'Should preserve private field');
+});
+
+test('minifyJS preserves string with regex-like content', () => {
+  const input = `const pattern = "/test/g";`;
+  const output = minifyJS(input);
+
+  assert(output.includes('"/test/g"'), 'Should preserve regex-like string');
+});
+
+test('minifyJS handles bigint literals', () => {
+  const input = `const big = 9007199254740991n;`;
+  const output = minifyJS(input);
+
+  assert(output.includes('9007199254740991n'), 'Should preserve bigint');
+});
+
+test('minifyJS handles numeric separators', () => {
+  const input = `const million = 1_000_000;`;
+  const output = minifyJS(input);
+
+  assert(output.includes('1_000_000'), 'Should preserve numeric separators');
+});
+
+test('minifyJS handles octal and hex literals', () => {
+  const input = `const oct = 0o755; const hex = 0xFF;`;
+  const output = minifyJS(input);
+
+  assert(output.includes('0o755'), 'Should preserve octal');
+  assert(output.includes('0xFF'), 'Should preserve hex');
+});
+
+test('minifyJS handles binary literals', () => {
+  const input = `const bin = 0b1010;`;
+  const output = minifyJS(input);
+
+  assert(output.includes('0b1010'), 'Should preserve binary literal');
+});
+
+test('minifyJS handles exponential notation', () => {
+  const input = `const exp = 1e10;`;
+  const output = minifyJS(input);
+
+  assert(output.includes('1e10'), 'Should preserve exponential');
+});
+
+test('minifyJS handles async generators', () => {
+  const input = `async function* asyncGen() { yield await fetch('/'); }`;
+  const output = minifyJS(input);
+
+  assert(output.includes('async function*'), 'Should preserve async generator');
+  assert(output.includes('yield'), 'Should preserve yield');
+});
+
+test('minifyJS handles for-await-of loops', () => {
+  const input = `for await (const item of asyncIterable) { console.log(item); }`;
+  const output = minifyJS(input);
+
+  assert(output.includes('for await'), 'Should preserve for-await-of');
+});
+
+// =============================================================================
+// Minify Boundary Tests
+// =============================================================================
+
+printSection('JavaScript Minification - Boundary Tests');
+
+test('minifyJS handles single character input', () => {
+  const output = minifyJS('x');
+  assertEqual(output, 'x', 'Should handle single character');
+});
+
+test('minifyJS handles single comment only', () => {
+  const output = minifyJS('// just a comment');
+  assertEqual(output, '', 'Should return empty for comment-only input');
+});
+
+test('minifyJS handles block comment only', () => {
+  const output = minifyJS('/* just a comment */');
+  assertEqual(output, '', 'Should return empty for block comment-only input');
+});
+
+test('minifyJS handles single string literal', () => {
+  const output = minifyJS('"hello"');
+  assertEqual(output, '"hello"', 'Should preserve single string');
+});
+
+test('minifyJS handles Unicode in strings', () => {
+  const input = `const emoji = "Hello 👋 World 🌍";`;
+  const output = minifyJS(input);
+
+  assert(output.includes('"Hello 👋 World 🌍"'), 'Should preserve Unicode in strings');
+});
+
+test('minifyJS handles Unicode identifiers', () => {
+  const input = `const 变量 = 1; const naïve = 2;`;
+  const output = minifyJS(input);
+
+  assert(output.includes('变量=1'), 'Should preserve Chinese identifier');
+  assert(output.includes('naïve=2'), 'Should preserve accented identifier');
+});
+
+test('minifyJS handles consecutive string literals', () => {
+  const input = `"a" "b" "c"`;
+  const output = minifyJS(input);
+
+  assert(output.includes('"a"'), 'Should preserve first string');
+  assert(output.includes('"b"'), 'Should preserve second string');
+  assert(output.includes('"c"'), 'Should preserve third string');
+});
+
+// =============================================================================
 // Run Tests
 // =============================================================================
 

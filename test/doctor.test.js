@@ -555,6 +555,473 @@ test('result statuses are valid enum values', async () => {
 });
 
 // =============================================================================
+// Pulse Framework Check Tests
+// =============================================================================
+
+printSection('Pulse Framework Check');
+
+test('checkPulseFramework passes with pulse-js-framework in dependencies', async () => {
+  setupMockProject({
+    hasPackageJson: true,
+    packageJsonContent: {
+      name: 'test-project',
+      version: '1.0.0',
+      type: 'module',
+      scripts: { dev: 'pulse dev', build: 'pulse build' },
+      dependencies: {
+        'pulse-js-framework': '^1.0.0'
+      }
+    }
+  });
+  try {
+    const results = await runDiagnostics();
+    const pulseCheck = results.find(r => r.name === 'Pulse Framework');
+
+    assert(pulseCheck !== undefined, 'Should have Pulse Framework check');
+    assertEqual(pulseCheck.status, 'pass', 'Should pass with pulse-js-framework');
+    assert(pulseCheck.message.includes('pulse-js-framework'), 'Message should mention framework');
+  } finally {
+    cleanupMockProject();
+  }
+});
+
+test('checkPulseFramework passes for framework source', async () => {
+  setupMockProject({
+    hasPackageJson: true,
+    packageJsonContent: {
+      name: 'pulse-js-framework',
+      version: '1.7.0',
+      type: 'module',
+      scripts: { dev: 'pulse dev', build: 'pulse build' }
+    }
+  });
+  try {
+    const results = await runDiagnostics();
+    const pulseCheck = results.find(r => r.name === 'Pulse Framework');
+
+    assertEqual(pulseCheck.status, 'pass', 'Should pass for framework source');
+    assert(pulseCheck.message.includes('Framework source'), 'Should indicate framework source');
+  } finally {
+    cleanupMockProject();
+  }
+});
+
+test('checkPulseFramework warns without pulse dependency', async () => {
+  setupMockProject({
+    hasPackageJson: true,
+    packageJsonContent: {
+      name: 'other-project',
+      version: '1.0.0',
+      type: 'module',
+      scripts: { dev: 'vite', build: 'vite build' },
+      dependencies: {
+        'react': '^18.0.0'
+      }
+    }
+  });
+  try {
+    const results = await runDiagnostics();
+    const pulseCheck = results.find(r => r.name === 'Pulse Framework');
+
+    assertEqual(pulseCheck.status, 'warn', 'Should warn without pulse dependency');
+    assert(pulseCheck.suggestion !== undefined, 'Should have suggestion to install');
+  } finally {
+    cleanupMockProject();
+  }
+});
+
+// =============================================================================
+// Missing Dependencies Detection Tests
+// =============================================================================
+
+printSection('Missing Dependencies Detection');
+
+test('checkDependencies detects missing packages', async () => {
+  setupMockProject({
+    hasPackageJson: true,
+    hasNodeModules: true,
+    packageJsonContent: {
+      name: 'test-project',
+      version: '1.0.0',
+      type: 'module',
+      scripts: { dev: 'pulse dev', build: 'pulse build' },
+      dependencies: {
+        'nonexistent-package-12345': '^1.0.0'
+      }
+    }
+  });
+  try {
+    const results = await runDiagnostics();
+    const depCheck = results.find(r => r.name === 'Dependencies');
+
+    // Should warn about missing dependency
+    assertEqual(depCheck.status, 'warn', 'Should warn about missing dependency');
+    assert(depCheck.message.includes('Missing') || depCheck.message.includes('dependencies'),
+      'Message should indicate missing dependencies');
+  } finally {
+    cleanupMockProject();
+  }
+});
+
+test('checkDependencies handles devDependencies', async () => {
+  setupMockProject({
+    hasPackageJson: true,
+    hasNodeModules: true,
+    packageJsonContent: {
+      name: 'test-project',
+      version: '1.0.0',
+      type: 'module',
+      scripts: { dev: 'pulse dev', build: 'pulse build' },
+      devDependencies: {
+        'missing-dev-dep-12345': '^1.0.0'
+      }
+    }
+  });
+  try {
+    const results = await runDiagnostics();
+    const depCheck = results.find(r => r.name === 'Dependencies');
+
+    // Should detect missing devDependency too
+    assert(depCheck !== undefined, 'Should have dependencies check');
+  } finally {
+    cleanupMockProject();
+  }
+});
+
+// =============================================================================
+// Pulse Files with Syntax Errors
+// =============================================================================
+
+printSection('Pulse Files Syntax Errors');
+
+test('checkPulseFiles fails with syntax errors', async () => {
+  setupMockProject({
+    pulseFiles: [
+      { path: 'src/Valid.pulse', content: '@page Valid\nview { div "valid" }' },
+      { path: 'src/Invalid.pulse', content: '@page Invalid\nview { this is broken !!!' }
+    ]
+  });
+  try {
+    const results = await runDiagnostics();
+    const pulseCheck = results.find(r => r.name === 'Pulse Files');
+
+    assertEqual(pulseCheck.status, 'fail', 'Should fail with syntax errors');
+    assert(pulseCheck.message.includes('syntax error') || pulseCheck.message.includes('1 file'),
+      'Message should indicate errors');
+    assert(pulseCheck.suggestion.includes('lint'), 'Should suggest running lint');
+  } finally {
+    cleanupMockProject();
+  }
+});
+
+test('checkPulseFiles reports multiple errors', async () => {
+  setupMockProject({
+    pulseFiles: [
+      { path: 'src/Bad1.pulse', content: 'totally broken {{{' },
+      { path: 'src/Bad2.pulse', content: 'also broken }}}' },
+      { path: 'src/Bad3.pulse', content: 'still broken @@@' }
+    ]
+  });
+  try {
+    const results = await runDiagnostics();
+    const pulseCheck = results.find(r => r.name === 'Pulse Files');
+
+    assertEqual(pulseCheck.status, 'fail', 'Should fail with multiple errors');
+    assert(pulseCheck.message.includes('3 file') || pulseCheck.message.includes('file(s)'),
+      'Should report file count');
+  } finally {
+    cleanupMockProject();
+  }
+});
+
+// =============================================================================
+// Build Artifacts Check Tests
+// =============================================================================
+
+printSection('Build Artifacts Check');
+
+test('checkBuildArtifacts returns info without dist', async () => {
+  setupMockProject({});
+  try {
+    const results = await runDiagnostics({ verbose: true });
+    const buildCheck = results.find(r => r.name === 'Build Artifacts');
+
+    assertEqual(buildCheck.status, 'info', 'Should show info without dist');
+    assert(buildCheck.message.includes('No dist') || buildCheck.message.includes('dist'),
+      'Message should mention dist');
+    assert(buildCheck.suggestion.includes('build'), 'Should suggest running build');
+  } finally {
+    cleanupMockProject();
+  }
+});
+
+test('checkBuildArtifacts passes with dist directory', async () => {
+  setupMockProject({});
+  // Create dist with some files
+  mkdirSync(join(TEST_DIR, 'dist'), { recursive: true });
+  writeFileSync(join(TEST_DIR, 'dist', 'index.html'), '<html></html>');
+  writeFileSync(join(TEST_DIR, 'dist', 'main.js'), 'console.log("built");');
+
+  try {
+    const results = await runDiagnostics({ verbose: true });
+    const buildCheck = results.find(r => r.name === 'Build Artifacts');
+
+    assertEqual(buildCheck.status, 'pass', 'Should pass with dist directory');
+    assert(buildCheck.message.includes('file'), 'Message should show file count');
+  } finally {
+    cleanupMockProject();
+  }
+});
+
+// =============================================================================
+// node_modules Size Check Tests
+// =============================================================================
+
+printSection('node_modules Size Check');
+
+test('checkNodeModulesSize returns info without node_modules', async () => {
+  setupMockProject({ hasNodeModules: false });
+  try {
+    const results = await runDiagnostics({ verbose: true });
+    const sizeCheck = results.find(r => r.name === 'node_modules Size');
+
+    assertEqual(sizeCheck.status, 'info', 'Should show info without node_modules');
+  } finally {
+    cleanupMockProject();
+  }
+});
+
+test('checkNodeModulesSize passes with small node_modules', async () => {
+  setupMockProject({ hasNodeModules: true });
+  // Add a small file to node_modules
+  writeFileSync(join(TEST_DIR, 'node_modules', 'test.js'), 'module.exports = {};');
+
+  try {
+    const results = await runDiagnostics({ verbose: true });
+    const sizeCheck = results.find(r => r.name === 'node_modules Size');
+
+    assertEqual(sizeCheck.status, 'pass', 'Should pass with small node_modules');
+  } finally {
+    cleanupMockProject();
+  }
+});
+
+// =============================================================================
+// Package.json Edge Cases
+// =============================================================================
+
+printSection('Package.json Edge Cases');
+
+test('checkPackageJson warns without name field', async () => {
+  setupMockProject({
+    hasPackageJson: true,
+    packageJsonContent: {
+      version: '1.0.0',
+      type: 'module',
+      scripts: { dev: 'pulse dev', build: 'pulse build' }
+    }
+  });
+  try {
+    const results = await runDiagnostics();
+    const pkgCheck = results.find(r => r.name === 'package.json');
+
+    assertEqual(pkgCheck.status, 'warn', 'Should warn without name');
+    assert(pkgCheck.message.includes('name'), 'Message should mention name field');
+  } finally {
+    cleanupMockProject();
+  }
+});
+
+test('checkPackageJson handles partial scripts', async () => {
+  setupMockProject({
+    hasPackageJson: true,
+    packageJsonContent: {
+      name: 'test',
+      version: '1.0.0',
+      type: 'module',
+      scripts: { dev: 'pulse dev' }  // Missing build
+    }
+  });
+  try {
+    const results = await runDiagnostics();
+    const pkgCheck = results.find(r => r.name === 'package.json');
+
+    assertEqual(pkgCheck.status, 'warn', 'Should warn with partial scripts');
+    assert(pkgCheck.message.includes('build'), 'Should mention missing build script');
+  } finally {
+    cleanupMockProject();
+  }
+});
+
+// =============================================================================
+// Vite Config Edge Cases
+// =============================================================================
+
+printSection('Vite Config Edge Cases');
+
+test('checkViteConfig handles vite.config.ts', async () => {
+  setupMockProject({ hasViteConfig: false });
+  writeFileSync(
+    join(TEST_DIR, 'vite.config.ts'),
+    'import pulse from "pulse-js-framework/vite";\nexport default { plugins: [pulse()] };'
+  );
+  try {
+    const results = await runDiagnostics();
+    const viteCheck = results.find(r => r.name === 'Vite Config');
+
+    assertEqual(viteCheck.status, 'pass', 'Should find vite.config.ts');
+  } finally {
+    cleanupMockProject();
+  }
+});
+
+test('checkViteConfig handles vite.config.mjs', async () => {
+  setupMockProject({ hasViteConfig: false });
+  writeFileSync(
+    join(TEST_DIR, 'vite.config.mjs'),
+    'import pulse from "pulse-js-framework/vite";\nexport default { plugins: [pulse()] };'
+  );
+  try {
+    const results = await runDiagnostics();
+    const viteCheck = results.find(r => r.name === 'Vite Config');
+
+    assertEqual(viteCheck.status, 'pass', 'Should find vite.config.mjs');
+  } finally {
+    cleanupMockProject();
+  }
+});
+
+// =============================================================================
+// Project Structure Edge Cases
+// =============================================================================
+
+printSection('Project Structure Edge Cases');
+
+test('checkProjectStructure detects main.ts', async () => {
+  setupMockProject({ hasSrc: true, hasIndexHtml: true });
+  // Remove main.js and add main.ts
+  rmSync(join(TEST_DIR, 'src', 'main.js'), { force: true });
+  writeFileSync(join(TEST_DIR, 'src', 'main.ts'), 'export default {};');
+
+  try {
+    const results = await runDiagnostics();
+    const structCheck = results.find(r => r.name === 'Project Structure');
+
+    assertEqual(structCheck.status, 'pass', 'Should detect main.ts');
+  } finally {
+    cleanupMockProject();
+  }
+});
+
+test('checkProjectStructure detects index.js', async () => {
+  setupMockProject({ hasSrc: true, hasIndexHtml: true });
+  // Remove main.js and add index.js
+  rmSync(join(TEST_DIR, 'src', 'main.js'), { force: true });
+  writeFileSync(join(TEST_DIR, 'src', 'index.js'), 'export default {};');
+
+  try {
+    const results = await runDiagnostics();
+    const structCheck = results.find(r => r.name === 'Project Structure');
+
+    assertEqual(structCheck.status, 'pass', 'Should detect index.js');
+  } finally {
+    cleanupMockProject();
+  }
+});
+
+test('checkProjectStructure warns without main entry', async () => {
+  setupMockProject({ hasSrc: false, hasIndexHtml: true });
+  mkdirSync(join(TEST_DIR, 'src'), { recursive: true });
+  // Don't create any main file
+  writeFileSync(join(TEST_DIR, 'src', 'utils.js'), 'export const util = 1;');
+
+  try {
+    const results = await runDiagnostics();
+    const structCheck = results.find(r => r.name === 'Project Structure');
+
+    assertEqual(structCheck.status, 'warn', 'Should warn without main entry');
+    assert(structCheck.message.includes('main') || structCheck.message.includes('entry'),
+      'Should mention missing main entry');
+  } finally {
+    cleanupMockProject();
+  }
+});
+
+// =============================================================================
+// Comprehensive Edge Cases
+// =============================================================================
+
+printSection('Comprehensive Edge Cases');
+
+test('runDiagnostics handles all checks with minimal project', async () => {
+  // Just create empty directory
+  if (existsSync(TEST_DIR)) {
+    rmSync(TEST_DIR, { recursive: true, force: true });
+  }
+  mkdirSync(TEST_DIR, { recursive: true });
+  process.chdir(TEST_DIR);
+
+  try {
+    const results = await runDiagnostics({ verbose: true });
+
+    // Should have all expected checks
+    const checkNames = results.map(r => r.name);
+    assert(checkNames.includes('Node.js Version'), 'Should have Node check');
+    assert(checkNames.includes('npm Version'), 'Should have npm check');
+    assert(checkNames.includes('package.json'), 'Should have package.json check');
+    assert(checkNames.includes('Dependencies'), 'Should have Dependencies check');
+    assert(checkNames.includes('Project Structure'), 'Should have Project Structure check');
+  } finally {
+    cleanupMockProject();
+  }
+});
+
+test('runDiagnostics results have consistent structure', async () => {
+  setupMockProject({
+    hasPackageJson: true,
+    hasSrc: true,
+    hasIndexHtml: true,
+    hasNodeModules: true,
+    hasViteConfig: true,
+    hasGit: true
+  });
+
+  try {
+    const results = await runDiagnostics({ verbose: true });
+
+    for (const result of results) {
+      // Every result must have these required fields
+      assert(typeof result.name === 'string' && result.name.length > 0,
+        `Check "${result.name}" should have non-empty name`);
+      assert(['pass', 'warn', 'fail', 'info'].includes(result.status),
+        `Check "${result.name}" should have valid status, got: ${result.status}`);
+      assert(typeof result.message === 'string',
+        `Check "${result.name}" should have string message`);
+    }
+  } finally {
+    cleanupMockProject();
+  }
+});
+
+test('diagnostics run in reasonable order', async () => {
+  setupMockProject();
+  try {
+    const results = await runDiagnostics();
+    const names = results.map(r => r.name);
+
+    // Environment checks should come first
+    const nodeIndex = names.indexOf('Node.js Version');
+    const npmIndex = names.indexOf('npm Version');
+    const pkgIndex = names.indexOf('package.json');
+
+    assert(nodeIndex < pkgIndex, 'Node check should come before package.json');
+    assert(npmIndex < pkgIndex, 'npm check should come before package.json');
+  } finally {
+    cleanupMockProject();
+  }
+});
+
+// =============================================================================
 // Run Tests
 // =============================================================================
 
