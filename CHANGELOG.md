@@ -5,6 +5,21 @@ All notable changes to Pulse Framework will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.14] - 2026-02-03
+
+### y
+
+### Changed
+
+- update highlighter and styles for new pages
+- add WebSocket, GraphQL, Context, and DevTools pages
+- comprehensive CLAUDE.md improvements
+- add new test scripts to npm test for coverage
+- add comprehensive edge case and stress tests
+- improve coverage for analyze, build, doctor, dom-element, and hmr
+- add DOM element auto-ARIA tests and extend CLI tests
+
+
 ## [1.7.13] - 2026-02-03
 
 ### Accessibility Enhancements

@@ -26,7 +26,24 @@ export function ChangelogPage() {
     
     
     
+    
     <section class="doc-section changelog-section">
+      <h2>v1.7.14 - y</h2>
+      <p class="release-date">February 2026</p>
+
+      <div class="changelog-group">
+        <ul class="feature-list">
+          <li><strong>Changed:</strong> update highlighter and styles for new pages</li>
+          <li><strong>Changed:</strong> add WebSocket, GraphQL, Context, and DevTools pages</li>
+          <li><strong>Changed:</strong> comprehensive CLAUDE.md improvements</li>
+          <li><strong>Changed:</strong> add new test scripts to npm test for coverage</li>
+          <li><strong>Changed:</strong> add comprehensive edge case and stress tests</li>
+          <li><strong>Changed:</strong> improve coverage for analyze, build, doctor, dom-element, and hmr</li>
+          <li><strong>Changed:</strong> add DOM element auto-ARIA tests and extend CLI tests</li>
+        </ul>
+      </div>
+    </section>
+<section class="doc-section changelog-section">
       <h2>v1.7.13 - Accessibility Enhancements</h2>
       <p class="release-date">February 2026</p>
 
