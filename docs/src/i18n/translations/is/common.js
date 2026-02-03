@@ -33,7 +33,9 @@ export default {
     examplesDesc: 'Sýnishorn',
     playground: '🎮 Leikvöllur',
     playgroundDesc: 'Gagnvirkt sandkassa',
-    changelog: '📋 Breytingaskrá'
+    changelog: '📋 Breytingaskrá',
+    migrationReact: '⚛️ Frá React',
+    migrationReactDesc: 'Flutningsleiðbeiningar fyrir React forritara'
   },
 
   // Theme

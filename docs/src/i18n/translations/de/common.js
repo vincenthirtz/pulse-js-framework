@@ -33,7 +33,9 @@ export default {
     examplesDesc: 'Beispielanwendungen',
     playground: '🎮 Spielplatz',
     playgroundDesc: 'Interaktive Sandbox',
-    changelog: '📋 Änderungsprotokoll'
+    changelog: '📋 Änderungsprotokoll',
+    migrationReact: '⚛️ Von React',
+    migrationReactDesc: 'Migrationsanleitung für React-Entwickler'
   },
 
   // Theme

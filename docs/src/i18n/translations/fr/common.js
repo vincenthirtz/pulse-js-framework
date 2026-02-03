@@ -33,7 +33,9 @@ export default {
     examplesDesc: 'Applications exemples',
     playground: '🎮 Bac à sable',
     playgroundDesc: 'Environnement interactif',
-    changelog: '📋 Historique'
+    changelog: '📋 Historique',
+    migrationReact: '⚛️ Depuis React',
+    migrationReactDesc: 'Guide de migration pour les développeurs React'
   },
 
   // Theme

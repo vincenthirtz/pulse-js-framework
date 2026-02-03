@@ -61,7 +61,8 @@ export function Header() {
       labelKey: 'nav.learn',
       children: [
         { path: '/getting-started', labelKey: 'nav.gettingStarted', descKey: 'nav.gettingStartedDesc' },
-        { path: '/core-concepts', labelKey: 'nav.coreConcepts', descKey: 'nav.coreConceptsDesc' }
+        { path: '/core-concepts', labelKey: 'nav.coreConcepts', descKey: 'nav.coreConceptsDesc' },
+        { path: '/migration-react', labelKey: 'nav.migrationReact', descKey: 'nav.migrationReactDesc' }
       ]
     },
     {
@@ -273,6 +274,7 @@ export function Header() {
     { path: '/', labelKey: 'nav.home' },
     { path: '/getting-started', labelKey: 'nav.gettingStarted' },
     { path: '/core-concepts', labelKey: 'nav.coreConcepts' },
+    { path: '/migration-react', labelKey: 'nav.migrationReact' },
     { path: '/api-reference', labelKey: 'nav.apiReference' },
     { path: '/http', labelKey: 'nav.http' },
     { path: '/accessibility', labelKey: 'nav.accessibility' },

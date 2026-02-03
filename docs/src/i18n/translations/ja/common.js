@@ -33,7 +33,9 @@ export default {
     examplesDesc: 'サンプルアプリケーション',
     playground: '🎮 プレイグラウンド',
     playgroundDesc: 'インタラクティブサンドボックス',
-    changelog: '📋 変更履歴'
+    changelog: '📋 変更履歴',
+    migrationReact: '⚛️ Reactから',
+    migrationReactDesc: 'React開発者向け移行ガイド'
   },
 
   // Theme

@@ -28,6 +28,7 @@ import { PerformancePage } from './pages/PerformancePage.js';
 import { ErrorHandlingPage } from './pages/ErrorHandlingPage.js';
 import { HttpPage } from './pages/HttpPage.js';
 import { AccessibilityPage } from './pages/AccessibilityPage.js';
+import { MigrationReactPage } from './pages/MigrationReactPage.js';
 
 // Styles & Utilities
 import { injectStyles } from './styles.js';
@@ -52,7 +53,8 @@ const baseRoutes = {
   '/mobile': MobilePage,
   '/examples': ExamplesPage,
   '/playground': PlaygroundPage,
-  '/changelog': ChangelogPage
+  '/changelog': ChangelogPage,
+  '/migration-react': MigrationReactPage
 };
 
 // Build routes with locale prefixes (fr, es, de)

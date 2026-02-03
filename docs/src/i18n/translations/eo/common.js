@@ -33,7 +33,9 @@ export default {
     examplesDesc: 'Ekzemplaj aplikaĵoj',
     playground: '🎮 Ludejo',
     playgroundDesc: 'Interaga sabloludejo',
-    changelog: '📋 Ŝanĝoprotokolo'
+    changelog: '📋 Ŝanĝoprotokolo',
+    migrationReact: '⚛️ De React',
+    migrationReactDesc: 'Migrada gvidilo por React programistoj'
   },
 
   // Theme
