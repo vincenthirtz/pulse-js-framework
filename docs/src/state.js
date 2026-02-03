@@ -139,7 +139,7 @@ export function getNavigation() {
 }
 
 // Current version - automatically updated by npm version script
-export const version = '1.7.12';
+export const version = '1.7.13';
 
 // =============================================================================
 // Router
