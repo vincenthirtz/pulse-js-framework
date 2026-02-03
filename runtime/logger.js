@@ -381,7 +381,8 @@ export const loggers = {
   get store() { return isProduction ? noopLogger : createDevLogger('Store', {}); },
   get native() { return isProduction ? noopLogger : createDevLogger('Native', {}); },
   get hmr() { return isProduction ? noopLogger : createDevLogger('HMR', {}); },
-  get cli() { return isProduction ? noopLogger : createDevLogger('CLI', {}); }
+  get cli() { return isProduction ? noopLogger : createDevLogger('CLI', {}); },
+  get websocket() { return isProduction ? noopLogger : createDevLogger('WebSocket', {}); }
 };
 
 export default logger;

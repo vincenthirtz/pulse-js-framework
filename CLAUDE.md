@@ -59,6 +59,7 @@ pulse/
 │   ├── form.js          # Form validation and management
 │   ├── async.js         # Async primitives (useAsync, useResource, usePolling)
 │   ├── http.js          # HTTP client (fetch wrapper, interceptors)
+│   ├── websocket.js     # WebSocket client (auto-reconnect, heartbeat, queuing)
 │   ├── a11y.js          # Accessibility (focus, announcements, ARIA)
 │   ├── devtools.js      # Debugging tools (time-travel, dependency graph)
 │   ├── native.js        # Mobile bridge for iOS/Android
@@ -526,6 +527,111 @@ import { http } from 'pulse-js-framework/runtime/http';
 const response = await http.get('https://api.example.com/users');
 ```
 
+### WebSocket (runtime/websocket.js)
+
+```javascript
+import { createWebSocket, useWebSocket, WebSocketError } from 'pulse-js-framework/runtime/websocket';
+
+// Low-level WebSocket with all features
+const ws = createWebSocket('wss://api.example.com/ws', {
+  // Reconnection
+  reconnect: true,              // Enable auto-reconnect (default: true)
+  maxRetries: 5,                // Max reconnection attempts (default: 5)
+  baseDelay: 1000,              // Base delay for backoff (ms)
+  maxDelay: 30000,              // Max delay between retries (ms)
+
+  // Heartbeat
+  heartbeat: true,              // Enable ping/pong (default: false)
+  heartbeatInterval: 30000,     // Ping interval (ms)
+  heartbeatTimeout: 10000,      // Pong timeout (ms)
+
+  // Message handling
+  queueWhileDisconnected: true, // Queue messages when offline (default: true)
+  maxQueueSize: 100,            // Max queued messages (default: 100)
+  autoParseJson: true           // Auto-parse JSON messages (default: true)
+});
+
+// Reactive state (all are Pulses)
+ws.state.get();           // 'connecting' | 'open' | 'closing' | 'closed'
+ws.connected.get();       // true when open
+ws.reconnecting.get();    // true during reconnection
+ws.reconnectAttempt.get(); // Current attempt number
+ws.error.get();           // Last WebSocketError or null
+ws.queuedCount.get();     // Number of queued messages
+
+// Send messages (auto-serializes objects to JSON)
+ws.send({ type: 'subscribe', channel: 'updates' });
+ws.sendJson({ action: 'ping' });           // Explicit JSON
+ws.sendBinary(new Uint8Array([1, 2, 3]));  // Binary data
+
+// Listen for events
+ws.on('open', () => console.log('Connected'));
+ws.on('message', (data) => console.log('Received:', data));
+ws.on('close', (event) => console.log('Closed:', event.code));
+ws.on('error', (error) => console.error('Error:', error));
+
+// Message interceptors
+ws.interceptors.incoming.use(
+  (data) => ({ ...data, timestamp: Date.now() }),
+  (err) => console.error('Parse error:', err)
+);
+
+ws.interceptors.outgoing.use(
+  (data) => JSON.stringify({ ...JSON.parse(data), token: 'abc' })
+);
+
+// Control
+ws.connect();                    // Manual connect
+ws.disconnect(1000, 'Goodbye');  // Close with code/reason
+ws.dispose();                    // Clean up permanently
+
+// === Reactive Hook (recommended) ===
+const {
+  connected,       // Pulse<boolean>
+  lastMessage,     // Pulse<any>
+  messages,        // Pulse<any[]> (if messageHistorySize > 0)
+  error,           // Pulse<WebSocketError | null>
+  reconnecting,    // Pulse<boolean>
+  send,
+  disconnect
+} = useWebSocket('wss://api.example.com/ws', {
+  immediate: true,           // Connect on creation (default: true)
+  messageHistorySize: 100,   // Keep last 100 messages
+  onMessage: (data) => console.log('Message:', data),
+  onOpen: () => console.log('Connected'),
+  onClose: (event) => console.log('Closed'),
+  onError: (error) => console.error('Error:', error)
+});
+
+// Use with effects
+effect(() => {
+  if (connected.get()) {
+    send({ type: 'subscribe', channel: 'updates' });
+  }
+});
+
+effect(() => {
+  const msg = lastMessage.get();
+  if (msg) {
+    console.log('Latest message:', msg);
+  }
+});
+
+// Error handling
+try {
+  ws.send({ type: 'test' });
+} catch (error) {
+  if (WebSocketError.isWebSocketError(error)) {
+    error.code;        // 'CONNECT_FAILED' | 'CLOSE' | 'TIMEOUT' | 'SEND_FAILED' | ...
+    error.closeCode;   // WebSocket close code (1000, 1006, etc.)
+    error.closeReason; // Close reason string
+    error.isTimeout();       // true if connection timeout
+    error.isConnectFailed(); // true if connection failed
+    error.isSendFailed();    // true if send failed
+  }
+}
+```
+
 ### Native (runtime/native.js)
 
 ```javascript
@@ -959,6 +1065,7 @@ view {
 | `runtime/form.js` | Form handling (useForm, useField, useFieldArray, validators) |
 | `runtime/async.js` | Async primitives (useAsync, useResource, usePolling, createVersionedAsync) |
 | `runtime/http.js` | HTTP client (createHttp, HttpError, useHttp, useHttpResource, interceptors) |
+| `runtime/websocket.js` | WebSocket client (createWebSocket, useWebSocket, auto-reconnect, heartbeat) |
 | `runtime/a11y.js` | Accessibility (announce, trapFocus, validateA11y, ARIA helpers) |
 | `runtime/devtools.js` | Dev tools (trackedPulse, time-travel, dependency graph, profiling, a11y audit) |
 | `runtime/native.js` | Native mobile bridge (storage, device, UI, lifecycle) |
@@ -1009,6 +1116,9 @@ import { useAsync, useResource, usePolling, createVersionedAsync } from 'pulse-j
 
 // HTTP
 import { createHttp, http, HttpError, useHttp, useHttpResource } from 'pulse-js-framework/runtime/http';
+
+// WebSocket
+import { createWebSocket, useWebSocket, WebSocketError } from 'pulse-js-framework/runtime/websocket';
 
 // Accessibility
 import { announce, trapFocus, createPreferences, validateA11y } from 'pulse-js-framework/runtime/a11y';

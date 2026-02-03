@@ -10,6 +10,7 @@ export * from './native.js';
 export * from './logger.js';
 export * from './a11y.js';
 export * from './context.js';
+export * from './websocket.js';
 
 export { default as PulseCore } from './pulse.js';
 export { default as PulseDOM } from './dom.js';
@@ -19,3 +20,4 @@ export { default as PulseNative } from './native.js';
 export { default as PulseLogger } from './logger.js';
 export { default as PulseA11y } from './a11y.js';
 export { default as PulseContext } from './context.js';
+export { default as PulseWebSocket } from './websocket.js';
