@@ -50,7 +50,10 @@ export const navStructure = [
     labelKey: 'nav.learn',
     children: [
       { path: '/getting-started', labelKey: 'nav.gettingStarted', descKey: 'nav.gettingStartedDesc' },
-      { path: '/core-concepts', labelKey: 'nav.coreConcepts', descKey: 'nav.coreConceptsDesc' }
+      { path: '/core-concepts', labelKey: 'nav.coreConcepts', descKey: 'nav.coreConceptsDesc' },
+      { path: '/migration-react', labelKey: 'nav.migrationReact', descKey: 'nav.migrationReactDesc' },
+      { path: '/migration-angular', labelKey: 'nav.migrationAngular', descKey: 'nav.migrationAngularDesc' },
+      { path: '/migration-vue', labelKey: 'nav.migrationVue', descKey: 'nav.migrationVueDesc' }
     ]
   },
   {
@@ -58,11 +61,25 @@ export const navStructure = [
     children: [
       { path: '/api-reference', labelKey: 'nav.apiReference', descKey: 'nav.apiReferenceDesc' },
       { path: '/http', labelKey: 'nav.http', descKey: 'nav.httpDesc' },
-      { path: '/accessibility', labelKey: 'nav.accessibility', descKey: 'nav.accessibilityDesc' },
+      { path: '/websocket', labelKey: 'nav.websocket', descKey: 'nav.websocketDesc' },
+      { path: '/graphql', labelKey: 'nav.graphql', descKey: 'nav.graphqlDesc' },
+      { path: '/context', labelKey: 'nav.context', descKey: 'nav.contextDesc' }
+    ]
+  },
+  {
+    labelKey: 'nav.tools',
+    children: [
+      { path: '/devtools', labelKey: 'nav.devtools', descKey: 'nav.devtoolsDesc' },
       { path: '/debugging', labelKey: 'nav.debugging', descKey: 'nav.debuggingDesc' },
+      { path: '/benchmarks', labelKey: 'nav.benchmarks', descKey: 'nav.benchmarksDesc' }
+    ]
+  },
+  {
+    labelKey: 'nav.guides',
+    children: [
+      { path: '/accessibility', labelKey: 'nav.accessibility', descKey: 'nav.accessibilityDesc' },
       { path: '/security', labelKey: 'nav.security', descKey: 'nav.securityDesc' },
       { path: '/performance', labelKey: 'nav.performance', descKey: 'nav.performanceDesc' },
-      { path: '/benchmarks', labelKey: 'nav.benchmarks', descKey: 'nav.benchmarksDesc' },
       { path: '/error-handling', labelKey: 'nav.errorHandling', descKey: 'nav.errorHandlingDesc' },
       { path: '/mobile', labelKey: 'nav.mobile', descKey: 'nav.mobileDesc' }
     ]
@@ -74,14 +91,6 @@ export const navStructure = [
       { path: '/playground', labelKey: 'nav.playground', descKey: 'nav.playgroundDesc' }
     ]
   },
-  {
-    labelKey: 'nav.migration',
-    children: [
-      { path: '/migration-react', labelKey: 'nav.migrationReact', descKey: 'nav.migrationReactDesc' },
-      { path: '/migration-angular', labelKey: 'nav.migrationAngular', descKey: 'nav.migrationAngularDesc' },
-      { path: '/migration-vue', labelKey: 'nav.migrationVue', descKey: 'nav.migrationVueDesc' }
-    ]
-  }
 ];
 
 /**
@@ -93,6 +102,10 @@ export const navStructureFlat = [
   { path: '/core-concepts', labelKey: 'nav.coreConcepts' },
   { path: '/api-reference', labelKey: 'nav.apiReference' },
   { path: '/http', labelKey: 'nav.http' },
+  { path: '/websocket', labelKey: 'nav.websocket' },
+  { path: '/graphql', labelKey: 'nav.graphql' },
+  { path: '/context', labelKey: 'nav.context' },
+  { path: '/devtools', labelKey: 'nav.devtools' },
   { path: '/accessibility', labelKey: 'nav.accessibility' },
   { path: '/debugging', labelKey: 'nav.debugging' },
   { path: '/security', labelKey: 'nav.security' },

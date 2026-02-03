@@ -32,6 +32,10 @@ import { MigrationReactPage } from './pages/MigrationReactPage.js';
 import { MigrationAngularPage } from './pages/MigrationAngularPage.js';
 import { MigrationVuePage } from './pages/MigrationVuePage.js';
 import { BenchmarksPage } from './pages/BenchmarksPage.js';
+import { WebSocketPage } from './pages/WebSocketPage.js';
+import { GraphQLPage } from './pages/GraphQLPage.js';
+import { ContextPage } from './pages/ContextPage.js';
+import { DevToolsPage } from './pages/DevToolsPage.js';
 
 // Styles & Utilities
 import { injectStyles } from './styles.js';
@@ -60,7 +64,11 @@ const baseRoutes = {
   '/migration-react': MigrationReactPage,
   '/migration-angular': MigrationAngularPage,
   '/migration-vue': MigrationVuePage,
-  '/benchmarks': BenchmarksPage
+  '/benchmarks': BenchmarksPage,
+  '/websocket': WebSocketPage,
+  '/graphql': GraphQLPage,
+  '/context': ContextPage,
+  '/devtools': DevToolsPage
 };
 
 // Build routes with locale prefixes (fr, es, de)
