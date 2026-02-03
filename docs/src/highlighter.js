@@ -10,9 +10,9 @@ export function highlightCode(code, lang = 'js') {
   const tokens = [];
   let tokenId = 0;
 
-  // Helper to replace with token placeholder (using letters to avoid number matching)
+  // Helper to replace with token placeholder (using unique markers that won't be stripped)
   function tokenize(match, className) {
-    const id = `\x00TK${tokenId++}\x00`;
+    const id = `\u2060TK${tokenId++}\u2060`;
     tokens.push({ id, html: `<span class="${className}">${escapeHtml(match)}</span>` });
     return id;
   }
@@ -38,7 +38,7 @@ export function highlightCode(code, lang = 'js') {
     result = result.replace(new RegExp(`\\b(${keywords})\\b`, 'g'), m => tokenize(m, 'hljs-keyword'));
 
     // 6. Numbers (but not inside token placeholders)
-    result = result.replace(/(?<!\x00TK)\b(\d+\.?\d*)\b/g, m => tokenize(m, 'hljs-number'));
+    result = result.replace(/(?<!\u2060TK)\b(\d+\.?\d*)\b/g, m => tokenize(m, 'hljs-number'));
 
     // 7. Function calls
     result = result.replace(/\b([a-zA-Z_]\w*)\s*\(/g, (m, fn) => tokenize(fn, 'hljs-function') + '(');
