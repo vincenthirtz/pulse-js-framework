@@ -5,6 +5,25 @@ All notable changes to Pulse Framework will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.10] - 2026-02-03
+
+### Security & DevTools Improvements
+
+### Added
+
+- security module, devtools refactoring, and lint auto-fix
+- add accessibility row to comparison table
+- add accessibility page to navigation menu
+- comprehensive accessibility system
+- use French sports sources (L'Équipe, Sports.fr)
+- add sports news example with HTTP client
+
+### Fixed
+
+- fix syntax highlighter token markers
+- add accessibility to Header navigation
+
+
 ## [1.7.9] - 2026-02-02
 
 ### HTTP Client

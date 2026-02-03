@@ -22,7 +22,25 @@ export function ChangelogPage() {
     
     
     
+    
     <section class="doc-section changelog-section">
+      <h2>v1.7.10 - Security & DevTools Improvements</h2>
+      <p class="release-date">February 2026</p>
+
+      <div class="changelog-group">
+        <ul class="feature-list">
+          <li><strong>Added:</strong> security module, devtools refactoring, and lint auto-fix</li>
+          <li><strong>Added:</strong> add accessibility row to comparison table</li>
+          <li><strong>Added:</strong> add accessibility page to navigation menu</li>
+          <li><strong>Added:</strong> comprehensive accessibility system</li>
+          <li><strong>Added:</strong> use French sports sources (L'Équipe, Sports.fr)</li>
+          <li><strong>Added:</strong> add sports news example with HTTP client</li>
+          <li><strong>Fixed:</strong> fix syntax highlighter token markers</li>
+          <li><strong>Fixed:</strong> add accessibility to Header navigation</li>
+        </ul>
+      </div>
+    </section>
+<section class="doc-section changelog-section">
       <h2>v1.7.9 - HTTP Client</h2>
       <p class="release-date">February 2026</p>
 
