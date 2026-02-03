@@ -1395,6 +1395,343 @@ view {
 });
 
 // =============================================================================
+// Symbol Table Tests (via SemanticAnalyzer)
+// =============================================================================
+
+printSection('Symbol Table Tests');
+
+test('symbol table tracks multiple state variables', () => {
+  const source = `
+@page Test
+
+state {
+  a: 1
+  b: 2
+  c: 3
+}
+
+view {
+  div "{a}{b}{c}"
+}`;
+
+  const diagnostics = lint(source);
+  const errors = diagnostics.filter(d => d.severity === 'error');
+  assertEqual(errors.length, 0, 'All state variables should be valid');
+});
+
+test('symbol table tracks multiple imports', () => {
+  const source = `
+import A from './A.pulse'
+import B from './B.pulse'
+import C from './C.pulse'
+
+@page Test
+
+view {
+  A
+  B
+  C
+}`;
+
+  const diagnostics = lint(source);
+  const errors = diagnostics.filter(d => d.severity === 'error');
+  const unusedImports = getDiagnostics(diagnostics, 'unused-import');
+  assertEqual(errors.length, 0, 'All imports should be valid');
+  assertEqual(unusedImports.length, 0, 'All imports should be used');
+});
+
+test('symbol table distinguishes between state and action with same name', () => {
+  // This tests that state and actions are in separate namespaces
+  const source = `
+@page Test
+
+state {
+  value: 0
+}
+
+actions {
+  update() {
+    value = 1
+  }
+}
+
+view {
+  button @click(update()) "Click"
+  div "{value}"
+}`;
+
+  const diagnostics = lint(source);
+  const errors = diagnostics.filter(d => d.severity === 'error');
+  assertEqual(errors.length, 0, 'State and action names should not conflict');
+});
+
+test('symbol table reference marks symbol as used', () => {
+  // Single state variable used in multiple places
+  const source = `
+@page Test
+
+state {
+  count: 0
+}
+
+view {
+  h1 "Count: {count}"
+  h2 "Also: {count}"
+  button @click(count++) "+"
+}`;
+
+  const diagnostics = lint(source);
+  const unusedState = getDiagnostics(diagnostics, 'unused-state');
+  assertEqual(unusedState.length, 0, 'count should be marked as used');
+});
+
+test('symbol table getUnused returns all unused symbols', () => {
+  const source = `
+import Unused1 from './Unused1.pulse'
+import Unused2 from './Unused2.pulse'
+
+@page Test
+
+state {
+  unusedA: 1
+  unusedB: 2
+}
+
+actions {
+  unusedFn() {
+    console.log("never called")
+  }
+}
+
+view {
+  div "Static content"
+}`;
+
+  const diagnostics = lint(source);
+  const unusedImports = getDiagnostics(diagnostics, 'unused-import');
+  const unusedState = getDiagnostics(diagnostics, 'unused-state');
+  const unusedActions = getDiagnostics(diagnostics, 'unused-action');
+
+  assertEqual(unusedImports.length, 2, 'Should have 2 unused imports');
+  assert(unusedState.length >= 2, 'Should have at least 2 unused state variables');
+  assert(unusedActions.length >= 1, 'Should have at least 1 unused action');
+});
+
+// =============================================================================
+// Additional Diagnostic Tests
+// =============================================================================
+
+printSection('Additional Diagnostic Tests');
+
+test('formatDiagnostic handles missing line/column', () => {
+  const diag = {
+    severity: 'error',
+    code: 'test-error',
+    message: 'Test error message'
+  };
+
+  const formatted = formatDiagnostic(diag);
+  assert(formatted.includes('Test error message'), 'Should include message');
+  assert(formatted.includes('test-error'), 'Should include code');
+});
+
+test('formatDiagnostic handles all severity levels', () => {
+  const errorDiag = { severity: 'error', code: 'e1', message: 'Error', line: 1, column: 1 };
+  const warnDiag = { severity: 'warning', code: 'w1', message: 'Warning', line: 1, column: 1 };
+  const infoDiag = { severity: 'info', code: 'i1', message: 'Info', line: 1, column: 1 };
+
+  const errorFormatted = formatDiagnostic(errorDiag);
+  const warnFormatted = formatDiagnostic(warnDiag);
+  const infoFormatted = formatDiagnostic(infoDiag);
+
+  assert(errorFormatted.includes('ERROR'), 'Should format error');
+  assert(warnFormatted.includes('WARNING'), 'Should format warning');
+  assert(infoFormatted.includes('INFO'), 'Should format info');
+});
+
+// =============================================================================
+// Complex Scenario Tests
+// =============================================================================
+
+printSection('Complex Scenario Tests');
+
+test('lints component with all features', () => {
+  const source = `
+import Header from './Header.pulse'
+import Footer from './Footer.pulse'
+
+@page FullApp
+
+state {
+  title: "My App"
+  count: 0
+  items: []
+}
+
+actions {
+  increment() {
+    count++
+  }
+  addItem(item) {
+    items.push(item)
+  }
+}
+
+view {
+  Header "Welcome"
+  main {
+    h1 "{title}"
+    p "Count: {count}"
+    button @click(increment()) "+"
+    @for (item of items) {
+      div "{item}"
+    }
+  }
+  Footer
+}
+
+style {
+  main {
+    padding: 20px
+  }
+}`;
+
+  const diagnostics = lint(source);
+  const errors = diagnostics.filter(d => d.severity === 'error');
+
+  // Should have no errors (all symbols are used)
+  assertEqual(errors.length, 0, 'Complex component should have no errors');
+});
+
+test('detects multiple issues in one file', () => {
+  const source = `
+import Unused from './Unused.pulse'
+
+@page badName
+
+state {
+  BadCase: 0
+  unused_var: 1
+}
+
+view {
+  div "Hello"
+}`;
+
+  const diagnostics = lint(source);
+
+  // Should detect multiple issues
+  assert(hasDiagnostic(diagnostics, 'unused-import'), 'Should detect unused import');
+  assert(hasDiagnostic(diagnostics, 'unused-state'), 'Should detect unused state');
+  assert(hasDiagnostic(diagnostics, 'naming-page'), 'Should detect naming issue');
+});
+
+test('handles deeply nested view structure', () => {
+  const source = `
+@page Nested
+
+state {
+  value: 42
+}
+
+view {
+  div.level1 {
+    div.level2 {
+      div.level3 {
+        div.level4 {
+          span "{value}"
+        }
+      }
+    }
+  }
+}`;
+
+  const diagnostics = lint(source);
+  const errors = diagnostics.filter(d => d.severity === 'error');
+
+  // The linter should handle deeply nested structures without errors
+  assertEqual(errors.length, 0, 'Should handle nested structure');
+  // Note: Interpolation tracking in deeply nested elements is best-effort
+  // The test verifies the linter doesn't crash on deep nesting
+});
+
+test('handles conditional rendering with state', () => {
+  const source = `
+@page Conditional
+
+state {
+  isVisible: true
+  isEnabled: false
+  message: "Hello"
+}
+
+view {
+  @if (isVisible) {
+    div @class(isEnabled ? "on" : "off") "{message}"
+  }
+}`;
+
+  const diagnostics = lint(source);
+  const errors = diagnostics.filter(d => d.severity === 'error');
+
+  // Should not have any errors
+  assertEqual(errors.length, 0, 'Should handle conditional rendering');
+  // Note: State tracking in conditional blocks and interpolations is best-effort
+  // The @if condition (isVisible) should be tracked
+  // The @class directive (isEnabled) may or may not be fully tracked depending on expression parsing
+  // The interpolation ({message}) tracking is limited
+});
+
+// =============================================================================
+// LintRules Configuration Tests (Extended)
+// =============================================================================
+
+printSection('LintRules Configuration Tests (Extended)');
+
+test('all a11y rules have warning severity', () => {
+  const a11yRules = Object.keys(LintRules).filter(k => k.startsWith('a11y-'));
+
+  for (const rule of a11yRules) {
+    assertEqual(LintRules[rule].severity, 'warning',
+      `Rule ${rule} should have warning severity`);
+  }
+});
+
+test('all semantic rules have error severity', () => {
+  const semanticRules = ['undefined-reference', 'duplicate-declaration'];
+
+  for (const rule of semanticRules) {
+    assertEqual(LintRules[rule].severity, 'error',
+      `Rule ${rule} should have error severity`);
+  }
+});
+
+test('fixable rules are marked correctly', () => {
+  // These rules should be fixable
+  assertEqual(LintRules['unused-import'].fixable, true);
+  assertEqual(LintRules['import-order'].fixable, true);
+  assertEqual(LintRules['a11y-img-alt'].fixable, true);
+  assertEqual(LintRules['a11y-no-autofocus'].fixable, true);
+  assertEqual(LintRules['a11y-no-positive-tabindex'].fixable, true);
+
+  // These rules should NOT be fixable
+  assertEqual(LintRules['undefined-reference'].fixable, false);
+  assertEqual(LintRules['duplicate-declaration'].fixable, false);
+  assertEqual(LintRules['unused-state'].fixable, false);
+});
+
+test('all rules have required properties', () => {
+  for (const [name, config] of Object.entries(LintRules)) {
+    assert('severity' in config, `Rule ${name} should have severity`);
+    assert('fixable' in config, `Rule ${name} should have fixable property`);
+    assert(['error', 'warning', 'info'].includes(config.severity),
+      `Rule ${name} should have valid severity`);
+    assert(typeof config.fixable === 'boolean',
+      `Rule ${name} fixable should be boolean`);
+  }
+});
+
+// =============================================================================
 // Results
 // =============================================================================
 

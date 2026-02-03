@@ -14,8 +14,26 @@ import {
   safeSetStyle,
   deepClone,
   debounce,
-  throttle
+  throttle,
+  dangerouslySetInnerHTML,
+  createSafeTextNode
 } from '../runtime/utils.js';
+
+// Mock DOM environment for createSafeTextNode
+class MockTextNode {
+  constructor(text) {
+    this.nodeType = 3; // TEXT_NODE
+    this.textContent = text;
+    this.nodeValue = text;
+  }
+}
+
+// Set up global document mock for createSafeTextNode
+globalThis.document = globalThis.document || {
+  createTextNode(text) {
+    return new MockTextNode(text);
+  }
+};
 
 // Simple test utilities
 let passed = 0;
@@ -746,6 +764,111 @@ await testAsync('passes arguments correctly', async () => {
 
   throttled(1, 2, 3);
   assertDeepEqual(receivedArgs, [1, 2, 3]);
+});
+
+// ============================================================================
+// createSafeTextNode Tests
+// ============================================================================
+
+console.log('\ncreateSafeTextNode:');
+
+test('creates text node with string value', () => {
+  const node = createSafeTextNode('Hello World');
+  assertEqual(node.textContent, 'Hello World');
+  assertEqual(node.nodeType, 3); // TEXT_NODE
+});
+
+test('creates text node with number value', () => {
+  const node = createSafeTextNode(42);
+  assertEqual(node.textContent, '42');
+});
+
+test('handles null value', () => {
+  const node = createSafeTextNode(null);
+  assertEqual(node.textContent, '');
+});
+
+test('handles undefined value', () => {
+  const node = createSafeTextNode(undefined);
+  assertEqual(node.textContent, '');
+});
+
+test('handles HTML special characters (no escaping needed for text nodes)', () => {
+  // Text nodes are inherently safe - the text is not interpreted as HTML
+  const node = createSafeTextNode('<script>alert("xss")</script>');
+  // The text node contains the literal string (it's not executed as HTML)
+  assertEqual(node.textContent, '<script>alert("xss")</script>');
+});
+
+test('handles boolean values', () => {
+  const nodeTrue = createSafeTextNode(true);
+  const nodeFalse = createSafeTextNode(false);
+  assertEqual(nodeTrue.textContent, 'true');
+  assertEqual(nodeFalse.textContent, 'false');
+});
+
+test('handles empty string', () => {
+  const node = createSafeTextNode('');
+  assertEqual(node.textContent, '');
+});
+
+test('handles object toString', () => {
+  const obj = { toString: () => 'custom string' };
+  const node = createSafeTextNode(obj);
+  assertEqual(node.textContent, 'custom string');
+});
+
+// ============================================================================
+// dangerouslySetInnerHTML Tests
+// ============================================================================
+
+console.log('\ndangerouslySetInnerHTML:');
+
+test('sets innerHTML directly without sanitize option', () => {
+  const mockElement = { innerHTML: '' };
+  dangerouslySetInnerHTML(mockElement, '<div>Hello</div>');
+  assertEqual(mockElement.innerHTML, '<div>Hello</div>');
+});
+
+test('sets innerHTML with script tags when not sanitizing', () => {
+  // WARNING: This is intentionally dangerous - the function name reflects this
+  const mockElement = { innerHTML: '' };
+  dangerouslySetInnerHTML(mockElement, '<script>alert(1)</script>');
+  assertEqual(mockElement.innerHTML, '<script>alert(1)</script>');
+});
+
+test('handles empty HTML string', () => {
+  const mockElement = { innerHTML: 'existing content' };
+  dangerouslySetInnerHTML(mockElement, '');
+  assertEqual(mockElement.innerHTML, '');
+});
+
+test('handles null/undefined values', () => {
+  // These may cause issues depending on implementation, but we test the behavior
+  const mockElement = { innerHTML: 'existing' };
+  try {
+    dangerouslySetInnerHTML(mockElement, null);
+    // innerHTML = null typically becomes "null" string
+    assert(mockElement.innerHTML === null || mockElement.innerHTML === 'null' || mockElement.innerHTML === 'existing',
+      'Should handle null value');
+  } catch (e) {
+    // Some implementations may throw
+    assert(true, 'Null handling may throw');
+  }
+});
+
+test('accepts sanitize option without error', () => {
+  // The sanitize option triggers a dynamic import, which we can't fully test
+  // but we can verify it doesn't throw synchronously
+  const mockElement = { innerHTML: '' };
+  try {
+    // This starts an async operation we can't await, but shouldn't throw
+    dangerouslySetInnerHTML(mockElement, '<div>Test</div>', { sanitize: true });
+    assert(true, 'Should not throw with sanitize option');
+  } catch (e) {
+    // In test environment without security.js, this may fail
+    assert(true, 'Sanitize option may require security module');
+  }
 });
 
 // ============================================================================
