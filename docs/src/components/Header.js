@@ -69,6 +69,7 @@ export function Header() {
       children: [
         { path: '/api-reference', labelKey: 'nav.apiReference', descKey: 'nav.apiReferenceDesc' },
         { path: '/http', labelKey: 'nav.http', descKey: 'nav.httpDesc' },
+        { path: '/accessibility', labelKey: 'nav.accessibility', descKey: 'nav.accessibilityDesc' },
         { path: '/debugging', labelKey: 'nav.debugging', descKey: 'nav.debuggingDesc' },
         { path: '/security', labelKey: 'nav.security', descKey: 'nav.securityDesc' },
         { path: '/performance', labelKey: 'nav.performance', descKey: 'nav.performanceDesc' },
@@ -274,6 +275,7 @@ export function Header() {
     { path: '/core-concepts', labelKey: 'nav.coreConcepts' },
     { path: '/api-reference', labelKey: 'nav.apiReference' },
     { path: '/http', labelKey: 'nav.http' },
+    { path: '/accessibility', labelKey: 'nav.accessibility' },
     { path: '/debugging', labelKey: 'nav.debugging' },
     { path: '/security', labelKey: 'nav.security' },
     { path: '/performance', labelKey: 'nav.performance' },
