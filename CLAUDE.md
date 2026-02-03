@@ -60,6 +60,7 @@ pulse/
 │   ├── async.js         # Async primitives (useAsync, useResource, usePolling)
 │   ├── http.js          # HTTP client (fetch wrapper, interceptors)
 │   ├── websocket.js     # WebSocket client (auto-reconnect, heartbeat, queuing)
+│   ├── graphql.js       # GraphQL client (queries, mutations, subscriptions)
 │   ├── a11y.js          # Accessibility (focus, announcements, ARIA)
 │   ├── devtools.js      # Debugging tools (time-travel, dependency graph)
 │   ├── native.js        # Mobile bridge for iOS/Android
@@ -632,6 +633,130 @@ try {
 }
 ```
 
+### GraphQL (runtime/graphql.js)
+
+```javascript
+import {
+  createGraphQLClient, useQuery, useMutation, useSubscription, GraphQLError
+} from 'pulse-js-framework/runtime/graphql';
+
+// Create GraphQL client
+const client = createGraphQLClient({
+  url: 'https://api.example.com/graphql',
+  wsUrl: 'wss://api.example.com/graphql',  // For subscriptions
+  headers: { 'Authorization': 'Bearer token' },
+  timeout: 30000,                          // Request timeout (ms)
+  cache: true,                             // Enable query caching (default: true)
+  staleTime: 5000,                         // Data fresh for 5s
+  dedupe: true                             // Deduplicate in-flight queries
+});
+
+// Set as default for hooks
+import { setDefaultClient } from 'pulse-js-framework/runtime/graphql';
+setDefaultClient(client);
+
+// === Query with caching (SWR pattern) ===
+const { data, loading, error, refetch, isStale } = useQuery(
+  `query GetUsers($limit: Int) {
+    users(limit: $limit) { id name email }
+  }`,
+  { limit: 10 },
+  {
+    staleTime: 30000,           // Data fresh for 30s
+    refetchOnFocus: true,       // Refetch when tab gains focus
+    refetchInterval: 60000,     // Poll every 60s
+    onSuccess: (data) => console.log('Loaded:', data)
+  }
+);
+
+// Use in effects
+effect(() => {
+  if (loading.get()) return el('.spinner');
+  if (error.get()) return el('.error', error.get().message);
+  return el('ul', data.get()?.users.map(u => el('li', u.name)));
+});
+
+// === Mutation with optimistic updates ===
+const { mutate, loading: saving } = useMutation(
+  `mutation CreateUser($input: CreateUserInput!) {
+    createUser(input: $input) { id name }
+  }`,
+  {
+    onMutate: (variables) => {
+      // Optimistic update - return rollback context
+      const previous = usersCache.get();
+      usersCache.update(users => [...users, { id: 'temp', ...variables.input }]);
+      return { previous };
+    },
+    onError: (error, variables, context) => {
+      // Rollback on error
+      usersCache.set(context.previous);
+    },
+    onSuccess: (data) => console.log('Created:', data),
+    invalidateQueries: ['gql:GetUsers']  // Invalidate related queries
+  }
+);
+
+// Execute mutation
+await mutate({ input: { name: 'John', email: 'john@example.com' } });
+
+// === Subscription (graphql-ws protocol) ===
+const { data: liveData, status, unsubscribe } = useSubscription(
+  `subscription OnNewMessage($channelId: ID!) {
+    messageAdded(channelId: $channelId) { id content author createdAt }
+  }`,
+  { channelId: '123' },
+  {
+    onData: (message) => {
+      notifications.update(n => [...n, message]);
+    },
+    shouldResubscribe: true  // Auto-resubscribe on error
+  }
+);
+
+// Reactive subscription with dynamic variables
+const channelId = pulse('123');
+const { data: messages } = useSubscription(
+  `subscription OnMessage($channelId: ID!) {
+    messageAdded(channelId: $channelId) { id content }
+  }`,
+  () => ({ channelId: channelId.get() }),  // Reactive variables
+  { enabled: computed(() => !!channelId.get()) }
+);
+
+// === Error handling ===
+try {
+  await client.query('query { user { id } }');
+} catch (error) {
+  if (GraphQLError.isGraphQLError(error)) {
+    error.code;                    // 'GRAPHQL_ERROR' | 'NETWORK_ERROR' | 'TIMEOUT' | ...
+    error.errors;                  // GraphQL errors array
+    error.data;                    // Partial data (if any)
+    error.hasPartialData();        // true if response has partial data
+    error.isAuthenticationError(); // true if UNAUTHENTICATED
+    error.isValidationError();     // true if BAD_USER_INPUT
+    error.getFirstError();         // First error message
+    error.getAllErrors();          // All error messages
+  }
+}
+
+// === Interceptors ===
+client.interceptors.request.use((config) => {
+  // Add timestamp to all requests
+  return { ...config, timestamp: Date.now() };
+});
+
+client.interceptors.response.use((result) => {
+  // Transform all responses
+  return { ...result, cached: true };
+});
+
+// === Cache management ===
+client.invalidate('gql:GetUsers');  // Invalidate specific query
+client.invalidateAll();              // Clear all cache
+client.getCacheStats();              // { size, keys }
+```
+
 ### Native (runtime/native.js)
 
 ```javascript
@@ -1066,6 +1191,7 @@ view {
 | `runtime/async.js` | Async primitives (useAsync, useResource, usePolling, createVersionedAsync) |
 | `runtime/http.js` | HTTP client (createHttp, HttpError, useHttp, useHttpResource, interceptors) |
 | `runtime/websocket.js` | WebSocket client (createWebSocket, useWebSocket, auto-reconnect, heartbeat) |
+| `runtime/graphql.js` | GraphQL client (createGraphQLClient, useQuery, useMutation, useSubscription) |
 | `runtime/a11y.js` | Accessibility (announce, trapFocus, validateA11y, ARIA helpers) |
 | `runtime/devtools.js` | Dev tools (trackedPulse, time-travel, dependency graph, profiling, a11y audit) |
 | `runtime/native.js` | Native mobile bridge (storage, device, UI, lifecycle) |
@@ -1119,6 +1245,9 @@ import { createHttp, http, HttpError, useHttp, useHttpResource } from 'pulse-js-
 
 // WebSocket
 import { createWebSocket, useWebSocket, WebSocketError } from 'pulse-js-framework/runtime/websocket';
+
+// GraphQL
+import { createGraphQLClient, useQuery, useMutation, useSubscription, GraphQLError } from 'pulse-js-framework/runtime/graphql';
 
 // Accessibility
 import { announce, trapFocus, createPreferences, validateA11y } from 'pulse-js-framework/runtime/a11y';
