@@ -29,6 +29,8 @@ import { ErrorHandlingPage } from './pages/ErrorHandlingPage.js';
 import { HttpPage } from './pages/HttpPage.js';
 import { AccessibilityPage } from './pages/AccessibilityPage.js';
 import { MigrationReactPage } from './pages/MigrationReactPage.js';
+import { MigrationAngularPage } from './pages/MigrationAngularPage.js';
+import { MigrationVuePage } from './pages/MigrationVuePage.js';
 import { BenchmarksPage } from './pages/BenchmarksPage.js';
 
 // Styles & Utilities
@@ -56,6 +58,8 @@ const baseRoutes = {
   '/playground': PlaygroundPage,
   '/changelog': ChangelogPage,
   '/migration-react': MigrationReactPage,
+  '/migration-angular': MigrationAngularPage,
+  '/migration-vue': MigrationVuePage,
   '/benchmarks': BenchmarksPage
 };
 

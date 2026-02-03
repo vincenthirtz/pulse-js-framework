@@ -34,8 +34,13 @@ export default {
     playground: '🎮 Leikvöllur',
     playgroundDesc: 'Gagnvirkt sandkassa',
     changelog: '📋 Breytingaskrá',
+    migration: '🔄 Flutningur',
     migrationReact: '⚛️ Frá React',
     migrationReactDesc: 'Flutningsleiðbeiningar fyrir React forritara',
+    migrationAngular: '🅰️ Frá Angular',
+    migrationAngularDesc: 'Flutningsleiðbeiningar fyrir Angular forritara',
+    migrationVue: '💚 Frá Vue',
+    migrationVueDesc: 'Flutningsleiðbeiningar fyrir Vue forritara',
     benchmarks: '📊 Viðmiðanir',
     benchmarksDesc: 'Gagnvirkir afkastapróf'
   },

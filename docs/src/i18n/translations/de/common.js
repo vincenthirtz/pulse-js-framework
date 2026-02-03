@@ -34,8 +34,13 @@ export default {
     playground: '🎮 Spielplatz',
     playgroundDesc: 'Interaktive Sandbox',
     changelog: '📋 Änderungsprotokoll',
+    migration: '🔄 Migration',
     migrationReact: '⚛️ Von React',
     migrationReactDesc: 'Migrationsanleitung für React-Entwickler',
+    migrationAngular: '🅰️ Von Angular',
+    migrationAngularDesc: 'Migrationsanleitung für Angular-Entwickler',
+    migrationVue: '💚 Von Vue',
+    migrationVueDesc: 'Migrationsanleitung für Vue-Entwickler',
     benchmarks: '📊 Benchmarks',
     benchmarksDesc: 'Interaktive Performance-Tests'
   },

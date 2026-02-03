@@ -34,8 +34,13 @@ export default {
     playground: '🎮 Ludejo',
     playgroundDesc: 'Interaga sabloludejo',
     changelog: '📋 Ŝanĝoprotokolo',
+    migration: '🔄 Migrado',
     migrationReact: '⚛️ De React',
     migrationReactDesc: 'Migrada gvidilo por React programistoj',
+    migrationAngular: '🅰️ De Angular',
+    migrationAngularDesc: 'Migrada gvidilo por Angular programistoj',
+    migrationVue: '💚 De Vue',
+    migrationVueDesc: 'Migrada gvidilo por Vue programistoj',
     benchmarks: '📊 Komparnormoj',
     benchmarksDesc: 'Interagaj efikeco-provoj'
   },

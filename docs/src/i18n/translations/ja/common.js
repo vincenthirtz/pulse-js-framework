@@ -34,8 +34,13 @@ export default {
     playground: '🎮 プレイグラウンド',
     playgroundDesc: 'インタラクティブサンドボックス',
     changelog: '📋 変更履歴',
+    migration: '🔄 移行',
     migrationReact: '⚛️ Reactから',
     migrationReactDesc: 'React開発者向け移行ガイド',
+    migrationAngular: '🅰️ Angularから',
+    migrationAngularDesc: 'Angular開発者向け移行ガイド',
+    migrationVue: '💚 Vueから',
+    migrationVueDesc: 'Vue開発者向け移行ガイド',
     benchmarks: '📊 ベンチマーク',
     benchmarksDesc: 'インタラクティブパフォーマンステスト'
   },
