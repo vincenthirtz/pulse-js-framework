@@ -49,7 +49,9 @@ export default {
       moderate: '緩やか',
       easy: '簡単',
       minimal: '最小限',
-      builtIn: '組み込み'
+      builtIn: '組み込み',
+      accessibility: 'アクセシビリティ',
+      thirdParty: 'サードパーティ'
     }
   },
 

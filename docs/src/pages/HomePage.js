@@ -125,6 +125,14 @@ export function HomePage() {
             <td>${t('home.comparison.builtIn')}</td>
             <td><strong>${t('home.comparison.builtIn')}</strong></td>
           </tr>
+          <tr>
+            <td>${t('home.comparison.accessibility')}</td>
+            <td>${t('home.comparison.thirdParty')}</td>
+            <td>${t('home.comparison.thirdParty')}</td>
+            <td>${t('comparison.partial')}</td>
+            <td>${t('home.comparison.thirdParty')}</td>
+            <td><strong>${t('home.comparison.builtIn')}</strong></td>
+          </tr>
         </tbody>
       </table>
     </div>

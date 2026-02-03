@@ -49,7 +49,9 @@ export default {
       moderate: 'Moderate',
       easy: 'Easy',
       minimal: 'Minimal',
-      builtIn: 'Built-in'
+      builtIn: 'Built-in',
+      accessibility: 'Accessibility',
+      thirdParty: '3rd Party'
     }
   },
 

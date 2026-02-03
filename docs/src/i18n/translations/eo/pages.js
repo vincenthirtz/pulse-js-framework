@@ -49,7 +49,9 @@ export default {
       moderate: 'Modera',
       easy: 'Facila',
       minimal: 'Minimuma',
-      builtIn: 'Enkonstruita'
+      builtIn: 'Enkonstruita',
+      accessibility: 'Alirebleco',
+      thirdParty: 'Tria partio'
     }
   },
 

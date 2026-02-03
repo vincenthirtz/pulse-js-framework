@@ -49,7 +49,9 @@ export default {
       moderate: 'Hófleg',
       easy: 'Auðvelt',
       minimal: 'Lágmarks',
-      builtIn: 'Innbyggt'
+      builtIn: 'Innbyggt',
+      accessibility: 'Aðgengi',
+      thirdParty: 'Þriðji aðili'
     }
   },
 
