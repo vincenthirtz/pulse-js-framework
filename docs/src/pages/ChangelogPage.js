@@ -23,7 +23,22 @@ export function ChangelogPage() {
     
     
     
+    
     <section class="doc-section changelog-section">
+      <h2>v1.7.11 - Compiler & Form Binding Fixes</h2>
+      <p class="release-date">February 2026</p>
+
+      <div class="changelog-group">
+        <ul class="feature-list">
+          <li><strong>Added:</strong> add Migration from React guide</li>
+          <li><strong>Added:</strong> redesign homepage with modern visual components</li>
+          <li><strong>Changed:</strong> update documentation for compiler improvements</li>
+          <li><strong>Changed:</strong> remove unused assets directory</li>
+          <li><strong>Fixed:</strong> multiple fixes for reactive components and form inputs</li>
+        </ul>
+      </div>
+    </section>
+<section class="doc-section changelog-section">
       <h2>v1.7.10 - Security & DevTools Improvements</h2>
       <p class="release-date">February 2026</p>
 
