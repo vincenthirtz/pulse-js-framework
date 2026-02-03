@@ -104,6 +104,46 @@ view {
 }
 ```
 
+### Dynamic Attributes
+
+Bind reactive values to attributes using `{expression}` syntax:
+
+```pulse
+view {
+  // Dynamic value binding for form inputs
+  input[type=text][value={username}] @input(username = event.target.value)
+  textarea[value={content}] @input(content = event.target.value)
+
+  // Dynamic class binding
+  div[class={isActive ? "active" : "inactive"}]
+
+  // Dynamic disabled state
+  button[disabled={loading}] "Submit"
+
+  // Multiple dynamic attributes
+  input[type=text][value={query}][placeholder={placeholder}]
+}
+```
+
+This is especially useful for form inputs where you need reactive two-way binding:
+
+```pulse
+state {
+  title: ""
+  content: ""
+}
+
+view {
+  .form {
+    input[type=text][value={title}][placeholder="Enter title"]
+      @input(title = event.target.value)
+
+    textarea[value={content}][placeholder="Enter content"]
+      @input(content = event.target.value)
+  }
+}
+```
+
 ### Text Content
 
 ```pulse
@@ -141,6 +181,23 @@ Handle click events:
 button @click(count++) "Increment"
 button @click(handleSubmit()) "Submit"
 button @click(user = null) "Logout"
+```
+
+### Event Object
+
+All event handlers have access to the `event` object:
+
+```pulse
+// Access event properties
+input @input(query = event.target.value)
+button @click(handleClick(event))
+div @mousemove(x = event.clientX)
+
+// Prevent default behavior
+form @submit(event.preventDefault(); handleSubmit())
+
+// Stop propagation
+button @click(event.stopPropagation(); doSomething())
 ```
 
 ### @if / @else

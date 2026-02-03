@@ -78,7 +78,7 @@ pulse/
 │       └── file-utils.js  # Shared utilities (glob, parseArgs)
 ├── loader/
 │   └── vite-plugin.js   # Vite integration
-├── examples/            # Example apps (todo, chat, ecommerce, meteo)
+├── examples/            # Example apps (todo, chat, ecommerce, electron)
 ├── test/                # Test suite
 └── docs/                # Documentation site
 ```
@@ -839,6 +839,8 @@ style {
 - Error messages include line:column
 - Source map generation for debugging
 - Accessibility directives (`@a11y`, `@live`, `@focusTrap`, `@srOnly`)
+- Dynamic attributes (`[value={expr}]`) for reactive form bindings
+- Event handlers have access to `event` object (`@input(value = event.target.value)`)
 
 ### Accessibility Directives
 

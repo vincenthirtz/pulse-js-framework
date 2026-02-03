@@ -191,11 +191,16 @@ const node = text(() => `Count: ${count.get()}`);
 
 ### bind(element, attribute, fn)
 
-Bind an attribute to a reactive value.
+Bind an attribute to a reactive value. For form elements (`input`, `textarea`, `select`), the `value`, `checked`, and `selected` attributes are properly set as properties.
 
 ```javascript
 bind(button, 'disabled', () => loading.get());
 bind(div, 'class', () => isActive.get() ? 'active' : '');
+
+// Form element value binding (uses property, not attribute)
+bind(input, 'value', () => text.get());
+bind(textarea, 'value', () => content.get());
+bind(checkbox, 'checked', () => isEnabled.get());
 ```
 
 ### on(element, event, handler, options?)

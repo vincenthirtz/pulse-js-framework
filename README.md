@@ -249,6 +249,7 @@ const count: Pulse<number> = pulse(0);
 | [HMR Demo](examples/hmr) | Hot module replacement |
 | [Router Demo](examples/router) | SPA routing |
 | [Store Demo](examples/store) | State with undo/redo |
+| [Electron App](examples/electron) | Desktop notes app |
 
 ## Documentation
 
