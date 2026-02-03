@@ -635,83 +635,48 @@ export default {
   // Benchmarks page
   benchmarks: {
     title: '📊 Afkastaviðmiðanir',
-    intro: 'Gagnvirkir afkastapróf sem keyra í vafranum þínum. Smelltu á próf til að keyra það eða "Keyra öll" til að keyra öll viðmið.',
-    runAll: '▶ Keyra öll',
-    clear: '🗑 Hreinsa',
-    running: 'Keyrir...',
-    clickToRun: 'Smelltu á próf til að keyra það',
+    intro: 'Gagnvirkir afkastapróf sem keyra beint í vafranum þínum. Smelltu á "Keyra öll" til að mæla afköst Pulse á vélinni þinni.',
+    runAll: 'Keyra öll',
+    clear: 'Hreinsa niðurstöður',
+    running: 'Keyrir',
+    clickToRun: 'Smelltu á "Keyra" til að prófa',
     note: 'Athugið',
-    noteText: 'Niðurstöður geta verið mismunandi eftir vélbúnaði þínum og vafraástandi. Keyrðu próf mörgum sinnum til að fá áreiðanlegar niðurstöður.',
-    categories: {
-      signalOperations: '⚡ Merkjaaðgerðir',
-      computedValues: '🔄 Reiknuð gildi',
-      effectSystem: '📡 Áhrifakerfi',
-      batchProcessing: '📦 Runuvinnsla',
-      domOperations: '🏗️ DOM aðgerðir',
-      stressTests: '🔥 Álagspróf'
-    },
-    tests: {
-      signalCreation: 'Merki sköpun',
-      signalCreationDesc: 'Búa til 10.000 viðbragðsmerki',
-      signalRead: 'Merki lestur',
-      signalReadDesc: 'Lesa merki 100.000 sinnum',
-      signalWrite: 'Merki skrif',
-      signalWriteDesc: 'Skrifa í merki 100.000 sinnum',
-      signalUpdate: 'Merki uppfærsla',
-      signalUpdateDesc: 'Notaðu update() 100.000 sinnum',
-      computedCreation: 'Reiknað sköpun',
-      computedCreationDesc: 'Búa til 10.000 reiknuð gildi',
-      computedRead: 'Reiknað lestur',
-      computedReadDesc: 'Lesa reiknuð gildi 100.000 sinnum',
-      computedChain: 'Reiknuð keðja',
-      computedChainDesc: 'Keðja 100 reiknað gildi',
-      effectCreation: 'Áhrif sköpun',
-      effectCreationDesc: 'Búa til 1.000 áhrif',
-      effectTrigger: 'Áhrifakveikja',
-      effectTriggerDesc: 'Kveikja á áhrifum 10.000 sinnum',
-      batchUpdates: 'Runuuppfærslur',
-      batchUpdatesDesc: 'Runuað 10.000 uppfærslur',
-      unbatchedUpdates: 'Órunuaðar uppfærslur',
-      unbatchedUpdatesDesc: 'Órunuað 10.000 uppfærslur (til samanburðar)',
-      domCreation: 'DOM sköpun',
-      domCreationDesc: 'Búa til 1.000 einingar',
-      domNested: 'Hreiðrað DOM',
-      domNestedDesc: 'Búa til 10 lög af hreiðruðum einingum',
-      listRenderKeyed: 'Listi teikning (lyklaður)',
-      listRenderKeyedDesc: 'Teikna lista með 1.000 atriðum',
-      listUpdate: 'Lista uppfærsla',
-      listUpdateDesc: 'Uppfæra lista 100 sinnum',
-      manySignals: 'Mörg merki',
-      manySignalsDesc: 'Búa til og lesa 100.000 merki',
-      diamondDependency: 'Demantur ósjálfstæði',
-      diamondDependencyDesc: 'Flókið ósjálfstæðisgraf með sameiningum',
-      deepReactivity: 'Djúp viðbragð',
-      deepReactivityDesc: '100-laga reiknuð keðja'
-    },
-    comparison: {
-      title: '📈 Samanburður við ramma',
-      description: 'Dæmigerðar afköstutölur (lægra er betra). Raunverulegar niðurstöður fara eftir vafra og vélbúnaði.',
-      operation: 'Aðgerð',
-      pulse: 'Pulse',
-      react: 'React',
-      vue: 'Vue',
-      svelte: 'Svelte',
-      signalCreate: 'Merki sköpun (10k)',
-      signalUpdate: 'Merki uppfærsla (100k)',
-      computedCreate: 'Reiknað sköpun (10k)',
-      listRender: 'Lista teikning (1k atriði)',
-      memoryUsage: 'Minni notkun (undirstöðu)',
-      disclaimer: '* Viðmið eru sýnigögn aðeins. Keyrðu prófin hér að ofan fyrir raunverulegar mælingar.'
-    },
-    methodology: {
-      title: '🔬 Aðferðafræði',
-      description: 'Öll viðmið keyra beint í vafranum þínum með performance.now() fyrir nákvæmar mælingar.',
-      items: [
-        'Próf keyra mörg sinnum til að draga úr hávaða',
-        'Niðurstöður eru meðaltal af mörgum ítrunum',
-        'Minni er hreinsuð á milli prófanna þegar hægt er',
-        'DOM aðgerðir nota raunverulega einingu til að forðast mælingar í minni'
-      ]
-    }
+    noteText: 'Niðurstöður eru mismunandi eftir vafra, vélbúnaði og kerfisálagi. Keyrðu mörgum sinnum fyrir nákvæmar mælingar.',
+
+    // Categories
+    reactivity: 'Viðbragðsgeta',
+    computed: 'Reiknuð gildi',
+    effects: 'Áhrif',
+    batching: 'Runuvinnsla',
+    dom: 'DOM aðgerðir',
+    advanced: 'Ítarleg mynstur',
+
+    // Comparison table
+    comparison: 'Rammasamanburður',
+    comparisonIntro: 'Hvernig ber Pulse saman við aðra ramma? Keyrðu viðmiðin hér að ofan til að sjá raunverulegar niðurstöður.',
+    metric: 'Mælikvarði',
+    bundleSize: 'Bunka stærð (gzip)',
+    signalCreate: 'Merki sköpun',
+    signalUpdate: 'Merki uppfærsla',
+    dependencies: 'Ósjálfstæði',
+    buildRequired: 'Smíði nauðsynleg',
+
+    // Methodology
+    methodology: 'Aðferðafræði',
+    howItWorks: 'Hvernig viðmið virka',
+    warmup: 'Upphitun',
+    warmupText: '10% af ítrunum keyra fyrst til að hita JIT þýðinguna.',
+    measurement: 'Mæling',
+    measurementText: 'Aðgerðir keyra í þéttri lykkju með performance.now() tímasetningu.',
+    precision: 'Nákvæmni',
+    precisionText: 'Niðurstöður sýna aðgerðir/sek, meðaltíma og heildartíma.',
+    factors: 'Þættir sem hafa áhrif á niðurstöður',
+    factor1: 'Vafravél (V8 í Chrome, SpiderMonkey í Firefox, JSC í Safari)',
+    factor2: 'Kerfisálag og tiltækt minni',
+    factor3: 'Örgjörvatíðni og hitalækkun',
+    factor4: 'Vafraviðbætur og DevTools staða',
+
+    // Navigation
+    nextPerformance: 'Næst: Afkastaleiðbeiningar →'
   }
 };
