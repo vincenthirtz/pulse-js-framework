@@ -277,8 +277,8 @@ test('state.js exports version', () => {
 
 test('state.js exports navigation', () => {
   const content = readFileSync(join(docsDir, 'src/state.js'), 'utf-8');
-  assert(content.includes('export const navigation'), 'Should export navigation');
-  assert(content.includes('export const navigationFlat'), 'Should export navigationFlat');
+  assert(content.includes('export const navStructure'), 'Should export navStructure');
+  assert(content.includes('export const navStructureFlat'), 'Should export navStructureFlat');
 });
 
 test('state.js exports translation functions for navigation', () => {
