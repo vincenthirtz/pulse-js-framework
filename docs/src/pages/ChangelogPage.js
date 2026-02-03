@@ -24,7 +24,29 @@ export function ChangelogPage() {
     
     
     
+    
     <section class="doc-section changelog-section">
+      <h2>v1.7.12 - GraphQL Client</h2>
+      <p class="release-date">February 2026</p>
+
+      <div class="changelog-group">
+        <ul class="feature-list">
+          <li><strong>Added:</strong> add GraphQL client with queries, mutations, and subscriptions</li>
+          <li><strong>Added:</strong> add WebSocket client with auto-reconnect and heartbeat</li>
+          <li><strong>Added:</strong> add Context API for dependency injection</li>
+          <li><strong>Changed:</strong> add Angular and Vue migration guides with i18n support</li>
+          <li><strong>Changed:</strong> expand coverage for file-utils and analyze modules</li>
+          <li><strong>Changed:</strong> expand coverage for utils, format, lint, and cli-ui</li>
+          <li><strong>Changed:</strong> add comprehensive CLI test suite</li>
+          <li><strong>Changed:</strong> add security tests and expand a11y/hmr coverage</li>
+          <li><strong>Changed:</strong> add interactive benchmarks page</li>
+          <li><strong>Changed:</strong> ci: add coverage reporting with Codecov</li>
+          <li><strong>Fixed:</strong> update docs test to match navStructure exports</li>
+          <li><strong>Fixed:</strong> align benchmarks translation structure with English reference</li>
+        </ul>
+      </div>
+    </section>
+<section class="doc-section changelog-section">
       <h2>v1.7.11 - Compiler & Form Binding Fixes</h2>
       <p class="release-date">February 2026</p>
 

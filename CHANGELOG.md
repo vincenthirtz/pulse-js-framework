@@ -5,6 +5,32 @@ All notable changes to Pulse Framework will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.12] - 2026-02-03
+
+### GraphQL Client
+
+### Added
+
+- add GraphQL client with queries, mutations, and subscriptions
+- add WebSocket client with auto-reconnect and heartbeat
+- add Context API for dependency injection
+
+### Changed
+
+- add Angular and Vue migration guides with i18n support
+- expand coverage for file-utils and analyze modules
+- expand coverage for utils, format, lint, and cli-ui
+- add comprehensive CLI test suite
+- add security tests and expand a11y/hmr coverage
+- add interactive benchmarks page
+- ci: add coverage reporting with Codecov
+
+### Fixed
+
+- update docs test to match navStructure exports
+- align benchmarks translation structure with English reference
+
+
 ## [1.7.11] - 2026-02-03
 
 ### Compiler & Form Binding Fixes
