@@ -227,6 +227,38 @@ const { data, loading } = useAsync(() => fetch('/api/users').then(r => r.json())
 const users = useResource('users', fetchUsers, { refreshInterval: 30000 });
 ```
 
+### Accessibility
+
+```javascript
+import {
+  // Announcements
+  announce, createAnnouncementQueue,
+  // Focus management
+  trapFocus, onEscapeKey, createFocusVisibleTracker,
+  // User preferences
+  prefersReducedMotion, prefersReducedTransparency, forcedColorsMode,
+  // ARIA widgets
+  createModal, createTooltip, createAccordion, createMenu,
+  // Color contrast
+  getContrastRatio, meetsContrastRequirement,
+  // Validation
+  validateA11y
+} from 'pulse-js-framework/runtime/a11y';
+
+// Screen reader announcements
+announce('Item saved successfully');
+
+// Accessible modal dialog
+const modal = createModal(dialog, { labelledBy: 'title', closeOnBackdropClick: true });
+modal.open();
+
+// Check color contrast (WCAG)
+const ratio = getContrastRatio('#333', '#fff'); // 12.63
+meetsContrastRequirement(ratio, 'AA'); // true
+```
+
+See [Accessibility documentation](docs/accessibility.md) for full guide.
+
 See [API documentation](docs/api.md) for full reference.
 
 ## Mobile Apps

@@ -150,20 +150,162 @@ installSkipLinks([
       <p>Respect user accessibility preferences:</p>
 
       <div class="code-block">
-        <pre><code>import { prefersReducedMotion, prefersColorScheme, createPreferences } from 'pulse-js-framework/runtime/a11y';
+        <pre><code>import {
+  prefersReducedMotion, prefersColorScheme, prefersHighContrast,
+  prefersReducedTransparency, forcedColorsMode, prefersContrast,
+  createPreferences
+} from 'pulse-js-framework/runtime/a11y';
 
 // Check preferences (non-reactive)
-if (prefersReducedMotion()) {
-  disableAnimations();
-}
-const scheme = prefersColorScheme(); // 'light' | 'dark' | 'no-preference'
+if (prefersReducedMotion()) disableAnimations();
+if (prefersReducedTransparency()) useSolidBackgrounds();
+if (forcedColorsMode() === 'active') useSystemColors(); // Windows High Contrast
 
-// Reactive preferences (pulses)
+const scheme = prefersColorScheme();   // 'light' | 'dark' | 'no-preference'
+const contrast = prefersContrast();    // 'no-preference' | 'more' | 'less' | 'custom'
+
+// Reactive preferences (pulses - auto-update on system changes)
 const prefs = createPreferences();
 effect(() => {
   if (prefs.reducedMotion.get()) disableAnimations();
+  if (prefs.forcedColors.get() === 'active') useSystemColors();
   applyTheme(prefs.colorScheme.get());
 });</code></pre>
+      </div>
+    </section>
+
+    <section class="doc-section">
+      <h2>ARIA Widgets</h2>
+      <p>Pre-built accessible widget patterns:</p>
+
+      <h3>Modal Dialog</h3>
+      <div class="code-block">
+        <pre><code>import { createModal } from 'pulse-js-framework/runtime/a11y';
+
+const modal = createModal(dialogElement, {
+  labelledBy: 'modal-title',       // ID of title element
+  describedBy: 'modal-desc',       // ID of description
+  closeOnBackdropClick: true,      // Click outside to close
+  inertBackground: true,           // Make background inert
+  onClose: () => console.log('closed')
+});
+
+modal.open();                      // Open dialog
+modal.close();                     // Close dialog
+modal.isOpen.get();                // Reactive state</code></pre>
+      </div>
+
+      <h3>Tooltip</h3>
+      <div class="code-block">
+        <pre><code>import { createTooltip } from 'pulse-js-framework/runtime/a11y';
+
+const tooltip = createTooltip(triggerButton, tooltipElement, {
+  showDelay: 500,    // ms before showing
+  hideDelay: 100     // ms before hiding
+});
+
+tooltip.show();      // Show immediately
+tooltip.hide();      // Hide immediately
+tooltip.cleanup();   // Remove event listeners</code></pre>
+      </div>
+
+      <h3>Accordion</h3>
+      <div class="code-block">
+        <pre><code>import { createAccordion } from 'pulse-js-framework/runtime/a11y';
+
+const accordion = createAccordion(container, {
+  triggerSelector: '[data-accordion-trigger]',
+  panelSelector: '[data-accordion-panel]',
+  allowMultiple: false,  // Single panel open
+  defaultOpen: 0         // First panel open initially
+});
+
+accordion.open(1);       // Open panel by index
+accordion.closeAll();    // Close all panels
+accordion.openIndices.get(); // Reactive: which panels are open</code></pre>
+      </div>
+
+      <h3>Dropdown Menu</h3>
+      <div class="code-block">
+        <pre><code>import { createMenu } from 'pulse-js-framework/runtime/a11y';
+
+const menu = createMenu(menuButton, menuList, {
+  itemSelector: '[role="menuitem"]',
+  closeOnSelect: true,
+  onSelect: (el, index) => console.log('Selected:', el)
+});
+
+menu.open();   // Open menu, focus first item
+menu.close();  // Close menu, return focus to button
+menu.toggle(); // Toggle open/close</code></pre>
+      </div>
+    </section>
+
+    <section class="doc-section">
+      <h2>Color Contrast</h2>
+      <p>Check WCAG color contrast requirements:</p>
+
+      <div class="code-block">
+        <pre><code>import {
+  getContrastRatio, meetsContrastRequirement,
+  getEffectiveBackgroundColor, checkElementContrast
+} from 'pulse-js-framework/runtime/a11y';
+
+// Calculate contrast ratio (1 to 21)
+const ratio = getContrastRatio('#333333', '#ffffff'); // 12.63
+
+// Check WCAG requirements
+meetsContrastRequirement(ratio, 'AA', 'normal');  // true (>= 4.5)
+meetsContrastRequirement(ratio, 'AA', 'large');   // true (>= 3.0)
+meetsContrastRequirement(ratio, 'AAA', 'normal'); // true (>= 7.0)
+
+// Check element's text contrast
+const { ratio, passes, foreground, background } = checkElementContrast(textElement, 'AA');
+
+// Get effective background (handles transparency)
+const bgColor = getEffectiveBackgroundColor(element);</code></pre>
+      </div>
+    </section>
+
+    <section class="doc-section">
+      <h2>Announcement Queue</h2>
+      <p>Queue multiple announcements for screen readers:</p>
+
+      <div class="code-block">
+        <pre><code>import { createAnnouncementQueue } from 'pulse-js-framework/runtime/a11y';
+
+const queue = createAnnouncementQueue({ minDelay: 500 });
+
+// Queue messages (processed in order)
+queue.add('File uploaded');
+queue.add('Processing complete');
+queue.add('Error occurred', { priority: 'assertive' });
+
+queue.queueLength.get(); // Number of queued messages
+queue.clear();           // Clear the queue</code></pre>
+      </div>
+    </section>
+
+    <section class="doc-section">
+      <h2>Focus Utilities</h2>
+      <p>Additional focus management helpers:</p>
+
+      <div class="code-block">
+        <pre><code>import { onEscapeKey, createFocusVisibleTracker, getAccessibleName } from 'pulse-js-framework/runtime/a11y';
+
+// Escape key handler for modals
+const removeEscape = onEscapeKey(dialog, () => closeDialog());
+
+// Detect keyboard vs mouse navigation
+const { isKeyboardUser, cleanup } = createFocusVisibleTracker();
+effect(() => {
+  if (isKeyboardUser.get()) {
+    document.body.classList.add('keyboard-user');
+  }
+});
+
+// Get element's accessible name
+const name = getAccessibleName(button); // aria-label, text content, etc.</code></pre>
       </div>
     </section>
 
@@ -271,6 +413,26 @@ const jsonReport = exportA11yReport('json');</code></pre>
           <tr><td><code>a11y-heading-order</code></td><td>Headings should follow hierarchy</td></tr>
           <tr><td><code>a11y-aria-props</code></td><td>ARIA attributes must be valid</td></tr>
           <tr><td><code>a11y-role-props</code></td><td>Roles must have required attributes</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Runtime Validation Rules</h3>
+      <p>Additional rules checked by <code>validateA11y()</code>:</p>
+
+      <table class="doc-table">
+        <thead>
+          <tr>
+            <th>Rule</th>
+            <th>Severity</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><code>duplicate-id</code></td><td>Error</td><td>Duplicate ID attributes found</td></tr>
+          <tr><td><code>missing-main</code></td><td>Warning</td><td>Page missing &lt;main&gt; landmark</td></tr>
+          <tr><td><code>nested-interactive</code></td><td>Error</td><td>Interactive elements nested inside each other</td></tr>
+          <tr><td><code>missing-lang</code></td><td>Warning</td><td>Missing lang attribute on &lt;html&gt;</td></tr>
+          <tr><td><code>touch-target-size</code></td><td>Warning</td><td>Touch target smaller than 24x24px (WCAG 2.2)</td></tr>
         </tbody>
       </table>
     </section>

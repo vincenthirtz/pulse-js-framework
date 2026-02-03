@@ -311,6 +311,70 @@ export function clearFocusStack() {
   focusStack.length = 0;
 }
 
+/**
+ * Add escape key handler for dismissing modals/dialogs
+ * @param {HTMLElement} container - Container element
+ * @param {Function} onEscape - Callback when escape is pressed
+ * @param {object} options - Options
+ * @param {boolean} options.stopPropagation - Stop event propagation (default: true)
+ * @returns {Function} Cleanup function to remove handler
+ */
+export function onEscapeKey(container, onEscape, options = {}) {
+  const { stopPropagation = true } = options;
+
+  if (!container) return () => {};
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Escape' || e.key === 'Esc') {
+      if (stopPropagation) {
+        e.stopPropagation();
+      }
+      onEscape(e);
+    }
+  };
+
+  container.addEventListener('keydown', handleKeyDown);
+
+  return () => {
+    container.removeEventListener('keydown', handleKeyDown);
+  };
+}
+
+/**
+ * Track whether the user is navigating with keyboard
+ * Useful for implementing :focus-visible behavior
+ * @returns {{ isKeyboardUser: object, cleanup: Function }} isKeyboardUser is a pulse
+ */
+export function createFocusVisibleTracker() {
+  const isKeyboardUser = pulse(false);
+
+  if (typeof document === 'undefined') {
+    return { isKeyboardUser, cleanup: () => {} };
+  }
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Tab' || e.key === 'ArrowUp' || e.key === 'ArrowDown' ||
+        e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      isKeyboardUser.set(true);
+    }
+  };
+
+  const handleMouseDown = () => {
+    isKeyboardUser.set(false);
+  };
+
+  document.addEventListener('keydown', handleKeyDown, true);
+  document.addEventListener('mousedown', handleMouseDown, true);
+
+  return {
+    isKeyboardUser,
+    cleanup: () => {
+      document.removeEventListener('keydown', handleKeyDown, true);
+      document.removeEventListener('mousedown', handleMouseDown, true);
+    }
+  };
+}
+
 // =============================================================================
 // SKIP LINKS
 // =============================================================================
@@ -417,6 +481,37 @@ export function prefersHighContrast() {
 }
 
 /**
+ * Check if user prefers reduced transparency
+ * @returns {boolean}
+ */
+export function prefersReducedTransparency() {
+  if (typeof window === 'undefined') return false;
+  return window.matchMedia('(prefers-reduced-transparency: reduce)').matches;
+}
+
+/**
+ * Check if forced-colors mode is active (Windows High Contrast)
+ * @returns {'none'|'active'}
+ */
+export function forcedColorsMode() {
+  if (typeof window === 'undefined') return 'none';
+  if (window.matchMedia('(forced-colors: active)').matches) return 'active';
+  return 'none';
+}
+
+/**
+ * Check user's contrast preference (more detailed than prefersHighContrast)
+ * @returns {'no-preference'|'more'|'less'|'custom'}
+ */
+export function prefersContrast() {
+  if (typeof window === 'undefined') return 'no-preference';
+  if (window.matchMedia('(prefers-contrast: more)').matches) return 'more';
+  if (window.matchMedia('(prefers-contrast: less)').matches) return 'less';
+  if (window.matchMedia('(prefers-contrast: custom)').matches) return 'custom';
+  return 'no-preference';
+}
+
+/**
  * Create reactive user preferences pulse
  * @returns {object} Object with reactive preference pulses
  */
@@ -424,6 +519,9 @@ export function createPreferences() {
   const reducedMotion = pulse(prefersReducedMotion());
   const colorScheme = pulse(prefersColorScheme());
   const highContrast = pulse(prefersHighContrast());
+  const reducedTransparency = pulse(prefersReducedTransparency());
+  const forcedColors = pulse(forcedColorsMode());
+  const contrast = pulse(prefersContrast());
 
   if (typeof window !== 'undefined') {
     // Listen for preference changes
@@ -438,12 +536,31 @@ export function createPreferences() {
     window.matchMedia('(prefers-contrast: more)').addEventListener('change', (e) => {
       highContrast.set(e.matches);
     });
+
+    window.matchMedia('(prefers-reduced-transparency: reduce)').addEventListener('change', (e) => {
+      reducedTransparency.set(e.matches);
+    });
+
+    window.matchMedia('(forced-colors: active)').addEventListener('change', (e) => {
+      forcedColors.set(e.matches ? 'active' : 'none');
+    });
+
+    // More granular contrast detection
+    window.matchMedia('(prefers-contrast: more)').addEventListener('change', () => {
+      contrast.set(prefersContrast());
+    });
+    window.matchMedia('(prefers-contrast: less)').addEventListener('change', () => {
+      contrast.set(prefersContrast());
+    });
   }
 
   return {
     reducedMotion,
     colorScheme,
-    highContrast
+    highContrast,
+    reducedTransparency,
+    forcedColors,
+    contrast
   };
 }
 
@@ -687,6 +804,391 @@ export function createRovingTabindex(container, options = {}) {
 }
 
 // =============================================================================
+// ARIA WIDGETS
+// =============================================================================
+
+/**
+ * Create an accessible modal dialog
+ * Composes trapFocus, onEscapeKey, and proper ARIA attributes
+ * @param {HTMLElement} dialog - Dialog element
+ * @param {object} options - Options
+ * @param {HTMLElement} options.triggerElement - Element that triggered the dialog
+ * @param {string} options.labelledBy - ID of element labeling the dialog
+ * @param {string} options.describedBy - ID of element describing the dialog
+ * @param {HTMLElement} options.initialFocus - Element to focus initially
+ * @param {Function} options.onClose - Callback when dialog should close
+ * @param {boolean} options.closeOnBackdropClick - Close on backdrop click (default: true)
+ * @param {boolean} options.inertBackground - Make background inert (default: true)
+ * @returns {object} Control object with open, close methods and isOpen pulse
+ */
+export function createModal(dialog, options = {}) {
+  const {
+    labelledBy = null,
+    describedBy = null,
+    initialFocus = null,
+    onClose = null,
+    closeOnBackdropClick = true,
+    inertBackground = true
+  } = options;
+
+  const isOpen = pulse(false);
+  let releaseFocusTrap = null;
+  let removeEscapeHandler = null;
+  let restoreInertFns = null;
+  let backdropHandler = null;
+
+  // Set ARIA attributes
+  dialog.setAttribute('role', 'dialog');
+  dialog.setAttribute('aria-modal', 'true');
+  if (labelledBy) dialog.setAttribute('aria-labelledby', labelledBy);
+  if (describedBy) dialog.setAttribute('aria-describedby', describedBy);
+
+  const open = () => {
+    if (isOpen.get()) return;
+
+    dialog.hidden = false;
+    isOpen.set(true);
+
+    // Make background inert
+    if (inertBackground && typeof document !== 'undefined') {
+      const siblings = Array.from(document.body.children)
+        .filter(el => el !== dialog && !el.hasAttribute('inert'));
+      restoreInertFns = siblings.map(el => makeInert(el));
+    }
+
+    // Trap focus
+    releaseFocusTrap = trapFocus(dialog, {
+      autoFocus: true,
+      returnFocus: true,
+      initialFocus
+    });
+
+    // Handle escape key
+    removeEscapeHandler = onEscapeKey(dialog, close);
+
+    // Handle backdrop click
+    if (closeOnBackdropClick) {
+      backdropHandler = (e) => {
+        if (e.target === dialog) close();
+      };
+      dialog.addEventListener('click', backdropHandler);
+    }
+
+    // Announce to screen readers
+    announce('Dialog opened');
+  };
+
+  const close = () => {
+    if (!isOpen.get()) return;
+
+    dialog.hidden = true;
+    isOpen.set(false);
+
+    // Clean up
+    if (releaseFocusTrap) {
+      releaseFocusTrap();
+      releaseFocusTrap = null;
+    }
+    if (removeEscapeHandler) {
+      removeEscapeHandler();
+      removeEscapeHandler = null;
+    }
+    if (restoreInertFns) {
+      restoreInertFns.forEach(restore => restore());
+      restoreInertFns = null;
+    }
+    if (backdropHandler) {
+      dialog.removeEventListener('click', backdropHandler);
+      backdropHandler = null;
+    }
+
+    if (onClose) onClose();
+    announce('Dialog closed');
+  };
+
+  return { isOpen, open, close };
+}
+
+/**
+ * Create an accessible tooltip
+ * Manages aria-describedby and visibility
+ * @param {HTMLElement} trigger - Element that triggers tooltip
+ * @param {HTMLElement} tooltip - Tooltip element
+ * @param {object} options - Options
+ * @param {number} options.showDelay - Delay before showing (ms, default: 500)
+ * @param {number} options.hideDelay - Delay before hiding (ms, default: 100)
+ * @returns {object} Control object with show, hide methods and isVisible pulse
+ */
+export function createTooltip(trigger, tooltip, options = {}) {
+  const {
+    showDelay = 500,
+    hideDelay = 100
+  } = options;
+
+  const isVisible = pulse(false);
+  let showTimer = null;
+  let hideTimer = null;
+
+  // Generate ID if needed
+  const tooltipId = tooltip.id || generateId('tooltip');
+  tooltip.id = tooltipId;
+
+  // Set ARIA attributes
+  tooltip.setAttribute('role', 'tooltip');
+  trigger.setAttribute('aria-describedby', tooltipId);
+  tooltip.hidden = true;
+
+  const show = () => {
+    clearTimeout(hideTimer);
+    showTimer = setTimeout(() => {
+      tooltip.hidden = false;
+      isVisible.set(true);
+    }, showDelay);
+  };
+
+  const hide = () => {
+    clearTimeout(showTimer);
+    hideTimer = setTimeout(() => {
+      tooltip.hidden = true;
+      isVisible.set(false);
+    }, hideDelay);
+  };
+
+  const showImmediate = () => {
+    clearTimeout(hideTimer);
+    clearTimeout(showTimer);
+    tooltip.hidden = false;
+    isVisible.set(true);
+  };
+
+  const hideImmediate = () => {
+    clearTimeout(hideTimer);
+    clearTimeout(showTimer);
+    tooltip.hidden = true;
+    isVisible.set(false);
+  };
+
+  const handleEscapeKey = (e) => {
+    if (e.key === 'Escape') hideImmediate();
+  };
+
+  // Event listeners
+  trigger.addEventListener('mouseenter', show);
+  trigger.addEventListener('mouseleave', hide);
+  trigger.addEventListener('focus', showImmediate);
+  trigger.addEventListener('blur', hideImmediate);
+  trigger.addEventListener('keydown', handleEscapeKey);
+
+  const cleanup = () => {
+    clearTimeout(showTimer);
+    clearTimeout(hideTimer);
+    trigger.removeEventListener('mouseenter', show);
+    trigger.removeEventListener('mouseleave', hide);
+    trigger.removeEventListener('focus', showImmediate);
+    trigger.removeEventListener('blur', hideImmediate);
+    trigger.removeEventListener('keydown', handleEscapeKey);
+    trigger.removeAttribute('aria-describedby');
+  };
+
+  return { isVisible, show: showImmediate, hide: hideImmediate, cleanup };
+}
+
+/**
+ * Create an accessible accordion (composed of disclosures)
+ * @param {HTMLElement} container - Accordion container
+ * @param {object} options - Options
+ * @param {string} options.triggerSelector - Selector for accordion triggers
+ * @param {string} options.panelSelector - Selector for accordion panels
+ * @param {boolean} options.allowMultiple - Allow multiple panels open (default: false)
+ * @param {number} options.defaultOpen - Index of initially open panel (-1 for none)
+ * @param {Function} options.onToggle - Callback (index, isOpen) => void
+ * @returns {object} Control object
+ */
+export function createAccordion(container, options = {}) {
+  const {
+    triggerSelector = '[data-accordion-trigger]',
+    panelSelector = '[data-accordion-panel]',
+    allowMultiple = false,
+    defaultOpen = -1,
+    onToggle = null
+  } = options;
+
+  const triggers = Array.from(container.querySelectorAll(triggerSelector));
+  const panels = Array.from(container.querySelectorAll(panelSelector));
+  const disclosures = [];
+  const openIndices = pulse(defaultOpen >= 0 ? [defaultOpen] : []);
+
+  triggers.forEach((trigger, index) => {
+    const panel = panels[index];
+    if (!panel) return;
+
+    const disclosure = createDisclosure(trigger, panel, {
+      defaultOpen: index === defaultOpen,
+      onToggle: (isExpanded) => {
+        if (isExpanded) {
+          if (allowMultiple) {
+            openIndices.update(arr => arr.includes(index) ? arr : [...arr, index]);
+          } else {
+            // Close other panels
+            disclosures.forEach((d, i) => {
+              if (i !== index && d.expanded.get()) d.close();
+            });
+            openIndices.set([index]);
+          }
+        } else {
+          openIndices.update(arr => arr.filter(i => i !== index));
+        }
+        if (onToggle) onToggle(index, isExpanded);
+      }
+    });
+
+    disclosures.push(disclosure);
+  });
+
+  return {
+    openIndices,
+    disclosures,
+    openAll: () => {
+      if (allowMultiple) {
+        disclosures.forEach(d => d.open());
+      }
+    },
+    closeAll: () => {
+      disclosures.forEach(d => d.close());
+    },
+    open: (index) => {
+      if (disclosures[index]) disclosures[index].open();
+    },
+    close: (index) => {
+      if (disclosures[index]) disclosures[index].close();
+    },
+    toggle: (index) => {
+      if (disclosures[index]) disclosures[index].toggle();
+    }
+  };
+}
+
+/**
+ * Create an accessible dropdown menu
+ * @param {HTMLElement} button - Menu button
+ * @param {HTMLElement} menu - Menu container
+ * @param {object} options - Options
+ * @param {string} options.itemSelector - Selector for menu items (default: '[role="menuitem"]')
+ * @param {Function} options.onSelect - Callback when item is selected
+ * @param {boolean} options.closeOnSelect - Close menu on item selection (default: true)
+ * @returns {object} Control object with open, close, toggle methods and isOpen pulse
+ */
+export function createMenu(button, menu, options = {}) {
+  const {
+    itemSelector = '[role="menuitem"]',
+    onSelect = null,
+    closeOnSelect = true
+  } = options;
+
+  const isOpen = pulse(false);
+  const menuId = menu.id || generateId('menu');
+  let rovingCleanup = null;
+  let documentClickHandler = null;
+
+  // Set ARIA attributes
+  menu.id = menuId;
+  menu.setAttribute('role', 'menu');
+  button.setAttribute('aria-haspopup', 'menu');
+  button.setAttribute('aria-controls', menuId);
+  button.setAttribute('aria-expanded', 'false');
+  menu.hidden = true;
+
+  const open = () => {
+    if (isOpen.get()) return;
+
+    menu.hidden = false;
+    button.setAttribute('aria-expanded', 'true');
+    isOpen.set(true);
+
+    // Setup roving tabindex for menu items
+    rovingCleanup = createRovingTabindex(menu, {
+      selector: itemSelector,
+      orientation: 'vertical',
+      onSelect: (el, index) => {
+        if (onSelect) onSelect(el, index);
+        if (closeOnSelect) close();
+      }
+    });
+
+    // Focus first item
+    const firstItem = menu.querySelector(itemSelector);
+    if (firstItem) firstItem.focus();
+
+    // Close on click outside (delay to avoid immediate close)
+    setTimeout(() => {
+      documentClickHandler = (e) => {
+        if (!button.contains(e.target) && !menu.contains(e.target)) {
+          close();
+        }
+      };
+      document.addEventListener('click', documentClickHandler);
+    }, 0);
+  };
+
+  const close = () => {
+    if (!isOpen.get()) return;
+
+    menu.hidden = true;
+    button.setAttribute('aria-expanded', 'false');
+    isOpen.set(false);
+
+    if (rovingCleanup) {
+      rovingCleanup();
+      rovingCleanup = null;
+    }
+
+    if (documentClickHandler) {
+      document.removeEventListener('click', documentClickHandler);
+      documentClickHandler = null;
+    }
+
+    button.focus();
+  };
+
+  const toggle = () => isOpen.get() ? close() : open();
+
+  // Button click
+  button.addEventListener('click', toggle);
+
+  // Keyboard navigation on button
+  const handleButtonKeyDown = (e) => {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      open();
+    }
+  };
+  button.addEventListener('keydown', handleButtonKeyDown);
+
+  // Close on escape
+  const handleMenuKeyDown = (e) => {
+    if (e.key === 'Escape') {
+      e.stopPropagation();
+      close();
+    }
+  };
+  menu.addEventListener('keydown', handleMenuKeyDown);
+
+  const cleanup = () => {
+    button.removeEventListener('click', toggle);
+    button.removeEventListener('keydown', handleButtonKeyDown);
+    menu.removeEventListener('keydown', handleMenuKeyDown);
+    if (documentClickHandler) {
+      document.removeEventListener('click', documentClickHandler);
+    }
+    if (rovingCleanup) {
+      rovingCleanup();
+    }
+  };
+
+  return { isOpen, open, close, toggle, cleanup };
+}
+
+// =============================================================================
 // VALIDATION & AUDITING
 // =============================================================================
 
@@ -798,6 +1300,65 @@ export function validateA11y(container = document.body) {
     }
   });
 
+  // Check for duplicate IDs
+  const idMap = new Map();
+  container.querySelectorAll('[id]').forEach(el => {
+    const id = el.id;
+    if (id) {
+      if (idMap.has(id)) {
+        addIssue('error', 'duplicate-id', `Duplicate ID "${id}" found`, el);
+      } else {
+        idMap.set(id, el);
+      }
+    }
+  });
+
+  // Check for landmark regions (main, nav, etc.)
+  if (typeof container.querySelector === 'function' && container === document.body) {
+    const hasMain = container.querySelector('main, [role="main"]');
+    if (!hasMain) {
+      addIssue('warning', 'missing-main', 'Page should have a <main> landmark', document.body);
+    }
+  }
+
+  // Check for nested interactive elements
+  container.querySelectorAll('a, button').forEach(el => {
+    if (typeof el.querySelector === 'function') {
+      const nestedInteractive = el.querySelector('a, button, input, select, textarea');
+      if (nestedInteractive) {
+        addIssue('error', 'nested-interactive',
+          'Interactive elements should not be nested inside other interactive elements', el);
+      }
+    }
+  });
+
+  // Check for missing html lang attribute
+  if (container === document.body && typeof document !== 'undefined' && document.documentElement) {
+    const lang = document.documentElement.getAttribute?.('lang');
+    if (!lang) {
+      addIssue('warning', 'missing-lang',
+        'Document should have a lang attribute on <html>', document.documentElement);
+    }
+  }
+
+  // Check for touch target sizes (WCAG 2.2 - 24x24px minimum)
+  if (typeof getComputedStyle === 'function') {
+    container.querySelectorAll('a, button, input, select, [role="button"], [role="link"]').forEach(el => {
+      if (typeof el.getBoundingClientRect === 'function') {
+        const rect = el.getBoundingClientRect();
+        if (rect.width > 0 && rect.height > 0 && (rect.width < 24 || rect.height < 24)) {
+          // Only flag if element is visible
+          const style = getComputedStyle(el);
+          if (style.display !== 'none' && style.visibility !== 'hidden') {
+            addIssue('warning', 'touch-target-size',
+              `Touch target (${Math.round(rect.width)}x${Math.round(rect.height)}px) smaller than 24x24px minimum`,
+              el);
+          }
+        }
+      }
+    });
+  }
+
   return issues;
 }
 
@@ -877,6 +1438,187 @@ export function highlightA11yIssues(issues) {
 }
 
 // =============================================================================
+// COLOR CONTRAST
+// =============================================================================
+
+/**
+ * Parse a color string to RGB values using canvas
+ * @param {string} color - CSS color string
+ * @returns {{r: number, g: number, b: number}|null}
+ */
+function parseColor(color) {
+  if (typeof document === 'undefined') return null;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = 1;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return null;
+
+  ctx.fillStyle = color;
+  ctx.fillRect(0, 0, 1, 1);
+  const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
+  return { r, g, b };
+}
+
+/**
+ * Calculate relative luminance of a color
+ * @param {{r: number, g: number, b: number}} color - RGB color
+ * @returns {number} Luminance between 0 and 1
+ */
+function relativeLuminance({ r, g, b }) {
+  const [rs, gs, bs] = [r, g, b].map(c => {
+    c = c / 255;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs;
+}
+
+/**
+ * Calculate contrast ratio between two colors
+ * @param {string} foreground - Foreground color (any CSS color format)
+ * @param {string} background - Background color (any CSS color format)
+ * @returns {number} Contrast ratio (1 to 21)
+ */
+export function getContrastRatio(foreground, background) {
+  const fg = parseColor(foreground);
+  const bg = parseColor(background);
+
+  if (!fg || !bg) return 1;
+
+  const l1 = relativeLuminance(fg);
+  const l2 = relativeLuminance(bg);
+
+  const lighter = Math.max(l1, l2);
+  const darker = Math.min(l1, l2);
+
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+/**
+ * Check if contrast meets WCAG requirements
+ * @param {number} ratio - Contrast ratio
+ * @param {'AA'|'AAA'} level - WCAG level (default: 'AA')
+ * @param {'normal'|'large'} textSize - Text size category (default: 'normal')
+ * @returns {boolean}
+ */
+export function meetsContrastRequirement(ratio, level = 'AA', textSize = 'normal') {
+  const requirements = {
+    AA: { normal: 4.5, large: 3 },
+    AAA: { normal: 7, large: 4.5 }
+  };
+  return ratio >= (requirements[level]?.[textSize] ?? 4.5);
+}
+
+/**
+ * Get the effective background color of an element (handles transparency)
+ * @param {HTMLElement} element - Element to check
+ * @returns {string} Computed background color
+ */
+export function getEffectiveBackgroundColor(element) {
+  if (!element || typeof getComputedStyle === 'undefined') return 'rgb(255, 255, 255)';
+
+  let el = element;
+  while (el) {
+    const bg = getComputedStyle(el).backgroundColor;
+    // Check if background is not transparent
+    if (bg && bg !== 'transparent' && bg !== 'rgba(0, 0, 0, 0)') {
+      return bg;
+    }
+    el = el.parentElement;
+  }
+  return 'rgb(255, 255, 255)'; // Default to white
+}
+
+/**
+ * Check color contrast of text in an element
+ * @param {HTMLElement} element - Element to check
+ * @param {'AA'|'AAA'} level - WCAG level
+ * @returns {{ ratio: number, passes: boolean, foreground: string, background: string }}
+ */
+export function checkElementContrast(element, level = 'AA') {
+  if (!element || typeof getComputedStyle === 'undefined') {
+    return { ratio: 1, passes: false, foreground: '', background: '' };
+  }
+
+  const style = getComputedStyle(element);
+  const foreground = style.color;
+  const background = getEffectiveBackgroundColor(element);
+  const ratio = getContrastRatio(foreground, background);
+
+  // Determine if text is "large" (14pt bold or 18pt+)
+  const fontSize = parseFloat(style.fontSize);
+  const fontWeight = parseInt(style.fontWeight, 10) || 400;
+  const isLarge = fontSize >= 24 || (fontSize >= 18.66 && fontWeight >= 700);
+
+  const passes = meetsContrastRequirement(ratio, level, isLarge ? 'large' : 'normal');
+
+  return { ratio, passes, foreground, background };
+}
+
+// =============================================================================
+// ANNOUNCEMENT QUEUE
+// =============================================================================
+
+/**
+ * Create an announcement queue that handles multiple messages in sequence
+ * @param {object} options - Options
+ * @param {number} options.minDelay - Minimum delay between announcements (ms, default: 500)
+ * @returns {object} Queue control object
+ */
+export function createAnnouncementQueue(options = {}) {
+  const { minDelay = 500 } = options;
+
+  const queue = [];
+  let isProcessing = false;
+  const queueLength = pulse(0);
+
+  const processQueue = async () => {
+    if (isProcessing || queue.length === 0) return;
+
+    isProcessing = true;
+
+    while (queue.length > 0) {
+      const { message, priority, clearAfter } = queue.shift();
+      queueLength.set(queue.length);
+
+      announce(message, { priority, clearAfter });
+
+      // Wait for announcement to be read
+      await new Promise(resolve => setTimeout(resolve,
+        Math.max(minDelay, clearAfter || 1000)));
+    }
+
+    isProcessing = false;
+  };
+
+  return {
+    queueLength,
+    /**
+     * Add a message to the queue
+     * @param {string} message - Message to announce
+     * @param {object} options - Announcement options (priority, clearAfter)
+     */
+    add: (message, opts = {}) => {
+      queue.push({ message, ...opts });
+      queueLength.set(queue.length);
+      processQueue();
+    },
+    /**
+     * Clear the queue
+     */
+    clear: () => {
+      queue.length = 0;
+      queueLength.set(0);
+    },
+    /**
+     * Check if queue is being processed
+     * @returns {boolean}
+     */
+    isProcessing: () => isProcessing
+  };
+}
+
+// =============================================================================
 // UTILITIES
 // =============================================================================
 
@@ -887,6 +1629,68 @@ export function highlightA11yIssues(issues) {
  */
 export function generateId(prefix = 'pulse') {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+}
+
+/**
+ * Compute the accessible name of an element
+ * Follows simplified ARIA accessible name computation algorithm
+ * @param {HTMLElement} element - Element to get name for
+ * @returns {string} The accessible name
+ */
+export function getAccessibleName(element) {
+  if (!element) return '';
+
+  // 1. aria-labelledby takes precedence
+  const labelledBy = element.getAttribute('aria-labelledby');
+  if (labelledBy) {
+    const ids = labelledBy.split(/\s+/);
+    const names = ids
+      .map(id => document.getElementById(id))
+      .filter(Boolean)
+      .map(el => el.textContent?.trim() || '');
+    if (names.length > 0) {
+      return names.join(' ');
+    }
+  }
+
+  // 2. aria-label
+  const ariaLabel = element.getAttribute('aria-label');
+  if (ariaLabel && ariaLabel.trim()) {
+    return ariaLabel.trim();
+  }
+
+  // 3. Native label association (for form controls)
+  if (element.labels && element.labels.length > 0) {
+    return Array.from(element.labels)
+      .map(label => label.textContent?.trim() || '')
+      .join(' ');
+  }
+
+  // 4. title attribute
+  const title = element.getAttribute('title');
+  if (title && title.trim()) {
+    return title.trim();
+  }
+
+  // 5. alt attribute (for images)
+  if (element.tagName === 'IMG') {
+    const alt = element.getAttribute('alt');
+    if (alt) return alt;
+  }
+
+  // 6. Text content (for buttons, links)
+  const textContent = element.textContent?.trim();
+  if (textContent) {
+    return textContent;
+  }
+
+  // 7. value attribute (for inputs with type=button/submit)
+  const type = element.getAttribute('type');
+  if (element.tagName === 'INPUT' && (type === 'button' || type === 'submit')) {
+    return element.value || '';
+  }
+
+  return '';
 }
 
 /**
@@ -967,6 +1771,7 @@ export default {
   announcePolite,
   announceAssertive,
   createLiveAnnouncer,
+  createAnnouncementQueue,
 
   // Focus
   trapFocus,
@@ -975,6 +1780,8 @@ export default {
   saveFocus,
   restoreFocus,
   getFocusableElements,
+  onEscapeKey,
+  createFocusVisibleTracker,
 
   // Skip links
   createSkipLink,
@@ -984,6 +1791,9 @@ export default {
   prefersReducedMotion,
   prefersColorScheme,
   prefersHighContrast,
+  prefersReducedTransparency,
+  forcedColorsMode,
+  prefersContrast,
   createPreferences,
 
   // ARIA helpers
@@ -992,6 +1802,18 @@ export default {
   createTabs,
   createRovingTabindex,
 
+  // ARIA widgets
+  createModal,
+  createTooltip,
+  createAccordion,
+  createMenu,
+
+  // Color contrast
+  getContrastRatio,
+  meetsContrastRequirement,
+  getEffectiveBackgroundColor,
+  checkElementContrast,
+
   // Validation
   validateA11y,
   logA11yIssues,
@@ -999,6 +1821,7 @@ export default {
 
   // Utilities
   generateId,
+  getAccessibleName,
   isAccessiblyHidden,
   makeInert,
   srOnly

@@ -953,19 +953,25 @@ disableA11yAudit();
 ```javascript
 import {
   // Announcements (screen readers)
-  announce, announcePolite, announceAssertive, createLiveAnnouncer,
+  announce, announcePolite, announceAssertive, createLiveAnnouncer, createAnnouncementQueue,
   // Focus management
   trapFocus, focusFirst, focusLast, saveFocus, restoreFocus, getFocusableElements,
+  onEscapeKey, createFocusVisibleTracker,
   // Skip links
   createSkipLink, installSkipLinks,
   // User preferences
-  prefersReducedMotion, prefersColorScheme, prefersHighContrast, createPreferences,
+  prefersReducedMotion, prefersColorScheme, prefersHighContrast,
+  prefersReducedTransparency, forcedColorsMode, prefersContrast, createPreferences,
   // ARIA helpers
   setAriaAttributes, createDisclosure, createTabs, createRovingTabindex,
+  // ARIA widgets
+  createModal, createTooltip, createAccordion, createMenu,
+  // Color contrast
+  getContrastRatio, meetsContrastRequirement, getEffectiveBackgroundColor, checkElementContrast,
   // Validation
   validateA11y, logA11yIssues, highlightA11yIssues,
   // Utilities
-  generateId, isAccessiblyHidden, makeInert, srOnly
+  generateId, getAccessibleName, isAccessiblyHidden, makeInert, srOnly
 } from 'pulse-js-framework/runtime/a11y';
 
 // Screen reader announcements
@@ -978,6 +984,13 @@ const cleanup = createLiveAnnouncer(
   () => `${items.get().length} items in cart`,
   { priority: 'polite', clearAfter: 1000 }
 );
+
+// Announcement queue (handle multiple announcements)
+const queue = createAnnouncementQueue({ minDelay: 500 });
+queue.add('First message');
+queue.add('Second message', { priority: 'assertive' });
+queue.queueLength.get();  // Number of queued messages
+queue.clear();            // Clear the queue
 
 // Focus management for modals/dialogs
 const release = trapFocus(modalElement, {
@@ -993,6 +1006,15 @@ saveFocus();                 // Push current focus to stack
 restoreFocus();              // Pop and restore focus
 getFocusableElements(el);    // Get all focusable children
 
+// Escape key handler (for modals/dialogs)
+const removeEscape = onEscapeKey(dialog, () => closeDialog());
+
+// Focus-visible detection (keyboard vs mouse)
+const { isKeyboardUser, cleanup } = createFocusVisibleTracker();
+effect(() => {
+  if (isKeyboardUser.get()) document.body.classList.add('keyboard-user');
+});
+
 // Skip links for keyboard navigation
 installSkipLinks([
   { target: 'main-content', text: 'Skip to main content' },
@@ -1000,13 +1022,15 @@ installSkipLinks([
 ]);
 
 // User preferences (reactive)
-if (prefersReducedMotion()) {
-  // Disable animations
-}
-const scheme = prefersColorScheme();  // 'light' | 'dark' | 'no-preference'
+if (prefersReducedMotion()) { /* Disable animations */ }
+if (prefersReducedTransparency()) { /* Use solid backgrounds */ }
+if (forcedColorsMode() === 'active') { /* Windows High Contrast Mode */ }
+const contrastPref = prefersContrast();  // 'no-preference' | 'more' | 'less' | 'custom'
+
 const prefs = createPreferences();    // Reactive pulses
 effect(() => {
   if (prefs.reducedMotion.get()) disableAnimations();
+  if (prefs.forcedColors.get() === 'active') useForcedColors();
   applyTheme(prefs.colorScheme.get());
 });
 
@@ -1033,13 +1057,74 @@ const cleanup = createRovingTabindex(menuElement, {
   onSelect: (el, index) => el.click()
 });
 
+// === NEW ARIA Widgets ===
+
+// Modal dialog (composes trapFocus, onEscapeKey, makeInert)
+const modal = createModal(dialogElement, {
+  labelledBy: 'modal-title',
+  describedBy: 'modal-description',
+  closeOnBackdropClick: true,
+  onClose: () => console.log('Modal closed')
+});
+modal.open();
+modal.close();
+modal.isOpen.get();  // Reactive state
+
+// Tooltip
+const tooltip = createTooltip(trigger, tooltipEl, {
+  showDelay: 500,
+  hideDelay: 100
+});
+tooltip.isVisible.get();  // Reactive state
+tooltip.cleanup();        // Remove listeners
+
+// Accordion (composes multiple disclosures)
+const accordion = createAccordion(container, {
+  triggerSelector: '[data-accordion-trigger]',
+  panelSelector: '[data-accordion-panel]',
+  allowMultiple: false,
+  defaultOpen: 0
+});
+accordion.open(1);
+accordion.closeAll();
+accordion.openIndices.get();  // [0] - Reactive
+
+// Dropdown menu
+const menu = createMenu(menuButton, menuList, {
+  itemSelector: '[role="menuitem"]',
+  closeOnSelect: true,
+  onSelect: (el, index) => console.log('Selected:', el)
+});
+menu.open();
+menu.toggle();
+menu.cleanup();
+
+// === Color Contrast ===
+
+// Calculate contrast ratio (WCAG)
+const ratio = getContrastRatio('#333', '#fff');  // 12.63
+meetsContrastRequirement(ratio, 'AA', 'normal'); // true (>= 4.5)
+meetsContrastRequirement(ratio, 'AAA', 'large'); // true (>= 4.5)
+
+// Check element contrast
+const { ratio, passes, foreground, background } = checkElementContrast(textElement, 'AA');
+const bgColor = getEffectiveBackgroundColor(element);  // Handles transparency
+
 // Accessibility validation
 const issues = validateA11y(document.body);
 logA11yIssues(issues);              // Log to console
 const cleanup = highlightA11yIssues(issues);  // Visual overlay
 
+// New validation rules:
+// - duplicate-id: Duplicate ID attributes
+// - missing-main: No <main> landmark
+// - nested-interactive: Interactive elements inside other interactive elements
+// - missing-lang: No lang attribute on <html>
+// - touch-target-size: Touch targets smaller than 24x24px (WCAG 2.2)
+
 // Utilities
 const id = generateId('modal');     // 'modal-1234567890-abc123'
+const name = getAccessibleName(el); // Computes accessible name (aria-label, text, etc.)
 isAccessiblyHidden(element);        // Check if hidden from a11y tree
 const restore = makeInert(element); // Set inert + aria-hidden
 const span = srOnly('Screen reader only text');  // Visually hidden

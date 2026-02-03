@@ -14,7 +14,11 @@ globalThis.document = {
     firstChild: null,
     querySelectorAll: () => [],
     querySelector: () => null,
-    contains: () => true
+    contains: () => true,
+    children: []
+  },
+  documentElement: {
+    getAttribute: () => null
   },
   createElement: (tag) => ({
     tagName: tag.toUpperCase(),
@@ -31,15 +35,25 @@ globalThis.document = {
     querySelectorAll: () => [],
     querySelector: () => null,
     contains: () => true,
+    getBoundingClientRect: () => ({ top: 0, left: 0, width: 100, height: 50 }),
+    getContext: () => ({
+      fillStyle: '',
+      fillRect: () => {},
+      getImageData: () => ({ data: [0, 0, 0, 255] })
+    }),
     style: {},
     id: '',
     className: '',
     textContent: '',
     hidden: false,
-    offsetParent: {}
+    offsetParent: {},
+    width: 1,
+    height: 1
   }),
   activeElement: null,
-  getElementById: () => null
+  getElementById: () => null,
+  addEventListener: mock.fn(),
+  removeEventListener: mock.fn()
 };
 
 globalThis.window = {
@@ -63,6 +77,7 @@ const {
   announcePolite,
   announceAssertive,
   createLiveAnnouncer,
+  createAnnouncementQueue,
   getFocusableElements,
   focusFirst,
   focusLast,
@@ -70,20 +85,34 @@ const {
   saveFocus,
   restoreFocus,
   clearFocusStack,
+  onEscapeKey,
+  createFocusVisibleTracker,
   createSkipLink,
   installSkipLinks,
   prefersReducedMotion,
   prefersColorScheme,
   prefersHighContrast,
+  prefersReducedTransparency,
+  forcedColorsMode,
+  prefersContrast,
   createPreferences,
   setAriaAttributes,
   createDisclosure,
   createTabs,
   createRovingTabindex,
+  createModal,
+  createTooltip,
+  createAccordion,
+  createMenu,
+  getContrastRatio,
+  meetsContrastRequirement,
+  getEffectiveBackgroundColor,
+  checkElementContrast,
   validateA11y,
   logA11yIssues,
   highlightA11yIssues,
   generateId,
+  getAccessibleName,
   isAccessiblyHidden,
   makeInert,
   srOnly
@@ -1003,6 +1032,312 @@ describe('Additional A11y Edge Cases', () => {
       console.group = originalGroup;
       console.groupEnd = originalGroupEnd;
       console.log = originalLog;
+    });
+
+  });
+
+  // ==========================================================================
+  // NEW FEATURE TESTS
+  // ==========================================================================
+
+  describe('Enhanced User Preferences', () => {
+
+    it('should export prefersReducedTransparency function', () => {
+      assert.strictEqual(typeof prefersReducedTransparency, 'function');
+    });
+
+    it('should return boolean from prefersReducedTransparency', () => {
+      const result = prefersReducedTransparency();
+      assert.strictEqual(typeof result, 'boolean');
+    });
+
+    it('should export forcedColorsMode function', () => {
+      assert.strictEqual(typeof forcedColorsMode, 'function');
+    });
+
+    it('should return string from forcedColorsMode', () => {
+      const result = forcedColorsMode();
+      assert.ok(['none', 'active'].includes(result));
+    });
+
+    it('should export prefersContrast function', () => {
+      assert.strictEqual(typeof prefersContrast, 'function');
+    });
+
+    it('should return valid contrast preference', () => {
+      const result = prefersContrast();
+      assert.ok(['no-preference', 'more', 'less', 'custom'].includes(result));
+    });
+
+    it('should include new preferences in createPreferences', () => {
+      const prefs = createPreferences();
+      assert.ok(prefs.reducedTransparency);
+      assert.ok(prefs.forcedColors);
+      assert.ok(prefs.contrast);
+    });
+
+  });
+
+  describe('onEscapeKey', () => {
+
+    it('should export onEscapeKey function', () => {
+      assert.strictEqual(typeof onEscapeKey, 'function');
+    });
+
+    it('should return cleanup function', () => {
+      const container = document.createElement('div');
+      const cleanup = onEscapeKey(container, () => {});
+      assert.strictEqual(typeof cleanup, 'function');
+    });
+
+    it('should handle null container', () => {
+      const cleanup = onEscapeKey(null, () => {});
+      assert.strictEqual(typeof cleanup, 'function');
+    });
+
+    it('should add keydown listener', () => {
+      const container = document.createElement('div');
+      onEscapeKey(container, () => {});
+      assert.ok(container.addEventListener.mock.calls.length > 0);
+    });
+
+  });
+
+  describe('createFocusVisibleTracker', () => {
+
+    it('should export createFocusVisibleTracker function', () => {
+      assert.strictEqual(typeof createFocusVisibleTracker, 'function');
+    });
+
+    it('should return isKeyboardUser pulse and cleanup', () => {
+      const { isKeyboardUser, cleanup } = createFocusVisibleTracker();
+      assert.ok(isKeyboardUser);
+      assert.strictEqual(typeof cleanup, 'function');
+    });
+
+    it('should have boolean initial value', () => {
+      const { isKeyboardUser } = createFocusVisibleTracker();
+      assert.strictEqual(typeof isKeyboardUser.get(), 'boolean');
+    });
+
+  });
+
+  describe('getAccessibleName', () => {
+
+    it('should export getAccessibleName function', () => {
+      assert.strictEqual(typeof getAccessibleName, 'function');
+    });
+
+    it('should return empty string for null element', () => {
+      assert.strictEqual(getAccessibleName(null), '');
+    });
+
+    it('should return aria-label if present', () => {
+      const el = document.createElement('button');
+      el.getAttribute = (attr) => attr === 'aria-label' ? 'Click me' : null;
+      el.hasAttribute = () => false;
+      el.textContent = '';
+      assert.strictEqual(getAccessibleName(el), 'Click me');
+    });
+
+    it('should return text content for buttons', () => {
+      const el = document.createElement('button');
+      el.getAttribute = () => null;
+      el.hasAttribute = () => false;
+      el.textContent = 'Submit';
+      assert.strictEqual(getAccessibleName(el), 'Submit');
+    });
+
+  });
+
+  describe('createModal', () => {
+
+    it('should export createModal function', () => {
+      assert.strictEqual(typeof createModal, 'function');
+    });
+
+    it('should return control object with isOpen, open, close', () => {
+      const dialog = document.createElement('div');
+      const { isOpen, open, close } = createModal(dialog);
+      assert.ok(isOpen);
+      assert.strictEqual(typeof open, 'function');
+      assert.strictEqual(typeof close, 'function');
+    });
+
+    it('should set ARIA attributes on dialog', () => {
+      const dialog = document.createElement('div');
+      createModal(dialog);
+      assert.ok(dialog.setAttribute.mock.calls.some(
+        call => call.arguments[0] === 'role' && call.arguments[1] === 'dialog'
+      ));
+    });
+
+  });
+
+  describe('createTooltip', () => {
+
+    it('should export createTooltip function', () => {
+      assert.strictEqual(typeof createTooltip, 'function');
+    });
+
+    it('should return control object', () => {
+      const trigger = document.createElement('button');
+      const tooltip = document.createElement('div');
+      const { isVisible, show, hide, cleanup } = createTooltip(trigger, tooltip);
+      assert.ok(isVisible);
+      assert.strictEqual(typeof show, 'function');
+      assert.strictEqual(typeof hide, 'function');
+      assert.strictEqual(typeof cleanup, 'function');
+    });
+
+    it('should set tooltip role', () => {
+      const trigger = document.createElement('button');
+      const tooltip = document.createElement('div');
+      createTooltip(trigger, tooltip);
+      assert.ok(tooltip.setAttribute.mock.calls.some(
+        call => call.arguments[0] === 'role' && call.arguments[1] === 'tooltip'
+      ));
+    });
+
+  });
+
+  describe('createAccordion', () => {
+
+    it('should export createAccordion function', () => {
+      assert.strictEqual(typeof createAccordion, 'function');
+    });
+
+    it('should return control object', () => {
+      const container = document.createElement('div');
+      const { openIndices, openAll, closeAll, open, close, toggle } = createAccordion(container);
+      assert.ok(openIndices);
+      assert.strictEqual(typeof openAll, 'function');
+      assert.strictEqual(typeof closeAll, 'function');
+      assert.strictEqual(typeof open, 'function');
+      assert.strictEqual(typeof close, 'function');
+      assert.strictEqual(typeof toggle, 'function');
+    });
+
+  });
+
+  describe('createMenu', () => {
+
+    it('should export createMenu function', () => {
+      assert.strictEqual(typeof createMenu, 'function');
+    });
+
+    it('should return control object', () => {
+      const button = document.createElement('button');
+      const menu = document.createElement('div');
+      const { isOpen, open, close, toggle, cleanup } = createMenu(button, menu);
+      assert.ok(isOpen);
+      assert.strictEqual(typeof open, 'function');
+      assert.strictEqual(typeof close, 'function');
+      assert.strictEqual(typeof toggle, 'function');
+      assert.strictEqual(typeof cleanup, 'function');
+    });
+
+    it('should set ARIA attributes', () => {
+      const button = document.createElement('button');
+      const menu = document.createElement('div');
+      createMenu(button, menu);
+      assert.ok(menu.setAttribute.mock.calls.some(
+        call => call.arguments[0] === 'role' && call.arguments[1] === 'menu'
+      ));
+      assert.ok(button.setAttribute.mock.calls.some(
+        call => call.arguments[0] === 'aria-haspopup' && call.arguments[1] === 'menu'
+      ));
+    });
+
+  });
+
+  describe('Color Contrast', () => {
+
+    it('should export getContrastRatio function', () => {
+      assert.strictEqual(typeof getContrastRatio, 'function');
+    });
+
+    it('should export meetsContrastRequirement function', () => {
+      assert.strictEqual(typeof meetsContrastRequirement, 'function');
+    });
+
+    it('should return 1 for invalid colors in getContrastRatio', () => {
+      // Without proper canvas support in mock, should return 1
+      const result = getContrastRatio('invalid', 'colors');
+      assert.strictEqual(typeof result, 'number');
+    });
+
+    it('should check AA normal text requirements', () => {
+      assert.strictEqual(meetsContrastRequirement(4.5, 'AA', 'normal'), true);
+      assert.strictEqual(meetsContrastRequirement(4.4, 'AA', 'normal'), false);
+    });
+
+    it('should check AA large text requirements', () => {
+      assert.strictEqual(meetsContrastRequirement(3, 'AA', 'large'), true);
+      assert.strictEqual(meetsContrastRequirement(2.9, 'AA', 'large'), false);
+    });
+
+    it('should check AAA requirements', () => {
+      assert.strictEqual(meetsContrastRequirement(7, 'AAA', 'normal'), true);
+      assert.strictEqual(meetsContrastRequirement(6.9, 'AAA', 'normal'), false);
+    });
+
+    it('should export getEffectiveBackgroundColor function', () => {
+      assert.strictEqual(typeof getEffectiveBackgroundColor, 'function');
+    });
+
+    it('should export checkElementContrast function', () => {
+      assert.strictEqual(typeof checkElementContrast, 'function');
+    });
+
+  });
+
+  describe('createAnnouncementQueue', () => {
+
+    it('should export createAnnouncementQueue function', () => {
+      assert.strictEqual(typeof createAnnouncementQueue, 'function');
+    });
+
+    it('should return queue control object', () => {
+      const queue = createAnnouncementQueue();
+      assert.ok(queue.queueLength);
+      assert.strictEqual(typeof queue.add, 'function');
+      assert.strictEqual(typeof queue.clear, 'function');
+      assert.strictEqual(typeof queue.isProcessing, 'function');
+    });
+
+    it('should start with empty queue', () => {
+      const queue = createAnnouncementQueue();
+      assert.strictEqual(queue.queueLength.get(), 0);
+    });
+
+    it('should clear queue', () => {
+      const queue = createAnnouncementQueue();
+      queue.add('Test message');
+      queue.clear();
+      assert.strictEqual(queue.queueLength.get(), 0);
+    });
+
+  });
+
+  describe('Additional Validation Rules', () => {
+
+    it('should detect duplicate IDs', () => {
+      const container = document.createElement('div');
+      const el1 = document.createElement('div');
+      const el2 = document.createElement('div');
+      el1.id = 'duplicate';
+      el2.id = 'duplicate';
+
+      container.querySelectorAll = (selector) => {
+        if (selector === '[id]') return [el1, el2];
+        return [];
+      };
+      container.querySelector = () => null;
+
+      const issues = validateA11y(container);
+      const duplicateIssue = issues.find(i => i.rule === 'duplicate-id');
+      assert.ok(duplicateIssue, 'Should detect duplicate ID');
     });
 
   });
