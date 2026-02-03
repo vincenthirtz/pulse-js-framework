@@ -56,7 +56,8 @@ export function getNavigationFlat() {
     { path: '/error-handling', label: t('nav.errorHandling') },
     { path: '/mobile', label: t('nav.mobile') },
     { path: '/examples', label: t('nav.examplesPage') },
-    { path: '/playground', label: t('nav.playground') }
+    { path: '/playground', label: t('nav.playground') },
+    { path: '/benchmarks', label: t('nav.benchmarks') }
   ];
 }
 
@@ -81,6 +82,7 @@ export function getNavigation() {
         { path: '/accessibility', label: t('nav.accessibility'), desc: t('nav.accessibilityDesc') },
         { path: '/security', label: t('nav.security'), desc: t('nav.securityDesc') },
         { path: '/performance', label: t('nav.performance'), desc: t('nav.performanceDesc') },
+        { path: '/benchmarks', label: t('nav.benchmarks'), desc: t('nav.benchmarksDesc') },
         { path: '/error-handling', label: t('nav.errorHandling'), desc: t('nav.errorHandlingDesc') },
         { path: '/mobile', label: t('nav.mobile'), desc: t('nav.mobileDesc') }
       ]
@@ -108,7 +110,8 @@ export const navigationFlat = [
   { path: '/error-handling', label: '🛡️ Error Handling' },
   { path: '/mobile', label: '📱 Mobile' },
   { path: '/examples', label: '✨ Examples' },
-  { path: '/playground', label: '🎮 Playground' }
+  { path: '/playground', label: '🎮 Playground' },
+  { path: '/benchmarks', label: '📊 Benchmarks' }
 ];
 
 export const navigation = [
@@ -128,6 +131,7 @@ export const navigation = [
       { path: '/accessibility', label: '♿ Accessibility', desc: 'A11y features & best practices' },
       { path: '/security', label: '🔒 Security', desc: 'XSS prevention & safe patterns' },
       { path: '/performance', label: '⚡ Performance', desc: 'Optimization techniques' },
+      { path: '/benchmarks', label: '📊 Benchmarks', desc: 'Interactive performance tests' },
       { path: '/error-handling', label: '🛡️ Error Handling', desc: 'Error patterns & recovery' },
       { path: '/mobile', label: '📱 Mobile', desc: 'Android & iOS apps' }
     ]

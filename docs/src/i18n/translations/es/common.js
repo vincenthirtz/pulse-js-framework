@@ -35,7 +35,9 @@ export default {
     playgroundDesc: 'Entorno interactivo',
     changelog: '📋 Historial',
     migrationReact: '⚛️ Desde React',
-    migrationReactDesc: 'Guía de migración para desarrolladores React'
+    migrationReactDesc: 'Guía de migración para desarrolladores React',
+    benchmarks: '📊 Benchmarks',
+    benchmarksDesc: 'Pruebas de rendimiento interactivas'
   },
 
   // Theme

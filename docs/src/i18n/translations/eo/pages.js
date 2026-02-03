@@ -630,5 +630,88 @@ export default {
     documentation: 'Dokumentado',
     performance: 'Efikeco',
     tests: 'Testoj'
+  },
+
+  // Benchmarks page
+  benchmarks: {
+    title: '📊 Efikeco-Komparnormoj',
+    intro: 'Interagaj efikeco-provoj kiuj funkcias en via retumilo. Klaku sur provo por ruli ĝin aŭ "Ruli ĉiujn" por ruli ĉiujn komparnormojn.',
+    runAll: '▶ Ruli ĉiujn',
+    clear: '🗑 Forigi',
+    running: 'Rulante...',
+    clickToRun: 'Klaku sur provo por ruli ĝin',
+    note: 'Noto',
+    noteText: 'Rezultoj povas varii depende de via aparataro kaj retumilakondiĉo. Rulu provojn plurfoje por akiri fidindajn rezultojn.',
+    categories: {
+      signalOperations: '⚡ Signalaj Operacioj',
+      computedValues: '🔄 Kalkulitaj Valoroj',
+      effectSystem: '📡 Efiko-Sistemo',
+      batchProcessing: '📦 Ara Procesado',
+      domOperations: '🏗️ DOM Operacioj',
+      stressTests: '🔥 Streĉprovoj'
+    },
+    tests: {
+      signalCreation: 'Signala kreado',
+      signalCreationDesc: 'Krei 10,000 reagajn signalojn',
+      signalRead: 'Signala legado',
+      signalReadDesc: 'Legi signalon 100,000 fojojn',
+      signalWrite: 'Signala skribado',
+      signalWriteDesc: 'Skribi al signalo 100,000 fojojn',
+      signalUpdate: 'Signala ĝisdatigo',
+      signalUpdateDesc: 'Uzi update() 100,000 fojojn',
+      computedCreation: 'Kalkulita kreado',
+      computedCreationDesc: 'Krei 10,000 kalkulitajn valorojn',
+      computedRead: 'Kalkulita legado',
+      computedReadDesc: 'Legi kalkulitajn valorojn 100,000 fojojn',
+      computedChain: 'Kalkulita ĉeno',
+      computedChainDesc: 'Ĉeni 100 kalkulitajn valorojn',
+      effectCreation: 'Efiko kreado',
+      effectCreationDesc: 'Krei 1,000 efikojn',
+      effectTrigger: 'Efiko ekigo',
+      effectTriggerDesc: 'Ekigi efikojn 10,000 fojojn',
+      batchUpdates: 'Araj ĝisdatigoj',
+      batchUpdatesDesc: 'Araj 10,000 ĝisdatigojn',
+      unbatchedUpdates: 'Ne-araj ĝisdatigoj',
+      unbatchedUpdatesDesc: 'Ne-araj 10,000 ĝisdatigoj (por komparo)',
+      domCreation: 'DOM kreado',
+      domCreationDesc: 'Krei 1,000 elementojn',
+      domNested: 'Nestita DOM',
+      domNestedDesc: 'Krei 10 tavolojn de nestitaj elementoj',
+      listRenderKeyed: 'Lista bildigo (ŝlosilita)',
+      listRenderKeyedDesc: 'Bildigi liston kun 1,000 eroj',
+      listUpdate: 'Lista ĝisdatigo',
+      listUpdateDesc: 'Ĝisdatigi liston 100 fojojn',
+      manySignals: 'Multaj signaloj',
+      manySignalsDesc: 'Krei kaj legi 100,000 signalojn',
+      diamondDependency: 'Diamanta dependeco',
+      diamondDependencyDesc: 'Kompleksa dependec-grafo kun kunfluoj',
+      deepReactivity: 'Profunda reageco',
+      deepReactivityDesc: '100-tavola kalkulita ĉeno'
+    },
+    comparison: {
+      title: '📈 Komparo de Kadroj',
+      description: 'Tipaj efikeco-nombroj (pli malalta estas pli bona). Realaj rezultoj dependas de retumilo kaj aparataro.',
+      operation: 'Operacio',
+      pulse: 'Pulse',
+      react: 'React',
+      vue: 'Vue',
+      svelte: 'Svelte',
+      signalCreate: 'Signala kreado (10k)',
+      signalUpdate: 'Signala ĝisdatigo (100k)',
+      computedCreate: 'Kalkulita kreado (10k)',
+      listRender: 'Lista bildigo (1k eroj)',
+      memoryUsage: 'Memora uzado (bazo)',
+      disclaimer: '* Komparnormoj estas nur ilustraj datumoj. Rulu la provojn supre por realaj mezuradoj.'
+    },
+    methodology: {
+      title: '🔬 Metodologio',
+      description: 'Ĉiuj komparnormoj funkcias rekte en via retumilo uzante performance.now() por precizaj mezuradoj.',
+      items: [
+        'Provoj rulas plurfoje por redukti bruon',
+        'Rezultoj estas averaĝoj de pluraj iteracioj',
+        'Memoro puriĝas inter provoj kiam eble',
+        'DOM operacioj uzas realajn elementojn por eviti en-memorajn mezuradojn'
+      ]
+    }
   }
 };

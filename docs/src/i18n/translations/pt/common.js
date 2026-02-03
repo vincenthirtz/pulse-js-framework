@@ -35,7 +35,9 @@ export default {
     playgroundDesc: 'Sandbox interativo',
     changelog: '📋 Changelog',
     migrationReact: '⚛️ Do React',
-    migrationReactDesc: 'Guia de migração para desenvolvedores React'
+    migrationReactDesc: 'Guia de migração para desenvolvedores React',
+    benchmarks: '📊 Benchmarks',
+    benchmarksDesc: 'Testes de desempenho interativos'
   },
 
   // Theme

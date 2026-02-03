@@ -630,5 +630,53 @@ export default {
     documentation: 'Documentação',
     performance: 'Performance',
     tests: 'Testes'
+  },
+
+  // Benchmarks page
+  benchmarks: {
+    title: '📊 Benchmarks',
+    intro: 'Testes de desempenho interativos que rodam diretamente no seu navegador. Clique em "Executar Tudo" para medir o desempenho do Pulse na sua máquina.',
+    runAll: 'Executar Tudo',
+    clear: 'Limpar Resultados',
+    running: 'Executando',
+    clickToRun: 'Clique em "Executar" para testar',
+    note: 'Nota',
+    noteText: 'Os resultados variam de acordo com navegador, hardware e carga do sistema. Execute várias vezes para medições precisas.',
+
+    // Categories
+    reactivity: 'Reatividade',
+    computed: 'Valores Computados',
+    effects: 'Effects',
+    batching: 'Batching',
+    dom: 'Operações DOM',
+    advanced: 'Padrões Avançados',
+
+    // Comparison table
+    comparison: 'Comparação de Frameworks',
+    comparisonIntro: 'Como o Pulse se compara a outros frameworks? Execute os benchmarks acima para ver seus resultados reais.',
+    metric: 'Métrica',
+    bundleSize: 'Tamanho do Bundle (gzip)',
+    signalCreate: 'Criação de Sinal',
+    signalUpdate: 'Atualização de Sinal',
+    dependencies: 'Dependências',
+    buildRequired: 'Build Necessário',
+
+    // Methodology
+    methodology: 'Metodologia',
+    howItWorks: 'Como os Benchmarks Funcionam',
+    warmup: 'Aquecimento',
+    warmupText: '10% das iterações são executadas primeiro para aquecer a compilação JIT.',
+    measurement: 'Medição',
+    measurementText: 'Operações são executadas em loop fechado com temporização performance.now().',
+    precision: 'Precisão',
+    precisionText: 'Os resultados mostram ops/seg, tempo médio e tempo total.',
+    factors: 'Fatores que Afetam os Resultados',
+    factor1: 'Motor do navegador (V8 no Chrome, SpiderMonkey no Firefox, JSC no Safari)',
+    factor2: 'Carga do sistema e memória disponível',
+    factor3: 'Escalonamento de frequência da CPU e limitação térmica',
+    factor4: 'Extensões do navegador e estado do DevTools',
+
+    // Navigation
+    nextPerformance: 'Próximo: Guia de Performance →'
   }
 };

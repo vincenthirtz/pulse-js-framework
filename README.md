@@ -4,7 +4,7 @@
 [![codecov](https://codecov.io/gh/vincenthirtz/pulse-js-framework/graph/badge.svg)](https://codecov.io/gh/vincenthirtz/pulse-js-framework)
 [![Netlify Status](https://api.netlify.com/api/v1/badges/2597dac2-228a-4d3e-bea8-4e7ef8ac5c53/deploy-status)](https://app.netlify.com/projects/pulse-js/deploys)
 
-A declarative DOM framework with CSS selector-based structure and reactive pulsations.
+No build. No dependencies. Just JavaScript.
 
 ## Features
 

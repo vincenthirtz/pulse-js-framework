@@ -633,5 +633,53 @@ export default {
     documentation: 'Documentation',
     performance: 'Performance',
     tests: 'Tests'
+  },
+
+  // Benchmarks page
+  benchmarks: {
+    title: '📊 Benchmarks',
+    intro: 'Interactive performance tests that run directly in your browser. Click "Run All" to measure Pulse performance on your machine.',
+    runAll: 'Run All',
+    clear: 'Clear Results',
+    running: 'Running',
+    clickToRun: 'Click "Run" to test',
+    note: 'Note',
+    noteText: 'Results vary based on browser, hardware, and system load. Run multiple times for accurate measurements.',
+
+    // Categories
+    reactivity: 'Reactivity',
+    computed: 'Computed Values',
+    effects: 'Effects',
+    batching: 'Batching',
+    dom: 'DOM Operations',
+    advanced: 'Advanced Patterns',
+
+    // Comparison table
+    comparison: 'Framework Comparison',
+    comparisonIntro: 'How does Pulse compare to other frameworks? Run the benchmarks above to see your actual results.',
+    metric: 'Metric',
+    bundleSize: 'Bundle Size (gzip)',
+    signalCreate: 'Signal Creation',
+    signalUpdate: 'Signal Update',
+    dependencies: 'Dependencies',
+    buildRequired: 'Build Required',
+
+    // Methodology
+    methodology: 'Methodology',
+    howItWorks: 'How Benchmarks Work',
+    warmup: 'Warmup',
+    warmupText: '10% of iterations run first to warm up JIT compilation.',
+    measurement: 'Measurement',
+    measurementText: 'Operations run in a tight loop with performance.now() timing.',
+    precision: 'Precision',
+    precisionText: 'Results show ops/sec, average time, and total time.',
+    factors: 'Factors Affecting Results',
+    factor1: 'Browser engine (V8 in Chrome, SpiderMonkey in Firefox, JSC in Safari)',
+    factor2: 'System load and available memory',
+    factor3: 'CPU frequency scaling and thermal throttling',
+    factor4: 'Browser extensions and DevTools state',
+
+    // Navigation
+    nextPerformance: 'Next: Performance Guide →'
   }
 };

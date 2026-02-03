@@ -74,6 +74,7 @@ export function Header() {
         { path: '/debugging', labelKey: 'nav.debugging', descKey: 'nav.debuggingDesc' },
         { path: '/security', labelKey: 'nav.security', descKey: 'nav.securityDesc' },
         { path: '/performance', labelKey: 'nav.performance', descKey: 'nav.performanceDesc' },
+        { path: '/benchmarks', labelKey: 'nav.benchmarks', descKey: 'nav.benchmarksDesc' },
         { path: '/error-handling', labelKey: 'nav.errorHandling', descKey: 'nav.errorHandlingDesc' },
         { path: '/mobile', labelKey: 'nav.mobile', descKey: 'nav.mobileDesc' }
       ]
@@ -281,6 +282,7 @@ export function Header() {
     { path: '/debugging', labelKey: 'nav.debugging' },
     { path: '/security', labelKey: 'nav.security' },
     { path: '/performance', labelKey: 'nav.performance' },
+    { path: '/benchmarks', labelKey: 'nav.benchmarks' },
     { path: '/error-handling', labelKey: 'nav.errorHandling' },
     { path: '/mobile', labelKey: 'nav.mobile' },
     { path: '/examples', labelKey: 'nav.examplesPage' },

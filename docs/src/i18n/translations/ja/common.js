@@ -35,7 +35,9 @@ export default {
     playgroundDesc: 'インタラクティブサンドボックス',
     changelog: '📋 変更履歴',
     migrationReact: '⚛️ Reactから',
-    migrationReactDesc: 'React開発者向け移行ガイド'
+    migrationReactDesc: 'React開発者向け移行ガイド',
+    benchmarks: '📊 ベンチマーク',
+    benchmarksDesc: 'インタラクティブパフォーマンステスト'
   },
 
   // Theme

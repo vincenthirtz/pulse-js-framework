@@ -578,5 +578,53 @@ export default {
     documentation: 'Documentation',
     performance: 'Performance',
     tests: 'Tests'
+  },
+
+  // Benchmarks page
+  benchmarks: {
+    title: '📊 Benchmarks',
+    intro: 'Tests de performance interactifs qui s\'exécutent directement dans votre navigateur. Cliquez sur "Tout lancer" pour mesurer les performances de Pulse sur votre machine.',
+    runAll: 'Tout lancer',
+    clear: 'Effacer',
+    running: 'En cours',
+    clickToRun: 'Cliquez sur "Lancer" pour tester',
+    note: 'Note',
+    noteText: 'Les résultats varient selon le navigateur, le matériel et la charge système. Exécutez plusieurs fois pour des mesures précises.',
+
+    // Categories
+    reactivity: 'Réactivité',
+    computed: 'Valeurs calculées',
+    effects: 'Effets',
+    batching: 'Regroupement',
+    dom: 'Opérations DOM',
+    advanced: 'Patterns avancés',
+
+    // Comparison table
+    comparison: 'Comparaison des frameworks',
+    comparisonIntro: 'Comment Pulse se compare-t-il aux autres frameworks ? Lancez les benchmarks ci-dessus pour voir vos résultats réels.',
+    metric: 'Métrique',
+    bundleSize: 'Taille du bundle (gzip)',
+    signalCreate: 'Création de signal',
+    signalUpdate: 'Mise à jour de signal',
+    dependencies: 'Dépendances',
+    buildRequired: 'Build requis',
+
+    // Methodology
+    methodology: 'Méthodologie',
+    howItWorks: 'Comment fonctionnent les benchmarks',
+    warmup: 'Préchauffage',
+    warmupText: '10% des itérations sont exécutées d\'abord pour préchauffer la compilation JIT.',
+    measurement: 'Mesure',
+    measurementText: 'Les opérations s\'exécutent dans une boucle serrée avec chronométrage performance.now().',
+    precision: 'Précision',
+    precisionText: 'Les résultats montrent ops/sec, temps moyen et temps total.',
+    factors: 'Facteurs affectant les résultats',
+    factor1: 'Moteur du navigateur (V8 dans Chrome, SpiderMonkey dans Firefox, JSC dans Safari)',
+    factor2: 'Charge système et mémoire disponible',
+    factor3: 'Mise à l\'échelle de fréquence CPU et throttling thermique',
+    factor4: 'Extensions du navigateur et état des DevTools',
+
+    // Navigation
+    nextPerformance: 'Suivant : Guide de performance →'
   }
 };

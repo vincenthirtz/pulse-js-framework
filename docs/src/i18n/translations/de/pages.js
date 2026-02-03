@@ -575,5 +575,53 @@ export default {
     documentation: 'Dokumentation',
     performance: 'Performance',
     tests: 'Tests'
+  },
+
+  // Benchmarks page
+  benchmarks: {
+    title: '📊 Benchmarks',
+    intro: 'Interaktive Performance-Tests, die direkt in Ihrem Browser laufen. Klicken Sie auf "Alle ausführen", um die Pulse-Performance auf Ihrem Gerät zu messen.',
+    runAll: 'Alle ausführen',
+    clear: 'Ergebnisse löschen',
+    running: 'Läuft',
+    clickToRun: 'Klicken Sie auf "Ausführen" zum Testen',
+    note: 'Hinweis',
+    noteText: 'Die Ergebnisse variieren je nach Browser, Hardware und Systemauslastung. Führen Sie mehrere Durchläufe für genaue Messungen durch.',
+
+    // Categories
+    reactivity: 'Reaktivität',
+    computed: 'Berechnete Werte',
+    effects: 'Effekte',
+    batching: 'Bündelung',
+    dom: 'DOM-Operationen',
+    advanced: 'Erweiterte Muster',
+
+    // Comparison table
+    comparison: 'Framework-Vergleich',
+    comparisonIntro: 'Wie vergleicht sich Pulse mit anderen Frameworks? Führen Sie die obigen Benchmarks aus, um Ihre tatsächlichen Ergebnisse zu sehen.',
+    metric: 'Metrik',
+    bundleSize: 'Bundle-Größe (gzip)',
+    signalCreate: 'Signal-Erstellung',
+    signalUpdate: 'Signal-Update',
+    dependencies: 'Abhängigkeiten',
+    buildRequired: 'Build erforderlich',
+
+    // Methodology
+    methodology: 'Methodik',
+    howItWorks: 'Wie Benchmarks funktionieren',
+    warmup: 'Aufwärmen',
+    warmupText: '10% der Iterationen werden zuerst ausgeführt, um die JIT-Kompilierung aufzuwärmen.',
+    measurement: 'Messung',
+    measurementText: 'Operationen laufen in einer engen Schleife mit performance.now()-Timing.',
+    precision: 'Präzision',
+    precisionText: 'Ergebnisse zeigen Ops/Sek, Durchschnittszeit und Gesamtzeit.',
+    factors: 'Faktoren, die die Ergebnisse beeinflussen',
+    factor1: 'Browser-Engine (V8 in Chrome, SpiderMonkey in Firefox, JSC in Safari)',
+    factor2: 'Systemauslastung und verfügbarer Speicher',
+    factor3: 'CPU-Frequenzskalierung und thermische Drosselung',
+    factor4: 'Browser-Erweiterungen und DevTools-Status',
+
+    // Navigation
+    nextPerformance: 'Weiter: Performance-Guide →'
   }
 };

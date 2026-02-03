@@ -35,7 +35,9 @@ export default {
     playgroundDesc: 'Interaga sabloludejo',
     changelog: '📋 Ŝanĝoprotokolo',
     migrationReact: '⚛️ De React',
-    migrationReactDesc: 'Migrada gvidilo por React programistoj'
+    migrationReactDesc: 'Migrada gvidilo por React programistoj',
+    benchmarks: '📊 Komparnormoj',
+    benchmarksDesc: 'Interagaj efikeco-provoj'
   },
 
   // Theme

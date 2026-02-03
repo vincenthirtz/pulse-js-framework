@@ -29,6 +29,7 @@ import { ErrorHandlingPage } from './pages/ErrorHandlingPage.js';
 import { HttpPage } from './pages/HttpPage.js';
 import { AccessibilityPage } from './pages/AccessibilityPage.js';
 import { MigrationReactPage } from './pages/MigrationReactPage.js';
+import { BenchmarksPage } from './pages/BenchmarksPage.js';
 
 // Styles & Utilities
 import { injectStyles } from './styles.js';
@@ -54,7 +55,8 @@ const baseRoutes = {
   '/examples': ExamplesPage,
   '/playground': PlaygroundPage,
   '/changelog': ChangelogPage,
-  '/migration-react': MigrationReactPage
+  '/migration-react': MigrationReactPage,
+  '/benchmarks': BenchmarksPage
 };
 
 // Build routes with locale prefixes (fr, es, de)

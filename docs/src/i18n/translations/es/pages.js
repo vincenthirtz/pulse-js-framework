@@ -573,5 +573,53 @@ export default {
     documentation: 'Documentación',
     performance: 'Rendimiento',
     tests: 'Tests'
+  },
+
+  // Benchmarks page
+  benchmarks: {
+    title: '📊 Benchmarks',
+    intro: 'Pruebas de rendimiento interactivas que se ejecutan directamente en tu navegador. Haz clic en "Ejecutar todo" para medir el rendimiento de Pulse en tu máquina.',
+    runAll: 'Ejecutar todo',
+    clear: 'Limpiar resultados',
+    running: 'Ejecutando',
+    clickToRun: 'Haz clic en "Ejecutar" para probar',
+    note: 'Nota',
+    noteText: 'Los resultados varían según el navegador, hardware y carga del sistema. Ejecuta múltiples veces para mediciones precisas.',
+
+    // Categories
+    reactivity: 'Reactividad',
+    computed: 'Valores calculados',
+    effects: 'Efectos',
+    batching: 'Agrupación',
+    dom: 'Operaciones DOM',
+    advanced: 'Patrones avanzados',
+
+    // Comparison table
+    comparison: 'Comparación de frameworks',
+    comparisonIntro: '¿Cómo se compara Pulse con otros frameworks? Ejecuta los benchmarks anteriores para ver tus resultados reales.',
+    metric: 'Métrica',
+    bundleSize: 'Tamaño del bundle (gzip)',
+    signalCreate: 'Creación de señal',
+    signalUpdate: 'Actualización de señal',
+    dependencies: 'Dependencias',
+    buildRequired: 'Build requerido',
+
+    // Methodology
+    methodology: 'Metodología',
+    howItWorks: 'Cómo funcionan los benchmarks',
+    warmup: 'Calentamiento',
+    warmupText: 'El 10% de las iteraciones se ejecutan primero para calentar la compilación JIT.',
+    measurement: 'Medición',
+    measurementText: 'Las operaciones se ejecutan en un bucle cerrado con temporización performance.now().',
+    precision: 'Precisión',
+    precisionText: 'Los resultados muestran ops/seg, tiempo promedio y tiempo total.',
+    factors: 'Factores que afectan los resultados',
+    factor1: 'Motor del navegador (V8 en Chrome, SpiderMonkey en Firefox, JSC en Safari)',
+    factor2: 'Carga del sistema y memoria disponible',
+    factor3: 'Escalado de frecuencia de CPU y limitación térmica',
+    factor4: 'Extensiones del navegador y estado de DevTools',
+
+    // Navigation
+    nextPerformance: 'Siguiente: Guía de rendimiento →'
   }
 };

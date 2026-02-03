@@ -630,5 +630,53 @@ export default {
     documentation: 'ドキュメント',
     performance: 'パフォーマンス',
     tests: 'テスト'
+  },
+
+  // Benchmarks page
+  benchmarks: {
+    title: '📊 ベンチマーク',
+    intro: 'ブラウザで直接実行されるインタラクティブなパフォーマンステスト。「すべて実行」をクリックして、お使いのマシンでPulseのパフォーマンスを測定してください。',
+    runAll: 'すべて実行',
+    clear: '結果をクリア',
+    running: '実行中',
+    clickToRun: '「実行」をクリックしてテスト',
+    note: '注意',
+    noteText: '結果はブラウザ、ハードウェア、システム負荷によって異なります。正確な測定のために複数回実行してください。',
+
+    // Categories
+    reactivity: 'リアクティビティ',
+    computed: '計算値',
+    effects: 'エフェクト',
+    batching: 'バッチ処理',
+    dom: 'DOM操作',
+    advanced: '高度なパターン',
+
+    // Comparison table
+    comparison: 'フレームワーク比較',
+    comparisonIntro: 'Pulseは他のフレームワークとどう比較されますか？上記のベンチマークを実行して実際の結果を確認してください。',
+    metric: '指標',
+    bundleSize: 'バンドルサイズ (gzip)',
+    signalCreate: 'シグナル作成',
+    signalUpdate: 'シグナル更新',
+    dependencies: '依存関係',
+    buildRequired: 'ビルド必須',
+
+    // Methodology
+    methodology: '方法論',
+    howItWorks: 'ベンチマークの仕組み',
+    warmup: 'ウォームアップ',
+    warmupText: 'JITコンパイルをウォームアップするために、まず10%の反復が実行されます。',
+    measurement: '測定',
+    measurementText: '操作はperformance.now()タイミングでタイトループで実行されます。',
+    precision: '精度',
+    precisionText: '結果はops/sec、平均時間、合計時間を表示します。',
+    factors: '結果に影響する要因',
+    factor1: 'ブラウザエンジン（ChromeのV8、FirefoxのSpiderMonkey、SafariのJSC）',
+    factor2: 'システム負荷と利用可能なメモリ',
+    factor3: 'CPU周波数スケーリングとサーマルスロットリング',
+    factor4: 'ブラウザ拡張機能とDevToolsの状態',
+
+    // Navigation
+    nextPerformance: '次へ：パフォーマンスガイド →'
   }
 };

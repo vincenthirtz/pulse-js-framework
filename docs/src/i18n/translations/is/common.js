@@ -35,7 +35,9 @@ export default {
     playgroundDesc: 'Gagnvirkt sandkassa',
     changelog: '📋 Breytingaskrá',
     migrationReact: '⚛️ Frá React',
-    migrationReactDesc: 'Flutningsleiðbeiningar fyrir React forritara'
+    migrationReactDesc: 'Flutningsleiðbeiningar fyrir React forritara',
+    benchmarks: '📊 Viðmiðanir',
+    benchmarksDesc: 'Gagnvirkir afkastapróf'
   },
 
   // Theme
