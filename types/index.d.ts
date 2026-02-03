@@ -224,3 +224,18 @@ export {
   useField,
   useFieldArray
 } from './form';
+
+// Context API
+export {
+  Context,
+  ContextOptions,
+  createContext,
+  useContext,
+  Provider,
+  Consumer,
+  isContext,
+  getContextDepth,
+  disposeContext,
+  useContextSelector,
+  provideMany
+} from './context';

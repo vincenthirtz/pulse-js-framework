@@ -55,6 +55,7 @@ pulse/
 │   ├── dom.js           # DOM creation and reactive bindings
 │   ├── router.js        # SPA routing
 │   ├── store.js         # Global state management
+│   ├── context.js       # Context API (dependency injection, prop drilling prevention)
 │   ├── form.js          # Form validation and management
 │   ├── async.js         # Async primitives (useAsync, useResource, usePolling)
 │   ├── http.js          # HTTP client (fetch wrapper, interceptors)
@@ -213,6 +214,59 @@ store.user.set({ name: 'John' });
 const actions = createActions(store, {
   toggleTheme: (store) => store.theme.update(t => t === 'light' ? 'dark' : 'light')
 });
+```
+
+### Context API (runtime/context.js)
+
+```javascript
+import { createContext, useContext, Provider, provideMany } from 'pulse-js-framework/runtime/context';
+
+// Create a context with default value
+const ThemeContext = createContext('light');
+const UserContext = createContext(null, { displayName: 'UserContext' });
+
+// Provide values to children
+Provider(ThemeContext, 'dark', () => {
+  const theme = useContext(ThemeContext);
+  console.log(theme.get()); // 'dark'
+  return MyComponent();
+});
+
+// Provide reactive values (pulses)
+const themePulse = pulse('dark');
+Provider(ThemeContext, themePulse, () => {
+  const theme = useContext(ThemeContext);
+  // theme updates when themePulse changes
+});
+
+// Shorthand syntax
+ThemeContext.Provider('dark', () => App());
+ThemeContext.Consumer((theme) => el(`div.${theme.get()}`));
+
+// Nested providers (inner overrides outer)
+Provider(ThemeContext, 'dark', () => {
+  Provider(ThemeContext, 'blue', () => {
+    useContext(ThemeContext).get(); // 'blue'
+  });
+  useContext(ThemeContext).get(); // 'dark'
+});
+
+// Provide multiple contexts at once
+provideMany([
+  [ThemeContext, 'dark'],
+  [UserContext, { name: 'John' }],
+  [LocaleContext, 'fr']
+], () => App());
+
+// Derive from multiple contexts
+const effectiveTheme = useContextSelector(
+  (theme, user) => user.get()?.preferredTheme || theme.get(),
+  ThemeContext,
+  UserContext
+);
+
+// Cleanup context in tests
+disposeContext(ThemeContext);
 ```
 
 ### Form (runtime/form.js)
@@ -901,6 +955,7 @@ view {
 | `runtime/dom.js` | DOM helpers (el, text, bind, on, model, list, when, configureA11y + auto-ARIA) |
 | `runtime/router.js` | Router (createRouter, lazy, preload, middleware) |
 | `runtime/store.js` | Store (createStore, createActions, plugins) |
+| `runtime/context.js` | Context API (createContext, useContext, Provider, provideMany) |
 | `runtime/form.js` | Form handling (useForm, useField, useFieldArray, validators) |
 | `runtime/async.js` | Async primitives (useAsync, useResource, usePolling, createVersionedAsync) |
 | `runtime/http.js` | HTTP client (createHttp, HttpError, useHttp, useHttpResource, interceptors) |
@@ -942,6 +997,9 @@ import { createRouter, lazy, preload } from 'pulse-js-framework/runtime/router';
 
 // Store
 import { createStore, createActions } from 'pulse-js-framework/runtime/store';
+
+// Context API
+import { createContext, useContext, Provider, provideMany } from 'pulse-js-framework/runtime/context';
 
 // Form
 import { useForm, useField, useFieldArray, validators } from 'pulse-js-framework/runtime/form';
