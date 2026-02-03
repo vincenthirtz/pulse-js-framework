@@ -6,7 +6,7 @@
 
 import { fileURLToPath } from 'url';
 import { dirname, join, resolve, relative } from 'path';
-import { existsSync, mkdirSync, writeFileSync, readFileSync, cpSync, watch } from 'fs';
+import { existsSync, mkdirSync, writeFileSync, readFileSync, readdirSync, watch } from 'fs';
 import { log } from './logger.js';
 import { findPulseFiles, parseArgs } from './utils/file-utils.js';
 
@@ -22,6 +22,7 @@ const commands = {
   help: showHelp,
   version: showVersion,
   create: createProject,
+  init: initProject,
   dev: runDev,
   build: runBuild,
   preview: runPreview,
@@ -30,6 +31,10 @@ const commands = {
   lint: runLint,
   format: runFormat,
   analyze: runAnalyze,
+  test: runTest,
+  doctor: runDoctorCmd,
+  scaffold: runScaffoldCmd,
+  docs: runDocsCmd,
   release: runReleaseCmd,
   'docs-test': runDocsTestCmd
 };
@@ -58,7 +63,16 @@ const commandAliases = {
   'moble': 'mobile',
   'moblie': 'mobile',
   'relase': 'release',
-  'realease': 'release'
+  'realease': 'release',
+  'tset': 'test',
+  'testt': 'test',
+  'doctr': 'doctor',
+  'docter': 'doctor',
+  'scafold': 'scaffold',
+  'scaffod': 'scaffold',
+  'scafflod': 'scaffold',
+  'doc': 'docs',
+  'dcos': 'docs'
 };
 
 /**
@@ -150,76 +164,99 @@ Pulse Framework CLI v${VERSION}
 Usage: pulse <command> [options]
 
 Commands:
-  create <name>    Create a new Pulse project
-  dev [port]       Start development server (default: 3000)
-  build            Build for production (minified)
-  preview [port]   Preview production build (default: 4173)
-  compile <file>   Compile a .pulse file to JavaScript
-  mobile <cmd>     Mobile app commands (init, build, run)
-  lint [files]     Validate .pulse files for errors and style
-  format [files]   Format .pulse files consistently
-  analyze          Analyze bundle size and dependencies
-  release <type>   Create a new release (patch, minor, major)
-  docs-test        Test documentation (syntax, imports, HTTP)
-  version          Show version number
-  help             Show this help message
+  create <name>      Create a new Pulse project
+  init [options]     Initialize project in current directory
+  dev [port]         Start development server (default: 3000)
+  build              Build for production (minified)
+  preview [port]     Preview production build (default: 4173)
+  compile <file>     Compile a .pulse file to JavaScript
+  mobile <cmd>       Mobile app commands (init, build, run)
+  lint [files]       Validate .pulse files for errors and style
+  format [files]     Format .pulse files consistently
+  analyze            Analyze bundle size and dependencies
+  test [files]       Run tests with coverage support
+  doctor             Run project diagnostics
+  scaffold <type>    Generate components, pages, stores
+  docs               Generate API documentation from JSDoc
+  release <type>     Create a new release (patch, minor, major)
+  docs-test          Test documentation (syntax, imports, HTTP)
+  version            Show version number
+  help               Show this help message
+
+Create/Init Options:
+  --typescript       Create TypeScript project
+  --minimal          Create minimal project structure
 
 Compile Options:
-  --watch, -w      Watch files and recompile on changes
-  --dry-run        Show what would be compiled without writing
-  --output, -o     Output directory (default: same as input)
+  --watch, -w        Watch files and recompile on changes
+  --dry-run          Show what would be compiled without writing
+  --output, -o       Output directory (default: same as input)
 
 Lint Options:
-  --fix            Auto-fix fixable issues
-  --watch, -w      Watch files and re-lint on changes
-  --dry-run        Show fixes without applying (use with --fix)
+  --fix              Auto-fix fixable issues
+  --watch, -w        Watch files and re-lint on changes
+  --dry-run          Show fixes without applying (use with --fix)
 
 Format Options:
-  --check          Check formatting without writing (dry-run)
-  --watch, -w      Watch files and re-format on changes
-  --write          Write formatted output (default)
+  --check            Check formatting without writing (dry-run)
+  --watch, -w        Watch files and re-format on changes
+  --write            Write formatted output (default)
 
 Analyze Options:
-  --json           Output analysis as JSON
-  --verbose        Show detailed metrics
+  --json             Output analysis as JSON
+  --verbose          Show detailed metrics
+
+Test Options:
+  --coverage, -c     Collect code coverage
+  --watch, -w        Watch files and re-run tests
+  --filter, -f       Filter tests by name pattern
+  --timeout, -t      Test timeout in ms (default: 30000)
+  --bail, -b         Stop on first failure
+  --create <name>    Generate a new test file
+
+Doctor Options:
+  --verbose, -v      Show detailed diagnostics
+  --json             Output as JSON
+
+Scaffold Options:
+  --dir, -d <path>   Output directory
+  --force, -f        Overwrite existing files
+  --props            Include props section (components)
+
+Docs Options:
+  --generate, -g     Generate documentation
+  --format, -f       Output format: markdown, json, html
+  --output, -o       Output directory (default: docs/api)
 
 Release Options:
-  --dry-run         Show what would be done without making changes
-  --no-push         Create commit and tag but don't push
-  --title <text>    Release title for changelog
-  --skip-prompt     Use empty changelog (for automation)
-  --skip-docs-test  Skip documentation tests before release
-  --from-commits    Auto-extract changelog from git commits since last tag
-
-Docs-test Options:
-  --verbose, -v    Show detailed output
-  --no-http        Skip HTTP server tests
+  --dry-run          Show what would be done without making changes
+  --no-push          Create commit and tag but don't push
+  --title <text>     Release title for changelog
+  --skip-prompt      Use empty changelog (for automation)
+  --skip-docs-test   Skip documentation tests before release
+  --from-commits     Auto-extract changelog from git commits since last tag
 
 Examples:
   pulse create my-app
+  pulse create my-app --typescript
+  pulse init --typescript
   pulse dev
-  pulse dev 8080
   pulse build
-  pulse preview
-  pulse mobile init
-  pulse mobile build android
-  pulse mobile run ios
+  pulse test
+  pulse test --coverage --watch
+  pulse test --create MyComponent
+  pulse doctor
+  pulse doctor --verbose
+  pulse scaffold component Button
+  pulse scaffold page Dashboard
+  pulse scaffold store user
+  pulse docs --generate
+  pulse docs --generate --format html
   pulse compile src/App.pulse
-  pulse compile src/ --watch
-  pulse compile "**/*.pulse" --dry-run
-  pulse lint src/
-  pulse lint src/ --fix --dry-run
-  pulse lint "**/*.pulse" --fix
+  pulse lint src/ --fix
   pulse format --check
-  pulse format src/App.pulse
-  pulse analyze
   pulse analyze --json
   pulse release patch
-  pulse release minor --title "New Features"
-  pulse release major --dry-run
-  pulse release patch --from-commits
-  pulse docs-test
-  pulse docs-test --verbose
 
 Documentation: https://github.com/vincenthirtz/pulse-js-framework
   `);
@@ -236,7 +273,8 @@ function showVersion() {
  * Create a new project
  */
 async function createProject(args) {
-  const projectName = args[0];
+  const { options, patterns } = parseArgs(args);
+  const projectName = patterns[0];
 
   if (!projectName) {
     log.error('Please provide a project name.');
@@ -251,12 +289,20 @@ async function createProject(args) {
     process.exit(1);
   }
 
-  log.info(`Creating new Pulse project: ${projectName}`);
+  const useTypescript = options.typescript || options.ts || false;
+  const minimal = options.minimal || false;
+
+  log.info(`Creating new Pulse project: ${projectName}${useTypescript ? ' (TypeScript)' : ''}`);
 
   // Create project structure
   mkdirSync(projectPath);
   mkdirSync(join(projectPath, 'src'));
   mkdirSync(join(projectPath, 'public'));
+
+  // TypeScript-specific directories
+  if (useTypescript && !minimal) {
+    mkdirSync(join(projectPath, 'src', 'types'));
+  }
 
   // Create package.json
   const packageJson = {
@@ -266,13 +312,20 @@ async function createProject(args) {
     scripts: {
       dev: 'pulse dev',
       build: 'pulse build',
-      preview: 'vite preview'
+      preview: 'vite preview',
+      test: 'pulse test',
+      lint: 'pulse lint',
+      ...(useTypescript ? { typecheck: 'tsc --noEmit' } : {})
     },
     dependencies: {
       'pulse-js-framework': '^1.0.0'
     },
     devDependencies: {
-      vite: '^5.0.0'
+      vite: '^5.0.0',
+      ...(useTypescript ? {
+        'typescript': '^5.3.0',
+        '@types/node': '^20.0.0'
+      } : {})
     }
   };
 
@@ -281,7 +334,8 @@ async function createProject(args) {
     JSON.stringify(packageJson, null, 2)
   );
 
-  // Create vite.config.js
+  // Create vite.config
+  const viteConfigExt = useTypescript ? 'ts' : 'js';
   const viteConfig = `import { defineConfig } from 'vite';
 import pulse from 'pulse-js-framework/vite';
 
@@ -290,9 +344,63 @@ export default defineConfig({
 });
 `;
 
-  writeFileSync(join(projectPath, 'vite.config.js'), viteConfig);
+  writeFileSync(join(projectPath, `vite.config.${viteConfigExt}`), viteConfig);
+
+  // Create TypeScript config if needed
+  if (useTypescript) {
+    const tsConfig = {
+      compilerOptions: {
+        target: 'ES2022',
+        useDefineForClassFields: true,
+        module: 'ESNext',
+        lib: ['ES2022', 'DOM', 'DOM.Iterable'],
+        skipLibCheck: true,
+        moduleResolution: 'bundler',
+        allowImportingTsExtensions: true,
+        resolveJsonModule: true,
+        isolatedModules: true,
+        noEmit: true,
+        strict: true,
+        noUnusedLocals: true,
+        noUnusedParameters: true,
+        noFallthroughCasesInSwitch: true,
+        types: ['node']
+      },
+      include: ['src/**/*', 'vite.config.ts'],
+      exclude: ['node_modules', 'dist']
+    };
+
+    writeFileSync(
+      join(projectPath, 'tsconfig.json'),
+      JSON.stringify(tsConfig, null, 2)
+    );
+
+    // Create types file
+    if (!minimal) {
+      const typesContent = `/**
+ * Type declarations for ${projectName}
+ */
+
+// Pulse framework module declarations
+declare module '*.pulse' {
+  const component: {
+    mount(selector: string): void;
+  };
+  export default component;
+}
+
+// Add your custom types here
+export interface AppState {
+  count: number;
+  name: string;
+}
+`;
+      writeFileSync(join(projectPath, 'src', 'types', 'index.d.ts'), typesContent);
+    }
+  }
 
   // Create index.html
+  const mainExt = useTypescript ? 'ts' : 'js';
   const indexHtml = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -302,20 +410,31 @@ export default defineConfig({
 </head>
 <body>
   <div id="app"></div>
-  <script type="module" src="/src/main.js"></script>
+  <script type="module" src="/src/main.${mainExt}"></script>
 </body>
 </html>
 `;
 
   writeFileSync(join(projectPath, 'index.html'), indexHtml);
 
-  // Create main.js
-  const mainJs = `import App from './App.pulse';
+  // Create main file
+  const mainContent = useTypescript
+    ? `import App from './App.pulse';
+
+// Type-safe app mounting
+App.mount('#app');
+
+// Enable HMR in development
+if (import.meta.hot) {
+  import.meta.hot.accept();
+}
+`
+    : `import App from './App.pulse';
 
 App.mount('#app');
 `;
 
-  writeFileSync(join(projectPath, 'src', 'main.js'), mainJs);
+  writeFileSync(join(projectPath, 'src', `main.${mainExt}`), mainContent);
 
   // Create App.pulse
   const appPulse = `@page App
@@ -404,7 +523,7 @@ style {
 dist
 .DS_Store
 *.local
-`;
+${useTypescript ? '*.tsbuildinfo\n' : ''}`;
 
   writeFileSync(join(projectPath, '.gitignore'), gitignore);
 
@@ -415,8 +534,130 @@ Next steps:
   cd ${projectName}
   npm install
   npm run dev
-
+${useTypescript ? '\nTypeScript enabled. Run "npm run typecheck" to check types.\n' : ''}
 Happy coding with Pulse!
+  `);
+}
+
+/**
+ * Initialize project in current directory
+ */
+async function initProject(args) {
+  const { options } = parseArgs(args);
+  const cwd = process.cwd();
+  const projectName = cwd.split(/[\\/]/).pop();
+
+  const useTypescript = options.typescript || options.ts || false;
+
+  // Check if directory is empty or has only hidden files
+  const entries = readdirSync(cwd).filter(e => !e.startsWith('.'));
+  if (entries.length > 0 && !options.force) {
+    log.warn('Directory is not empty. Use --force to initialize anyway.');
+    log.info('Existing files: ' + entries.slice(0, 5).join(', ') + (entries.length > 5 ? '...' : ''));
+    return;
+  }
+
+  log.info(`Initializing Pulse project in current directory${useTypescript ? ' (TypeScript)' : ''}...`);
+
+  // Create src directory if it doesn't exist
+  if (!existsSync(join(cwd, 'src'))) {
+    mkdirSync(join(cwd, 'src'));
+  }
+
+  // Check for existing package.json
+  const pkgPath = join(cwd, 'package.json');
+  let pkg = {};
+
+  if (existsSync(pkgPath)) {
+    try {
+      pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
+      log.info('Found existing package.json, merging...');
+    } catch (e) {
+      log.warn('Could not parse existing package.json, creating new one.');
+    }
+  }
+
+  // Merge with Pulse requirements
+  pkg = {
+    ...pkg,
+    name: pkg.name || projectName,
+    version: pkg.version || '0.1.0',
+    type: 'module',
+    scripts: {
+      ...(pkg.scripts || {}),
+      dev: 'pulse dev',
+      build: 'pulse build',
+      preview: 'vite preview',
+      test: 'pulse test',
+      lint: 'pulse lint',
+      ...(useTypescript ? { typecheck: 'tsc --noEmit' } : {})
+    },
+    dependencies: {
+      ...(pkg.dependencies || {}),
+      'pulse-js-framework': '^1.0.0'
+    },
+    devDependencies: {
+      ...(pkg.devDependencies || {}),
+      vite: '^5.0.0',
+      ...(useTypescript ? {
+        'typescript': '^5.3.0',
+        '@types/node': '^20.0.0'
+      } : {})
+    }
+  };
+
+  writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
+  log.success('Updated package.json');
+
+  // Create vite.config if it doesn't exist
+  const viteConfigExt = useTypescript ? 'ts' : 'js';
+  const viteConfigPath = join(cwd, `vite.config.${viteConfigExt}`);
+
+  if (!existsSync(viteConfigPath) && !existsSync(join(cwd, 'vite.config.js')) && !existsSync(join(cwd, 'vite.config.ts'))) {
+    const viteConfig = `import { defineConfig } from 'vite';
+import pulse from 'pulse-js-framework/vite';
+
+export default defineConfig({
+  plugins: [pulse()]
+});
+`;
+    writeFileSync(viteConfigPath, viteConfig);
+    log.success(`Created vite.config.${viteConfigExt}`);
+  }
+
+  // Create tsconfig if TypeScript
+  if (useTypescript && !existsSync(join(cwd, 'tsconfig.json'))) {
+    const tsConfig = {
+      compilerOptions: {
+        target: 'ES2022',
+        useDefineForClassFields: true,
+        module: 'ESNext',
+        lib: ['ES2022', 'DOM', 'DOM.Iterable'],
+        skipLibCheck: true,
+        moduleResolution: 'bundler',
+        allowImportingTsExtensions: true,
+        resolveJsonModule: true,
+        isolatedModules: true,
+        noEmit: true,
+        strict: true,
+        noUnusedLocals: true,
+        noUnusedParameters: true,
+        noFallthroughCasesInSwitch: true
+      },
+      include: ['src/**/*', 'vite.config.ts'],
+      exclude: ['node_modules', 'dist']
+    };
+
+    writeFileSync(join(cwd, 'tsconfig.json'), JSON.stringify(tsConfig, null, 2));
+    log.success('Created tsconfig.json');
+  }
+
+  log.info(`
+Initialization complete!
+
+Next steps:
+  npm install
+  npm run dev
   `);
 }
 
@@ -497,6 +738,38 @@ async function runReleaseCmd(args) {
 async function runDocsTestCmd(args) {
   const { runDocsTestCli } = await import('./docs-test.js');
   await runDocsTestCli(args);
+}
+
+/**
+ * Run test command
+ */
+async function runTest(args) {
+  const { runTestCommand } = await import('./test.js');
+  await runTestCommand(args);
+}
+
+/**
+ * Run doctor command
+ */
+async function runDoctorCmd(args) {
+  const { runDoctor } = await import('./doctor.js');
+  await runDoctor(args);
+}
+
+/**
+ * Run scaffold command
+ */
+async function runScaffoldCmd(args) {
+  const { runScaffold } = await import('./scaffold.js');
+  await runScaffold(args);
+}
+
+/**
+ * Run docs command
+ */
+async function runDocsCmd(args) {
+  const { runDocs } = await import('./docs.js');
+  await runDocs(args);
 }
 
 /**

@@ -20,6 +20,9 @@ npm test                # Run all tests (compiler, lint, format, analyze)
 
 # CLI commands (via pulse binary)
 pulse create <name>     # Create new Pulse project
+pulse create <name> --typescript  # Create TypeScript project
+pulse init              # Initialize in current directory
+pulse init --typescript # Initialize TypeScript project
 pulse dev [port]        # Start dev server (default: 3000)
 pulse build             # Build for production (minified)
 pulse preview [port]    # Preview production build (default: 4173)
@@ -33,6 +36,30 @@ pulse format --check    # Check formatting without writing (CI mode)
 pulse analyze           # Analyze bundle size and dependencies
 pulse analyze --json    # Output analysis as JSON
 pulse analyze --verbose # Show detailed metrics
+
+# Testing
+pulse test              # Run tests with Node.js test runner
+pulse test --coverage   # Run tests with coverage
+pulse test --watch      # Watch mode
+pulse test --create <name>  # Generate test file
+
+# Project Tools
+pulse doctor            # Run project diagnostics
+pulse doctor --verbose  # Detailed diagnostics
+
+# Scaffolding
+pulse scaffold component <name>  # Generate component
+pulse scaffold page <name>       # Generate page
+pulse scaffold store <name>      # Generate store module
+pulse scaffold hook <name>       # Generate custom hook
+pulse scaffold service <name>    # Generate API service
+pulse scaffold context <name>    # Generate context provider
+pulse scaffold layout <name>     # Generate layout component
+
+# Documentation
+pulse docs --generate           # Generate API docs (Markdown)
+pulse docs --generate --format html   # Generate HTML docs
+pulse docs --generate --format json   # Generate JSON docs
 ```
 
 ## Development Workflow
@@ -77,6 +104,10 @@ pulse/
 │   ├── lint.js          # Semantic analyzer (lint command)
 │   ├── format.js        # Code formatter (format command)
 │   ├── analyze.js       # Bundle analyzer (analyze command)
+│   ├── test.js          # Test runner with coverage
+│   ├── doctor.js        # Project diagnostics
+│   ├── scaffold.js      # Component/page/store generation
+│   ├── docs.js          # API documentation generator
 │   └── utils/
 │       └── file-utils.js  # Shared utilities (glob, parseArgs)
 ├── loader/
@@ -1204,6 +1235,10 @@ view {
 | `cli/lint.js` | SemanticAnalyzer, LintRules for code validation |
 | `cli/format.js` | PulseFormatter for consistent code style |
 | `cli/analyze.js` | Bundle analysis, import graph, complexity metrics |
+| `cli/test.js` | Test runner (findTestFiles, runTests, coverage) |
+| `cli/doctor.js` | Project diagnostics (runDiagnostics, health checks) |
+| `cli/scaffold.js` | Code generation (components, pages, stores, hooks) |
+| `cli/docs.js` | API docs generator (JSDoc parsing, Markdown/HTML/JSON output) |
 | `cli/utils/file-utils.js` | findPulseFiles, parseArgs, formatBytes |
 | `examples/todo/src/main.js` | Best reference implementation |
 

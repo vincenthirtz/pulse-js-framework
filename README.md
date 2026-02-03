@@ -38,6 +38,15 @@ npm install
 npm run dev
 ```
 
+### Or with TypeScript
+
+```bash
+npx pulse-js-framework create my-app --typescript
+cd my-app
+npm install
+npm run dev
+```
+
 ### Or use directly
 
 ```javascript
@@ -126,13 +135,43 @@ See [Pulse DSL documentation](docs/pulse-dsl.md) for full syntax reference.
 ## CLI Commands
 
 ```bash
-pulse create <name>    # Create new project
-pulse dev [port]       # Start dev server (default: 3000)
-pulse build            # Build for production
-pulse compile <file>   # Compile .pulse file
-pulse lint [files]     # Validate .pulse files
-pulse format [files]   # Format .pulse files
-pulse analyze          # Analyze bundle
+# Project Creation
+pulse create <name>              # Create new project
+pulse create <name> --typescript # Create TypeScript project
+pulse init --typescript          # Initialize in current directory
+
+# Development
+pulse dev [port]                 # Start dev server (default: 3000)
+pulse build                      # Build for production
+pulse preview [port]             # Preview production build
+pulse compile <file>             # Compile .pulse file
+
+# Code Quality
+pulse lint [files]               # Validate .pulse files
+pulse format [files]             # Format .pulse files
+pulse analyze                    # Analyze bundle
+
+# Testing
+pulse test                       # Run tests with Node.js test runner
+pulse test --coverage            # Run tests with coverage
+pulse test --watch               # Watch mode
+pulse test --create <name>       # Generate test file
+
+# Project Tools
+pulse doctor                     # Run project diagnostics
+pulse doctor --verbose           # Detailed diagnostics
+
+# Scaffolding
+pulse scaffold component <name>  # Generate component
+pulse scaffold page <name>       # Generate page
+pulse scaffold store <name>      # Generate store module
+pulse scaffold hook <name>       # Generate custom hook
+pulse scaffold service <name>    # Generate API service
+
+# Documentation
+pulse docs --generate            # Generate API docs (Markdown)
+pulse docs --generate -f html    # Generate HTML docs
+pulse docs --generate -f json    # Generate JSON docs
 ```
 
 See [CLI documentation](docs/cli.md) for full command reference.
