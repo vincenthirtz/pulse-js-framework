@@ -1817,6 +1817,8 @@ body {
   cursor: pointer;
   font-size: 0.85em;
   transition: all 0.2s ease;
+  flex-shrink: 0;
+  font-family: inherit;
 }
 
 .copy-btn:hover {
@@ -1829,8 +1831,33 @@ body {
   color: white;
 }
 
+.copy-btn:focus {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
 .copy-icon {
   font-size: 1.1em;
+}
+
+.copy-text {
+  white-space: nowrap;
+}
+
+/* Code block header with copy button */
+.code-block .code-header {
+  min-height: 36px;
+}
+
+.code-block .code-header:empty {
+  display: none;
+}
+
+/* When header only has copy button (no title) */
+.code-block .code-header-minimal {
+  padding: 4px 8px;
+  min-height: auto;
+  justify-content: flex-end;
 }
 
 /* Why Pulse Section */

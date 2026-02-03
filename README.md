@@ -148,6 +148,7 @@ pulse compile <file>             # Compile .pulse file
 
 # Code Quality
 pulse lint [files]               # Validate .pulse files
+pulse lint --fix                 # Auto-fix fixable issues
 pulse format [files]             # Format .pulse files
 pulse analyze                    # Analyze bundle
 
@@ -167,6 +168,8 @@ pulse scaffold page <name>       # Generate page
 pulse scaffold store <name>      # Generate store module
 pulse scaffold hook <name>       # Generate custom hook
 pulse scaffold service <name>    # Generate API service
+pulse scaffold context <name>    # Generate context provider
+pulse scaffold layout <name>     # Generate layout component
 
 # Documentation
 pulse docs --generate            # Generate API docs (Markdown)
@@ -328,6 +331,12 @@ const count: Pulse<number> = pulse(0);
 - [API Reference](docs/api.md) - Complete API documentation
 - [CLI Commands](docs/cli.md) - Command line interface
 - [Pulse DSL](docs/pulse-dsl.md) - .pulse file syntax
+- [Accessibility](docs/accessibility.md) - A11y guide and ARIA helpers
+- [HTTP Client](docs/http.md) - Fetch wrapper with interceptors
+- [WebSocket](docs/websocket.md) - Real-time with auto-reconnect
+- [GraphQL](docs/graphql.md) - Queries, mutations, subscriptions
+- [Context API](docs/context.md) - Dependency injection
+- [DevTools](docs/devtools.md) - Debugging and profiling
 - [Mobile Apps](docs/mobile.md) - Native Android & iOS
 
 ## License

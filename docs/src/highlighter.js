@@ -2,6 +2,8 @@
  * Pulse Documentation - Syntax Highlighter (no dependencies)
  */
 
+import { t } from './state.js';
+
 function escapeHtml(str) {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
@@ -76,6 +78,98 @@ export function highlightCode(code, lang = 'js') {
   return result;
 }
 
+/**
+ * Create a copy button element
+ */
+function createCopyButton(code) {
+  const copyBtn = document.createElement('button');
+  copyBtn.className = 'copy-btn';
+  copyBtn.type = 'button';
+  copyBtn.setAttribute('aria-label', t('actions.copy'));
+  copyBtn.innerHTML = `
+    <span class="copy-icon">📋</span>
+    <span class="copy-text">${t('actions.copy')}</span>
+  `;
+
+  // Handle click
+  copyBtn.addEventListener('click', async () => {
+    const textToCopy = code.textContent;
+    try {
+      await navigator.clipboard.writeText(textToCopy);
+      const copyText = copyBtn.querySelector('.copy-text');
+      const originalText = copyText.textContent;
+      copyText.textContent = t('actions.copied');
+      copyBtn.classList.add('copied');
+
+      setTimeout(() => {
+        copyText.textContent = originalText;
+        copyBtn.classList.remove('copied');
+      }, 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  });
+
+  return copyBtn;
+}
+
+/**
+ * Add copy button to a code block
+ */
+function addCopyButton(codeBlock) {
+  // Skip if already has a copy button
+  if (codeBlock.querySelector('.copy-btn')) return;
+
+  const pre = codeBlock.querySelector('pre');
+  const code = codeBlock.querySelector('code');
+  if (!pre || !code) return;
+
+  // Get or create header
+  let header = codeBlock.querySelector('.code-header');
+  const headerText = header?.textContent?.trim() || '';
+
+  if (!header) {
+    header = document.createElement('div');
+    header.className = 'code-header code-header-minimal';
+    codeBlock.insertBefore(header, pre);
+  }
+
+  // Create copy button
+  const copyBtn = createCopyButton(code);
+
+  // Set up header layout
+  header.style.display = 'flex';
+  header.style.alignItems = 'center';
+
+  if (headerText) {
+    // Header has text content
+    header.style.justifyContent = 'space-between';
+
+    // If header only has text nodes, wrap them in a span
+    if (!header.querySelector('span')) {
+      const text = header.textContent;
+      header.textContent = '';
+      const span = document.createElement('span');
+      span.textContent = text;
+      header.appendChild(span);
+    }
+
+    header.appendChild(copyBtn);
+  } else {
+    // Empty or new header - minimal style with button on right
+    header.style.justifyContent = 'flex-end';
+    header.classList.add('code-header-minimal');
+    header.appendChild(copyBtn);
+  }
+}
+
+/**
+ * Add copy buttons to all code blocks on the page
+ */
+function addCopyButtonsToAllCodeBlocks() {
+  document.querySelectorAll('.code-block').forEach(addCopyButton);
+}
+
 export function highlightAllCode() {
   document.querySelectorAll('pre code').forEach(block => {
     const parent = block.closest('.code-block');
@@ -101,4 +195,7 @@ export function highlightAllCode() {
 
     block.innerHTML = highlightCode(block.textContent, lang);
   });
+
+  // Add copy buttons to all code blocks
+  addCopyButtonsToAllCodeBlocks();
 }
