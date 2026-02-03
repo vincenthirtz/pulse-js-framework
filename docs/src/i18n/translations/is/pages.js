@@ -21,6 +21,49 @@ export default {
     quickExample: 'Fljótlegt Dæmi',
     pulseSyntax: '.pulse setningafræði',
     jsEquivalent: 'JavaScript samsvarandi',
+    stats: {
+      gzipped: 'Þjappað',
+      dependencies: 'Ósjálfstæði',
+      buildTime: 'Smíðatími',
+      a11yBuiltIn: 'A11y innbyggt'
+    },
+    quickStart: {
+      title: 'Fljótleg Byrjun',
+      desc: 'Byrjaðu á sekúndum með einni skipun.',
+      terminal: 'Skipanalína',
+      copy: 'Afrita',
+      copied: 'Afritað!',
+      createProject: 'Búa til nýtt verkefni',
+      navigate: 'Fara þangað',
+      startDev: 'Ræsa þróunarþjón'
+    },
+    whyPulse: {
+      title: 'Af hverju velja Pulse?',
+      performance: {
+        title: 'Afköst',
+        desc: 'Fínkornuð viðbragðsgeta með lágmarks umfang. Enginn sýndar-DOM samanburður.'
+      },
+      simplicity: {
+        title: 'Einfaldleiki',
+        desc: 'Leiðandi CSS veljarasetningafræði. Skrifaðu minna kóða, náðu meira.'
+      },
+      accessibility: {
+        title: 'Aðgengi',
+        desc: 'Innbyggðir a11y hjálparar, sjálfvirk ARIA eigindi og úttektarverkfæri.'
+      },
+      mobile: {
+        title: 'Tilbúið fyrir farsíma',
+        desc: 'Innfæddur farsímabrú innifalin. Byggðu iOS og Android öpp beint.'
+      },
+      noBuild: {
+        title: 'Enginn Smíði Nauðsynleg',
+        desc: 'Virkar beint í vafranum. Valfrjálst smíðaskref fyrir hagræðingu.'
+      },
+      security: {
+        title: 'Öryggi fyrst',
+        desc: 'XSS vörn, URL hreinsun og vörn gegn prototype mengun innbyggð.'
+      }
+    },
     comparison: {
       feature: 'Eiginleiki',
       uiStructure: 'UI Skipulag',

@@ -21,6 +21,52 @@ export default {
     quickExample: 'Exemple rapide',
     pulseSyntax: 'Syntaxe .pulse',
     jsEquivalent: 'Équivalent JavaScript',
+    // Stats section
+    stats: {
+      gzipped: 'Compressé',
+      dependencies: 'Dépendances',
+      buildTime: 'Temps de build',
+      a11yBuiltIn: 'A11y intégré'
+    },
+    // Quick Start section
+    quickStart: {
+      title: 'Démarrage rapide',
+      desc: 'Soyez opérationnel en quelques secondes avec une seule commande.',
+      terminal: 'Terminal',
+      copy: 'Copier',
+      copied: 'Copié !',
+      createProject: 'Créer un nouveau projet',
+      navigate: 'S\'y rendre',
+      startDev: 'Lancer le serveur de dev'
+    },
+    // Why Pulse section
+    whyPulse: {
+      title: 'Pourquoi choisir Pulse ?',
+      performance: {
+        title: 'Performance',
+        desc: 'Réactivité fine avec un overhead minimal. Pas de diffing de DOM virtuel.'
+      },
+      simplicity: {
+        title: 'Simplicité',
+        desc: 'Syntaxe intuitive de sélecteurs CSS. Écrivez moins, accomplissez plus.'
+      },
+      accessibility: {
+        title: 'Accessibilité',
+        desc: 'Helpers a11y intégrés, attributs ARIA automatiques et outils d\'audit.'
+      },
+      mobile: {
+        title: 'Prêt pour le mobile',
+        desc: 'Bridge mobile natif inclus. Créez des apps iOS et Android directement.'
+      },
+      noBuild: {
+        title: 'Pas de build requis',
+        desc: 'Fonctionne directement dans le navigateur. Étape de build optionnelle.'
+      },
+      security: {
+        title: 'Sécurité d\'abord',
+        desc: 'Protection XSS, sanitization d\'URL et prévention de la pollution de prototype.'
+      }
+    },
     comparison: {
       feature: 'Fonctionnalité',
       uiStructure: 'Structure UI',

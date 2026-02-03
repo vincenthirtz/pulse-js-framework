@@ -21,6 +21,49 @@ export default {
     quickExample: 'クイックサンプル',
     pulseSyntax: '.pulse構文',
     jsEquivalent: 'JavaScript相当',
+    stats: {
+      gzipped: '圧縮済み',
+      dependencies: '依存関係',
+      buildTime: 'ビルド時間',
+      a11yBuiltIn: 'A11y内蔵'
+    },
+    quickStart: {
+      title: 'クイックスタート',
+      desc: '1つのコマンドで数秒で開始できます。',
+      terminal: 'ターミナル',
+      copy: 'コピー',
+      copied: 'コピーしました！',
+      createProject: '新しいプロジェクトを作成',
+      navigate: 'プロジェクトに移動',
+      startDev: '開発サーバーを起動'
+    },
+    whyPulse: {
+      title: 'なぜPulseを選ぶのか？',
+      performance: {
+        title: 'パフォーマンス',
+        desc: '最小限のオーバーヘッドで細かいリアクティビティ。仮想DOMのdiffは不要。'
+      },
+      simplicity: {
+        title: 'シンプルさ',
+        desc: '直感的なCSSセレクター構文。少ないコードで多くを実現。'
+      },
+      accessibility: {
+        title: 'アクセシビリティ',
+        desc: '組み込みのa11yヘルパー、自動ARIA属性、監査ツール。'
+      },
+      mobile: {
+        title: 'モバイル対応',
+        desc: 'ネイティブモバイルブリッジ内蔵。iOSとAndroidアプリを直接構築。'
+      },
+      noBuild: {
+        title: 'ビルド不要',
+        desc: 'ブラウザで直接動作。最適化のためのビルドステップはオプション。'
+      },
+      security: {
+        title: 'セキュリティ優先',
+        desc: 'XSS保護、URL無害化、プロトタイプ汚染防止を内蔵。'
+      }
+    },
     comparison: {
       feature: '機能',
       uiStructure: 'UI構造',

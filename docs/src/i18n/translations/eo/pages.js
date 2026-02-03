@@ -21,6 +21,49 @@ export default {
     quickExample: 'Rapida Ekzemplo',
     pulseSyntax: '.pulse sintakso',
     jsEquivalent: 'JavaScript ekvivalento',
+    stats: {
+      gzipped: 'Densigita',
+      dependencies: 'Dependecoj',
+      buildTime: 'Kompila Tempo',
+      a11yBuiltIn: 'A11y Enkonstruita'
+    },
+    quickStart: {
+      title: 'Rapida Komenco',
+      desc: 'Komencu en sekundoj per unu komando.',
+      terminal: 'Terminalo',
+      copy: 'Kopii',
+      copied: 'Kopiita!',
+      createProject: 'Krei novan projekton',
+      navigate: 'Navigi tien',
+      startDev: 'Startigi evoluoservilon'
+    },
+    whyPulse: {
+      title: 'Kial Elekti Pulse?',
+      performance: {
+        title: 'Rendimento',
+        desc: 'Fajngrejna reageco kun minimuma ŝarĝo. Sen virtuala DOM diferencado.'
+      },
+      simplicity: {
+        title: 'Simpleco',
+        desc: 'Intuicia CSS-elektila sintakso. Skribu malpli kodon, atingu pli.'
+      },
+      accessibility: {
+        title: 'Alirebleco',
+        desc: 'Enkonstruitaj a11y helpiloj, aŭtomataj ARIA atributoj kaj reviziaj iloj.'
+      },
+      mobile: {
+        title: 'Preta por Poŝtelefono',
+        desc: 'Indiĝena poŝtelefona ponto inkluzivita. Konstruu iOS kaj Android apojn rekte.'
+      },
+      noBuild: {
+        title: 'Sen Kompilado',
+        desc: 'Funkcias rekte en la retumilo. Nedeviga kompila paŝo por optimumigo.'
+      },
+      security: {
+        title: 'Sekureco Unue',
+        desc: 'XSS protekto, URL purigado kaj prototipa poluado preventado enkonstruitaj.'
+      }
+    },
     comparison: {
       feature: 'Trajto',
       uiStructure: 'UI Strukturo',
