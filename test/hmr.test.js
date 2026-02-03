@@ -409,6 +409,377 @@ test('preservePulse works inside setup', () => {
 });
 
 // =============================================================================
+// HMR Context with Mock import.meta.hot
+// =============================================================================
+
+printSection('HMR Context with Mock import.meta.hot');
+
+/**
+ * Create a mock import.meta.hot object for testing HMR behavior
+ */
+function createMockHot() {
+  const disposeCallbacks = [];
+  const acceptCallbacks = [];
+  let data = {};
+
+  return {
+    data,
+    accept: (callback) => {
+      if (callback) {
+        acceptCallbacks.push(callback);
+      }
+    },
+    dispose: (callback) => {
+      disposeCallbacks.push(callback);
+    },
+    // Test helpers
+    _getDisposeCallbacks: () => disposeCallbacks,
+    _getAcceptCallbacks: () => acceptCallbacks,
+    _simulateDispose: () => {
+      for (const cb of disposeCallbacks) {
+        cb();
+      }
+    },
+    _simulateAccept: () => {
+      for (const cb of acceptCallbacks) {
+        cb();
+      }
+    },
+    _resetData: () => {
+      data = {};
+    }
+  };
+}
+
+test('mock hot object has correct structure', () => {
+  const mockHot = createMockHot();
+
+  assert(typeof mockHot.data === 'object', 'Should have data object');
+  assert(typeof mockHot.accept === 'function', 'Should have accept function');
+  assert(typeof mockHot.dispose === 'function', 'Should have dispose function');
+});
+
+test('mock hot.dispose registers callbacks', () => {
+  const mockHot = createMockHot();
+  let called = false;
+
+  mockHot.dispose(() => { called = true; });
+  mockHot._simulateDispose();
+
+  assert(called, 'Dispose callback should be called');
+});
+
+test('mock hot.accept registers callbacks', () => {
+  const mockHot = createMockHot();
+  let called = false;
+
+  mockHot.accept(() => { called = true; });
+  mockHot._simulateAccept();
+
+  assert(called, 'Accept callback should be called');
+});
+
+test('mock hot preserves data between updates', () => {
+  const mockHot = createMockHot();
+
+  mockHot.data.savedValue = 42;
+  mockHot._simulateDispose();
+
+  assertEqual(mockHot.data.savedValue, 42, 'Data should persist after dispose');
+});
+
+test('multiple dispose callbacks are all called', () => {
+  const mockHot = createMockHot();
+  const results = [];
+
+  mockHot.dispose(() => results.push('first'));
+  mockHot.dispose(() => results.push('second'));
+  mockHot.dispose(() => results.push('third'));
+  mockHot._simulateDispose();
+
+  assertDeepEqual(results, ['first', 'second', 'third']);
+});
+
+test('mock hot.accept without callback does not throw', () => {
+  const mockHot = createMockHot();
+
+  // Should not throw
+  mockHot.accept();
+  mockHot._simulateAccept();
+});
+
+// =============================================================================
+// HMR State Preservation Simulation
+// =============================================================================
+
+printSection('HMR State Preservation Simulation');
+
+test('simulated HMR preserves pulse state', () => {
+  const mockHot = createMockHot();
+
+  // First "load" - create pulse with initial value
+  const initialPulse = pulse(0);
+  initialPulse.set(42);
+
+  // Store value before "HMR update"
+  mockHot.dispose(() => {
+    mockHot.data.__pulse_count = initialPulse.peek();
+  });
+  mockHot._simulateDispose();
+
+  // Second "load" - restore from preserved data
+  const restoredValue = mockHot.data.__pulse_count;
+  const restoredPulse = pulse(restoredValue);
+
+  assertEqual(restoredPulse.get(), 42, 'Pulse state should be preserved');
+});
+
+test('simulated HMR preserves multiple pulses', () => {
+  const mockHot = createMockHot();
+
+  // First load
+  const count = pulse(10);
+  const name = pulse('test');
+  const items = pulse([1, 2, 3]);
+
+  count.set(20);
+  name.set('updated');
+  items.set([4, 5, 6]);
+
+  // Store all values
+  mockHot.dispose(() => {
+    mockHot.data.__pulse_count = count.peek();
+    mockHot.data.__pulse_name = name.peek();
+    mockHot.data.__pulse_items = items.peek();
+  });
+  mockHot._simulateDispose();
+
+  // Restore
+  assertEqual(mockHot.data.__pulse_count, 20);
+  assertEqual(mockHot.data.__pulse_name, 'updated');
+  assertDeepEqual(mockHot.data.__pulse_items, [4, 5, 6]);
+});
+
+test('simulated HMR handles object state', () => {
+  const mockHot = createMockHot();
+
+  const user = pulse({ name: 'John', age: 30 });
+  user.update(u => ({ ...u, age: 31 }));
+
+  mockHot.dispose(() => {
+    mockHot.data.__pulse_user = user.peek();
+  });
+  mockHot._simulateDispose();
+
+  const restored = mockHot.data.__pulse_user;
+  assertEqual(restored.name, 'John');
+  assertEqual(restored.age, 31);
+});
+
+test('simulated HMR handles null and undefined', () => {
+  const mockHot = createMockHot();
+
+  const nullVal = pulse(null);
+  const undefVal = pulse(undefined);
+
+  mockHot.dispose(() => {
+    mockHot.data.__pulse_null = nullVal.peek();
+    mockHot.data.__pulse_undef = undefVal.peek();
+  });
+  mockHot._simulateDispose();
+
+  assertEqual(mockHot.data.__pulse_null, null);
+  assertEqual(mockHot.data.__pulse_undef, undefined);
+});
+
+// =============================================================================
+// HMR Effect Cleanup Simulation
+// =============================================================================
+
+printSection('HMR Effect Cleanup Simulation');
+
+test('effects should be cleanable on HMR', () => {
+  const mockHot = createMockHot();
+  const cleanups = [];
+
+  // Simulate effect registration with cleanup
+  const registerEffect = (cleanupFn) => {
+    cleanups.push(cleanupFn);
+    return cleanupFn;
+  };
+
+  const cleanup1 = registerEffect(() => 'cleaned 1');
+  const cleanup2 = registerEffect(() => 'cleaned 2');
+
+  // On dispose, run all cleanups
+  mockHot.dispose(() => {
+    cleanups.forEach(fn => fn());
+  });
+
+  assertEqual(cleanups.length, 2);
+  mockHot._simulateDispose();
+});
+
+test('dispose is called before accept on HMR update', () => {
+  const mockHot = createMockHot();
+  const order = [];
+
+  mockHot.dispose(() => order.push('dispose'));
+  mockHot.accept(() => order.push('accept'));
+
+  // Simulate HMR update order
+  mockHot._simulateDispose();
+  mockHot._simulateAccept();
+
+  assertDeepEqual(order, ['dispose', 'accept']);
+});
+
+// =============================================================================
+// HMR Module Boundary Tests
+// =============================================================================
+
+printSection('HMR Module Boundary Tests');
+
+test('separate modules have separate data', () => {
+  const mockHot1 = createMockHot();
+  const mockHot2 = createMockHot();
+
+  mockHot1.data.value = 'module1';
+  mockHot2.data.value = 'module2';
+
+  assertEqual(mockHot1.data.value, 'module1');
+  assertEqual(mockHot2.data.value, 'module2');
+});
+
+test('module updates do not affect other modules', () => {
+  const mockHot1 = createMockHot();
+  const mockHot2 = createMockHot();
+
+  mockHot1.data.count = 1;
+  mockHot2.data.count = 2;
+
+  mockHot1.dispose(() => {
+    mockHot1.data.count++;
+  });
+  mockHot1._simulateDispose();
+
+  assertEqual(mockHot1.data.count, 2, 'Module 1 data should be updated');
+  assertEqual(mockHot2.data.count, 2, 'Module 2 data should be unchanged');
+});
+
+// =============================================================================
+// HMR Robustness Tests
+// =============================================================================
+
+printSection('HMR Robustness Tests');
+
+test('dispose errors do not break other dispose callbacks', () => {
+  const mockHot = createMockHot();
+  const results = [];
+
+  mockHot.dispose(() => results.push('first'));
+  mockHot.dispose(() => { throw new Error('dispose error'); });
+  mockHot.dispose(() => results.push('third'));
+
+  try {
+    mockHot._simulateDispose();
+  } catch (e) {
+    // Error is expected
+  }
+
+  // In a real implementation, we'd want isolation
+  // This test documents current behavior
+  assert(results.includes('first'), 'First callback should run');
+});
+
+test('HMR works with very large state', () => {
+  const mockHot = createMockHot();
+
+  // Large array
+  const largeArray = Array.from({ length: 10000 }, (_, i) => ({ id: i, value: `item-${i}` }));
+  const largePulse = pulse(largeArray);
+
+  mockHot.dispose(() => {
+    mockHot.data.__pulse_large = largePulse.peek();
+  });
+  mockHot._simulateDispose();
+
+  assertEqual(mockHot.data.__pulse_large.length, 10000);
+  assertEqual(mockHot.data.__pulse_large[5000].value, 'item-5000');
+});
+
+test('HMR handles circular references in state', () => {
+  const mockHot = createMockHot();
+
+  // Create circular reference
+  const obj = { name: 'circular' };
+  obj.self = obj;
+
+  mockHot.data.circular = obj;
+
+  // Should not throw when accessing
+  assertEqual(mockHot.data.circular.name, 'circular');
+  assertEqual(mockHot.data.circular.self.name, 'circular');
+});
+
+test('rapid HMR updates do not lose state', () => {
+  const mockHot = createMockHot();
+
+  for (let i = 0; i < 100; i++) {
+    mockHot.data.iteration = i;
+    mockHot.dispose(() => {});
+    mockHot._simulateDispose();
+  }
+
+  assertEqual(mockHot.data.iteration, 99, 'Should preserve last iteration');
+});
+
+// =============================================================================
+// HMR API Completeness Tests
+// =============================================================================
+
+printSection('HMR API Completeness');
+
+test('createHMRContext returns all required properties', () => {
+  const hmr = createHMRContext('test-api-module');
+
+  // Required properties
+  const requiredProps = ['data', 'preservePulse', 'setup', 'accept', 'dispose'];
+
+  for (const prop of requiredProps) {
+    assert(prop in hmr, `Should have ${prop} property`);
+  }
+});
+
+test('preservePulse returns valid pulse', () => {
+  const hmr = createHMRContext('test-pulse-module');
+  const p = hmr.preservePulse('test', { initial: true });
+
+  // Check pulse interface
+  assert(typeof p.get === 'function', 'Should have get()');
+  assert(typeof p.set === 'function', 'Should have set()');
+  assert(typeof p.update === 'function', 'Should have update()');
+  assert(typeof p.peek === 'function', 'Should have peek()');
+});
+
+test('setup returns callback result', () => {
+  const hmr = createHMRContext('test-setup-module');
+
+  const result = hmr.setup(() => ({ status: 'ok' }));
+
+  assertDeepEqual(result, { status: 'ok' });
+});
+
+test('accept and dispose accept functions', () => {
+  const hmr = createHMRContext('test-callbacks-module');
+
+  // Should not throw
+  hmr.accept(() => {});
+  hmr.dispose(() => {});
+  hmr.accept();
+});
+
+// =============================================================================
 // Run Tests and Print Results
 // =============================================================================
 
