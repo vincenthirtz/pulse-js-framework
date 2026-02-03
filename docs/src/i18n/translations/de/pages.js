@@ -419,6 +419,13 @@ export default {
     fullExample: 'Vollständiges Beispiel'
   },
 
+  // Accessibility page
+  accessibility: {
+    title: '♿ Barrierefreiheit',
+    intro: 'Pulse wurde mit Barrierefreiheit als Kernfunktion entwickelt und bietet mehrere Ebenen der A11y-Unterstützung.',
+    nextSecurity: 'Weiter: Sicherheitsleitfaden →'
+  },
+
   // Mobile page
   mobile: {
     title: '📱 Mobile Entwicklung',

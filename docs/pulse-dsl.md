@@ -210,6 +210,92 @@ div @on(mouseover, showTooltip)
 
 ---
 
+## Accessibility Directives
+
+### @a11y
+
+Set ARIA attributes on elements:
+
+```pulse
+// Set role and aria-label
+div @a11y(role=dialog, label="Settings") {
+  h2 "Settings"
+}
+
+// Multiple attributes
+button @a11y(label="Close menu", expanded=false, controls=menu)
+
+// With modal indication
+.modal @a11y(role=dialog, modal=true, label="Confirm action") {
+  p "Are you sure?"
+}
+```
+
+### @live
+
+Create live regions for screen reader announcements:
+
+```pulse
+// Polite - waits for user pause
+.status @live(polite) {
+  "Status: {status}"
+}
+
+// Assertive - interrupts immediately
+.error @live(assertive) {
+  "Error: {errorMessage}"
+}
+```
+
+### @focusTrap
+
+Trap keyboard focus inside an element (for modals/dialogs):
+
+```pulse
+// Basic trap
+.modal @focusTrap {
+  input
+  button "Submit"
+  button "Cancel"
+}
+
+// With options
+.dialog @focusTrap(autoFocus=true, returnFocus=true) {
+  h2 "Confirm"
+  button "Yes"
+  button "No"
+}
+```
+
+### @srOnly
+
+Create screen-reader-only content (visually hidden):
+
+```pulse
+// Hidden text for screen readers
+span @srOnly "Skip to main content"
+
+// Icon with accessible label
+a[href="/home"] {
+  span.icon "🏠"
+  span @srOnly "Go to homepage"
+}
+```
+
+### Combined Directives
+
+Multiple accessibility directives can be combined:
+
+```pulse
+.dialog @a11y(role=dialog, label="Delete item") @focusTrap(returnFocus=true) {
+  p "Permanently delete this item?"
+  button @a11y(label="Confirm deletion") "Delete"
+  button "Cancel"
+}
+```
+
+---
+
 ## Imports
 
 Import other components:

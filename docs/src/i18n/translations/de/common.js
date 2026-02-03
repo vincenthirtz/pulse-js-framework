@@ -17,6 +17,8 @@ export default {
     apiReferenceDesc: 'Vollständige API-Dokumentation',
     http: '🌐 HTTP-Client',
     httpDesc: 'HTTP-Anfragen ohne Abhängigkeiten',
+    accessibility: '♿ Barrierefreiheit',
+    accessibilityDesc: 'A11y-Funktionen und Best Practices',
     debugging: '🔍 Debugging',
     debuggingDesc: 'Werkzeuge und Fehlerbehebung',
     security: '🔒 Sicherheit',

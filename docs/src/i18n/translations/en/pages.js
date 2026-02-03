@@ -360,6 +360,13 @@ export default {
     nextApiReference: 'Next: API Reference →'
   },
 
+  // Accessibility page
+  accessibility: {
+    title: '♿ Accessibility',
+    intro: 'Pulse is designed with accessibility as a core feature, providing multiple layers of a11y support.',
+    nextSecurity: 'Next: Security Guide →'
+  },
+
   // Security page
   security: {
     title: '🔒 Security',

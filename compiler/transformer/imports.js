@@ -47,6 +47,21 @@ export function generateImports(transformer) {
 
   lines.push(`import { ${runtimeImports.join(', ')} } from '${options.runtime}';`);
 
+  // A11y imports (if a11y features are used)
+  const a11yImports = [];
+  if (transformer.usesA11y.srOnly) {
+    a11yImports.push('srOnly');
+  }
+  if (transformer.usesA11y.trapFocus) {
+    a11yImports.push('trapFocus');
+  }
+  if (transformer.usesA11y.announce) {
+    a11yImports.push('announce');
+  }
+  if (a11yImports.length > 0) {
+    lines.push(`import { ${a11yImports.join(', ')} } from '${options.runtime}/a11y';`);
+  }
+
   // Router imports (if router block exists)
   if (ast.router) {
     lines.push(`import { createRouter } from '${options.runtime}/router';`);

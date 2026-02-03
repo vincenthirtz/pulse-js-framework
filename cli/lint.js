@@ -20,6 +20,18 @@ export const LintRules = {
   // Security rules (warnings)
   'xss-vulnerability': { severity: 'warning', fixable: false },
 
+  // Accessibility rules (warnings)
+  'a11y-img-alt': { severity: 'warning', fixable: false },
+  'a11y-button-text': { severity: 'warning', fixable: false },
+  'a11y-link-text': { severity: 'warning', fixable: false },
+  'a11y-input-label': { severity: 'warning', fixable: false },
+  'a11y-click-key': { severity: 'warning', fixable: false },
+  'a11y-no-autofocus': { severity: 'warning', fixable: false },
+  'a11y-no-positive-tabindex': { severity: 'warning', fixable: false },
+  'a11y-heading-order': { severity: 'warning', fixable: false },
+  'a11y-aria-props': { severity: 'warning', fixable: false },
+  'a11y-role-props': { severity: 'warning', fixable: false },
+
   // Usage rules (warnings)
   'unused-import': { severity: 'warning', fixable: true },
   'unused-state': { severity: 'warning', fixable: false },
@@ -135,6 +147,9 @@ export class SemanticAnalyzer {
 
     // Phase 5: Security checks (XSS detection)
     this.checkSecurity();
+
+    // Phase 6: Accessibility checks
+    this.checkAccessibility();
 
     return this.diagnostics;
   }
@@ -636,6 +651,324 @@ export class SemanticAnalyzer {
 
       // Recurse into children
       this.checkViewForXSS(child);
+    }
+  }
+
+  /**
+   * Check for accessibility issues
+   */
+  checkAccessibility() {
+    if (!this.ast.view) return;
+
+    this.lastHeadingLevel = 0;
+    this.checkViewAccessibility(this.ast.view);
+  }
+
+  /**
+   * Recursively check view nodes for accessibility
+   */
+  checkViewAccessibility(node) {
+    if (!node) return;
+
+    const children = node.children || [];
+    for (const child of children) {
+      if (!child) continue;
+      this.checkNodeAccessibility(child);
+      this.checkViewAccessibility(child);
+    }
+  }
+
+  /**
+   * Check a single node for accessibility issues
+   */
+  checkNodeAccessibility(node) {
+    if (!node || node.type !== 'Element') return;
+
+    const selector = node.selector || node.tag || '';
+    const tagMatch = selector.match(/^([a-z][a-z0-9]*)/i);
+    const tagName = tagMatch ? tagMatch[1].toLowerCase() : '';
+
+    // Skip custom components (PascalCase)
+    if (/^[A-Z]/.test(tagMatch?.[1] || '')) return;
+
+    const line = node.line || 1;
+    const column = node.column || 1;
+
+    // Extract attributes from selector and directives
+    const attrs = this.extractAttributes(node);
+
+    // Rule: img-alt - Images must have alt attribute
+    if (tagName === 'img') {
+      if (!attrs.has('alt') && !attrs.has('aria-label') && !attrs.has('aria-labelledby')) {
+        this.addDiagnostic('warning', 'a11y-img-alt',
+          'Image missing alt attribute. Add alt="" for decorative images or descriptive text for informative images.',
+          line, column);
+      }
+    }
+
+    // Rule: button-text - Buttons must have accessible name
+    if (tagName === 'button') {
+      const hasText = this.hasTextContent(node);
+      const hasAriaLabel = attrs.has('aria-label') || attrs.has('aria-labelledby') || attrs.has('title');
+      if (!hasText && !hasAriaLabel) {
+        this.addDiagnostic('warning', 'a11y-button-text',
+          'Button has no accessible name. Add text content, aria-label, or aria-labelledby.',
+          line, column);
+      }
+    }
+
+    // Rule: link-text - Links must have accessible name
+    if (tagName === 'a') {
+      const hasText = this.hasTextContent(node);
+      const hasAriaLabel = attrs.has('aria-label') || attrs.has('aria-labelledby');
+      const hasImgAlt = this.hasChildWithAlt(node);
+      if (!hasText && !hasAriaLabel && !hasImgAlt) {
+        this.addDiagnostic('warning', 'a11y-link-text',
+          'Link has no accessible name. Add text content, aria-label, or an image with alt.',
+          line, column);
+      }
+    }
+
+    // Rule: input-label - Form inputs must have labels
+    if (['input', 'select', 'textarea'].includes(tagName)) {
+      const inputType = attrs.get('type') || 'text';
+      if (!['hidden', 'submit', 'button', 'reset', 'image'].includes(inputType)) {
+        const hasLabel = attrs.has('aria-label') || attrs.has('aria-labelledby') || attrs.has('id');
+        const hasPlaceholder = attrs.has('placeholder');
+        if (!hasLabel) {
+          const msg = hasPlaceholder
+            ? 'Input uses placeholder but missing label. Placeholder is not a substitute for label.'
+            : 'Form input missing label. Add aria-label, aria-labelledby, or associate with <label>.';
+          this.addDiagnostic('warning', 'a11y-input-label', msg, line, column);
+        }
+      }
+    }
+
+    // Rule: click-key - Click handlers on non-interactive elements need keyboard support
+    if (['div', 'span', 'section', 'article', 'aside', 'main', 'nav', 'header', 'footer', 'p', 'li'].includes(tagName)) {
+      const hasClick = this.hasDirective(node, 'click');
+      const hasKeyHandler = this.hasDirective(node, 'keydown') || this.hasDirective(node, 'keyup') || this.hasDirective(node, 'keypress');
+      const hasRole = attrs.has('role');
+      const hasTabindex = attrs.has('tabindex');
+
+      if (hasClick && !hasKeyHandler && !hasRole) {
+        this.addDiagnostic('warning', 'a11y-click-key',
+          `Click handler on <${tagName}> requires keyboard support. Add role="button", tabindex="0", and onKeyDown handler, or use <button>.`,
+          line, column);
+      }
+    }
+
+    // Rule: no-autofocus - Avoid autofocus as it can disorient screen readers
+    if (attrs.has('autofocus')) {
+      this.addDiagnostic('warning', 'a11y-no-autofocus',
+        'Avoid autofocus - it can disorient screen reader users and cause accessibility issues.',
+        line, column);
+    }
+
+    // Rule: no-positive-tabindex - Avoid positive tabindex
+    const tabindex = attrs.get('tabindex');
+    if (tabindex && parseInt(tabindex, 10) > 0) {
+      this.addDiagnostic('warning', 'a11y-no-positive-tabindex',
+        'Avoid positive tabindex values. Use tabindex="0" or "-1" and rely on DOM order.',
+        line, column);
+    }
+
+    // Rule: heading-order - Headings should follow hierarchy
+    const headingMatch = tagName.match(/^h([1-6])$/);
+    if (headingMatch) {
+      const level = parseInt(headingMatch[1], 10);
+      if (this.lastHeadingLevel > 0 && level > this.lastHeadingLevel + 1) {
+        this.addDiagnostic('warning', 'a11y-heading-order',
+          `Heading level skipped: <h${this.lastHeadingLevel}> to <h${level}>. Use sequential heading levels.`,
+          line, column);
+      }
+      this.lastHeadingLevel = level;
+    }
+
+    // Rule: aria-props - Check ARIA attribute validity
+    this.checkAriaProps(node, attrs, line, column);
+
+    // Rule: role-props - Check role requirements
+    this.checkRoleProps(node, attrs, tagName, line, column);
+  }
+
+  /**
+   * Extract attributes from node selector and directives
+   */
+  extractAttributes(node) {
+    const attrs = new Map();
+    const selector = node.selector || '';
+
+    // Parse attributes from selector [attr=value] or [attr]
+    const attrRegex = /\[([a-z][a-z0-9-]*)(?:=["']?([^"'\]]+)["']?)?\]/gi;
+    let match;
+    while ((match = attrRegex.exec(selector)) !== null) {
+      attrs.set(match[1].toLowerCase(), match[2] || true);
+    }
+
+    // Check directives for attributes
+    for (const directive of node.directives || []) {
+      if (directive.name === 'attr' || directive.name === 'bind') {
+        const attrName = directive.arg || directive.attribute;
+        if (attrName) {
+          attrs.set(attrName.toLowerCase(), directive.value || true);
+        }
+      }
+    }
+
+    // Check props for component-like attribute passing
+    if (node.props) {
+      for (const prop of Object.keys(node.props)) {
+        attrs.set(prop.toLowerCase(), node.props[prop]);
+      }
+    }
+
+    return attrs;
+  }
+
+  /**
+   * Check if node has text content
+   */
+  hasTextContent(node) {
+    if (node.textContent && node.textContent.length > 0) {
+      return node.textContent.some(t => {
+        // Direct string
+        if (typeof t === 'string' && t.trim().length > 0) return true;
+        // Interpolation
+        if (typeof t === 'object' && t.type === 'Interpolation') return true;
+        // TextNode with parts
+        if (typeof t === 'object' && t.type === 'TextNode' && t.parts) {
+          return t.parts.some(part =>
+            (typeof part === 'string' && part.trim().length > 0) ||
+            (typeof part === 'object')
+          );
+        }
+        return false;
+      });
+    }
+    // Check children for text nodes
+    if (node.children) {
+      return node.children.some(child =>
+        child && (child.type === 'TextNode' || this.hasTextContent(child))
+      );
+    }
+    return false;
+  }
+
+  /**
+   * Check if node has child with alt attribute
+   */
+  hasChildWithAlt(node) {
+    if (!node.children) return false;
+    return node.children.some(child => {
+      if (!child) return false;
+      const selector = child.selector || child.tag || '';
+      if (/^img/i.test(selector) && /\[alt/.test(selector)) {
+        return true;
+      }
+      return this.hasChildWithAlt(child);
+    });
+  }
+
+  /**
+   * Check if node has a specific directive
+   */
+  hasDirective(node, name) {
+    if (!node.directives) return false;
+    return node.directives.some(d =>
+      d.name === name ||
+      d.event === name ||
+      (d.type === 'EventDirective' && d.event === name)
+    );
+  }
+
+  /**
+   * Check ARIA attribute validity
+   */
+  checkAriaProps(node, attrs, line, column) {
+    const validAriaAttrs = new Set([
+      'aria-activedescendant', 'aria-atomic', 'aria-autocomplete', 'aria-braillelabel',
+      'aria-brailleroledescription', 'aria-busy', 'aria-checked', 'aria-colcount',
+      'aria-colindex', 'aria-colindextext', 'aria-colspan', 'aria-controls',
+      'aria-current', 'aria-describedby', 'aria-description', 'aria-details',
+      'aria-disabled', 'aria-dropeffect', 'aria-errormessage', 'aria-expanded',
+      'aria-flowto', 'aria-grabbed', 'aria-haspopup', 'aria-hidden', 'aria-invalid',
+      'aria-keyshortcuts', 'aria-label', 'aria-labelledby', 'aria-level', 'aria-live',
+      'aria-modal', 'aria-multiline', 'aria-multiselectable', 'aria-orientation',
+      'aria-owns', 'aria-placeholder', 'aria-posinset', 'aria-pressed', 'aria-readonly',
+      'aria-relevant', 'aria-required', 'aria-roledescription', 'aria-rowcount',
+      'aria-rowindex', 'aria-rowindextext', 'aria-rowspan', 'aria-selected',
+      'aria-setsize', 'aria-sort', 'aria-valuemax', 'aria-valuemin', 'aria-valuenow',
+      'aria-valuetext'
+    ]);
+
+    for (const [attr] of attrs) {
+      if (attr.startsWith('aria-') && !validAriaAttrs.has(attr)) {
+        this.addDiagnostic('warning', 'a11y-aria-props',
+          `Invalid ARIA attribute: ${attr}`,
+          line, column);
+      }
+    }
+  }
+
+  /**
+   * Check role-specific required attributes
+   */
+  checkRoleProps(node, attrs, tagName, line, column) {
+    const role = attrs.get('role');
+    if (!role) return;
+
+    const roleRequirements = {
+      'checkbox': ['aria-checked'],
+      'combobox': ['aria-expanded'],
+      'heading': ['aria-level'],
+      'meter': ['aria-valuenow'],
+      'option': [],
+      'progressbar': [],
+      'radio': ['aria-checked'],
+      'scrollbar': ['aria-controls', 'aria-valuenow'],
+      'separator': [],
+      'slider': ['aria-valuenow'],
+      'spinbutton': [],
+      'switch': ['aria-checked'],
+      'tab': [],
+      'tabpanel': [],
+      'treeitem': []
+    };
+
+    const required = roleRequirements[role];
+    if (required && required.length > 0) {
+      for (const reqAttr of required) {
+        if (!attrs.has(reqAttr)) {
+          this.addDiagnostic('warning', 'a11y-role-props',
+            `Role "${role}" requires ${reqAttr} attribute`,
+            line, column);
+        }
+      }
+    }
+
+    // Check for redundant roles on semantic elements
+    const implicitRoles = {
+      'button': 'button',
+      'a': 'link',
+      'input': 'textbox',
+      'img': 'img',
+      'nav': 'navigation',
+      'main': 'main',
+      'header': 'banner',
+      'footer': 'contentinfo',
+      'aside': 'complementary',
+      'form': 'form',
+      'table': 'table',
+      'ul': 'list',
+      'ol': 'list',
+      'li': 'listitem'
+    };
+
+    if (implicitRoles[tagName] === role) {
+      this.addDiagnostic('warning', 'a11y-role-props',
+        `Redundant role="${role}" on <${tagName}> - element has implicit role`,
+        line, column);
     }
   }
 

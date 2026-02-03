@@ -474,6 +474,13 @@ export default {
     fullExample: 'Kompleta Ekzemplo'
   },
 
+  // Accessibility page
+  accessibility: {
+    title: '♿ Alirebleco',
+    intro: 'Pulse estas desegnita kun alirebleco kiel kerna trajto, provizante plurajn tavolojn de a11y-subteno.',
+    nextSecurity: 'Sekva: Sekureca Gvidilo →'
+  },
+
   // Mobile page
   mobile: {
     title: '📱 Poŝtelefona Evoluo',

@@ -417,6 +417,13 @@ export default {
     fullExample: 'Ejemplo completo'
   },
 
+  // Accessibility page
+  accessibility: {
+    title: '♿ Accesibilidad',
+    intro: 'Pulse está diseñado con la accesibilidad como característica principal, proporcionando múltiples capas de soporte a11y.',
+    nextSecurity: 'Siguiente: Guía de Seguridad →'
+  },
+
   // Mobile page
   mobile: {
     title: '📱 Desarrollo móvil',

@@ -38,8 +38,8 @@ import {
   resetCacheMetrics
 } from './dom-selector.js';
 
-// Core element creation
-import { el, text } from './dom-element.js';
+// Core element creation and a11y configuration
+import { el, text, configureA11y } from './dom-element.js';
 
 // Reactive bindings
 import { bind, prop, cls, style, on, model } from './dom-binding.js';
@@ -99,6 +99,9 @@ export {
   el,
   text,
 
+  // Accessibility
+  configureA11y,
+
   // Reactive bindings
   bind,
   prop,
@@ -139,6 +142,9 @@ export default {
   // Element creation
   el,
   text,
+
+  // Accessibility
+  configureA11y,
 
   // Reactive bindings
   bind,

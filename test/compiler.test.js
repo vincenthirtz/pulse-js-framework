@@ -648,6 +648,212 @@ view {
 });
 
 // =============================================================================
+// A11y Directive Tests
+// =============================================================================
+
+printSection('A11y Directive Tests');
+
+test('tokenizes a11y keywords', () => {
+  const tokens = tokenize('@a11y @live @focusTrap @srOnly');
+  assertEqual(tokens[0].type, 'AT', 'Expected AT');
+  assertEqual(tokens[1].type, 'IDENT', 'Expected IDENT (a11y)');
+  assertEqual(tokens[1].value, 'a11y', 'Expected a11y value');
+  assertEqual(tokens[2].type, 'AT', 'Expected AT');
+  assertEqual(tokens[3].type, 'IDENT', 'Expected IDENT (live)');
+  assertEqual(tokens[3].value, 'live', 'Expected live value');
+});
+
+test('parses @a11y directive', () => {
+  const source = `
+@page App
+
+view {
+  div @a11y(role=dialog, label="Modal window") {
+    span "Content"
+  }
+}`;
+  const ast = parse(source);
+  assert(ast.view !== null, 'Expected view block');
+  const div = ast.view.children[0];
+  const a11yDirective = div.directives.find(d => d.type === 'A11yDirective');
+  assert(a11yDirective !== undefined, 'Expected A11yDirective');
+  assertEqual(a11yDirective.attrs.role, 'dialog', 'Expected role=dialog');
+  assertEqual(a11yDirective.attrs.label, 'Modal window', 'Expected label');
+});
+
+test('parses @live directive', () => {
+  const source = `
+@page App
+
+view {
+  div @live(polite) {
+    span "Status: OK"
+  }
+}`;
+  const ast = parse(source);
+  const div = ast.view.children[0];
+  const liveDirective = div.directives.find(d => d.type === 'LiveDirective');
+  assert(liveDirective !== undefined, 'Expected LiveDirective');
+  assertEqual(liveDirective.priority, 'polite', 'Expected polite priority');
+});
+
+test('parses @live assertive', () => {
+  const source = `
+@page App
+
+view {
+  div @live(assertive) {
+    span "Error!"
+  }
+}`;
+  const ast = parse(source);
+  const div = ast.view.children[0];
+  const liveDirective = div.directives.find(d => d.type === 'LiveDirective');
+  assertEqual(liveDirective.priority, 'assertive', 'Expected assertive priority');
+});
+
+test('parses @focusTrap directive', () => {
+  const source = `
+@page App
+
+view {
+  div @focusTrap {
+    input
+    button "Submit"
+  }
+}`;
+  const ast = parse(source);
+  const div = ast.view.children[0];
+  const focusTrapDirective = div.directives.find(d => d.type === 'FocusTrapDirective');
+  assert(focusTrapDirective !== undefined, 'Expected FocusTrapDirective');
+});
+
+test('parses @focusTrap with options', () => {
+  const source = `
+@page App
+
+view {
+  div @focusTrap(autoFocus=true, returnFocus=true) {
+    input
+  }
+}`;
+  const ast = parse(source);
+  const div = ast.view.children[0];
+  const focusTrapDirective = div.directives.find(d => d.type === 'FocusTrapDirective');
+  assert(focusTrapDirective !== undefined, 'Expected FocusTrapDirective');
+  assertEqual(focusTrapDirective.options.autoFocus, true, 'Expected autoFocus=true');
+  assertEqual(focusTrapDirective.options.returnFocus, true, 'Expected returnFocus=true');
+});
+
+test('parses @srOnly directive', () => {
+  const source = `
+@page App
+
+view {
+  span @srOnly "Screen reader only text"
+}`;
+  const ast = parse(source);
+  const span = ast.view.children[0];
+  const a11yDirective = span.directives.find(d => d.type === 'A11yDirective');
+  assert(a11yDirective !== undefined, 'Expected A11yDirective (srOnly)');
+  assertEqual(a11yDirective.attrs.srOnly, true, 'Expected srOnly=true');
+});
+
+test('compiles @a11y directive to aria attributes', () => {
+  const source = `
+@page App
+
+view {
+  div @a11y(role=dialog, label="Modal") {
+    span "Content"
+  }
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  // Should add aria attributes to selector
+  assert(
+    result.code.includes('[role=dialog]') || result.code.includes("'role': 'dialog'"),
+    'Expected role attribute'
+  );
+  assert(
+    result.code.includes('[aria-label=Modal]') || result.code.includes("'aria-label': 'Modal'"),
+    'Expected aria-label attribute'
+  );
+});
+
+test('compiles @live directive to aria-live', () => {
+  const source = `
+@page App
+
+view {
+  div @live(polite) {
+    span "Status"
+  }
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  // Should add aria-live attribute
+  assert(result.code.includes('[aria-live=polite]'), 'Expected aria-live=polite');
+  assert(result.code.includes('[aria-atomic=true]'), 'Expected aria-atomic=true');
+});
+
+test('compiles @focusTrap directive', () => {
+  const source = `
+@page App
+
+view {
+  div @focusTrap {
+    input
+    button "Close"
+  }
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  // Should wrap with trapFocus
+  assert(result.code.includes('trapFocus'), 'Expected trapFocus call');
+  // Should import trapFocus from a11y
+  assert(result.code.includes("from 'pulse-js-framework/runtime/a11y'"), 'Expected a11y import');
+});
+
+test('compiles @srOnly directive', () => {
+  const source = `
+@page App
+
+view {
+  span @srOnly "Skip to content"
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  // Should wrap with srOnly
+  assert(result.code.includes('srOnly('), 'Expected srOnly call');
+  // Should import srOnly from a11y
+  assert(result.code.includes("from 'pulse-js-framework/runtime/a11y'"), 'Expected a11y import');
+});
+
+test('compiles combined a11y directives', () => {
+  const source = `
+@page Modal
+
+view {
+  div @a11y(role=dialog, modal=true) @focusTrap(autoFocus=true) {
+    h2 "Dialog Title"
+    p "Dialog content"
+    button @a11y(label="Close dialog") "×"
+  }
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  assert(result.code.includes('[role=dialog]'), 'Expected role=dialog');
+  assert(result.code.includes('[aria-modal=true]'), 'Expected aria-modal=true');
+  assert(result.code.includes('trapFocus'), 'Expected trapFocus');
+});
+
+// =============================================================================
 // Results
 // =============================================================================
 

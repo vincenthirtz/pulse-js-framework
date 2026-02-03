@@ -17,6 +17,8 @@ export default {
     apiReferenceDesc: 'Fullkomin API skjölun',
     http: '🌐 HTTP Viðskiptavinur',
     httpDesc: 'HTTP beiðnir án háðra',
+    accessibility: '♿ Aðgengi',
+    accessibilityDesc: 'A11y eiginleikar og bestu venjur',
     debugging: '🔍 Villuleit',
     debuggingDesc: 'Verkfæri og úrræðaleit',
     security: '🔒 Öryggi',

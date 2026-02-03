@@ -27,6 +27,12 @@ export const NodeType = {
   IfDirective: 'IfDirective',
   EachDirective: 'EachDirective',
   EventDirective: 'EventDirective',
+
+  // Accessibility directives
+  A11yDirective: 'A11yDirective',
+  LiveDirective: 'LiveDirective',
+  FocusTrapDirective: 'FocusTrapDirective',
+
   Property: 'Property',
   ObjectLiteral: 'ObjectLiteral',
   ArrayLiteral: 'ArrayLiteral',
@@ -770,6 +776,20 @@ export class Parser {
       return this.parseEachDirective();
     }
 
+    // Accessibility directives
+    if (name === 'a11y') {
+      return this.parseA11yDirective();
+    }
+    if (name === 'live') {
+      return this.parseLiveDirective();
+    }
+    if (name === 'focusTrap') {
+      return this.parseFocusTrapDirective();
+    }
+    if (name === 'srOnly') {
+      return this.parseSrOnlyDirective();
+    }
+
     // Event directive like @click
     return this.parseEventDirective(name);
   }
@@ -781,7 +801,21 @@ export class Parser {
     this.expect(TokenType.AT);
     const name = this.expect(TokenType.IDENT).value;
 
-    // Event directive
+    // Check for a11y directives
+    if (name === 'a11y') {
+      return this.parseA11yDirective();
+    }
+    if (name === 'live') {
+      return this.parseLiveDirective();
+    }
+    if (name === 'focusTrap') {
+      return this.parseFocusTrapDirective();
+    }
+    if (name === 'srOnly') {
+      return this.parseSrOnlyDirective();
+    }
+
+    // Event directive (click, submit, etc.)
     this.expect(TokenType.LPAREN);
     const expression = this.parseExpression();
     this.expect(TokenType.RPAREN);
@@ -864,6 +898,115 @@ export class Parser {
     }
 
     return new ASTNode(NodeType.EventDirective, { event, handler, children });
+  }
+
+  /**
+   * Parse @a11y directive - sets aria attributes
+   * @a11y(label="Close menu") or @a11y(label="Close", describedby="desc")
+   */
+  parseA11yDirective() {
+    this.expect(TokenType.LPAREN);
+
+    const attrs = {};
+
+    // Parse key=value pairs
+    while (!this.is(TokenType.RPAREN) && !this.is(TokenType.EOF)) {
+      const key = this.expect(TokenType.IDENT).value;
+      this.expect(TokenType.EQ);
+
+      let value;
+      if (this.is(TokenType.STRING)) {
+        value = this.advance().value;
+      } else if (this.is(TokenType.TRUE)) {
+        value = true;
+        this.advance();
+      } else if (this.is(TokenType.FALSE)) {
+        value = false;
+        this.advance();
+      } else if (this.is(TokenType.IDENT)) {
+        // Treat unquoted identifier as a string (e.g., role=dialog -> "dialog")
+        value = this.advance().value;
+      } else {
+        value = this.parseExpression();
+      }
+
+      attrs[key] = value;
+
+      if (this.is(TokenType.COMMA)) {
+        this.advance();
+      }
+    }
+
+    this.expect(TokenType.RPAREN);
+
+    return new ASTNode(NodeType.A11yDirective, { attrs });
+  }
+
+  /**
+   * Parse @live directive - creates live region for screen readers
+   * @live(polite) or @live(assertive)
+   */
+  parseLiveDirective() {
+    this.expect(TokenType.LPAREN);
+
+    let priority = 'polite';
+    if (this.is(TokenType.IDENT)) {
+      priority = this.advance().value;
+    }
+
+    this.expect(TokenType.RPAREN);
+
+    return new ASTNode(NodeType.LiveDirective, { priority });
+  }
+
+  /**
+   * Parse @focusTrap directive - traps focus within element
+   * @focusTrap or @focusTrap(autoFocus=true)
+   */
+  parseFocusTrapDirective() {
+    const options = {};
+
+    if (this.is(TokenType.LPAREN)) {
+      this.advance();
+
+      while (!this.is(TokenType.RPAREN) && !this.is(TokenType.EOF)) {
+        const key = this.expect(TokenType.IDENT).value;
+
+        if (this.is(TokenType.EQ)) {
+          this.advance();
+          if (this.is(TokenType.TRUE)) {
+            options[key] = true;
+            this.advance();
+          } else if (this.is(TokenType.FALSE)) {
+            options[key] = false;
+            this.advance();
+          } else if (this.is(TokenType.STRING)) {
+            options[key] = this.advance().value;
+          } else {
+            options[key] = this.parseExpression();
+          }
+        } else {
+          options[key] = true;
+        }
+
+        if (this.is(TokenType.COMMA)) {
+          this.advance();
+        }
+      }
+
+      this.expect(TokenType.RPAREN);
+    }
+
+    return new ASTNode(NodeType.FocusTrapDirective, { options });
+  }
+
+  /**
+   * Parse @srOnly directive - visually hidden but accessible text
+   */
+  parseSrOnlyDirective() {
+    return new ASTNode(NodeType.A11yDirective, {
+      attrs: { srOnly: true }
+    });
   }
 
   /**

@@ -54,6 +54,13 @@ export class Transformer {
     this.importedComponents = new Map();
     this.scopeId = this.options.scopeStyles ? generateScopeId() : null;
 
+    // Track a11y feature usage for conditional imports
+    this.usesA11y = {
+      srOnly: false,
+      trapFocus: false,
+      announce: false
+    };
+
     // Source map tracking
     this.sourceMap = null;
     this._currentLine = 0;
@@ -127,6 +134,40 @@ export class Transformer {
   }
 
   /**
+   * Pre-scan AST for a11y directive usage
+   */
+  _scanA11yUsage(node) {
+    if (!node) return;
+
+    // Check directives for a11y usage
+    if (node.directives) {
+      for (const directive of node.directives) {
+        if (directive.type === 'A11yDirective') {
+          if (directive.attrs && directive.attrs.srOnly) {
+            this.usesA11y.srOnly = true;
+          }
+        } else if (directive.type === 'FocusTrapDirective') {
+          this.usesA11y.trapFocus = true;
+        }
+      }
+    }
+
+    // Recursively scan children
+    if (node.children) {
+      for (const child of node.children) {
+        this._scanA11yUsage(child);
+      }
+    }
+
+    // Scan view block children
+    if (node.type === 'ViewBlock' && node.children) {
+      for (const child of node.children) {
+        this._scanA11yUsage(child);
+      }
+    }
+  }
+
+  /**
    * Transform AST to JavaScript code
    */
   transform() {
@@ -135,6 +176,11 @@ export class Transformer {
     // Extract imported components first
     if (this.ast.imports) {
       extractImportedComponents(this, this.ast.imports);
+    }
+
+    // Pre-scan for a11y usage to determine imports
+    if (this.ast.view) {
+      this._scanA11yUsage(this.ast.view);
     }
 
     // Imports (runtime + user imports)

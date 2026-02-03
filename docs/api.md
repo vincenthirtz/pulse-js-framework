@@ -6,6 +6,7 @@ Complete API documentation for Pulse framework.
 
 - [Reactivity](#reactivity)
 - [DOM](#dom)
+- [Accessibility](#accessibility)
 - [Router](#router)
 - [Store](#store)
 - [Form](#form)
@@ -246,6 +247,204 @@ Two-way data binding.
 ```javascript
 const value = pulse('');
 model(input, value);
+```
+
+### configureA11y(options)
+
+Configure automatic ARIA attribute application.
+
+```javascript
+import { configureA11y } from 'pulse-js-framework/runtime';
+
+configureA11y({
+  enabled: true,           // Enable/disable auto-ARIA (default: true)
+  autoAria: true,          // Auto-apply ARIA attributes (default: true)
+  warnMissingAlt: true,    // Warn for missing alt on images (default: true)
+  warnMissingLabel: true   // Warn for missing labels on form controls (default: true)
+});
+```
+
+### Auto-ARIA
+
+The `el()` function automatically applies ARIA attributes:
+
+```javascript
+el('dialog')              // → role="dialog" aria-modal="true"
+el('button')              // → type="button"
+el('a')                   // → role="button" tabindex="0" (if no href)
+el('div[role=checkbox]')  // → aria-checked="false"
+el('div[role=slider]')    // → aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"
+```
+
+---
+
+## Accessibility
+
+```javascript
+import {
+  announce, announcePolite, announceAssertive, createLiveAnnouncer,
+  trapFocus, focusFirst, focusLast, saveFocus, restoreFocus, getFocusableElements,
+  createSkipLink, installSkipLinks,
+  prefersReducedMotion, prefersColorScheme, prefersHighContrast, createPreferences,
+  setAriaAttributes, createDisclosure, createTabs, createRovingTabindex,
+  validateA11y, logA11yIssues, highlightA11yIssues,
+  generateId, isAccessiblyHidden, makeInert, srOnly
+} from 'pulse-js-framework/runtime/a11y';
+```
+
+### announce(message, priority?)
+
+Announce message to screen readers.
+
+```javascript
+announce('Item saved');                    // Polite (default)
+announcePolite('Loading complete');        // Polite
+announceAssertive('Error: Connection lost'); // Assertive (interrupts)
+```
+
+### createLiveAnnouncer(fn, options?)
+
+Create reactive announcer that announces on value change.
+
+```javascript
+const cleanup = createLiveAnnouncer(
+  () => `${items.get().length} items`,
+  { priority: 'polite', clearAfter: 1000 }
+);
+```
+
+### trapFocus(element, options?)
+
+Trap keyboard focus inside an element (for modals).
+
+```javascript
+const release = trapFocus(modal, {
+  autoFocus: true,       // Focus first element
+  returnFocus: true,     // Return focus on release
+  initialFocus: button   // Custom initial focus
+});
+
+// Later
+release();
+```
+
+### focusFirst(element) / focusLast(element)
+
+Focus first or last focusable element.
+
+```javascript
+focusFirst(container);
+focusLast(container);
+```
+
+### saveFocus() / restoreFocus()
+
+Save and restore focus (stack-based).
+
+```javascript
+saveFocus();
+// ... do something
+restoreFocus();
+```
+
+### installSkipLinks(links)
+
+Add keyboard skip links.
+
+```javascript
+installSkipLinks([
+  { target: 'main-content', text: 'Skip to main content' },
+  { target: 'navigation', text: 'Skip to navigation' }
+]);
+```
+
+### prefersReducedMotion() / prefersColorScheme()
+
+Check user preferences.
+
+```javascript
+if (prefersReducedMotion()) {
+  disableAnimations();
+}
+const scheme = prefersColorScheme(); // 'light' | 'dark' | 'no-preference'
+```
+
+### createPreferences()
+
+Get reactive user preferences.
+
+```javascript
+const prefs = createPreferences();
+effect(() => {
+  if (prefs.reducedMotion.get()) disableAnimations();
+  applyTheme(prefs.colorScheme.get());
+});
+```
+
+### createDisclosure(trigger, content, options?)
+
+Create accessible disclosure widget.
+
+```javascript
+const { expanded, toggle, open, close } = createDisclosure(
+  button, panel,
+  { defaultOpen: false, onToggle: (isOpen) => console.log(isOpen) }
+);
+```
+
+### createTabs(tablist, options?)
+
+Create accessible tabs.
+
+```javascript
+const tabs = createTabs(tablistElement, {
+  defaultIndex: 0,
+  orientation: 'horizontal',
+  onSelect: (index) => console.log('Selected:', index)
+});
+tabs.select(2);
+```
+
+### createRovingTabindex(container, options?)
+
+Enable arrow key navigation.
+
+```javascript
+const cleanup = createRovingTabindex(menu, {
+  selector: '[role="menuitem"]',
+  orientation: 'vertical',
+  loop: true
+});
+```
+
+### validateA11y(element)
+
+Validate accessibility.
+
+```javascript
+const issues = validateA11y(document.body);
+logA11yIssues(issues);
+const cleanup = highlightA11yIssues(issues);
+```
+
+### srOnly(content)
+
+Create screen-reader-only content.
+
+```javascript
+const span = srOnly('Screen reader only text');
+```
+
+### setAriaAttributes(element, attrs)
+
+Set multiple ARIA attributes.
+
+```javascript
+setAriaAttributes(button, {
+  label: 'Close',
+  expanded: true,
+  controls: 'menu'
+});
 ```
 
 ---

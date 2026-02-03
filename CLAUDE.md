@@ -8,6 +8,7 @@ Pulse is a lightweight, declarative JavaScript framework for building reactive S
 - **Signal-based reactivity** (pulsations) for automatic UI updates
 - **Custom DSL** (.pulse files) that compile to JavaScript
 - **Zero dependencies** - completely self-contained
+- **Accessibility-first** - built-in a11y helpers, auto-ARIA, and audit tools
 
 **Version:** See package.json | **License:** MIT | **Node.js:** >= 18.0.0
 
@@ -56,6 +57,8 @@ pulse/
 │   ├── store.js         # Global state management
 │   ├── form.js          # Form validation and management
 │   ├── async.js         # Async primitives (useAsync, useResource, usePolling)
+│   ├── http.js          # HTTP client (fetch wrapper, interceptors)
+│   ├── a11y.js          # Accessibility (focus, announcements, ARIA)
 │   ├── devtools.js      # Debugging tools (time-travel, dependency graph)
 │   ├── native.js        # Mobile bridge for iOS/Android
 │   └── hmr.js           # Hot module replacement
@@ -111,6 +114,22 @@ batch(() => {
 // CSS selector syntax
 el('div.container#main')  // <div class="container" id="main">
 el('input[type=text]')    // <input type="text">
+
+// Automatic ARIA attributes (enabled by default)
+el('dialog')              // Auto: role="dialog" aria-modal="true"
+el('button')              // Auto: type="button"
+el('a')                   // Auto: role="button" tabindex="0" (if no href)
+el('div[role=checkbox]')  // Auto: aria-checked="false"
+el('div[role=slider]')    // Auto: aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"
+
+// Configure auto-ARIA behavior
+import { configureA11y } from 'pulse-js-framework/runtime';
+configureA11y({
+  enabled: true,           // Enable/disable all auto-ARIA (default: true)
+  autoAria: true,          // Auto-apply ARIA to semantic elements (default: true)
+  warnMissingAlt: true,    // Warn when <img> missing alt (default: true)
+  warnMissingLabel: true   // Warn when form controls missing labels (default: true)
+});
 
 // Reactive bindings
 text(() => `Count: ${count.get()}`)
@@ -538,7 +557,11 @@ import {
   getDiagnostics, getEffectStats, getPulseList,
   getDependencyGraph, exportGraphAsDot,
   takeSnapshot, getHistory, travelTo, back, forward,
-  profile, mark
+  profile, mark,
+  // A11y Audit
+  runA11yAudit, enableA11yAudit, disableA11yAudit,
+  getA11yIssues, getA11yStats, exportA11yReport,
+  toggleA11yHighlights
 } from 'pulse-js-framework/runtime/devtools';
 
 // Enable dev tools (exposes window.__PULSE_DEVTOOLS__)
@@ -574,6 +597,207 @@ profile('data-processing', () => processLargeDataset());
 const m = mark('fetch');
 await fetch('/api/data');
 m.end();  // Logs duration
+
+// === A11y Audit Mode ===
+
+// Run one-time accessibility audit
+const result = runA11yAudit();
+console.log(`Found ${result.errorCount} errors, ${result.warningCount} warnings`);
+
+// Enable continuous a11y auditing
+enableA11yAudit({
+  autoAudit: true,           // Periodic audits
+  auditInterval: 5000,       // Every 5 seconds
+  highlightIssues: true,     // Visual overlay on issues
+  logToConsole: true,        // Log to browser console
+  breakOnError: false,       // Debugger breakpoint on errors
+  watchMutations: true       // Re-audit on DOM changes
+});
+
+// Get current issues and statistics
+const issues = getA11yIssues();       // Array of a11y issues
+const stats = getA11yStats();         // { totalIssues, errorCount, warningCount, ... }
+
+// Toggle visual highlighting
+toggleA11yHighlights(true);           // Show highlights
+toggleA11yHighlights(false);          // Hide highlights
+toggleA11yHighlights();               // Toggle
+
+// Export audit report
+const json = exportA11yReport('json'); // JSON format
+const csv = exportA11yReport('csv');   // CSV format
+const html = exportA11yReport('html'); // Standalone HTML report
+
+// Disable a11y audit mode
+disableA11yAudit();
+```
+
+### A11y (runtime/a11y.js)
+
+```javascript
+import {
+  // Announcements (screen readers)
+  announce, announcePolite, announceAssertive, createLiveAnnouncer,
+  // Focus management
+  trapFocus, focusFirst, focusLast, saveFocus, restoreFocus, getFocusableElements,
+  // Skip links
+  createSkipLink, installSkipLinks,
+  // User preferences
+  prefersReducedMotion, prefersColorScheme, prefersHighContrast, createPreferences,
+  // ARIA helpers
+  setAriaAttributes, createDisclosure, createTabs, createRovingTabindex,
+  // Validation
+  validateA11y, logA11yIssues, highlightA11yIssues,
+  // Utilities
+  generateId, isAccessiblyHidden, makeInert, srOnly
+} from 'pulse-js-framework/runtime/a11y';
+
+// Screen reader announcements
+announce('Item saved successfully');                    // Polite (default)
+announcePolite('Loading complete');                     // Waits for user
+announceAssertive('Error: Connection lost');            // Interrupts immediately
+
+// Reactive announcer (announces on value change)
+const cleanup = createLiveAnnouncer(
+  () => `${items.get().length} items in cart`,
+  { priority: 'polite', clearAfter: 1000 }
+);
+
+// Focus management for modals/dialogs
+const release = trapFocus(modalElement, {
+  autoFocus: true,           // Focus first element
+  returnFocus: true,         // Return focus on release
+  initialFocus: closeButton  // Custom initial focus
+});
+// Later: release() to remove trap
+
+focusFirst(container);       // Focus first focusable element
+focusLast(container);        // Focus last focusable element
+saveFocus();                 // Push current focus to stack
+restoreFocus();              // Pop and restore focus
+getFocusableElements(el);    // Get all focusable children
+
+// Skip links for keyboard navigation
+installSkipLinks([
+  { target: 'main-content', text: 'Skip to main content' },
+  { target: 'navigation', text: 'Skip to navigation' }
+]);
+
+// User preferences (reactive)
+if (prefersReducedMotion()) {
+  // Disable animations
+}
+const scheme = prefersColorScheme();  // 'light' | 'dark' | 'no-preference'
+const prefs = createPreferences();    // Reactive pulses
+effect(() => {
+  if (prefs.reducedMotion.get()) disableAnimations();
+  applyTheme(prefs.colorScheme.get());
+});
+
+// ARIA disclosure widget (accordion, dropdown)
+const { expanded, toggle, open, close } = createDisclosure(
+  triggerButton,
+  contentPanel,
+  { defaultOpen: false, onToggle: (isOpen) => console.log(isOpen) }
+);
+
+// ARIA tabs
+const tabs = createTabs(tablistElement, {
+  defaultIndex: 0,
+  orientation: 'horizontal',  // or 'vertical'
+  onSelect: (index) => console.log('Selected tab:', index)
+});
+tabs.select(2);  // Programmatic selection
+
+// Roving tabindex (arrow key navigation)
+const cleanup = createRovingTabindex(menuElement, {
+  selector: '[role="menuitem"]',
+  orientation: 'vertical',
+  loop: true,
+  onSelect: (el, index) => el.click()
+});
+
+// Accessibility validation
+const issues = validateA11y(document.body);
+logA11yIssues(issues);              // Log to console
+const cleanup = highlightA11yIssues(issues);  // Visual overlay
+
+// Utilities
+const id = generateId('modal');     // 'modal-1234567890-abc123'
+isAccessiblyHidden(element);        // Check if hidden from a11y tree
+const restore = makeInert(element); // Set inert + aria-hidden
+const span = srOnly('Screen reader only text');  // Visually hidden
+setAriaAttributes(element, { label: 'Close', expanded: true });
+```
+
+## Accessibility
+
+Pulse is designed with accessibility as a core feature, not an afterthought. The framework provides multiple layers of a11y support:
+
+### Three Layers of Accessibility
+
+| Layer | Feature | Description |
+|-------|---------|-------------|
+| **Runtime** | Auto-ARIA | `el()` automatically applies correct ARIA attributes based on element type and role |
+| **Runtime** | a11y.js | Full a11y toolkit: focus management, announcements, preferences, validation |
+| **Compiler** | Directives | `@a11y`, `@live`, `@focusTrap`, `@srOnly` in .pulse files |
+| **DevTools** | Audit Mode | Real-time a11y validation with visual highlighting and reports |
+| **CLI** | Lint Rules | 10 a11y lint rules catch issues at build time |
+
+### Auto-ARIA (Automatic)
+
+The `el()` function automatically applies ARIA attributes based on element semantics:
+
+```javascript
+// Dialogs get modal indication
+el('dialog')              // → role="dialog" aria-modal="true"
+
+// Buttons get explicit type
+el('button')              // → type="button"
+
+// Links without href become buttons
+el('a')                   // → role="button" tabindex="0"
+
+// Interactive roles get required states
+el('div[role=checkbox]')  // → aria-checked="false"
+el('div[role=slider]')    // → aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"
+el('div[role=combobox]')  // → aria-expanded="false"
+el('div[role=tab]')       // → aria-selected="false"
+
+// Warnings in console for missing accessibility
+el('img')                 // ⚠️ "A11y: <img> missing alt attribute"
+el('input')               // ⚠️ "A11y: <input> should have aria-label..."
+el('nav')                 // ⚠️ "A11y: <nav> should have aria-label..."
+```
+
+### Quick Start: Making Accessible Components
+
+```javascript
+import { el, on } from 'pulse-js-framework/runtime';
+import { trapFocus, announce, srOnly } from 'pulse-js-framework/runtime/a11y';
+
+// Accessible modal dialog
+function Modal({ title, onClose, children }) {
+  const dialog = el('dialog[aria-labelledby=modal-title]',
+    el('h2#modal-title', title),
+    el('.modal-content', children),
+    el('button[aria-label=Close modal]', '×', { onclick: onClose })
+  );
+
+  // Trap focus inside modal
+  const release = trapFocus(dialog, { autoFocus: true, returnFocus: true });
+
+  // Announce to screen readers
+  announce(`${title} dialog opened`);
+
+  return { dialog, close: () => { release(); onClose(); } };
+}
+
+// Screen reader only content
+el('a[href=/dashboard]',
+  el('span.icon', '🏠'),
+  srOnly('Go to dashboard')  // Visible only to screen readers
+);
 ```
 
 ### .pulse DSL Format
@@ -614,19 +838,72 @@ style {
 - CSS scoping with unique class prefixes
 - Error messages include line:column
 - Source map generation for debugging
+- Accessibility directives (`@a11y`, `@live`, `@focusTrap`, `@srOnly`)
+
+### Accessibility Directives
+
+The .pulse compiler supports built-in accessibility directives that compile to runtime a11y calls:
+
+```pulse
+view {
+  // @a11y - Set ARIA attributes
+  div @a11y(role=dialog, label="Modal window", modal=true) {
+    h2 "Settings"
+    p "Configure your preferences"
+  }
+
+  // @live - Create live region for screen reader announcements
+  .status @live(polite) {
+    "Status: {status}"
+  }
+
+  .error @live(assertive) {
+    "Error: {errorMessage}"
+  }
+
+  // @focusTrap - Trap focus within element (for modals/dialogs)
+  .modal @focusTrap(autoFocus=true, returnFocus=true) {
+    input
+    button "Submit"
+    button "Cancel"
+  }
+
+  // @srOnly - Visually hidden text (screen readers only)
+  span @srOnly "Skip to main content"
+
+  // Combined directives
+  .dialog @a11y(role=dialog, label="Confirm delete") @focusTrap {
+    p "Are you sure?"
+    button @a11y(label="Confirm deletion") "Delete"
+    button "Cancel"
+  }
+}
+```
+
+**Directive reference:**
+
+| Directive | Purpose | Compiles to |
+|-----------|---------|-------------|
+| `@a11y(role=dialog, label="...")` | Set ARIA attributes | `el('div[role=dialog][aria-label=...]')` |
+| `@live(polite)` | Live region (polite) | `el('div[aria-live=polite][aria-atomic=true]')` |
+| `@live(assertive)` | Live region (urgent) | `el('div[aria-live=assertive][aria-atomic=true]')` |
+| `@focusTrap` | Trap keyboard focus | `trapFocus(el('div'), {})` |
+| `@focusTrap(autoFocus=true)` | With options | `trapFocus(el('div'), { autoFocus: true })` |
+| `@srOnly` | Screen reader only | `srOnly(content)` |
 
 ## Key Files
 
 | File | Purpose |
 |------|---------|
 | `runtime/pulse.js` | Core reactivity (Pulse class, effect, computed, batch) |
-| `runtime/dom.js` | DOM helpers (el, text, bind, on, model, list, when) |
+| `runtime/dom.js` | DOM helpers (el, text, bind, on, model, list, when, configureA11y + auto-ARIA) |
 | `runtime/router.js` | Router (createRouter, lazy, preload, middleware) |
 | `runtime/store.js` | Store (createStore, createActions, plugins) |
 | `runtime/form.js` | Form handling (useForm, useField, useFieldArray, validators) |
 | `runtime/async.js` | Async primitives (useAsync, useResource, usePolling, createVersionedAsync) |
 | `runtime/http.js` | HTTP client (createHttp, HttpError, useHttp, useHttpResource, interceptors) |
-| `runtime/devtools.js` | Dev tools (trackedPulse, time-travel, dependency graph, profiling) |
+| `runtime/a11y.js` | Accessibility (announce, trapFocus, validateA11y, ARIA helpers) |
+| `runtime/devtools.js` | Dev tools (trackedPulse, time-travel, dependency graph, profiling, a11y audit) |
 | `runtime/native.js` | Native mobile bridge (storage, device, UI, lifecycle) |
 | `runtime/hmr.js` | Hot module replacement (createHMRContext) |
 | `compiler/lexer.js` | Tokenizer with 50+ token types |
@@ -655,8 +932,8 @@ style {
 // Core reactivity
 import { pulse, effect, computed, batch } from 'pulse-js-framework/runtime';
 
-// DOM helpers
-import { el, mount, on, text, bind, model, list, when } from 'pulse-js-framework/runtime';
+// DOM helpers (includes auto-ARIA)
+import { el, mount, on, text, bind, model, list, when, configureA11y } from 'pulse-js-framework/runtime';
 
 // Router
 import { createRouter, lazy, preload } from 'pulse-js-framework/runtime/router';
@@ -672,6 +949,9 @@ import { useAsync, useResource, usePolling, createVersionedAsync } from 'pulse-j
 
 // HTTP
 import { createHttp, http, HttpError, useHttp, useHttpResource } from 'pulse-js-framework/runtime/http';
+
+// Accessibility
+import { announce, trapFocus, createPreferences, validateA11y } from 'pulse-js-framework/runtime/a11y';
 
 // Native (mobile)
 import { createNativeStorage, createDeviceInfo, NativeUI, NativeClipboard } from 'pulse-js-framework/runtime/native';
@@ -706,6 +986,10 @@ node --test test/*.js
 - Circular dependency protection limits to 100 iterations
 - Effects use try-catch to prevent one error from breaking others
 - List rendering uses key functions for efficient DOM updates
+- **Accessibility is automatic**: `el()` applies ARIA attributes based on semantics
+- Use `configureA11y({ enabled: false })` to disable auto-ARIA if needed
+- Run `pulse lint` to catch a11y issues at build time (10 rules)
+- Use DevTools `enableA11yAudit()` for runtime a11y checking
 
 ## Error Codes
 
@@ -737,6 +1021,21 @@ node --test test/*.js
 | `no-direct-mutation` | Direct state mutation | Use `.set()` or `.update()` instead of assignment |
 | `prefer-computed` | Derivable value in effect | Use `computed()` for derived values |
 | `no-async-effect` | Async effect without cleanup | Return cleanup function or use `useAsync` |
+
+### Accessibility Lint Rules
+
+| Rule | Message | Fix |
+|------|---------|-----|
+| `a11y-img-alt` | Image missing alt attribute | Add `alt="description"` or `alt=""` for decorative |
+| `a11y-button-text` | Button has no accessible name | Add text content, `aria-label`, or `title` |
+| `a11y-link-text` | Link has no accessible name | Add text content, `aria-label`, or image with alt |
+| `a11y-input-label` | Form input missing label | Add `aria-label`, `id` with `<label>`, or `aria-labelledby` |
+| `a11y-click-key` | Click on non-interactive element | Add `role="button"` + keyboard handler, or use `<button>` |
+| `a11y-no-autofocus` | Avoid autofocus | Remove `autofocus` - disorients screen readers |
+| `a11y-no-positive-tabindex` | Avoid positive tabindex | Use `tabindex="0"` or `"-1"`, rely on DOM order |
+| `a11y-heading-order` | Heading level skipped | Use sequential headings (h1, h2, h3...) |
+| `a11y-aria-props` | Invalid ARIA attribute | Check attribute name against WAI-ARIA spec |
+| `a11y-role-props` | Role requires specific attributes | Add required ARIA attributes for the role |
 
 ### Form Validation Errors
 

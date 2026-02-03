@@ -17,6 +17,193 @@ const log = loggers.dom;
 // ELEMENT CREATION
 // =============================================================================
 
+// A11y configuration
+let a11yConfig = {
+  enabled: true,
+  autoAria: true,
+  warnMissingAlt: true,
+  warnMissingLabel: true
+};
+
+/**
+ * Configure accessibility features
+ * @param {object} config - A11y configuration
+ */
+export function configureA11y(config) {
+  a11yConfig = { ...a11yConfig, ...config };
+}
+
+/**
+ * Apply automatic ARIA attributes based on element type
+ * @private
+ */
+function applyAutoAria(element, tag, attrs, dom) {
+  if (!a11yConfig.enabled || !a11yConfig.autoAria) return;
+
+  const hasAttr = (name) => attrs[name] !== undefined || dom.getAttribute?.(element, name);
+
+  switch (tag) {
+    case 'dialog':
+      // Dialogs should have role and modal indication
+      if (!hasAttr('role')) {
+        safeSetAttribute(element, 'role', 'dialog', {}, dom);
+      }
+      if (!hasAttr('aria-modal')) {
+        safeSetAttribute(element, 'aria-modal', 'true', {}, dom);
+      }
+      break;
+
+    case 'nav':
+      // Navigation landmarks benefit from labels
+      if (!hasAttr('aria-label') && !hasAttr('aria-labelledby') && a11yConfig.warnMissingLabel) {
+        log.warn('A11y: <nav> element should have aria-label or aria-labelledby for accessibility');
+      }
+      break;
+
+    case 'main':
+    case 'header':
+    case 'footer':
+    case 'aside':
+      // Landmark roles - warn if multiple without labels
+      if (!hasAttr('aria-label') && !hasAttr('aria-labelledby')) {
+        // These are valid as landmarks, just note for multiple instances
+      }
+      break;
+
+    case 'img':
+      // Images must have alt
+      if (!hasAttr('alt') && !hasAttr('aria-label') && !hasAttr('aria-hidden') && a11yConfig.warnMissingAlt) {
+        log.warn('A11y: <img> element missing alt attribute. Add alt="" for decorative images.');
+      }
+      break;
+
+    case 'input':
+    case 'textarea':
+    case 'select':
+      // Form controls need labels
+      if (!hasAttr('aria-label') && !hasAttr('aria-labelledby') && !hasAttr('id') && a11yConfig.warnMissingLabel) {
+        const inputType = attrs.type || 'text';
+        if (!['hidden', 'submit', 'button', 'reset', 'image'].includes(inputType)) {
+          log.warn(`A11y: <${tag}> element should have aria-label, aria-labelledby, or an associated <label>`);
+        }
+      }
+      break;
+
+    case 'button':
+      // Buttons are already focusable, ensure type if not specified
+      if (!hasAttr('type')) {
+        safeSetAttribute(element, 'type', 'button', {}, dom);
+      }
+      break;
+
+    case 'a':
+      // Links without href should have role="button" if interactive
+      if (!hasAttr('href') && !hasAttr('role')) {
+        safeSetAttribute(element, 'role', 'button', {}, dom);
+        if (!hasAttr('tabindex')) {
+          safeSetAttribute(element, 'tabindex', '0', {}, dom);
+        }
+      }
+      break;
+
+    case 'ul':
+    case 'ol':
+      // Lists with role="menu" or "listbox" need special handling
+      if (attrs.role === 'menu' || attrs.role === 'listbox') {
+        if (!hasAttr('aria-label') && !hasAttr('aria-labelledby')) {
+          log.warn(`A11y: <${tag} role="${attrs.role}"> should have aria-label or aria-labelledby`);
+        }
+      }
+      break;
+
+    case 'table':
+      // Tables benefit from captions or aria-label
+      if (!hasAttr('aria-label') && !hasAttr('aria-labelledby')) {
+        // Will be checked if no <caption> child is found later
+      }
+      break;
+
+    case 'progress':
+      // Progress should have accessible name
+      if (!hasAttr('aria-label') && !hasAttr('aria-labelledby')) {
+        log.warn('A11y: <progress> element should have aria-label or aria-labelledby');
+      }
+      break;
+
+    case 'meter':
+      // Meter should have accessible name
+      if (!hasAttr('aria-label') && !hasAttr('aria-labelledby')) {
+        log.warn('A11y: <meter> element should have aria-label or aria-labelledby');
+      }
+      break;
+  }
+
+  // Handle role-specific requirements
+  const role = attrs.role;
+  if (role) {
+    applyRoleRequirements(element, role, attrs, dom);
+  }
+}
+
+/**
+ * Apply ARIA requirements for specific roles
+ * @private
+ */
+function applyRoleRequirements(element, role, attrs, dom) {
+  const hasAttr = (name) => attrs[name] !== undefined;
+
+  switch (role) {
+    case 'checkbox':
+    case 'radio':
+    case 'switch':
+      if (!hasAttr('aria-checked')) {
+        safeSetAttribute(element, 'aria-checked', 'false', {}, dom);
+      }
+      break;
+
+    case 'slider':
+    case 'spinbutton':
+    case 'progressbar':
+      if (!hasAttr('aria-valuenow')) {
+        safeSetAttribute(element, 'aria-valuenow', '0', {}, dom);
+      }
+      if (!hasAttr('aria-valuemin')) {
+        safeSetAttribute(element, 'aria-valuemin', '0', {}, dom);
+      }
+      if (!hasAttr('aria-valuemax')) {
+        safeSetAttribute(element, 'aria-valuemax', '100', {}, dom);
+      }
+      break;
+
+    case 'combobox':
+      if (!hasAttr('aria-expanded')) {
+        safeSetAttribute(element, 'aria-expanded', 'false', {}, dom);
+      }
+      break;
+
+    case 'tablist':
+      if (!hasAttr('aria-orientation')) {
+        safeSetAttribute(element, 'aria-orientation', 'horizontal', {}, dom);
+      }
+      break;
+
+    case 'tab':
+      if (!hasAttr('aria-selected')) {
+        safeSetAttribute(element, 'aria-selected', 'false', {}, dom);
+      }
+      break;
+
+    case 'button':
+    case 'link':
+    case 'menuitem':
+      // Ensure focusability for interactive roles on non-focusable elements
+      if (!hasAttr('tabindex')) {
+        safeSetAttribute(element, 'tabindex', '0', {}, dom);
+      }
+      break;
+  }
+}
+
 /**
  * Create a DOM element from a CSS selector-like string
  *
@@ -41,6 +228,9 @@ export function el(selector, ...children) {
     // Use safeSetAttribute to prevent XSS via event handlers and javascript: URLs
     safeSetAttribute(element, key, value, {}, dom);
   }
+
+  // Apply automatic ARIA attributes based on element type
+  applyAutoAria(element, config.tag, config.attrs, dom);
 
   // Process children
   for (const child of children) {
@@ -138,5 +328,6 @@ export function text(getValue) {
 
 export default {
   el,
-  text
+  text,
+  configureA11y
 };

@@ -27,7 +27,16 @@ import {
   configureDevTools,
   resetDevTools,
   profile,
-  mark
+  mark,
+  // A11y Audit
+  runA11yAudit,
+  getA11yIssues,
+  getA11yStats,
+  enableA11yAudit,
+  disableA11yAudit,
+  toggleA11yHighlights,
+  exportA11yReport,
+  resetA11yAudit
 } from '../runtime/devtools.js';
 
 import { pulse, effect, batch } from '../runtime/pulse.js';
@@ -435,11 +444,131 @@ test('mark.end returns duration', () => {
 });
 
 // =============================================================================
+// A11y Audit Tests
+// =============================================================================
+
+printSection('A11y Audit Tests');
+
+test('runA11yAudit returns result object', () => {
+  resetA11yAudit();
+  enableDevTools();
+
+  const result = runA11yAudit();
+
+  assert(result !== null, 'Should return result');
+  assert(typeof result.issues === 'object', 'Should have issues array');
+  assert(typeof result.errorCount === 'number', 'Should have errorCount');
+  assert(typeof result.warningCount === 'number', 'Should have warningCount');
+  assert(typeof result.auditTime === 'number', 'Should have auditTime');
+  assert(typeof result.timestamp === 'string', 'Should have timestamp');
+});
+
+test('getA11yIssues returns array', () => {
+  resetA11yAudit();
+
+  const issues = getA11yIssues();
+
+  assert(Array.isArray(issues), 'Should return array');
+});
+
+test('getA11yStats returns statistics object', () => {
+  resetA11yAudit();
+  enableDevTools();
+  runA11yAudit();
+
+  const stats = getA11yStats();
+
+  assert(typeof stats.totalIssues === 'number', 'Should have totalIssues');
+  assert(typeof stats.errorCount === 'number', 'Should have errorCount');
+  assert(typeof stats.warningCount === 'number', 'Should have warningCount');
+  assert(typeof stats.issuesByRule === 'object', 'Should have issuesByRule');
+  assert(typeof stats.auditCount === 'number', 'Should have auditCount');
+  // In Node.js (no document), auditCount may be 0 as audit returns early
+  assert(stats.auditCount >= 0, 'auditCount should be non-negative');
+});
+
+test('enableA11yAudit and disableA11yAudit work', () => {
+  resetA11yAudit();
+  enableDevTools();
+
+  // In Node.js without document, enableA11yAudit still works but audit returns empty
+  enableA11yAudit({ autoAudit: false });
+
+  disableA11yAudit();
+
+  // Should not throw
+  const stats = getA11yStats();
+  assert(typeof stats.auditCount === 'number', 'Should return stats');
+});
+
+test('exportA11yReport returns JSON by default', () => {
+  resetA11yAudit();
+  enableDevTools();
+  runA11yAudit();
+
+  const report = exportA11yReport();
+
+  assert(typeof report === 'string', 'Should return string');
+  const parsed = JSON.parse(report);
+  assert(typeof parsed.timestamp === 'string', 'Should have timestamp');
+  assert(Array.isArray(parsed.issues), 'Should have issues array');
+});
+
+test('exportA11yReport supports CSV format', () => {
+  resetA11yAudit();
+  enableDevTools();
+  runA11yAudit();
+
+  const csv = exportA11yReport('csv');
+
+  assert(typeof csv === 'string', 'Should return string');
+  assert(csv.includes('severity,rule,message'), 'Should have CSV headers');
+});
+
+test('exportA11yReport supports HTML format', () => {
+  resetA11yAudit();
+  enableDevTools();
+  runA11yAudit();
+
+  const html = exportA11yReport('html');
+
+  assert(typeof html === 'string', 'Should return string');
+  assert(html.includes('<!DOCTYPE html>'), 'Should be HTML document');
+  assert(html.includes('Accessibility Audit Report'), 'Should have title');
+});
+
+test('resetA11yAudit clears state', () => {
+  enableDevTools();
+  runA11yAudit();
+
+  // Run should increment count (even if audit returns early in Node.js)
+  const beforeStats = getA11yStats();
+  assert(typeof beforeStats.auditCount === 'number', 'Should have audit count');
+
+  resetA11yAudit();
+
+  const afterCount = getA11yStats().auditCount;
+  assertEqual(afterCount, 0, 'Should reset audit count');
+});
+
+test('toggleA11yHighlights does not throw', () => {
+  resetA11yAudit();
+  enableDevTools();
+  runA11yAudit();
+
+  // Should not throw
+  toggleA11yHighlights(true);
+  toggleA11yHighlights(false);
+  toggleA11yHighlights(); // Toggle
+});
+
+// =============================================================================
 // Results
 // =============================================================================
 
 disableDevTools();
 resetDevTools();
+resetA11yAudit();
 
 printResults();
 exitWithCode();

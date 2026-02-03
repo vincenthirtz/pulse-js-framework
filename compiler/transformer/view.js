@@ -18,7 +18,11 @@ export const VIEW_NODE_HANDLERS = {
   [NodeType.SlotElement]: 'transformSlot',
   [NodeType.LinkDirective]: 'transformLinkDirective',
   [NodeType.OutletDirective]: 'transformOutletDirective',
-  [NodeType.NavigateDirective]: 'transformNavigateDirective'
+  [NodeType.NavigateDirective]: 'transformNavigateDirective',
+  // Accessibility directives
+  [NodeType.A11yDirective]: 'transformA11yDirective',
+  [NodeType.LiveDirective]: 'transformLiveDirective',
+  [NodeType.FocusTrapDirective]: 'transformFocusTrapDirective'
 };
 
 /**
@@ -93,6 +97,12 @@ export function transformViewNode(transformer, node, indent = 0) {
         return transformOutletDirective(transformer, node, indent);
       case NodeType.NavigateDirective:
         return transformNavigateDirective(transformer, node, indent);
+      case NodeType.A11yDirective:
+        return transformA11yDirective(transformer, node, indent);
+      case NodeType.LiveDirective:
+        return transformLiveDirective(transformer, node, indent);
+      case NodeType.FocusTrapDirective:
+        return transformFocusTrapDirective(transformer, node, indent);
       default:
         return `${' '.repeat(indent)}/* unknown node: ${node.type} */`;
     }
@@ -193,6 +203,99 @@ export function transformNavigateDirective(transformer, node, indent) {
 }
 
 /**
+ * Transform @a11y directive - sets ARIA attributes
+ * @param {Object} transformer - Transformer instance
+ * @param {Object} node - A11y directive node
+ * @param {number} indent - Indentation level
+ * @returns {string} JavaScript code
+ */
+export function transformA11yDirective(transformer, node, indent) {
+  const pad = ' '.repeat(indent);
+  const attrs = node.attrs || {};
+
+  // Handle @srOnly - create visually hidden element
+  if (attrs.srOnly) {
+    return `${pad}srOnly(/* content */)`;
+  }
+
+  // Build ARIA attributes object
+  const ariaAttrs = Object.entries(attrs).map(([key, value]) => {
+    // Map short names to aria- attributes (role is not prefixed)
+    const ariaKey = key === 'role' ? key : (key.startsWith('aria-') ? key : `aria-${key}`);
+    const valueCode = typeof value === 'string' ? `'${value}'` : transformExpression(transformer, value);
+    return `'${ariaKey}': ${valueCode}`;
+  }).join(', ');
+
+  return `{ ${ariaAttrs} }`;
+}
+
+/**
+ * Build ARIA attributes object from a11y directive
+ * @param {Object} transformer - Transformer instance
+ * @param {Object} directive - A11y directive node
+ * @returns {Object} Object with key-value pairs for ARIA attributes
+ */
+export function buildA11yAttributes(transformer, directive) {
+  const attrs = directive.attrs || {};
+  const result = {};
+
+  for (const [key, value] of Object.entries(attrs)) {
+    if (key === 'srOnly') continue;
+    // Map short names to aria- attributes (role is not prefixed)
+    const ariaKey = key === 'role' ? key : (key.startsWith('aria-') ? key : `aria-${key}`);
+
+    // Handle different value types
+    if (typeof value === 'string') {
+      result[ariaKey] = value;
+    } else if (typeof value === 'boolean') {
+      result[ariaKey] = String(value);  // Convert true/false to "true"/"false"
+    } else if (typeof value === 'number') {
+      result[ariaKey] = String(value);
+    } else {
+      result[ariaKey] = transformExpression(transformer, value);
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Transform @live directive - creates live region
+ * @param {Object} transformer - Transformer instance
+ * @param {Object} node - Live directive node
+ * @param {number} indent - Indentation level
+ * @returns {string} JavaScript code
+ */
+export function transformLiveDirective(transformer, node, indent) {
+  const priority = node.priority || 'polite';
+  return `'${priority}'`;
+}
+
+/**
+ * Transform @focusTrap directive
+ * @param {Object} transformer - Transformer instance
+ * @param {Object} node - Focus trap directive node
+ * @param {number} indent - Indentation level
+ * @returns {string} JavaScript code
+ */
+export function transformFocusTrapDirective(transformer, node, indent) {
+  const options = node.options || {};
+
+  if (Object.keys(options).length === 0) {
+    return '{}';
+  }
+
+  const optionsCode = Object.entries(options).map(([key, value]) => {
+    const valueCode = typeof value === 'boolean' ? String(value) :
+                      typeof value === 'string' ? `'${value}'` :
+                      transformExpression(transformer, value);
+    return `${key}: ${valueCode}`;
+  }).join(', ');
+
+  return `{ ${optionsCode} }`;
+}
+
+/**
  * Transform element
  * @param {Object} transformer - Transformer instance
  * @param {Object} node - Element node
@@ -220,11 +323,77 @@ export function transformElement(transformer, node, indent) {
     selector = addScopeToSelector(transformer, selector);
   }
 
-  // Start with el() call
-  parts.push(`${pad}el('${selector}'`);
-
-  // Add event handlers as on() chain
+  // Extract directives by type
   const eventHandlers = node.directives.filter(d => d.type === NodeType.EventDirective);
+  const a11yDirectives = node.directives.filter(d => d.type === NodeType.A11yDirective);
+  const liveDirectives = node.directives.filter(d => d.type === NodeType.LiveDirective);
+  const focusTrapDirectives = node.directives.filter(d => d.type === NodeType.FocusTrapDirective);
+
+  // Check for @srOnly directive
+  const srOnlyDirective = a11yDirectives.find(d => d.attrs && d.attrs.srOnly);
+
+  // If @srOnly, wrap entire content
+  if (srOnlyDirective) {
+    transformer.usesA11y.srOnly = true;
+    const content = [];
+    for (const text of node.textContent) {
+      content.push(transformTextNode(transformer, text, 0).trim());
+    }
+    for (const child of node.children) {
+      content.push(transformViewNode(transformer, child, 0).trim());
+    }
+    const contentCode = content.length === 1 ? content[0] : `[${content.join(', ')}]`;
+    return `${pad}srOnly(${contentCode})`;
+  }
+
+  // Track focusTrap usage
+  if (focusTrapDirectives.length > 0) {
+    transformer.usesA11y.trapFocus = true;
+  }
+
+  // Build ARIA attributes from directives
+  const ariaAttrs = [];
+
+  // Process @a11y directives
+  for (const directive of a11yDirectives) {
+    const attrs = buildA11yAttributes(transformer, directive);
+    for (const [key, value] of Object.entries(attrs)) {
+      const valueCode = typeof value === 'string' ? `'${value}'` : value;
+      ariaAttrs.push(`'${key}': ${valueCode}`);
+    }
+  }
+
+  // Process @live directives (add aria-live and aria-atomic)
+  for (const directive of liveDirectives) {
+    const priority = directive.priority || 'polite';
+    ariaAttrs.push(`'aria-live': '${priority}'`);
+    ariaAttrs.push(`'aria-atomic': 'true'`);
+  }
+
+  // Build selector with inline ARIA attributes
+  let enhancedSelector = selector;
+  if (ariaAttrs.length > 0) {
+    // Convert ARIA attrs to selector attribute syntax where possible
+    // For dynamic values, we'll need to use setAriaAttributes
+    const staticAttrs = [];
+    const dynamicAttrs = [];
+
+    for (const attr of ariaAttrs) {
+      const match = attr.match(/^'([^']+)':\s*'([^']+)'$/);
+      if (match) {
+        // Static attribute - can embed in selector
+        staticAttrs.push(`[${match[1]}=${match[2]}]`);
+      } else {
+        dynamicAttrs.push(attr);
+      }
+    }
+
+    // Add static ARIA attributes to selector
+    enhancedSelector = selector + staticAttrs.join('');
+  }
+
+  // Start with el() call
+  parts.push(`${pad}el('${enhancedSelector}'`);
 
   // Add text content
   if (node.textContent.length > 0) {
@@ -249,6 +418,12 @@ export function transformElement(transformer, node, indent) {
   for (const handler of eventHandlers) {
     const handlerCode = transformExpression(transformer, handler.handler);
     result = `on(${result}, '${handler.event}', () => { ${handlerCode}; })`;
+  }
+
+  // Chain focus trap if present
+  for (const directive of focusTrapDirectives) {
+    const optionsCode = transformFocusTrapDirective(transformer, directive, 0);
+    result = `trapFocus(${result}, ${optionsCode})`;
   }
 
   return result;

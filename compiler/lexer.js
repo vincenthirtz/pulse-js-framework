@@ -697,6 +697,12 @@ export class Lexer {
     let inView = false;
     let parenDepth = 0;
 
+    // After @ token, next word is directive name (not selector)
+    const lastToken = this.tokens[this.tokens.length - 1];
+    if (lastToken && lastToken.type === TokenType.AT) {
+      return false;
+    }
+
     for (let i = this.tokens.length - 1; i >= 0; i--) {
       const token = this.tokens[i];
 

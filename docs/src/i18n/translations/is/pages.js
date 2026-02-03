@@ -474,6 +474,13 @@ export default {
     fullExample: 'Heildaræmi'
   },
 
+  // Accessibility page
+  accessibility: {
+    title: '♿ Aðgengi',
+    intro: 'Pulse er hannað með aðgengi sem kjarnaeiginleika og veitir margar lög af a11y stuðningi.',
+    nextSecurity: 'Næst: Öryggisleiðbeiningar →'
+  },
+
   // Mobile page
   mobile: {
     title: '📱 Farsímaþróun',

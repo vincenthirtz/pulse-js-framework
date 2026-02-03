@@ -1103,6 +1103,298 @@ view {
 });
 
 // =============================================================================
+// Accessibility Rules Tests
+// =============================================================================
+
+printSection('Accessibility Rules Tests');
+
+test('a11y rules are defined in LintRules', () => {
+  const a11yRules = [
+    'a11y-img-alt', 'a11y-button-text', 'a11y-link-text', 'a11y-input-label',
+    'a11y-click-key', 'a11y-no-autofocus', 'a11y-no-positive-tabindex',
+    'a11y-heading-order', 'a11y-aria-props', 'a11y-role-props'
+  ];
+  for (const rule of a11yRules) {
+    assert(rule in LintRules, `Expected a11y rule '${rule}' to be defined`);
+    assertEqual(LintRules[rule].severity, 'warning', `${rule} should be warning severity`);
+  }
+});
+
+test('detects missing alt on img', () => {
+  const source = `
+@page Test
+
+view {
+  img[src="photo.jpg"]
+}`;
+
+  const diagnostics = lint(source);
+  const a11yIssues = getDiagnostics(diagnostics, 'a11y-img-alt');
+  assert(a11yIssues.length > 0, 'Expected a11y-img-alt warning for img without alt');
+});
+
+test('img with alt passes', () => {
+  const source = `
+@page Test
+
+view {
+  img[src="photo.jpg"][alt="A beautiful sunset"]
+}`;
+
+  const diagnostics = lint(source);
+  const a11yIssues = getDiagnostics(diagnostics, 'a11y-img-alt');
+  assertEqual(a11yIssues.length, 0, 'img with alt should pass');
+});
+
+test('img with aria-label passes', () => {
+  const source = `
+@page Test
+
+view {
+  img[src="icon.svg"][aria-label="Menu icon"]
+}`;
+
+  const diagnostics = lint(source);
+  const a11yIssues = getDiagnostics(diagnostics, 'a11y-img-alt');
+  assertEqual(a11yIssues.length, 0, 'img with aria-label should pass');
+});
+
+test('detects button without accessible name', () => {
+  const source = `
+@page Test
+
+view {
+  button.icon-btn
+}`;
+
+  const diagnostics = lint(source);
+  const a11yIssues = getDiagnostics(diagnostics, 'a11y-button-text');
+  assert(a11yIssues.length > 0, 'Expected warning for button without text');
+});
+
+test('button with text passes', () => {
+  const source = `
+@page Test
+
+view {
+  button "Click me"
+}`;
+
+  const diagnostics = lint(source);
+  const a11yIssues = getDiagnostics(diagnostics, 'a11y-button-text');
+  assertEqual(a11yIssues.length, 0, 'button with text should pass');
+});
+
+test('button with aria-label passes', () => {
+  const source = `
+@page Test
+
+view {
+  button[aria-label="Close dialog"].close-btn
+}`;
+
+  const diagnostics = lint(source);
+  const a11yIssues = getDiagnostics(diagnostics, 'a11y-button-text');
+  assertEqual(a11yIssues.length, 0, 'button with aria-label should pass');
+});
+
+test('detects click on non-interactive element', () => {
+  const source = `
+@page Test
+
+state {
+  count: 0
+}
+
+view {
+  div @click(count++) "Click me"
+}`;
+
+  const diagnostics = lint(source);
+  const a11yIssues = getDiagnostics(diagnostics, 'a11y-click-key');
+  assert(a11yIssues.length > 0, 'Expected warning for click on div without keyboard support');
+});
+
+test('click on div with role=button passes keyboard check', () => {
+  const source = `
+@page Test
+
+state {
+  count: 0
+}
+
+view {
+  div[role="button"] @click(count++) "Click me"
+}`;
+
+  const diagnostics = lint(source);
+  const a11yIssues = getDiagnostics(diagnostics, 'a11y-click-key');
+  assertEqual(a11yIssues.length, 0, 'div with role=button should pass');
+});
+
+test('detects autofocus', () => {
+  const source = `
+@page Test
+
+view {
+  input[type="text"][autofocus]
+}`;
+
+  const diagnostics = lint(source);
+  const a11yIssues = getDiagnostics(diagnostics, 'a11y-no-autofocus');
+  assert(a11yIssues.length > 0, 'Expected warning for autofocus');
+});
+
+test('detects positive tabindex', () => {
+  const source = `
+@page Test
+
+view {
+  div[tabindex="5"] "Content"
+}`;
+
+  const diagnostics = lint(source);
+  const a11yIssues = getDiagnostics(diagnostics, 'a11y-no-positive-tabindex');
+  assert(a11yIssues.length > 0, 'Expected warning for positive tabindex');
+});
+
+test('tabindex 0 and -1 pass', () => {
+  const source = `
+@page Test
+
+view {
+  div[tabindex="0"] "Focusable"
+  div[tabindex="-1"] "Programmatically focusable"
+}`;
+
+  const diagnostics = lint(source);
+  const a11yIssues = getDiagnostics(diagnostics, 'a11y-no-positive-tabindex');
+  assertEqual(a11yIssues.length, 0, 'tabindex 0 and -1 should pass');
+});
+
+test('detects skipped heading levels', () => {
+  const source = `
+@page Test
+
+view {
+  h1 "Title"
+  h3 "Skipped h2"
+}`;
+
+  const diagnostics = lint(source);
+  const a11yIssues = getDiagnostics(diagnostics, 'a11y-heading-order');
+  assert(a11yIssues.length > 0, 'Expected warning for skipped heading level');
+});
+
+test('sequential headings pass', () => {
+  const source = `
+@page Test
+
+view {
+  h1 "Title"
+  h2 "Subtitle"
+  h3 "Section"
+}`;
+
+  const diagnostics = lint(source);
+  const a11yIssues = getDiagnostics(diagnostics, 'a11y-heading-order');
+  assertEqual(a11yIssues.length, 0, 'Sequential headings should pass');
+});
+
+test('detects redundant role on semantic element', () => {
+  const source = `
+@page Test
+
+view {
+  button[role="button"] "Click"
+}`;
+
+  const diagnostics = lint(source);
+  const a11yIssues = getDiagnostics(diagnostics, 'a11y-role-props');
+  assert(a11yIssues.length > 0, 'Expected warning for redundant role on button');
+});
+
+test('custom role on div passes', () => {
+  const source = `
+@page Test
+
+view {
+  div[role="tablist"] "Tabs"
+}`;
+
+  const diagnostics = lint(source);
+  const redundantRole = diagnostics.filter(d =>
+    d.code === 'a11y-role-props' && d.message.includes('Redundant')
+  );
+  assertEqual(redundantRole.length, 0, 'Custom role on div should not warn about redundancy');
+});
+
+test('detects input without label', () => {
+  const source = `
+@page Test
+
+view {
+  input[type="text"]
+}`;
+
+  const diagnostics = lint(source);
+  const a11yIssues = getDiagnostics(diagnostics, 'a11y-input-label');
+  assert(a11yIssues.length > 0, 'Expected warning for input without label');
+});
+
+test('input with aria-label passes', () => {
+  const source = `
+@page Test
+
+view {
+  input[type="text"][aria-label="Search"]
+}`;
+
+  const diagnostics = lint(source);
+  const a11yIssues = getDiagnostics(diagnostics, 'a11y-input-label');
+  assertEqual(a11yIssues.length, 0, 'input with aria-label should pass');
+});
+
+test('input with id for label association passes', () => {
+  const source = `
+@page Test
+
+view {
+  input[type="text"][id="email"]
+}`;
+
+  const diagnostics = lint(source);
+  const a11yIssues = getDiagnostics(diagnostics, 'a11y-input-label');
+  assertEqual(a11yIssues.length, 0, 'input with id should pass (can be associated with label)');
+});
+
+test('hidden input does not need label', () => {
+  const source = `
+@page Test
+
+view {
+  input[type="hidden"][name="csrf"]
+}`;
+
+  const diagnostics = lint(source);
+  const a11yIssues = getDiagnostics(diagnostics, 'a11y-input-label');
+  assertEqual(a11yIssues.length, 0, 'hidden input should not need label');
+});
+
+test('submit button does not need label', () => {
+  const source = `
+@page Test
+
+view {
+  input[type="submit"][value="Send"]
+}`;
+
+  const diagnostics = lint(source);
+  const a11yIssues = getDiagnostics(diagnostics, 'a11y-input-label');
+  assertEqual(a11yIssues.length, 0, 'submit input should not need label');
+});
+
+// =============================================================================
 // Results
 // =============================================================================
 

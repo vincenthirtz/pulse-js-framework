@@ -17,6 +17,8 @@ export default {
     apiReferenceDesc: '完全なAPIドキュメント',
     http: '🌐 HTTPクライアント',
     httpDesc: '依存関係なしのHTTPリクエスト',
+    accessibility: '♿ アクセシビリティ',
+    accessibilityDesc: 'a11y機能とベストプラクティス',
     debugging: '🔍 デバッグ',
     debuggingDesc: 'ツールとトラブルシューティング',
     security: '🔒 セキュリティ',

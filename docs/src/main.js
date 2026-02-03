@@ -27,6 +27,7 @@ import { SecurityPage } from './pages/SecurityPage.js';
 import { PerformancePage } from './pages/PerformancePage.js';
 import { ErrorHandlingPage } from './pages/ErrorHandlingPage.js';
 import { HttpPage } from './pages/HttpPage.js';
+import { AccessibilityPage } from './pages/AccessibilityPage.js';
 
 // Styles & Utilities
 import { injectStyles } from './styles.js';
@@ -43,6 +44,7 @@ const baseRoutes = {
   '/core-concepts': CoreConceptsPage,
   '/api-reference': ApiReferencePage,
   '/http': HttpPage,
+  '/accessibility': AccessibilityPage,
   '/debugging': DebuggingPage,
   '/security': SecurityPage,
   '/performance': PerformancePage,

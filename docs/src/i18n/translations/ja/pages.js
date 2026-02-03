@@ -474,6 +474,13 @@ export default {
     fullExample: '完全な例'
   },
 
+  // Accessibility page
+  accessibility: {
+    title: '♿ アクセシビリティ',
+    intro: 'Pulseはアクセシビリティをコア機能として設計されており、複数のレイヤーでa11yサポートを提供します。',
+    nextSecurity: '次へ：セキュリティガイド →'
+  },
+
   // Mobile page
   mobile: {
     title: '📱 モバイル開発',
