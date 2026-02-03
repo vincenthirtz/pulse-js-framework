@@ -50,6 +50,7 @@ export function getNavigationFlat() {
     { path: '/core-concepts', label: t('nav.coreConcepts') },
     { path: '/api-reference', label: t('nav.apiReference') },
     { path: '/debugging', label: t('nav.debugging') },
+    { path: '/accessibility', label: t('nav.accessibility') },
     { path: '/security', label: t('nav.security') },
     { path: '/performance', label: t('nav.performance') },
     { path: '/error-handling', label: t('nav.errorHandling') },
@@ -77,6 +78,7 @@ export function getNavigation() {
       children: [
         { path: '/api-reference', label: t('nav.apiReference'), desc: t('nav.apiReferenceDesc') },
         { path: '/debugging', label: t('nav.debugging'), desc: t('nav.debuggingDesc') },
+        { path: '/accessibility', label: t('nav.accessibility'), desc: t('nav.accessibilityDesc') },
         { path: '/security', label: t('nav.security'), desc: t('nav.securityDesc') },
         { path: '/performance', label: t('nav.performance'), desc: t('nav.performanceDesc') },
         { path: '/error-handling', label: t('nav.errorHandling'), desc: t('nav.errorHandlingDesc') },
@@ -100,6 +102,7 @@ export const navigationFlat = [
   { path: '/core-concepts', label: '💡 Core Concepts' },
   { path: '/api-reference', label: '📖 API Reference' },
   { path: '/debugging', label: '🔍 Debugging' },
+  { path: '/accessibility', label: '♿ Accessibility' },
   { path: '/security', label: '🔒 Security' },
   { path: '/performance', label: '⚡ Performance' },
   { path: '/error-handling', label: '🛡️ Error Handling' },
@@ -122,6 +125,7 @@ export const navigation = [
     children: [
       { path: '/api-reference', label: '📖 API Reference', desc: 'Complete API documentation' },
       { path: '/debugging', label: '🔍 Debugging', desc: 'Tools & troubleshooting' },
+      { path: '/accessibility', label: '♿ Accessibility', desc: 'A11y features & best practices' },
       { path: '/security', label: '🔒 Security', desc: 'XSS prevention & safe patterns' },
       { path: '/performance', label: '⚡ Performance', desc: 'Optimization techniques' },
       { path: '/error-handling', label: '🛡️ Error Handling', desc: 'Error patterns & recovery' },
