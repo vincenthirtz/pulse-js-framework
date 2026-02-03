@@ -5,6 +5,10 @@
  * Common utility functions for the Pulse framework runtime.
  */
 
+import { createLogger } from './logger.js';
+
+const log = createLogger('Security');
+
 // ============================================================================
 // XSS Prevention
 // ============================================================================
@@ -68,22 +72,39 @@ export function unescapeHtml(str) {
 }
 
 /**
- * Explicitly set innerHTML with a warning.
+ * Explicitly set innerHTML with optional sanitization.
  * This function is intentionally named to make it obvious that
  * it's potentially dangerous and bypasses XSS protection.
  *
  * SECURITY WARNING: Only use this with trusted, sanitized HTML.
- * Never use with user-provided content without proper sanitization.
+ * Never use with user-provided content without enabling sanitization.
  *
  * @param {HTMLElement} element - Target element
  * @param {string} html - HTML string to insert
+ * @param {Object} [options={}] - Options
+ * @param {boolean} [options.sanitize=false] - Enable HTML sanitization
+ * @param {Set<string>} [options.allowedTags] - Custom allowed tags (requires sanitize=true)
+ * @param {Set<string>} [options.allowedAttrs] - Custom allowed attributes (requires sanitize=true)
+ * @param {boolean} [options.allowDataUrls=false] - Allow data: URLs (requires sanitize=true)
  *
  * @example
- * // Only use with trusted HTML!
- * dangerouslySetInnerHTML(container, sanitizedHtml);
+ * // Trusted HTML (no sanitization)
+ * dangerouslySetInnerHTML(container, trustedHtml);
+ *
+ * // Untrusted HTML (with sanitization)
+ * dangerouslySetInnerHTML(container, userHtml, { sanitize: true });
  */
-export function dangerouslySetInnerHTML(element, html) {
-  element.innerHTML = html;
+export function dangerouslySetInnerHTML(element, html, options = {}) {
+  const { sanitize = false, ...sanitizeOptions } = options;
+
+  if (sanitize) {
+    // Import sanitizeHtml from security module
+    import('./security.js').then(({ sanitizeHtml }) => {
+      element.innerHTML = sanitizeHtml(html, sanitizeOptions);
+    });
+  } else {
+    element.innerHTML = html;
+  }
 }
 
 /**
@@ -184,7 +205,7 @@ export function safeSetAttribute(element, name, value, options = {}, domAdapter 
 
   // Validate attribute name (prevent injection attacks)
   if (!/^[a-zA-Z][a-zA-Z0-9\-_:.]*$/.test(name)) {
-    console.warn(`[Pulse Security] Invalid attribute name blocked: ${name}`);
+    log.warn(`Invalid attribute name blocked: ${name}`);
     return false;
   }
 
@@ -192,8 +213,8 @@ export function safeSetAttribute(element, name, value, options = {}, domAdapter 
 
   // Block ALL event handler attributes (onclick, onerror, onmouseover, etc.)
   if (!allowEventHandlers && EVENT_HANDLER_PATTERN.test(lowerName)) {
-    console.warn(
-      `[Pulse Security] Event handler attribute blocked: ${name}. ` +
+    log.warn(
+      `Event handler attribute blocked: ${name}. ` +
       `Use on(element, '${lowerName.slice(2)}', handler) instead.`
     );
     return false;
@@ -201,8 +222,8 @@ export function safeSetAttribute(element, name, value, options = {}, domAdapter 
 
   // Block HTML content attributes that could inject scripts
   if (!allowUnsafeHtml && HTML_CONTENT_ATTRIBUTES.has(lowerName)) {
-    console.warn(
-      `[Pulse Security] HTML content attribute blocked: ${name}. ` +
+    log.warn(
+      `HTML content attribute blocked: ${name}. ` +
       `This attribute can execute arbitrary JavaScript.`
     );
     return false;
@@ -212,8 +233,8 @@ export function safeSetAttribute(element, name, value, options = {}, domAdapter 
   if (URL_ATTRIBUTES.has(lowerName) && value != null && value !== '') {
     const sanitized = sanitizeUrl(String(value), { allowData: allowDataUrls });
     if (sanitized === null) {
-      console.warn(
-        `[Pulse Security] Dangerous URL blocked for ${name}: "${String(value).slice(0, 50)}${String(value).length > 50 ? '...' : ''}"`
+      log.warn(
+        `Dangerous URL blocked for ${name}: "${String(value).slice(0, 50)}${String(value).length > 50 ? '...' : ''}"`
       );
       return false;
     }
@@ -434,7 +455,7 @@ export function sanitizeCSSValue(value, options = {}) {
 export function safeSetStyle(element, prop, value, options = {}, domAdapter = null) {
   // Validate property name
   if (!isValidCSSProperty(prop)) {
-    console.warn(`[Pulse Security] Invalid CSS property name: ${prop}`);
+    log.warn(`Invalid CSS property name: ${prop}`);
     return false;
   }
 
@@ -451,8 +472,8 @@ export function safeSetStyle(element, prop, value, options = {}, domAdapter = nu
   };
 
   if (!result.safe) {
-    console.warn(
-      `[Pulse Security] CSS injection blocked for ${prop}: ${result.blocked}. ` +
+    log.warn(
+      `CSS injection blocked for ${prop}: ${result.blocked}. ` +
       `Original value: "${String(value).slice(0, 50)}${String(value).length > 50 ? '...' : ''}"`
     );
     // Still set the sanitized portion if available

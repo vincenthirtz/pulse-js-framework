@@ -21,13 +21,13 @@ export const LintRules = {
   'xss-vulnerability': { severity: 'warning', fixable: false },
 
   // Accessibility rules (warnings)
-  'a11y-img-alt': { severity: 'warning', fixable: false },
+  'a11y-img-alt': { severity: 'warning', fixable: true },  // Can add alt=""
   'a11y-button-text': { severity: 'warning', fixable: false },
   'a11y-link-text': { severity: 'warning', fixable: false },
   'a11y-input-label': { severity: 'warning', fixable: false },
   'a11y-click-key': { severity: 'warning', fixable: false },
-  'a11y-no-autofocus': { severity: 'warning', fixable: false },
-  'a11y-no-positive-tabindex': { severity: 'warning', fixable: false },
+  'a11y-no-autofocus': { severity: 'warning', fixable: true },  // Can remove autofocus
+  'a11y-no-positive-tabindex': { severity: 'warning', fixable: true },  // Can change to 0
   'a11y-heading-order': { severity: 'warning', fixable: false },
   'a11y-aria-props': { severity: 'warning', fixable: false },
   'a11y-role-props': { severity: 'warning', fixable: false },
@@ -700,9 +700,15 @@ export class SemanticAnalyzer {
     // Rule: img-alt - Images must have alt attribute
     if (tagName === 'img') {
       if (!attrs.has('alt') && !attrs.has('aria-label') && !attrs.has('aria-labelledby')) {
+        const selector = node.selector || 'img';
         this.addDiagnostic('warning', 'a11y-img-alt',
           'Image missing alt attribute. Add alt="" for decorative images or descriptive text for informative images.',
-          line, column);
+          line, column, {
+            type: 'replace',
+            oldText: selector,
+            newText: selector + '[alt=""]',
+            description: 'Add empty alt attribute for decorative image'
+          });
       }
     }
 
@@ -760,17 +766,33 @@ export class SemanticAnalyzer {
 
     // Rule: no-autofocus - Avoid autofocus as it can disorient screen readers
     if (attrs.has('autofocus')) {
+      const selector = node.selector || '';
+      // Create fix to remove [autofocus] from selector
+      const fixedSelector = selector.replace(/\[autofocus\]/gi, '');
       this.addDiagnostic('warning', 'a11y-no-autofocus',
         'Avoid autofocus - it can disorient screen reader users and cause accessibility issues.',
-        line, column);
+        line, column, {
+          type: 'replace',
+          oldText: selector,
+          newText: fixedSelector,
+          description: 'Remove autofocus attribute'
+        });
     }
 
     // Rule: no-positive-tabindex - Avoid positive tabindex
     const tabindex = attrs.get('tabindex');
     if (tabindex && parseInt(tabindex, 10) > 0) {
+      const selector = node.selector || '';
+      // Create fix to change tabindex to 0
+      const fixedSelector = selector.replace(/\[tabindex=["']?\d+["']?\]/gi, '[tabindex="0"]');
       this.addDiagnostic('warning', 'a11y-no-positive-tabindex',
         'Avoid positive tabindex values. Use tabindex="0" or "-1" and rely on DOM order.',
-        line, column);
+        line, column, {
+          type: 'replace',
+          oldText: selector,
+          newText: fixedSelector,
+          description: 'Change tabindex to 0'
+        });
     }
 
     // Rule: heading-order - Headings should follow hierarchy
@@ -974,15 +996,32 @@ export class SemanticAnalyzer {
 
   /**
    * Add a diagnostic message
+   * @param {string} severity - 'error' | 'warning' | 'info'
+   * @param {string} code - Rule code
+   * @param {string} message - Diagnostic message
+   * @param {number} line - Line number
+   * @param {number} column - Column number
+   * @param {Object} [fix] - Optional fix information
+   * @param {string} [fix.type] - Fix type: 'replace' | 'insert' | 'delete'
+   * @param {string} [fix.oldText] - Text to replace (for 'replace')
+   * @param {string} [fix.newText] - Replacement text
+   * @param {number} [fix.start] - Start position in source
+   * @param {number} [fix.end] - End position in source
    */
-  addDiagnostic(severity, code, message, line, column) {
-    this.diagnostics.push({
+  addDiagnostic(severity, code, message, line, column, fix = null) {
+    const diag = {
       severity,
       code,
       message,
       line: line || 1,
       column: column || 1
-    });
+    };
+
+    if (fix && LintRules[code]?.fixable) {
+      diag.fix = fix;
+    }
+
+    this.diagnostics.push(diag);
   }
 }
 
@@ -1036,6 +1075,47 @@ export async function lintFile(filePath, options = {}) {
 }
 
 /**
+ * Apply fixes to a source file
+ * @param {string} source - Original source code
+ * @param {Array} diagnostics - Diagnostics with fixes
+ * @returns {{fixed: string, count: number}} Fixed source and fix count
+ */
+export function applyFixes(source, diagnostics) {
+  // Get fixable diagnostics, sorted by line in reverse order to avoid offset issues
+  const fixable = diagnostics
+    .filter(d => d.fix && d.fix.oldText && d.fix.newText)
+    .sort((a, b) => b.line - a.line);
+
+  if (fixable.length === 0) {
+    return { fixed: source, count: 0 };
+  }
+
+  let fixed = source;
+  let count = 0;
+
+  for (const diag of fixable) {
+    const { fix } = diag;
+
+    // Find and replace the old text with new text
+    // We do line-by-line replacement to be more precise
+    const lines = fixed.split('\n');
+    const lineIndex = diag.line - 1;
+
+    if (lineIndex >= 0 && lineIndex < lines.length) {
+      const line = lines[lineIndex];
+      if (line.includes(fix.oldText)) {
+        lines[lineIndex] = line.replace(fix.oldText, fix.newText);
+        count++;
+      }
+    }
+
+    fixed = lines.join('\n');
+  }
+
+  return { fixed, count };
+}
+
+/**
  * Lint files and return summary
  * @param {string[]} files - Files to lint
  * @param {Object} options - Lint options
@@ -1051,10 +1131,35 @@ async function lintFiles(files, options = {}) {
   let totalErrors = 0;
   let totalWarnings = 0;
   let totalInfo = 0;
+  let totalFixed = 0;
 
   for (const file of files) {
     const result = await lintFile(file, { fix });
     const relPath = relativePath(file);
+
+    // Apply fixes if requested
+    if (fix && result.diagnostics.some(d => d.fix)) {
+      const source = readFileSync(file, 'utf-8');
+      const { fixed, count } = applyFixes(source, result.diagnostics);
+
+      if (count > 0) {
+        if (dryRun) {
+          if (!quiet) {
+            log.info(`\n${relPath} - ${count} fix(es) available (dry run)`);
+          }
+        } else {
+          writeFileSync(file, fixed, 'utf-8');
+          if (!quiet) {
+            log.success(`\n${relPath} - ${count} fix(es) applied`);
+          }
+        }
+        totalFixed += count;
+
+        // Re-lint to show remaining issues
+        const recheck = await lintFile(file, {});
+        result.diagnostics = recheck.diagnostics;
+      }
+    }
 
     if (result.diagnostics.length > 0 && !quiet) {
       log.info(`\n${relPath}`);
@@ -1075,6 +1180,7 @@ async function lintFiles(files, options = {}) {
     errors: totalErrors,
     warnings: totalWarnings,
     info: totalInfo,
+    fixed: totalFixed,
     elapsed: timer.elapsed()
   };
 }

@@ -9,6 +9,7 @@
 
 import { pulse, effect, batch } from './pulse.js';
 import { loggers } from './logger.js';
+import { DANGEROUS_KEYS } from './security.js';
 
 const log = loggers.native;
 
@@ -205,8 +206,7 @@ function _validateBridge(bridge) {
   }
 
   // 7. Check for suspicious properties (potential tampering)
-  const suspiciousProps = ['eval', 'Function', '__proto__', 'constructor'];
-  for (const prop of suspiciousProps) {
+  for (const prop of DANGEROUS_KEYS) {
     if (prop in bridge && typeof bridge[prop] === 'function') {
       warnings.push(`Suspicious property detected on bridge: ${prop}`);
     }

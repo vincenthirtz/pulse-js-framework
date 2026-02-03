@@ -8,6 +8,9 @@
 import { effect, onCleanup } from './pulse.js';
 import { sanitizeUrl, safeSetStyle } from './utils.js';
 import { getAdapter } from './dom-adapter.js';
+import { loggers } from './logger.js';
+
+const log = loggers.dom;
 
 // =============================================================================
 // URL ATTRIBUTES (XSS Protection)
@@ -53,8 +56,8 @@ export function bind(element, attr, getValue) {
         if (isUrlAttr) {
           const sanitized = sanitizeUrl(String(value));
           if (sanitized === null) {
-            console.warn(
-              `[Pulse Security] Dangerous URL blocked in bind() for ${attr}: "${String(value).slice(0, 50)}"`
+            log.warn(
+              `[Security] Dangerous URL blocked in bind() for ${attr}: "${String(value).slice(0, 50)}"`
             );
             dom.removeAttribute(element, attr);
             return;
@@ -70,8 +73,8 @@ export function bind(element, attr, getValue) {
     if (isUrlAttr) {
       const sanitized = sanitizeUrl(String(getValue));
       if (sanitized === null) {
-        console.warn(
-          `[Pulse Security] Dangerous URL blocked in bind() for ${attr}: "${String(getValue).slice(0, 50)}"`
+        log.warn(
+          `[Security] Dangerous URL blocked in bind() for ${attr}: "${String(getValue).slice(0, 50)}"`
         );
         return element;
       }
