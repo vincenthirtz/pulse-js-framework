@@ -117,6 +117,128 @@ pulse/
 └── docs/                # Documentation site
 ```
 
+## Getting Started
+
+### Quick Start (5 minutes)
+
+```javascript
+// 1. Create a reactive value
+import { pulse, effect, el, mount } from 'pulse-js-framework/runtime';
+
+const count = pulse(0);
+
+// 2. Create reactive UI
+const Counter = () => el('.counter', [
+  el('h1', () => `Count: ${count.get()}`),
+  el('button', 'Increment', { onclick: () => count.update(n => n + 1) }),
+  el('button', 'Reset', { onclick: () => count.set(0) })
+]);
+
+// 3. Mount to DOM
+mount('#app', Counter());
+
+// That's it! The UI updates automatically when count changes.
+```
+
+### Your First App
+
+```javascript
+import { pulse, computed, effect, el, mount, list } from 'pulse-js-framework/runtime';
+
+// State
+const todos = pulse([]);
+const newTodo = pulse('');
+const filter = pulse('all'); // 'all' | 'active' | 'completed'
+
+// Derived state (computed)
+const filteredTodos = computed(() => {
+  const items = todos.get();
+  switch (filter.get()) {
+    case 'active': return items.filter(t => !t.done);
+    case 'completed': return items.filter(t => t.done);
+    default: return items;
+  }
+});
+
+const remaining = computed(() => todos.get().filter(t => !t.done).length);
+
+// Actions
+const addTodo = () => {
+  const text = newTodo.get().trim();
+  if (!text) return;
+  todos.update(t => [...t, { id: Date.now(), text, done: false }]);
+  newTodo.set('');
+};
+
+const toggleTodo = (id) => {
+  todos.update(t => t.map(todo =>
+    todo.id === id ? { ...todo, done: !todo.done } : todo
+  ));
+};
+
+// UI
+const App = () => el('.todo-app', [
+  el('h1', 'Todos'),
+  el('.input-row', [
+    el('input[placeholder=What needs to be done?]', {
+      value: () => newTodo.get(),
+      oninput: (e) => newTodo.set(e.target.value),
+      onkeydown: (e) => e.key === 'Enter' && addTodo()
+    }),
+    el('button', 'Add', { onclick: addTodo })
+  ]),
+  list(
+    () => filteredTodos.get(),
+    (todo) => el('li', { class: () => todo.done ? 'done' : '' }, [
+      el('input[type=checkbox]', {
+        checked: () => todo.done,
+        onchange: () => toggleTodo(todo.id)
+      }),
+      el('span', todo.text)
+    ]),
+    (todo) => todo.id  // Key function for efficient updates
+  ),
+  el('.footer', () => `${remaining.get()} items left`)
+]);
+
+mount('#app', App());
+```
+
+### Testing Your App
+
+```javascript
+import { test, describe } from 'node:test';
+import assert from 'node:assert';
+import { pulse, computed, effect, createContext, withContext } from 'pulse-js-framework/runtime/pulse';
+
+describe('Todo App', () => {
+  test('adds a todo', () => {
+    // Create isolated context for testing (no global state pollution)
+    const ctx = createContext({ name: 'test' });
+
+    withContext(ctx, () => {
+      const todos = pulse([]);
+      todos.update(t => [...t, { id: 1, text: 'Test', done: false }]);
+      assert.strictEqual(todos.get().length, 1);
+      assert.strictEqual(todos.get()[0].text, 'Test');
+    });
+  });
+
+  test('computed updates automatically', () => {
+    const ctx = createContext({ name: 'test' });
+
+    withContext(ctx, () => {
+      const count = pulse(0);
+      const doubled = computed(() => count.get() * 2);
+
+      assert.strictEqual(doubled.get(), 0);
+      count.set(5);
+      assert.strictEqual(doubled.get(), 10);
+    });
+  });
+});
+```
+
 ## Core Patterns
 
 ### Reactivity (runtime/pulse.js)
@@ -128,18 +250,83 @@ count.get();              // Read (tracks dependency)
 count.peek();             // Read without tracking
 count.set(5);             // Direct set
 count.update(n => n + 1); // Functional update
+count.subscribe(v => console.log(v)); // Manual subscription, returns unsubscribe fn
+count.derive(n => n * 2); // Create derived pulse (shorthand for computed)
+
+// pulse() options
+const user = pulse({ name: 'Alice' }, {
+  equals: (a, b) => a.id === b.id  // Custom equality (default: Object.is)
+});
 
 // Effects auto-run when dependencies change
-effect(() => console.log(count.get()));
+const dispose = effect(() => console.log(count.get()));
+dispose(); // Stop the effect
+
+// effect() options
+effect(() => {
+  // Effect logic that might fail
+  riskyOperation();
+}, {
+  id: 'data-sync',                            // Custom ID for debugging
+  onError: (err) => {
+    console.error('Effect failed:', err.effectId, err.phase, err.cause);
+  }
+});
+
+// Global effect error handler
+import { onEffectError, EffectError } from 'pulse-js-framework/runtime/pulse';
+onEffectError((err) => {
+  reportError({ id: err.effectId, phase: err.phase, cause: err.cause });
+});
+
+// Effect cleanup (runs before re-run or dispose)
+effect(() => {
+  const timer = setInterval(() => tick(), 1000);
+  return () => clearInterval(timer);  // Cleanup function
+});
+
+// Alternative: onCleanup() for multiple cleanups
+import { onCleanup } from 'pulse-js-framework/runtime/pulse';
+effect(() => {
+  const sub1 = eventBus.on('event1', handler1);
+  const sub2 = eventBus.on('event2', handler2);
+  onCleanup(() => sub1.unsubscribe());
+  onCleanup(() => sub2.unsubscribe());
+});
 
 // Computed values (derived state)
 const doubled = computed(() => count.get() * 2);
+
+// computed() options
+const expensive = computed(() => heavyCalculation(data.get()), {
+  lazy: true  // Only compute when read (default: false = eager)
+});
+expensive.dispose(); // Clean up computed when no longer needed
 
 // Batch updates (defer effects until complete)
 batch(() => {
   count.set(1);
   count.set(2);
-}); // Effects run once
+}); // Effects run once with final value
+
+// Untrack reads (read without creating dependency)
+import { untrack } from 'pulse-js-framework/runtime/pulse';
+effect(() => {
+  const tracked = count.get();        // Creates dependency
+  const untracked = untrack(() => other.get());  // No dependency
+});
+
+// Isolated reactive contexts (for testing/SSR)
+import { createContext, withContext, resetContext } from 'pulse-js-framework/runtime/pulse';
+
+// Testing with isolated context
+const testCtx = createContext({ name: 'test' });
+withContext(testCtx, () => {
+  const count = pulse(0);  // Only exists in testCtx
+  effect(() => console.log(count.get()));
+});
+testCtx.reset();  // Clean up after test
+resetContext();   // Reset global context
 ```
 
 ### DOM Creation (runtime/dom.js)
@@ -148,6 +335,58 @@ batch(() => {
 // CSS selector syntax
 el('div.container#main')  // <div class="container" id="main">
 el('input[type=text]')    // <input type="text">
+el('button.btn.primary')  // <button class="btn primary">
+el('a[href=/home]')       // <a href="/home">
+
+// ===== el() Full API =====
+// el(selector, ...children) or el(selector, attributes, ...children)
+
+// Children can be: strings, numbers, Nodes, arrays, or functions (reactive)
+el('div', 'Hello')                       // Text child
+el('div', 42)                            // Number becomes text
+el('div', childElement)                  // DOM node child
+el('div', [child1, child2, child3])      // Array of children
+el('div', child1, child2, child3)        // Multiple children as args
+el('div', () => `Count: ${count.get()}`) // Reactive child (re-renders on change)
+
+// Nested elements
+el('ul', [
+  el('li', 'Item 1'),
+  el('li', 'Item 2'),
+  el('li', 'Item 3')
+])
+
+// Attributes object (when first child is plain object)
+el('input', { type: 'email', placeholder: 'Enter email' })
+el('button', { disabled: true, onclick: handleClick }, 'Submit')
+
+// Reactive/dynamic attributes (functions)
+el('button', {
+  class: () => isActive.get() ? 'active' : '',      // Reactive class
+  disabled: () => isLoading.get(),                   // Reactive attribute
+  style: () => `color: ${color.get()}`,              // Reactive style
+  onclick: (e) => handleClick(e)                     // Event handler
+})
+
+// Dynamic attribute values in selector (for form bindings)
+el('input[type=text]', {
+  value: () => name.get(),           // One-way binding (display)
+  oninput: (e) => name.set(e.target.value)  // Update on input
+})
+
+// Combined: selector + attributes + children
+el('article.post', { id: 'post-123' },
+  el('h2', post.title),
+  el('p', post.content)
+)
+
+// Falsy children are ignored
+el('div',
+  showHeader && el('header', 'Header'),  // Renders if showHeader is truthy
+  null,                                   // Ignored
+  undefined,                              // Ignored
+  false                                   // Ignored
+)
 
 // Automatic ARIA attributes (enabled by default)
 el('dialog')              // Auto: role="dialog" aria-modal="true"
@@ -165,15 +404,80 @@ configureA11y({
   warnMissingLabel: true   // Warn when form controls missing labels (default: true)
 });
 
-// Reactive bindings
-text(() => `Count: ${count.get()}`)
-bind(el, 'class', () => isActive.get() ? 'active' : '')
-on(el, 'click', handler)
-model(input, pulseValue)  // Two-way binding
+// ===== Reactive Bindings =====
+import { text, bind, on, model, prop, cls, style, show } from 'pulse-js-framework/runtime';
 
-// Conditional & list rendering
-when(() => loading.get(), () => el('.spinner'), () => el('.content'))
-list(() => items.get(), (item) => el('li', item.name), item => item.id)
+// text() - Reactive text node
+const greeting = text(() => `Hello, ${name.get()}!`);
+
+// bind() - Reactive attribute binding
+bind(element, 'class', () => isActive.get() ? 'active' : '');
+bind(element, 'aria-expanded', () => String(isOpen.get()));
+
+// prop() - Reactive property binding (not attribute)
+prop(input, 'value', () => text.get());
+
+// cls() - Reactive class toggle
+cls(element, 'active', () => isActive.get());
+cls(element, 'loading', isLoading);  // Also accepts Pulse directly
+
+// style() - Reactive inline style
+style(element, 'color', () => theme.get().textColor);
+style(element, 'display', () => visible.get() ? 'block' : 'none');
+
+// show() - Conditional visibility (display: none)
+show(element, () => isVisible.get());
+
+// on() - Event listener
+on(element, 'click', (e) => handleClick(e));
+on(element, 'input', (e) => value.set(e.target.value));
+
+// model() - Two-way binding (like v-model)
+model(input, valuePulse);  // Syncs input.value <-> valuePulse
+
+// ===== Conditional & List Rendering =====
+import { when, match, list } from 'pulse-js-framework/runtime';
+
+// when() - Conditional rendering
+when(
+  () => loading.get(),
+  () => el('.spinner', 'Loading...'),      // If true
+  () => el('.content', data.get())          // If false (optional)
+)
+
+// match() - Multi-condition rendering (switch-like)
+match(
+  [() => status.get() === 'loading', () => el('.spinner')],
+  [() => status.get() === 'error', () => el('.error', error.get())],
+  [() => status.get() === 'success', () => el('.data', data.get())],
+  [() => true, () => el('.empty', 'No data')]  // Default case
+)
+
+// list() - Reactive list rendering
+list(
+  () => items.get(),                        // Data source (reactive)
+  (item, index) => el('li', item.name),     // Render function
+  (item) => item.id                          // Key function (important for performance)
+)
+
+// Mounting to DOM
+import { mount } from 'pulse-js-framework/runtime';
+const app = el('.app', [Header(), Content(), Footer()]);
+const unmount = mount('#root', app);  // Appends to #root, returns unmount function
+unmount();  // Removes app from DOM
+
+// Lifecycle hooks
+import { onMount, onUnmount, component } from 'pulse-js-framework/runtime';
+onMount(() => console.log('Mounted!'));
+onUnmount(() => console.log('Unmounted, cleanup here'));
+
+// Component factory with lifecycle
+const MyComponent = component((ctx) => {
+  const count = ctx.state('count', 0);
+  ctx.onMount(() => console.log('Component mounted'));
+  ctx.onUnmount(() => console.log('Component unmounted'));
+  return ctx.el('div', `Count: ${count.get()}`);
+});
 ```
 
 ### Router (runtime/router.js)
@@ -205,7 +509,8 @@ const router = createRouter({
       }
     }
   },
-  mode: 'history',
+  mode: 'history',  // 'history' (default) or 'hash' for #/path URLs
+  base: '',         // Base path prefix for all routes
   scrollBehavior: (to, from, saved) => saved || { x: 0, y: 0 },
   // Middleware (Koa-style)
   middleware: [
@@ -218,6 +523,12 @@ const router = createRouter({
   ]
 });
 
+// Hash mode (for static hosting without server config)
+const hashRouter = createRouter({
+  routes: { '/': HomePage, '/about': AboutPage },
+  mode: 'hash'  // URLs become /#/, /#/about
+});
+
 // Guards
 router.beforeEach((to, from) => { /* global guard */ });
 router.beforeResolve((to, from) => { /* after per-route guards */ });
@@ -226,33 +537,184 @@ router.afterEach((to) => { /* after navigation */ });
 // Dynamic middleware
 const unsubscribe = router.use(async (ctx, next) => { await next(); });
 
-// Navigation
+// ===== Navigation =====
+
+// Basic navigation
 router.navigate('/users/123');
+
+// navigate() options
+await router.navigate('/search', {
+  replace: true,                    // Replace history instead of push (default: false)
+  query: { q: 'test', page: 1 },    // Query parameters -> /search?q=test&page=1
+  state: { scrollY: 100 }           // History state (accessible via history.state)
+});
+
+// Query parameters
+router.navigate('/products', { query: { category: 'books', sort: 'price' } });
+// URL: /products?category=books&sort=price
+
+// Accessing route state (all reactive Pulses)
+router.path.get();    // '/users/123'
 router.params.get();  // { id: '123' }
+router.query.get();   // { q: 'test', page: '1' } - values are strings
 router.meta.get();    // { requiresAuth: true }
-router.isActive('/admin'); // true/false
+
+// Check if route is active
+router.isActive('/admin');           // true if current path starts with /admin
+router.isActive('/admin', true);     // true only if exact match
+
+// Route context in handlers
+const UserPage = (ctx) => {
+  const { params, query, path, navigate, router } = ctx;
+  console.log(params.id);       // Route param
+  console.log(query.tab);       // Query param
+  return el('div', `User ${params.id}`);
+};
+
+// ===== Programmatic navigation patterns =====
+
+// Navigate with confirmation
+async function navigateWithConfirm(path) {
+  if (hasUnsavedChanges && !confirm('Discard changes?')) return;
+  await router.navigate(path);
+}
+
+// Navigate and scroll to element
+await router.navigate('/docs#installation');  // Hash in path
+
+// Custom scroll behavior
+const router = createRouter({
+  routes,
+  scrollBehavior: (to, from, savedPosition) => {
+    if (savedPosition) return savedPosition;     // Back/forward: restore position
+    if (to.path.includes('#')) {                 // Hash: scroll to element
+      return { selector: to.path.split('#')[1], behavior: 'smooth' };
+    }
+    return { x: 0, y: 0 };                       // Default: top
+  }
+});
+
+// Router outlet - renders current route
 router.outlet('#app');
 
-// Preload components
-preload(lazy(() => import('./Dashboard.js')));
+// Route error handling
+const router = createRouter({
+  routes,
+  onRouteError: (error, ctx) => {
+    console.error('Route error:', error);
+    return el('.error-page', error.message);  // Return error UI
+  }
+});
+
+// Preload components (prefetch on hover, etc.)
+const DashboardLazy = lazy(() => import('./Dashboard.js'));
+linkElement.addEventListener('mouseenter', () => preload(DashboardLazy));
+
+// Router links (auto-handle navigation)
+const nav = el('nav', [
+  router.link('/', 'Home'),
+  router.link('/about', 'About'),
+  router.link('/users', 'Users', { activeClass: 'nav-active' })
+]);
 ```
 
 ### Store (runtime/store.js)
 
 ```javascript
-const store = createStore({ user: null, theme: 'light' }, { persist: true });
+import {
+  createStore, createActions, createGetters,
+  combineStores, createModuleStore,
+  usePlugin, loggerPlugin, historyPlugin
+} from 'pulse-js-framework/runtime/store';
+
+// Basic store
+const store = createStore({ user: null, theme: 'light' });
 store.user.get();
 store.user.set({ name: 'John' });
+store.theme.update(t => t === 'light' ? 'dark' : 'light');
 
+// Store with persistence (localStorage)
+const store = createStore(
+  { user: null, theme: 'light' },
+  {
+    persist: true,              // Enable localStorage persistence
+    storageKey: 'my-app-store'  // Custom key (default: 'pulse-store')
+  }
+);
+
+// Store methods
+store.$getState();              // Get snapshot of all values (without tracking)
+store.$setState({ theme: 'dark', user: { name: 'John' } });  // Batch update
+store.$reset();                 // Reset to initial state
+store.$subscribe(state => console.log('State changed:', state));
+store.$pulses;                  // Access underlying pulse objects
+
+// Actions (bound to store)
 const actions = createActions(store, {
-  toggleTheme: (store) => store.theme.update(t => t === 'light' ? 'dark' : 'light')
+  toggleTheme: (store) => store.theme.update(t => t === 'light' ? 'dark' : 'light'),
+  login: (store, user) => store.user.set(user),
+  logout: (store) => store.user.set(null)
 });
+actions.toggleTheme();
+actions.login({ name: 'John', email: 'john@example.com' });
+
+// Getters (computed values from store)
+const getters = createGetters(store, {
+  isLoggedIn: (store) => store.user.get() !== null,
+  userName: (store) => store.user.get()?.name || 'Guest'
+});
+getters.isLoggedIn.get();  // true/false (reactive)
+
+// Combine multiple stores
+const rootStore = combineStores({
+  user: createStore({ name: '', email: '' }),
+  settings: createStore({ theme: 'dark', lang: 'en' })
+});
+rootStore.user.name.get();
+rootStore.settings.theme.set('light');
+
+// Module-based store (Vuex-like)
+const store = createModuleStore({
+  user: {
+    state: { name: '', loggedIn: false },
+    actions: {
+      login: (store, name) => {
+        store.name.set(name);
+        store.loggedIn.set(true);
+      }
+    },
+    getters: {
+      displayName: (store) => store.loggedIn.get() ? store.name.get() : 'Guest'
+    }
+  },
+  cart: {
+    state: { items: [] },
+    actions: {
+      addItem: (store, item) => store.items.update(arr => [...arr, item])
+    }
+  }
+});
+store.user.login('John');
+store.cart.addItem({ id: 1, name: 'Product' });
+
+// Plugins
+usePlugin(store, loggerPlugin);  // Log all state changes to console
+usePlugin(store, (s) => historyPlugin(s, 100));  // Undo/redo with 100 history states
+
+// History plugin adds methods
+store.$undo();     // Undo last change
+store.$redo();     // Redo undone change
+store.$canUndo();  // true if undo available
+store.$canRedo();  // true if redo available
 ```
 
 ### Context API (runtime/context.js)
 
 ```javascript
-import { createContext, useContext, Provider, provideMany } from 'pulse-js-framework/runtime/context';
+import {
+  createContext, useContext, Provider, Consumer, provideMany,
+  useContextSelector, disposeContext, isContext, getContextDepth
+} from 'pulse-js-framework/runtime/context';
 
 // Create a context with default value
 const ThemeContext = createContext('light');
@@ -1131,6 +1593,441 @@ const span = srOnly('Screen reader only text');  // Visually hidden
 setAriaAttributes(element, { label: 'Close', expanded: true });
 ```
 
+### Lite Build (runtime/lite.js)
+
+Minimal bundle (~5KB gzipped) with core reactivity and DOM helpers only. Use for simple apps that don't need router, store, or advanced features.
+
+```javascript
+import {
+  // Core reactivity
+  pulse, effect, computed, batch, onCleanup, untrack,
+  // DOM helpers
+  el, text, mount, on, bind, list, when, model,
+  // Utilities
+  show, cls, style, prop
+} from 'pulse-js-framework/runtime/lite';
+
+// Same API as full runtime, just smaller bundle
+const count = pulse(0);
+const app = el('div', [
+  el('h1', () => `Count: ${count.get()}`),
+  el('button', { onclick: () => count.update(n => n + 1) }, 'Increment')
+]);
+mount('#app', app);
+```
+
+### Logger (runtime/logger.js)
+
+Centralized logging with namespaces and log levels. Automatically becomes noop in production for zero overhead.
+
+```javascript
+import {
+  logger, createLogger, loggers,
+  LogLevel, setLogLevel, getLogLevel,
+  setFormatter, configureLogger, isProductionMode
+} from 'pulse-js-framework/runtime/logger';
+
+// Default logger
+logger.info('Application started');
+logger.warn('Deprecation notice');
+logger.error('Something went wrong', { code: 500 });
+logger.debug('Verbose debug info');
+
+// Namespaced logger
+const log = createLogger('MyComponent');
+log.info('Initialized');           // [MyComponent] Initialized
+log.error('Failed', { id: 123 });  // [MyComponent] Failed { id: 123 }
+
+// Child logger (nested namespace)
+const childLog = log.child('SubModule');
+childLog.info('Ready');            // [MyComponent:SubModule] Ready
+
+// Pre-configured loggers for Pulse subsystems
+loggers.pulse.info('Reactivity update');
+loggers.dom.debug('Element created');
+loggers.router.info('Navigating to /home');
+loggers.store.warn('Persist failed');
+loggers.websocket.error('Connection lost');
+
+// Log levels
+setLogLevel(LogLevel.DEBUG);   // Show all (DEBUG, INFO, WARN, ERROR)
+setLogLevel(LogLevel.WARN);    // Only WARN and ERROR
+setLogLevel(LogLevel.SILENT);  // Disable all logging
+
+// Custom formatter
+setFormatter((level, namespace, args) => {
+  const timestamp = new Date().toISOString();
+  const prefix = namespace ? `[${namespace}]` : '';
+  return `${timestamp} ${level.toUpperCase()} ${prefix} ${args.join(' ')}`;
+});
+
+// Force production mode (noop logging)
+configureLogger({ production: true });
+
+// Check mode
+if (!isProductionMode()) {
+  logger.debug('Development mode');
+}
+
+// Log level constants
+LogLevel.SILENT  // 0 - No logging
+LogLevel.ERROR   // 1 - Only errors
+LogLevel.WARN    // 2 - Errors and warnings
+LogLevel.INFO    // 3 - Errors, warnings, info (default)
+LogLevel.DEBUG   // 4 - All messages
+```
+
+### LRU Cache (runtime/lru-cache.js)
+
+Least Recently Used cache with O(1) operations. Used internally by HTTP and GraphQL clients for response caching.
+
+```javascript
+import { LRUCache } from 'pulse-js-framework/runtime/lru-cache';
+
+// Create cache with max 100 items
+const cache = new LRUCache(100);
+
+// Basic operations
+cache.set('key', 'value');
+cache.get('key');           // 'value' (moves to most recent)
+cache.has('key');           // true (does NOT update position)
+cache.delete('key');
+cache.clear();
+
+// Properties
+cache.size;                 // Current number of items
+cache.capacity;             // Maximum capacity (100)
+
+// Iteration (oldest to newest)
+for (const key of cache.keys()) { /* ... */ }
+for (const value of cache.values()) { /* ... */ }
+for (const [key, value] of cache.entries()) { /* ... */ }
+cache.forEach((value, key) => { /* ... */ });
+
+// Metrics tracking (for performance monitoring)
+const cache = new LRUCache(100, { trackMetrics: true });
+cache.get('key');  // miss
+cache.set('key', 'value');
+cache.get('key');  // hit
+
+const stats = cache.getMetrics();
+// { hits: 1, misses: 1, evictions: 0, hitRate: 0.5, size: 1, capacity: 100 }
+
+cache.resetMetrics();                    // Reset counters
+cache.setMetricsTracking(false);         // Disable tracking
+```
+
+### Utils (runtime/utils.js)
+
+Security utilities for XSS prevention, URL sanitization, and CSS injection protection.
+
+```javascript
+import {
+  // XSS Prevention
+  escapeHtml, unescapeHtml, createSafeTextNode,
+  dangerouslySetInnerHTML,
+  // Attribute handling
+  escapeAttribute, safeSetAttribute,
+  // URL validation
+  sanitizeUrl,
+  // CSS sanitization
+  isValidCSSProperty, sanitizeCSSValue, safeSetStyle,
+  // Utilities
+  deepClone, debounce, throttle
+} from 'pulse-js-framework/runtime/utils';
+
+// === XSS Prevention ===
+
+// Escape HTML (prevent XSS when inserting user content)
+escapeHtml('<script>alert("xss")</script>');
+// '&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;'
+
+unescapeHtml('&lt;div&gt;');  // '<div>'
+
+// Safe text node (DOM textContent is already safe)
+const node = createSafeTextNode(userInput);
+container.appendChild(node);
+
+// Explicitly set innerHTML (use with caution!)
+dangerouslySetInnerHTML(container, trustedHtml);
+dangerouslySetInnerHTML(container, userHtml, { sanitize: true });  // With sanitization
+
+// === Attribute Handling ===
+
+escapeAttribute(userInput);  // Safe for attribute values
+
+// Safely set attributes (blocks event handlers, sanitizes URLs)
+safeSetAttribute(element, 'data-id', userId);          // OK
+safeSetAttribute(element, 'href', userUrl);            // Sanitizes URL
+safeSetAttribute(element, 'onclick', 'alert(1)');      // BLOCKED
+safeSetAttribute(element, 'src', 'javascript:void(0)'); // BLOCKED
+
+// Options
+safeSetAttribute(element, 'onclick', handler, { allowEventHandlers: true }); // Allow (dangerous!)
+safeSetAttribute(element, 'src', dataUrl, { allowDataUrls: true });          // Allow data: URLs
+
+// === URL Validation ===
+
+sanitizeUrl('https://example.com');           // 'https://example.com'
+sanitizeUrl('javascript:alert(1)');           // null (blocked)
+sanitizeUrl('data:text/html,...');            // null (blocked by default)
+sanitizeUrl('/relative/path');                // '/relative/path'
+sanitizeUrl('&#x6a;avascript:alert(1)');      // null (decoded then blocked)
+
+// Options
+sanitizeUrl('data:image/png;base64,...', { allowData: true });   // Allowed
+sanitizeUrl('blob:...', { allowBlob: true });                    // Allowed
+sanitizeUrl('relative', { allowRelative: false });               // null
+
+// === CSS Sanitization ===
+
+isValidCSSProperty('backgroundColor');  // true
+isValidCSSProperty('123invalid');       // false
+
+sanitizeCSSValue('red');                           // { safe: true, value: 'red' }
+sanitizeCSSValue('red; margin: 999px');            // { safe: false, value: 'red', blocked: 'semicolon' }
+sanitizeCSSValue('url(http://evil.com)');          // { safe: false, value: '', blocked: 'url' }
+sanitizeCSSValue('expression(alert(1))');          // { safe: false, blocked: 'expression' }
+
+// Safely set styles
+safeSetStyle(element, 'color', 'red');                    // OK
+safeSetStyle(element, 'color', 'red; margin: 0');         // Blocked, sets 'red' only
+safeSetStyle(element, 'background', 'url(...)', { allowUrl: true });  // Allow url()
+
+// === Utilities ===
+
+// Deep clone
+const clone = deepClone({ nested: { value: [1, 2, 3] } });
+
+// Debounce (wait for pause in calls)
+const debouncedSearch = debounce(search, 300);
+input.addEventListener('input', debouncedSearch);
+debouncedSearch.cancel();  // Cancel pending call
+
+// Throttle (max once per interval)
+const throttledScroll = throttle(handleScroll, 100);
+window.addEventListener('scroll', throttledScroll);
+throttledScroll.cancel();
+```
+
+### DOM Adapter (runtime/dom-adapter.js)
+
+Abstraction layer for DOM operations. Enables SSR, testing without browser, and custom rendering targets.
+
+```javascript
+import {
+  // Adapters
+  BrowserDOMAdapter, MockDOMAdapter,
+  // Mock nodes for testing
+  MockNode, MockElement, MockTextNode, MockCommentNode, MockDocumentFragment,
+  // Adapter management
+  getAdapter, setAdapter, resetAdapter, withAdapter
+} from 'pulse-js-framework/runtime/dom-adapter';
+
+// === Browser (default) ===
+// Automatically used in browser environments
+const adapter = getAdapter();  // BrowserDOMAdapter
+
+// === Testing without browser ===
+import { setAdapter, MockDOMAdapter } from 'pulse-js-framework/runtime/dom-adapter';
+
+beforeEach(() => {
+  const mockAdapter = new MockDOMAdapter();
+  setAdapter(mockAdapter);
+});
+
+afterEach(() => {
+  resetAdapter();
+});
+
+// Mock adapter provides test helpers
+const mock = new MockDOMAdapter();
+setAdapter(mock);
+
+// Create elements (works without browser)
+const div = mock.createElement('div');
+mock.setAttribute(div, 'id', 'test');
+mock.appendChild(mock.getBody(), div);
+
+// Test helpers
+mock.flushMicrotasks();  // Flush pending microtasks synchronously
+mock.runAllTimers();     // Run all setTimeout callbacks
+mock.reset();            // Clear all state
+
+// === SSR (Server-Side Rendering) ===
+// Use MockDOMAdapter or implement custom adapter for your SSR solution
+const ssrAdapter = new MockDOMAdapter();
+setAdapter(ssrAdapter);
+// ... render your app ...
+// Serialize ssrAdapter.getBody() to HTML string
+
+// === Temporary adapter (scoped) ===
+const result = withAdapter(new MockDOMAdapter(), () => {
+  // All DOM operations in this scope use the mock
+  return el('div.test', 'Hello');
+});
+// Original adapter restored after
+
+// === Custom adapter ===
+// Implement DOMAdapter interface for custom rendering targets
+class CustomAdapter {
+  createElement(tagName) { /* ... */ }
+  createTextNode(text) { /* ... */ }
+  setAttribute(el, name, value) { /* ... */ }
+  appendChild(parent, child) { /* ... */ }
+  // ... implement all DOMAdapter methods
+}
+setAdapter(new CustomAdapter());
+```
+
+### Errors (runtime/errors.js)
+
+Structured error classes with source location tracking and helpful suggestions.
+
+```javascript
+import {
+  // Base classes
+  PulseError, CompileError, RuntimeError, CLIError,
+  // Compiler errors
+  LexerError, ParserError, TransformError,
+  // Runtime errors
+  ReactivityError, DOMError, StoreError, RouterError,
+  // CLI errors
+  ConfigError,
+  // Utilities
+  formatError, createParserError, createErrorMessage, getDocsUrl,
+  // Pre-built error creators
+  Errors, SUGGESTIONS
+} from 'pulse-js-framework/runtime/errors';
+
+// === Using pre-built error creators ===
+throw Errors.computedSet('doubled');
+// [Pulse] Cannot set computed value 'doubled'.
+//   Context: Computed values are derived from other pulses and update automatically.
+//   → Use a regular pulse() if you need to set values directly...
+//   See: https://pulse-js.fr/reactivity/computed#read-only
+
+throw Errors.mountNotFound('#app');
+throw Errors.circularDependency(['effect-1', 'effect-2'], ['effect-3']);
+throw Errors.routeNotFound('/unknown');
+throw Errors.lazyTimeout(5000);
+
+// === Creating custom errors ===
+const error = new ParserError('Unexpected token', {
+  line: 10,
+  column: 5,
+  file: 'App.pulse',
+  source: sourceCode,
+  suggestion: 'Did you forget a closing brace?'
+});
+
+// Format with code snippet
+console.error(error.formatWithSnippet());
+// ParserError: Unexpected token
+//   at App.pulse:10:5
+//
+//    8 | state {
+//    9 |   count: 0
+// > 10 |   name
+//      |     ^
+//   11 | }
+//
+//   → Did you forget a closing brace?
+//   See: https://pulse-js.fr/compiler/syntax
+
+// === Error hierarchy ===
+// PulseError (base)
+// ├── CompileError
+// │   ├── LexerError
+// │   ├── ParserError
+// │   └── TransformError
+// ├── RuntimeError
+// │   ├── ReactivityError
+// │   ├── DOMError
+// │   ├── StoreError
+// │   └── RouterError
+// └── CLIError
+//     └── ConfigError
+
+// === Utility functions ===
+const url = getDocsUrl('CIRCULAR_DEPENDENCY');
+// 'https://pulse-js.fr/reactivity/effects#circular-dependencies'
+
+const message = createErrorMessage({
+  code: 'CUSTOM_ERROR',
+  message: 'Something went wrong',
+  context: 'While processing user input',
+  suggestion: 'Check the input format',
+  details: { input: 'invalid', expected: 'string' }
+});
+
+// Format any error with source context
+const formatted = formatError(error, sourceCode);
+```
+
+### PulseMobile Bridge (mobile/bridge/pulse-native.js)
+
+Low-level native bridge for iOS/Android. This is the IIFE bundle loaded in WebView. For the module API, use `runtime/native.js` instead.
+
+```javascript
+// This script is loaded in mobile WebView via <script> tag
+// It exposes window.PulseMobile globally
+
+// Platform detection
+PulseMobile.isNative;    // true if running in native app
+PulseMobile.isAndroid;   // true on Android
+PulseMobile.isIOS;       // true on iOS
+PulseMobile.platform;    // 'android' | 'ios' | 'web'
+
+// === Storage (async, falls back to localStorage on web) ===
+await PulseMobile.Storage.setItem('key', 'value');
+await PulseMobile.Storage.getItem('key');
+await PulseMobile.Storage.removeItem('key');
+await PulseMobile.Storage.clear();
+await PulseMobile.Storage.keys();
+
+// JSON helpers
+await PulseMobile.Storage.setObject('user', { name: 'John' });
+await PulseMobile.Storage.getObject('user');
+
+// === Device ===
+const info = await PulseMobile.Device.getInfo();
+// { platform, userAgent, language, online, ... }
+
+const network = await PulseMobile.Device.getNetworkStatus();
+// { connected: true, type: 'wifi' }
+
+PulseMobile.Device.onNetworkChange(status => {
+  console.log('Network:', status.connected);
+});
+
+// === UI ===
+await PulseMobile.UI.showToast('Saved!');
+await PulseMobile.UI.showToast('Error!', true);  // Long duration
+await PulseMobile.UI.vibrate(100);               // ms
+
+// === Clipboard ===
+await PulseMobile.Clipboard.copy('Text to copy');
+const text = await PulseMobile.Clipboard.read();
+
+// === App Lifecycle ===
+await PulseMobile.App.exit();      // Android only
+await PulseMobile.App.minimize();
+
+PulseMobile.App.onPause(() => saveState());
+PulseMobile.App.onResume(() => refreshData());
+PulseMobile.App.onBackButton(() => handleBack());  // Android only
+
+// === Initialization ===
+window.addEventListener('pulse:ready', (e) => {
+  console.log('Native ready on', e.detail.platform);
+});
+
+// Note: For module usage in your app code, prefer runtime/native.js
+// which provides a cleaner API with Pulse integration:
+// import { createNativeStorage, NativeUI } from 'pulse-js-framework/runtime/native';
+```
+
 ## Accessibility
 
 Pulse is designed with accessibility as a core feature, not an afterthought. The framework provides multiple layers of a11y support:
@@ -1312,6 +2209,13 @@ view {
 | `runtime/devtools.js` | Dev tools (trackedPulse, time-travel, dependency graph, profiling, a11y audit) |
 | `runtime/native.js` | Native mobile bridge (storage, device, UI, lifecycle) |
 | `runtime/hmr.js` | Hot module replacement (createHMRContext) |
+| `runtime/lite.js` | Minimal bundle (~5KB) with core reactivity and DOM only |
+| `runtime/logger.js` | Centralized logging with namespaces and levels |
+| `runtime/lru-cache.js` | LRU cache for HTTP/GraphQL response caching |
+| `runtime/utils.js` | Security utilities (XSS prevention, URL sanitization, CSS injection protection) |
+| `runtime/dom-adapter.js` | DOM abstraction layer for SSR and testing |
+| `runtime/errors.js` | Structured error classes with source location tracking |
+| `mobile/bridge/pulse-native.js` | Low-level IIFE native bridge for WebView |
 | `compiler/lexer.js` | Tokenizer with 50+ token types |
 | `compiler/parser.js` | AST builder for .pulse syntax |
 | `compiler/transformer.js` | JavaScript code generator |
@@ -1343,16 +2247,16 @@ view {
 import { pulse, effect, computed, batch } from 'pulse-js-framework/runtime';
 
 // DOM helpers (includes auto-ARIA)
-import { el, mount, on, text, bind, model, list, when, configureA11y } from 'pulse-js-framework/runtime';
+import { el, mount, on, text, bind, model, list, when, show, match, configureA11y, onMount, onUnmount, component } from 'pulse-js-framework/runtime';
 
 // Router
 import { createRouter, lazy, preload } from 'pulse-js-framework/runtime/router';
 
 // Store
-import { createStore, createActions } from 'pulse-js-framework/runtime/store';
+import { createStore, createActions, createGetters, combineStores, createModuleStore, usePlugin, loggerPlugin, historyPlugin } from 'pulse-js-framework/runtime/store';
 
 // Context API
-import { createContext, useContext, Provider, provideMany } from 'pulse-js-framework/runtime/context';
+import { createContext, useContext, Provider, Consumer, provideMany, useContextSelector, disposeContext } from 'pulse-js-framework/runtime/context';
 
 // Form
 import { useForm, useField, useFieldArray, validators } from 'pulse-js-framework/runtime/form';
@@ -1380,6 +2284,24 @@ import { createHMRContext } from 'pulse-js-framework/runtime/hmr';
 
 // DevTools (development only)
 import { enableDevTools, trackedPulse, trackedEffect, getDependencyGraph } from 'pulse-js-framework/runtime/devtools';
+
+// Lite build (minimal bundle ~5KB)
+import { pulse, effect, computed, el, mount, list, when } from 'pulse-js-framework/runtime/lite';
+
+// Logger
+import { logger, createLogger, loggers, LogLevel, setLogLevel } from 'pulse-js-framework/runtime/logger';
+
+// LRU Cache
+import { LRUCache } from 'pulse-js-framework/runtime/lru-cache';
+
+// Utils (security)
+import { escapeHtml, sanitizeUrl, safeSetAttribute, debounce, throttle } from 'pulse-js-framework/runtime/utils';
+
+// DOM Adapter (SSR/testing)
+import { BrowserDOMAdapter, MockDOMAdapter, setAdapter, getAdapter } from 'pulse-js-framework/runtime/dom-adapter';
+
+// Errors
+import { PulseError, Errors, formatError, ParserError, RuntimeError } from 'pulse-js-framework/runtime/errors';
 
 // Compiler
 import { compile } from 'pulse-js-framework/compiler';

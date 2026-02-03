@@ -88,7 +88,7 @@
     "./compiler/lexer": "./compiler/lexer.js",
     "./compiler/parser": "./compiler/parser.js",
     "./compiler/transformer": "./compiler/transformer.js",
-    "./core/errors": "./core/errors.js",
+    "./core/errors": "./runtime/errors.js",
     "./vite": {
       "types": "./types/index.d.ts",
       "default": "./loader/vite-plugin.js"
