@@ -30,6 +30,19 @@ const BIND_URL_ATTRIBUTES = new Set([
 // =============================================================================
 
 /**
+ * Attributes that should be set as properties (not attributes) on form elements
+ * because the attribute doesn't reflect the current value after user input
+ * @private
+ */
+const BIND_PROPERTY_ATTRIBUTES = new Set(['value', 'checked', 'selected']);
+
+/**
+ * Tags where certain attributes should be set as properties
+ * @private
+ */
+const FORM_ELEMENT_TAGS = new Set(['input', 'textarea', 'select', 'option']);
+
+/**
  * Bind an attribute reactively with XSS protection
  *
  * Security: URL attributes (href, src, etc.) are sanitized to prevent javascript: XSS
@@ -44,9 +57,22 @@ export function bind(element, attr, getValue) {
   const lowerAttr = attr.toLowerCase();
   const isUrlAttr = BIND_URL_ATTRIBUTES.has(lowerAttr);
 
+  // For form elements, certain attributes need to be set as properties
+  const tagName = dom.getTagName(element);
+  const useProperty = BIND_PROPERTY_ATTRIBUTES.has(lowerAttr) && FORM_ELEMENT_TAGS.has(tagName);
+
   if (typeof getValue === 'function') {
     effect(() => {
       const value = getValue();
+
+      // For form element properties (value, checked, selected), use setProperty
+      if (useProperty) {
+        if (dom.getProperty(element, attr) !== value) {
+          dom.setProperty(element, attr, value ?? '');
+        }
+        return;
+      }
+
       if (value == null || value === false) {
         dom.removeAttribute(element, attr);
       } else if (value === true) {
@@ -69,6 +95,12 @@ export function bind(element, attr, getValue) {
       }
     });
   } else {
+    // For form element properties, use setProperty
+    if (useProperty) {
+      dom.setProperty(element, attr, getValue ?? '');
+      return element;
+    }
+
     // Sanitize URL attributes for static values too
     if (isUrlAttr) {
       const sanitized = sanitizeUrl(String(getValue));

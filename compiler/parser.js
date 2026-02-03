@@ -27,6 +27,7 @@ export const NodeType = {
   IfDirective: 'IfDirective',
   EachDirective: 'EachDirective',
   EventDirective: 'EventDirective',
+  ModelDirective: 'ModelDirective',
 
   // Accessibility directives
   A11yDirective: 'A11yDirective',
@@ -769,6 +770,12 @@ export class Parser {
 
     const name = this.expect(TokenType.IDENT).value;
 
+    // Collect modifiers (.prevent, .stop, .enter, .lazy, etc.)
+    const modifiers = [];
+    while (this.is(TokenType.DIRECTIVE_MOD)) {
+      modifiers.push(this.advance().value);
+    }
+
     if (name === 'if') {
       return this.parseIfDirective();
     }
@@ -790,8 +797,13 @@ export class Parser {
       return this.parseSrOnlyDirective();
     }
 
+    // @model directive for two-way binding
+    if (name === 'model') {
+      return this.parseModelDirective(modifiers);
+    }
+
     // Event directive like @click
-    return this.parseEventDirective(name);
+    return this.parseEventDirective(name, modifiers);
   }
 
   /**
@@ -800,6 +812,12 @@ export class Parser {
   parseInlineDirective() {
     this.expect(TokenType.AT);
     const name = this.expect(TokenType.IDENT).value;
+
+    // Collect modifiers (.prevent, .stop, .enter, .lazy, etc.)
+    const modifiers = [];
+    while (this.is(TokenType.DIRECTIVE_MOD)) {
+      modifiers.push(this.advance().value);
+    }
 
     // Check for a11y directives
     if (name === 'a11y') {
@@ -815,16 +833,22 @@ export class Parser {
       return this.parseSrOnlyDirective();
     }
 
+    // @model directive for two-way binding
+    if (name === 'model') {
+      return this.parseModelDirective(modifiers);
+    }
+
     // Event directive (click, submit, etc.)
     this.expect(TokenType.LPAREN);
     const expression = this.parseExpression();
     this.expect(TokenType.RPAREN);
 
-    return new ASTNode(NodeType.EventDirective, { event: name, handler: expression });
+    return new ASTNode(NodeType.EventDirective, { event: name, handler: expression, modifiers });
   }
 
   /**
-   * Parse @if directive
+   * Parse @if directive with @else-if/@else chains
+   * Syntax: @if (cond) { } @else-if (cond) { } @else { }
    */
   parseIfDirective() {
     this.expect(TokenType.LPAREN);
@@ -838,23 +862,76 @@ export class Parser {
     }
     this.expect(TokenType.RBRACE);
 
+    const elseIfBranches = [];
     let alternate = null;
-    if (this.is(TokenType.AT) && this.peek()?.value === 'else') {
-      this.advance(); // @
-      this.advance(); // else
-      this.expect(TokenType.LBRACE);
-      alternate = [];
-      while (!this.is(TokenType.RBRACE) && !this.is(TokenType.EOF)) {
-        alternate.push(this.parseViewChild());
+
+    // Parse @else-if and @else chains
+    while (this.is(TokenType.AT)) {
+      const nextToken = this.peek();
+
+      // Check for @else or @else-if
+      if (nextToken?.value === 'else') {
+        this.advance(); // @
+        this.advance(); // else
+
+        // Check if followed by @if or -if (making @else @if or @else-if)
+        if (this.is(TokenType.AT) && (this.peek()?.type === TokenType.IF || this.peek()?.value === 'if')) {
+          // @else @if pattern
+          this.advance(); // @
+          this.advance(); // if
+
+          this.expect(TokenType.LPAREN);
+          const elseIfCondition = this.parseExpression();
+          this.expect(TokenType.RPAREN);
+
+          this.expect(TokenType.LBRACE);
+          const elseIfConsequent = [];
+          while (!this.is(TokenType.RBRACE) && !this.is(TokenType.EOF)) {
+            elseIfConsequent.push(this.parseViewChild());
+          }
+          this.expect(TokenType.RBRACE);
+
+          elseIfBranches.push({ condition: elseIfCondition, consequent: elseIfConsequent });
+        }
+        // Check for -if pattern (@else-if as hyphenated)
+        else if (this.is(TokenType.MINUS) && (this.peek()?.type === TokenType.IF || this.peek()?.value === 'if')) {
+          this.advance(); // -
+          this.advance(); // if
+
+          this.expect(TokenType.LPAREN);
+          const elseIfCondition = this.parseExpression();
+          this.expect(TokenType.RPAREN);
+
+          this.expect(TokenType.LBRACE);
+          const elseIfConsequent = [];
+          while (!this.is(TokenType.RBRACE) && !this.is(TokenType.EOF)) {
+            elseIfConsequent.push(this.parseViewChild());
+          }
+          this.expect(TokenType.RBRACE);
+
+          elseIfBranches.push({ condition: elseIfCondition, consequent: elseIfConsequent });
+        }
+        // Plain @else
+        else {
+          this.expect(TokenType.LBRACE);
+          alternate = [];
+          while (!this.is(TokenType.RBRACE) && !this.is(TokenType.EOF)) {
+            alternate.push(this.parseViewChild());
+          }
+          this.expect(TokenType.RBRACE);
+          break; // @else terminates the chain
+        }
+      } else {
+        break; // Not an @else variant
       }
-      this.expect(TokenType.RBRACE);
     }
 
-    return new ASTNode(NodeType.IfDirective, { condition, consequent, alternate });
+    return new ASTNode(NodeType.IfDirective, { condition, consequent, elseIfBranches, alternate });
   }
 
   /**
-   * Parse @each/@for directive
+   * Parse @each/@for directive with optional key function
+   * Syntax: @for (item of items) key(item.id) { ... }
    */
   parseEachDirective() {
     this.expect(TokenType.LPAREN);
@@ -870,6 +947,15 @@ export class Parser {
     const iterable = this.parseExpression();
     this.expect(TokenType.RPAREN);
 
+    // Parse optional key function: key(item.id)
+    let keyExpr = null;
+    if (this.is(TokenType.IDENT) && this.current().value === 'key') {
+      this.advance(); // consume 'key'
+      this.expect(TokenType.LPAREN);
+      keyExpr = this.parseExpression();
+      this.expect(TokenType.RPAREN);
+    }
+
     this.expect(TokenType.LBRACE);
     const template = [];
     while (!this.is(TokenType.RBRACE) && !this.is(TokenType.EOF)) {
@@ -877,13 +963,15 @@ export class Parser {
     }
     this.expect(TokenType.RBRACE);
 
-    return new ASTNode(NodeType.EachDirective, { itemName, iterable, template });
+    return new ASTNode(NodeType.EachDirective, { itemName, iterable, template, keyExpr });
   }
 
   /**
-   * Parse event directive
+   * Parse event directive with optional modifiers
+   * @param {string} event - Event name (click, keydown, etc.)
+   * @param {string[]} modifiers - Array of modifier names (prevent, stop, enter, etc.)
    */
-  parseEventDirective(event) {
+  parseEventDirective(event, modifiers = []) {
     this.expect(TokenType.LPAREN);
     const handler = this.parseExpression();
     this.expect(TokenType.RPAREN);
@@ -897,7 +985,20 @@ export class Parser {
       this.expect(TokenType.RBRACE);
     }
 
-    return new ASTNode(NodeType.EventDirective, { event, handler, children });
+    return new ASTNode(NodeType.EventDirective, { event, handler, children, modifiers });
+  }
+
+  /**
+   * Parse @model directive for two-way binding
+   * @model(name) or @model.lazy(name) or @model.lazy.trim(name)
+   * @param {string[]} modifiers - Array of modifier names (lazy, trim, number)
+   */
+  parseModelDirective(modifiers = []) {
+    this.expect(TokenType.LPAREN);
+    const binding = this.parseExpression();
+    this.expect(TokenType.RPAREN);
+
+    return new ASTNode(NodeType.ModelDirective, { binding, modifiers });
   }
 
   /**

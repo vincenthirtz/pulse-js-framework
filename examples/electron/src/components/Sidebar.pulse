@@ -1,0 +1,180 @@
+/**
+ * Sidebar Component - Notes list with search
+ */
+
+@page Sidebar
+
+props {
+  notes: []
+  selectedNoteId: null
+  searchQuery: ""
+  noteCount: 0
+  onSearch: null
+  onSelectNote: null
+  onCreateNote: null
+}
+
+view {
+  .sidebar {
+    .sidebar-header {
+      h1.app-title "Pulse Notes"
+      button.btn-new[title="New Note"] @click(onCreateNote && onCreateNote()) "+"
+    }
+
+    .search-container {
+      input.search-input[type="text"][placeholder="Search notes..."][aria-label="Search notes"][value={searchQuery}] @input(onSearch && onSearch(event.target.value))
+    }
+
+    .notes-list {
+      @if (notes.length === 0) {
+        .empty-list "{searchQuery ? 'No matching notes' : 'No notes yet'}"
+      }
+      @for (note of notes) {
+        .note-item[class="{note.id === selectedNoteId ? 'selected' : ''}"] @click(onSelectNote && onSelectNote(note.id)) {
+          .note-item-title "{note.title || 'Untitled'}"
+          .note-item-preview "{(note.content.split('\\n')[0] || '').slice(0, 50) || 'Empty note'}"
+          .note-item-date "{formatDate(note.updatedAt)}"
+        }
+      }
+    }
+
+    .sidebar-footer "{noteCount} note{noteCount !== 1 ? 's' : ''}"
+  }
+}
+
+actions {
+  formatDate(timestamp) {
+    const date = new Date(timestamp)
+    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+  }
+}
+
+style {
+  .sidebar {
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding-top: env(titlebar-area-height, 40px);
+  }
+
+  .sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .app-title {
+    font-size: 18px;
+    font-weight: 600;
+    background: linear-gradient(135deg, var(--primary), #cba6f7);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .btn-new {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: var(--primary);
+    color: var(--bg);
+    border-radius: var(--radius);
+    font-size: 20px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .btn-new:hover {
+    background: var(--primary-hover);
+  }
+
+  .search-container {
+    padding: 12px 16px;
+  }
+
+  .search-input {
+    width: 100%;
+    padding: 10px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-size: 13px;
+  }
+
+  .search-input:focus {
+    outline: none;
+    border-color: var(--primary);
+  }
+
+  .search-input::placeholder {
+    color: var(--text-muted);
+  }
+
+  .notes-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+  }
+
+  .note-item {
+    padding: 12px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    margin-bottom: 4px;
+    transition: background 0.15s;
+  }
+
+  .note-item:hover {
+    background: var(--surface);
+  }
+
+  .note-item.selected {
+    background: var(--primary);
+    color: var(--bg);
+  }
+
+  .note-item.selected .note-item-preview,
+  .note-item.selected .note-item-date {
+    color: var(--bg-secondary);
+  }
+
+  .note-item-title {
+    font-weight: 500;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .note-item-preview {
+    font-size: 12px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .note-item-date {
+    font-size: 11px;
+    color: var(--text-subtle);
+    margin-top: 4px;
+  }
+
+  .empty-list {
+    padding: 32px 16px;
+    text-align: center;
+    color: var(--text-muted);
+  }
+
+  .sidebar-footer {
+    padding: 12px 16px;
+    font-size: 12px;
+    color: var(--text-muted);
+    border-top: 1px solid var(--border);
+  }
+}

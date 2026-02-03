@@ -1,0 +1,238 @@
+/**
+ * Pulse Notes - Electron Desktop App
+ * Main Application Component
+ */
+
+import Sidebar from './components/Sidebar.pulse'
+import Editor from './components/Editor.pulse'
+import SystemPanel from './components/SystemPanel.pulse'
+
+@page App
+
+state {
+  notes: []
+  selectedNoteId: null
+  searchQuery: ""
+  systemInfo: null
+  isLoading: true
+  isSidebarCollapsed: false
+  nextId: 1
+}
+
+view {
+  .app[class="{isSidebarCollapsed ? 'sidebar-collapsed' : ''}"] {
+    Sidebar(
+      notes={getFilteredNotes()},
+      selectedNoteId={selectedNoteId},
+      searchQuery={searchQuery},
+      noteCount={notes.length},
+      onSearch={setSearchQuery},
+      onSelectNote={selectNote},
+      onCreateNote={createNote}
+    )
+    Editor(
+      note={getSelectedNote()},
+      onUpdateNote={updateNote},
+      onDeleteNote={deleteNote}
+    )
+    SystemPanel(
+      systemInfo={systemInfo},
+      isCollapsed={isSidebarCollapsed},
+      onToggle={toggleSidebar}
+    )
+  }
+}
+
+actions {
+  async init() {
+    await Promise.all([
+      loadNotes(),
+      loadSystemInfo()
+    ])
+  }
+
+  async loadNotes() {
+    isLoading = true
+    try {
+      const loaded = await window.electronAPI.notes.load()
+      if (loaded.length > 0) {
+        notes = loaded
+        nextId = Math.max(...loaded.map(n => n.id)) + 1
+        selectedNoteId = loaded[0].id
+      } else {
+        // Create welcome note
+        const welcomeNote = {
+          id: nextId++,
+          title: "Welcome to Pulse Notes!",
+          content: "This is a desktop notes app built with:\n\n- Pulse Framework (reactive UI)\n- Electron (desktop runtime)\n\nYour notes are saved to your system automatically.\n\nTry creating a new note with the + button!",
+          createdAt: Date.now(),
+          updatedAt: Date.now()
+        }
+        notes = [welcomeNote]
+        selectedNoteId = welcomeNote.id
+        await saveNotes()
+      }
+    } catch (err) {
+      console.error("Failed to load notes:", err)
+    }
+    isLoading = false
+  }
+
+  async loadSystemInfo() {
+    systemInfo = await window.electronAPI.system.getInfo()
+  }
+
+  async saveNotes() {
+    await window.electronAPI.notes.save(notes)
+  }
+
+  getFilteredNotes() {
+    const query = searchQuery.toLowerCase()
+    if (!query) return notes
+    return notes.filter(note =>
+      note.title.toLowerCase().includes(query) ||
+      note.content.toLowerCase().includes(query)
+    )
+  }
+
+  getSelectedNote() {
+    if (!selectedNoteId) return null
+    return notes.find(n => n.id === selectedNoteId) || null
+  }
+
+  setSearchQuery(query) {
+    searchQuery = query
+  }
+
+  selectNote(id) {
+    selectedNoteId = id
+  }
+
+  createNote() {
+    const newNote = {
+      id: nextId++,
+      title: "Untitled Note",
+      content: "",
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    }
+    notes = [newNote, ...notes]
+    selectedNoteId = newNote.id
+    saveNotes()
+  }
+
+  updateNote(id, updates) {
+    notes = notes.map(n => n.id === id
+      ? { ...n, ...updates, updatedAt: Date.now() }
+      : n
+    )
+    saveNotes()
+  }
+
+  async deleteNote(id) {
+    const note = notes.find(n => n.id === id)
+    if (!note) return
+
+    const confirmed = await window.electronAPI.dialog.confirm(`Delete "${note.title}"?`)
+    if (!confirmed) return
+
+    const index = notes.findIndex(n => n.id === id)
+    notes = notes.filter(n => n.id !== id)
+
+    // Select adjacent note
+    if (selectedNoteId === id) {
+      if (notes.length > 0) {
+        const newIndex = Math.min(index, notes.length - 1)
+        selectedNoteId = notes[newIndex].id
+      } else {
+        selectedNoteId = null
+      }
+    }
+
+    saveNotes()
+  }
+
+  toggleSidebar() {
+    isSidebarCollapsed = !isSidebarCollapsed
+  }
+}
+
+style {
+  :root {
+    --bg: #1e1e2e;
+    --bg-secondary: #181825;
+    --bg-tertiary: #11111b;
+    --surface: #313244;
+    --text: #cdd6f4;
+    --text-muted: #6c7086;
+    --text-subtle: #45475a;
+    --primary: #89b4fa;
+    --primary-hover: #b4befe;
+    --danger: #f38ba8;
+    --success: #a6e3a1;
+    --border: #45475a;
+    --radius: 8px;
+    --sidebar-width: 280px;
+    --panel-width: 220px;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html, body {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-app-region: drag;
+  }
+
+  button, input, textarea {
+    -webkit-app-region: no-drag;
+  }
+
+  .app {
+    display: grid;
+    grid-template-columns: var(--sidebar-width) 1fr var(--panel-width);
+    height: 100vh;
+    transition: grid-template-columns 0.2s ease;
+  }
+
+  .app.sidebar-collapsed {
+    grid-template-columns: var(--sidebar-width) 1fr 0;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--surface);
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--text-subtle);
+  }
+
+  /* macOS specific */
+  @supports (-webkit-app-region: drag) {
+    .sidebar-header {
+      padding-left: 80px;
+    }
+  }
+}

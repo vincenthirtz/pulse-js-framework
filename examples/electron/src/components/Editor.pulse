@@ -1,0 +1,113 @@
+/**
+ * Editor Component - Note editing area
+ */
+
+@page Editor
+
+props {
+  note: null
+  onUpdateNote: null
+  onDeleteNote: null
+}
+
+view {
+  .editor {
+    @if (!note) {
+      .editor-empty {
+        .empty-icon "📝"
+        div "Select a note or create a new one"
+      }
+    }
+    @if (note) {
+      .editor-toolbar {
+        input.editor-title[type="text"][placeholder="Note title"][aria-label="Note title"][value={note.title}] @input(onUpdateNote && onUpdateNote(note.id, { title: event.target.value }))
+        button.btn-delete[title="Delete note"][aria-label="Delete note"] @click(onDeleteNote && onDeleteNote(note.id)) "🗑️"
+      }
+      textarea.editor-content[placeholder="Start writing..."][aria-label="Note content"][value={note.content}] @input(onUpdateNote && onUpdateNote(note.id, { content: event.target.value }))
+    }
+  }
+}
+
+style {
+  .editor {
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    padding-top: env(titlebar-area-height, 40px);
+  }
+
+  .editor-empty {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+  }
+
+  .empty-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+  }
+
+  .editor-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .editor-title {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-size: 20px;
+    font-weight: 600;
+  }
+
+  .editor-title:focus {
+    outline: none;
+  }
+
+  .editor-title::placeholder {
+    color: var(--text-subtle);
+  }
+
+  .btn-delete {
+    padding: 8px 12px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-delete:hover {
+    background: var(--danger);
+    border-color: var(--danger);
+    color: var(--bg);
+  }
+
+  .editor-content {
+    flex: 1;
+    padding: 24px;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-size: 15px;
+    line-height: 1.7;
+    resize: none;
+  }
+
+  .editor-content:focus {
+    outline: none;
+  }
+
+  .editor-content::placeholder {
+    color: var(--text-subtle);
+  }
+}

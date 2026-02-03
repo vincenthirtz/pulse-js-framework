@@ -33,6 +33,7 @@ export const TokenType = {
 
   // Directives
   AT: 'AT',           // @
+  DIRECTIVE_MOD: 'DIRECTIVE_MOD', // .modifier after @directive (e.g., @click.prevent)
   PAGE: 'PAGE',
   ROUTE: 'ROUTE',
   IF: 'IF',
@@ -499,10 +500,31 @@ export class Lexer {
         continue;
       }
 
-      // At-sign for directives
+      // At-sign for directives with optional modifiers
       if (char === '@') {
         this.advance();
         this.tokens.push(new Token(TokenType.AT, '@', startLine, startColumn));
+
+        // After @, read directive name (if identifier follows)
+        if (/[a-zA-Z]/.test(this.current())) {
+          // Read the directive name
+          const nameToken = this.readIdentifier();
+          this.tokens.push(nameToken);
+
+          // Read modifiers: .prevent, .stop, .enter, etc.
+          while (!this.isEOF() && this.current() === '.' && /[a-zA-Z]/.test(this.peek())) {
+            this.advance(); // skip '.'
+            const modStartLine = this.line;
+            const modStartColumn = this.column;
+            let modName = '';
+            while (!this.isEOF() && /[a-zA-Z0-9]/.test(this.current())) {
+              modName += this.advance();
+            }
+            if (modName) {
+              this.tokens.push(new Token(TokenType.DIRECTIVE_MOD, modName, modStartLine, modStartColumn));
+            }
+          }
+        }
         continue;
       }
 

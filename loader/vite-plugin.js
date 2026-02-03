@@ -5,6 +5,8 @@
  */
 
 import { compile } from '../compiler/index.js';
+import { existsSync } from 'fs';
+import { resolve, dirname } from 'path';
 
 /**
  * Create Pulse Vite plugin
@@ -18,14 +20,35 @@ export default function pulsePlugin(options = {}) {
 
   return {
     name: 'vite-plugin-pulse',
+    enforce: 'pre',
 
     /**
-     * Resolve .pulse files
+     * Resolve .pulse files and .js imports that map to .pulse files
+     * The compiler transforms .pulse imports to .js, so we need to
+     * resolve them back to .pulse for Vite to process them
      */
-    resolveId(id) {
-      if (id.endsWith('.pulse')) {
-        return id;
+    resolveId(id, importer) {
+      // Direct .pulse imports - resolve to absolute path
+      if (id.endsWith('.pulse') && importer) {
+        const importerDir = dirname(importer);
+        const absolutePath = resolve(importerDir, id);
+        if (existsSync(absolutePath)) {
+          return absolutePath;
+        }
       }
+
+      // Check if a .js import has a corresponding .pulse file
+      // This handles the compiler's transformation of .pulse -> .js imports
+      if (id.endsWith('.js') && importer) {
+        const pulseId = id.replace(/\.js$/, '.pulse');
+        const importerDir = dirname(importer);
+        const absolutePulsePath = resolve(importerDir, pulseId);
+
+        if (existsSync(absolutePulsePath)) {
+          return absolutePulsePath;
+        }
+      }
+
       return null;
     },
 

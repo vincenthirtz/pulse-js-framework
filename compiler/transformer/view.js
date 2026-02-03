@@ -15,6 +15,7 @@ export const VIEW_NODE_HANDLERS = {
   [NodeType.IfDirective]: 'transformIfDirective',
   [NodeType.EachDirective]: 'transformEachDirective',
   [NodeType.EventDirective]: 'transformEventDirective',
+  [NodeType.ModelDirective]: 'transformModelDirective',
   [NodeType.SlotElement]: 'transformSlot',
   [NodeType.LinkDirective]: 'transformLinkDirective',
   [NodeType.OutletDirective]: 'transformOutletDirective',
@@ -89,6 +90,8 @@ export function transformViewNode(transformer, node, indent = 0) {
         return transformEachDirective(transformer, node, indent);
       case NodeType.EventDirective:
         return transformEventDirective(transformer, node, indent);
+      case NodeType.ModelDirective:
+        return transformModelDirective(transformer, node, indent);
       case NodeType.SlotElement:
         return transformSlot(transformer, node, indent);
       case NodeType.LinkDirective:
@@ -296,6 +299,36 @@ export function transformFocusTrapDirective(transformer, node, indent) {
 }
 
 /**
+ * Extract dynamic attributes from a selector
+ * Returns { cleanSelector, dynamicAttrs } where dynamicAttrs is an array of { name, expr }
+ * @param {string} selector - CSS selector with potential dynamic attributes
+ * @returns {Object} { cleanSelector, dynamicAttrs }
+ */
+function extractDynamicAttributes(selector) {
+  const dynamicAttrs = [];
+  // Match attributes with {expression} values: [name={expr}] or [name="{expr}"]
+  const attrPattern = /\[([a-zA-Z][a-zA-Z0-9-]*)\s*=\s*\{([^}]+)\}\]/g;
+  const attrPatternQuoted = /\[([a-zA-Z][a-zA-Z0-9-]*)\s*=\s*"\{([^}]+)\}"\]/g;
+
+  let cleanSelector = selector;
+
+  // Extract unquoted dynamic attributes: [value={expr}]
+  let match;
+  while ((match = attrPattern.exec(selector)) !== null) {
+    dynamicAttrs.push({ name: match[1], expr: match[2] });
+  }
+  cleanSelector = cleanSelector.replace(attrPattern, '');
+
+  // Extract quoted dynamic attributes: [value="{expr}"]
+  while ((match = attrPatternQuoted.exec(selector)) !== null) {
+    dynamicAttrs.push({ name: match[1], expr: match[2] });
+  }
+  cleanSelector = cleanSelector.replace(attrPatternQuoted, '');
+
+  return { cleanSelector, dynamicAttrs };
+}
+
+/**
  * Transform element
  * @param {Object} transformer - Transformer instance
  * @param {Object} node - Element node
@@ -317,14 +350,18 @@ export function transformElement(transformer, node, indent) {
     return transformComponentCall(transformer, node, indent);
   }
 
+  // Extract dynamic attributes from selector (e.g., [value={searchQuery}])
+  let { cleanSelector, dynamicAttrs } = extractDynamicAttributes(node.selector);
+
   // Add scoped class to selector if CSS scoping is enabled
-  let selector = node.selector;
+  let selector = cleanSelector;
   if (transformer.scopeId && selector) {
     selector = addScopeToSelector(transformer, selector);
   }
 
   // Extract directives by type
   const eventHandlers = node.directives.filter(d => d.type === NodeType.EventDirective);
+  const modelDirectives = node.directives.filter(d => d.type === NodeType.ModelDirective);
   const a11yDirectives = node.directives.filter(d => d.type === NodeType.A11yDirective);
   const liveDirectives = node.directives.filter(d => d.type === NodeType.LiveDirective);
   const focusTrapDirectives = node.directives.filter(d => d.type === NodeType.FocusTrapDirective);
@@ -392,8 +429,9 @@ export function transformElement(transformer, node, indent) {
     enhancedSelector = selector + staticAttrs.join('');
   }
 
-  // Start with el() call
-  parts.push(`${pad}el('${enhancedSelector}'`);
+  // Start with el() call - escape single quotes in selector
+  const escapedSelector = enhancedSelector.replace(/'/g, "\\'");
+  parts.push(`${pad}el('${escapedSelector}'`);
 
   // Add text content
   if (node.textContent.length > 0) {
@@ -413,17 +451,49 @@ export function transformElement(transformer, node, indent) {
 
   parts.push(')');
 
-  // Chain event handlers
+  // Chain event handlers with modifiers support
   let result = parts.join('');
   for (const handler of eventHandlers) {
     const handlerCode = transformExpression(transformer, handler.handler);
-    result = `on(${result}, '${handler.event}', () => { ${handlerCode}; })`;
+    const modifiers = handler.modifiers || [];
+
+    if (modifiers.length === 0) {
+      // Always pass event parameter since handlers commonly use event.target, etc.
+      result = `on(${result}, '${handler.event}', (event) => { ${handlerCode}; })`;
+    } else {
+      const modifiedHandler = generateModifiedHandler(handler.event, handlerCode, modifiers);
+      result = `on(${result}, '${handler.event}', ${modifiedHandler})`;
+    }
+  }
+
+  // Chain model directives for two-way binding
+  for (const directive of modelDirectives) {
+    const binding = transformExpression(transformer, directive.binding);
+    const modifiers = directive.modifiers || [];
+
+    // Build options from modifiers
+    const options = [];
+    if (modifiers.includes('lazy')) options.push('lazy: true');
+    if (modifiers.includes('trim')) options.push('trim: true');
+    if (modifiers.includes('number')) options.push('number: true');
+
+    if (options.length > 0) {
+      result = `model(${result}, ${binding}, { ${options.join(', ')} })`;
+    } else {
+      result = `model(${result}, ${binding})`;
+    }
   }
 
   // Chain focus trap if present
   for (const directive of focusTrapDirectives) {
     const optionsCode = transformFocusTrapDirective(transformer, directive, 0);
     result = `trapFocus(${result}, ${optionsCode})`;
+  }
+
+  // Chain dynamic attribute bindings (e.g., [value={searchQuery}])
+  for (const attr of dynamicAttrs) {
+    const exprCode = transformExpressionString(transformer, attr.expr);
+    result = `bind(${result}, '${attr.name}', () => ${exprCode})`;
   }
 
   return result;
@@ -538,25 +608,59 @@ export function transformTextNode(transformer, node, indent) {
  */
 export function transformIfDirective(transformer, node, indent) {
   const pad = ' '.repeat(indent);
-  const condition = transformExpression(transformer, node.condition);
 
-  const consequent = node.consequent.map(c =>
-    transformViewNode(transformer, c, indent + 2)
-  ).join(',\n');
+  // Helper to build nested when() calls for else-if chains
+  function buildConditionChain(condition, consequent, elseIfBranches, alternate, depth = 0) {
+    const innerPad = ' '.repeat(indent + depth * 2);
+    const conditionCode = transformExpression(transformer, condition);
 
-  let code = `${pad}when(\n`;
-  code += `${pad}  () => ${condition},\n`;
-  code += `${pad}  () => (\n${consequent}\n${pad}  )`;
+    // Wrap multiple children in array, single child returns directly
+    const consequentItems = consequent.map(c =>
+      transformViewNode(transformer, c, indent + depth * 2 + 4)
+    );
+    const consequentCode = consequentItems.length === 1
+      ? consequentItems[0]
+      : `[\n${consequentItems.join(',\n')}\n${innerPad}    ]`;
 
-  if (node.alternate) {
-    const alternate = node.alternate.map(c =>
-      transformViewNode(transformer, c, indent + 2)
-    ).join(',\n');
-    code += `,\n${pad}  () => (\n${alternate}\n${pad}  )`;
+    let code = `${innerPad}when(\n`;
+    code += `${innerPad}  () => ${conditionCode},\n`;
+    code += `${innerPad}  () => ${consequentCode}`;
+
+    // Handle else-if branches
+    if (elseIfBranches && elseIfBranches.length > 0) {
+      const nextBranch = elseIfBranches[0];
+      const remainingBranches = elseIfBranches.slice(1);
+
+      code += `,\n${innerPad}  () => (\n`;
+      code += buildConditionChain(
+        nextBranch.condition,
+        nextBranch.consequent,
+        remainingBranches,
+        alternate,
+        depth + 2
+      );
+      code += `\n${innerPad}  )`;
+    } else if (alternate) {
+      // Final else branch - wrap multiple children in array
+      const alternateItems = alternate.map(c =>
+        transformViewNode(transformer, c, indent + depth * 2 + 4)
+      );
+      const alternateCode = alternateItems.length === 1
+        ? alternateItems[0]
+        : `[\n${alternateItems.join(',\n')}\n${innerPad}    ]`;
+      code += `,\n${innerPad}  () => ${alternateCode}`;
+    }
+
+    code += `\n${innerPad})`;
+    return code;
   }
 
-  code += `\n${pad})`;
-  return code;
+  return buildConditionChain(
+    node.condition,
+    node.consequent,
+    node.elseIfBranches || [],
+    node.alternate
+  );
 }
 
 /**
@@ -574,10 +678,19 @@ export function transformEachDirective(transformer, node, indent) {
     transformViewNode(transformer, t, indent + 2)
   ).join(',\n');
 
-  return `${pad}list(\n` +
-         `${pad}  () => ${iterable},\n` +
-         `${pad}  (${node.itemName}, _index) => (\n${template}\n${pad}  )\n` +
-         `${pad})`;
+  // Build list() call with optional key function
+  let code = `${pad}list(\n` +
+             `${pad}  () => ${iterable},\n` +
+             `${pad}  (${node.itemName}, _index) => (\n${template}\n${pad}  )`;
+
+  // Add key function if provided
+  if (node.keyExpr) {
+    const keyExprCode = transformExpression(transformer, node.keyExpr);
+    code += `,\n${pad}  (${node.itemName}) => ${keyExprCode}`;
+  }
+
+  code += `\n${pad})`;
+  return code;
 }
 
 /**
@@ -600,4 +713,86 @@ export function transformEventDirective(transformer, node, indent) {
   }
 
   return `/* event: ${node.event} -> ${handler} */`;
+}
+
+/**
+ * Transform @model directive for two-way binding
+ * @param {Object} transformer - Transformer instance
+ * @param {Object} node - Model directive node
+ * @param {number} indent - Indentation level
+ * @returns {string} JavaScript code
+ */
+export function transformModelDirective(transformer, node, indent) {
+  const pad = ' '.repeat(indent);
+  const binding = transformExpression(transformer, node.binding);
+  const modifiers = node.modifiers || [];
+
+  // Build options from modifiers
+  const options = [];
+  if (modifiers.includes('lazy')) options.push('lazy: true');
+  if (modifiers.includes('trim')) options.push('trim: true');
+  if (modifiers.includes('number')) options.push('number: true');
+
+  if (options.length > 0) {
+    return `${pad}/* model: ${binding} { ${options.join(', ')} } */`;
+  }
+
+  return `${pad}/* model: ${binding} */`;
+}
+
+/**
+ * Generate event handler code with modifiers applied
+ * @param {string} event - Event name
+ * @param {string} handlerCode - Handler expression code
+ * @param {string[]} modifiers - Array of modifier names
+ * @returns {string} JavaScript handler code
+ */
+function generateModifiedHandler(event, handlerCode, modifiers) {
+  // Key modifiers map
+  const keyMap = {
+    enter: 'Enter', tab: 'Tab', delete: 'Delete', esc: 'Escape', escape: 'Escape',
+    space: ' ', up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight'
+  };
+
+  // System key modifiers
+  const systemModifiers = ['ctrl', 'alt', 'shift', 'meta'];
+
+  // Build handler code with checks
+  const checks = [];
+  let hasEventParam = false;
+
+  for (const mod of modifiers) {
+    if (mod === 'prevent') {
+      checks.push('event.preventDefault();');
+      hasEventParam = true;
+    } else if (mod === 'stop') {
+      checks.push('event.stopPropagation();');
+      hasEventParam = true;
+    } else if (mod === 'self') {
+      checks.push('if (event.target !== event.currentTarget) return;');
+      hasEventParam = true;
+    } else if (keyMap[mod]) {
+      checks.push(`if (event.key !== '${keyMap[mod]}') return;`);
+      hasEventParam = true;
+    } else if (systemModifiers.includes(mod)) {
+      checks.push(`if (!event.${mod}Key) return;`);
+      hasEventParam = true;
+    }
+  }
+
+  // Build options for addEventListener
+  const options = [];
+  if (modifiers.includes('capture')) options.push('capture: true');
+  if (modifiers.includes('once')) options.push('once: true');
+  if (modifiers.includes('passive')) options.push('passive: true');
+
+  const checksCode = checks.join(' ');
+  // Always pass event parameter since handler code commonly uses event.target, etc.
+  const handler = `(event) => { ${checksCode} ${handlerCode}; }`;
+
+  if (options.length > 0) {
+    return `${handler}, { ${options.join(', ')} }`;
+  }
+
+  return handler;
 }

@@ -1,0 +1,137 @@
+/**
+ * SystemPanel Component - Display system information
+ */
+
+@page SystemPanel
+
+props {
+  systemInfo: null
+  isCollapsed: false
+  onToggle: null
+}
+
+view {
+  .system-panel {
+    .system-header {
+      span "System Info"
+      button.btn-collapse @click(onToggle && onToggle()) "{isCollapsed ? '◀' : '▶'}"
+    }
+
+    .system-content {
+      @if (!systemInfo) {
+        .loading "Loading..."
+      }
+      @if (systemInfo) {
+        .info-row {
+          .info-label "Platform"
+          .info-value "{systemInfo.platform} ({systemInfo.arch})"
+        }
+        .info-row {
+          .info-label "Hostname"
+          .info-value "{systemInfo.hostname}"
+        }
+        .info-row {
+          .info-label "CPU"
+          .info-value "{systemInfo.cpuModel.split('@')[0].trim()}"
+        }
+        .info-row {
+          .info-label "Cores"
+          .info-value "{systemInfo.cpuCores}"
+        }
+        .info-row {
+          .info-label "Memory"
+          .info-value "{systemInfo.freeMemory} / {systemInfo.totalMemory} GB"
+        }
+        .info-row {
+          .info-label "Electron"
+          .info-value "{systemInfo.electronVersion}"
+        }
+        .info-row {
+          .info-label "Node"
+          .info-value "{systemInfo.nodeVersion}"
+        }
+        .info-row {
+          .info-label "Chrome"
+          .info-value "{systemInfo.chromeVersion}"
+        }
+      }
+    }
+  }
+}
+
+style {
+  .system-panel {
+    background: var(--bg-tertiary);
+    border-left: 1px solid var(--border);
+    padding-top: env(titlebar-area-height, 40px);
+    overflow: hidden;
+    transition: width 0.2s ease;
+  }
+
+  .app.sidebar-collapsed .system-panel {
+    border-left: none;
+  }
+
+  .system-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    font-weight: 500;
+    font-size: 13px;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .btn-collapse {
+    width: 24px;
+    height: 24px;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 10px;
+  }
+
+  .btn-collapse:hover {
+    background: var(--surface);
+    color: var(--text);
+  }
+
+  .system-content {
+    padding: 16px;
+  }
+
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .info-row:last-child {
+    border-bottom: none;
+  }
+
+  .info-label {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .info-value {
+    font-size: 12px;
+    color: var(--text);
+    text-align: right;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .loading {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 24px;
+  }
+}

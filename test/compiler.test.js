@@ -854,6 +854,319 @@ view {
 });
 
 // =============================================================================
+// Event Modifier Tests
+// =============================================================================
+
+printSection('Event Modifier Tests');
+
+test('tokenizes event modifiers', () => {
+  const tokens = tokenize('@click.prevent.stop');
+  assertEqual(tokens[0].type, 'AT', 'Expected AT');
+  assertEqual(tokens[1].type, 'IDENT', 'Expected IDENT (click)');
+  assertEqual(tokens[1].value, 'click', 'Expected click');
+  assertEqual(tokens[2].type, 'DIRECTIVE_MOD', 'Expected DIRECTIVE_MOD');
+  assertEqual(tokens[2].value, 'prevent', 'Expected prevent');
+  assertEqual(tokens[3].type, 'DIRECTIVE_MOD', 'Expected DIRECTIVE_MOD');
+  assertEqual(tokens[3].value, 'stop', 'Expected stop');
+});
+
+test('parses event directive with modifiers', () => {
+  const source = `
+@page App
+
+view {
+  button @click.prevent.stop(handleClick) "Submit"
+}`;
+  const ast = parse(source);
+  const button = ast.view.children[0];
+  const clickDirective = button.directives.find(d => d.type === 'EventDirective');
+  assert(clickDirective !== undefined, 'Expected EventDirective');
+  assertEqual(clickDirective.event, 'click', 'Expected click event');
+  assertEqual(clickDirective.modifiers.length, 2, 'Expected 2 modifiers');
+  assertEqual(clickDirective.modifiers[0], 'prevent', 'Expected prevent modifier');
+  assertEqual(clickDirective.modifiers[1], 'stop', 'Expected stop modifier');
+});
+
+test('compiles event directive with modifiers', () => {
+  const source = `
+@page App
+
+view {
+  button @click.prevent(handleClick) "Submit"
+}`;
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  assert(result.code.includes('event.preventDefault()'), 'Expected preventDefault call');
+});
+
+test('compiles keydown with key modifier', () => {
+  const source = `
+@page App
+
+view {
+  input @keydown.enter(submit)
+}`;
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  assert(result.code.includes("event.key !== 'Enter'"), 'Expected Enter key check');
+});
+
+test('compiles event with system modifier', () => {
+  const source = `
+@page App
+
+view {
+  input @keydown.ctrl.s(save)
+}`;
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  assert(result.code.includes('event.ctrlKey'), 'Expected ctrlKey check');
+});
+
+// =============================================================================
+// @model Directive Tests
+// =============================================================================
+
+printSection('@model Directive Tests');
+
+test('parses @model directive', () => {
+  const source = `
+@page App
+
+state {
+  name: ""
+}
+
+view {
+  input @model(name)
+}`;
+  const ast = parse(source);
+  const input = ast.view.children[0];
+  const modelDirective = input.directives.find(d => d.type === 'ModelDirective');
+  assert(modelDirective !== undefined, 'Expected ModelDirective');
+});
+
+test('parses @model with modifiers', () => {
+  const source = `
+@page App
+
+state {
+  name: ""
+}
+
+view {
+  input @model.lazy.trim(name)
+}`;
+  const ast = parse(source);
+  const input = ast.view.children[0];
+  const modelDirective = input.directives.find(d => d.type === 'ModelDirective');
+  assert(modelDirective !== undefined, 'Expected ModelDirective');
+  assertEqual(modelDirective.modifiers.length, 2, 'Expected 2 modifiers');
+  assert(modelDirective.modifiers.includes('lazy'), 'Expected lazy modifier');
+  assert(modelDirective.modifiers.includes('trim'), 'Expected trim modifier');
+});
+
+test('compiles @model directive', () => {
+  const source = `
+@page App
+
+state {
+  name: ""
+}
+
+view {
+  input @model(name)
+}`;
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  assert(result.code.includes('model('), 'Expected model call');
+});
+
+test('compiles @model with options', () => {
+  const source = `
+@page App
+
+state {
+  name: ""
+}
+
+view {
+  input @model.lazy.trim(name)
+}`;
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  assert(result.code.includes('lazy: true'), 'Expected lazy option');
+  assert(result.code.includes('trim: true'), 'Expected trim option');
+});
+
+// =============================================================================
+// Key Function Tests (@for with key)
+// =============================================================================
+
+printSection('Key Function Tests');
+
+test('parses @for with key function', () => {
+  const source = `
+@page App
+
+state {
+  items: []
+}
+
+view {
+  ul {
+    @for (item of items) key(item.id) {
+      li "{item.name}"
+    }
+  }
+}`;
+  const ast = parse(source);
+  const ul = ast.view.children[0];
+  const forDirective = ul.children[0];
+  assertEqual(forDirective.type, 'EachDirective', 'Expected EachDirective');
+  assert(forDirective.keyExpr !== null, 'Expected keyExpr');
+});
+
+test('compiles @for with key function', () => {
+  const source = `
+@page App
+
+state {
+  items: []
+}
+
+view {
+  @for (item of items) key(item.id) {
+    div "{item.name}"
+  }
+}`;
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  assert(result.code.includes('(item) => item.id'), 'Expected key function in list call');
+});
+
+test('compiles @for without key function', () => {
+  const source = `
+@page App
+
+state {
+  items: []
+}
+
+view {
+  @for (item of items) {
+    div "{item.name}"
+  }
+}`;
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  // Should not have key function
+  const listMatch = result.code.match(/list\([^)]+\)/g);
+  assert(listMatch, 'Expected list call');
+});
+
+// =============================================================================
+// @else-if Tests
+// =============================================================================
+
+printSection('@else-if Tests');
+
+test('parses @if with @else-if', () => {
+  const source = `
+@page App
+
+state {
+  status: "loading"
+}
+
+view {
+  @if (status === "loading") {
+    div "Loading..."
+  } @else-if (status === "error") {
+    div "Error"
+  } @else {
+    div "Done"
+  }
+}`;
+  const ast = parse(source);
+  const ifDirective = ast.view.children[0];
+  assertEqual(ifDirective.type, 'IfDirective', 'Expected IfDirective');
+  assert(ifDirective.elseIfBranches.length === 1, 'Expected 1 else-if branch');
+  assert(ifDirective.alternate !== null, 'Expected alternate');
+});
+
+test('parses multiple @else-if', () => {
+  const source = `
+@page App
+
+state {
+  status: "a"
+}
+
+view {
+  @if (status === "a") {
+    div "A"
+  } @else-if (status === "b") {
+    div "B"
+  } @else-if (status === "c") {
+    div "C"
+  } @else {
+    div "D"
+  }
+}`;
+  const ast = parse(source);
+  const ifDirective = ast.view.children[0];
+  assertEqual(ifDirective.elseIfBranches.length, 2, 'Expected 2 else-if branches');
+});
+
+test('compiles @else-if to nested when()', () => {
+  const source = `
+@page App
+
+state {
+  status: "loading"
+}
+
+view {
+  @if (status === "loading") {
+    div "Loading"
+  } @else-if (status === "error") {
+    div "Error"
+  } @else {
+    div "Done"
+  }
+}`;
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  // Should have nested when() calls
+  const whenCount = (result.code.match(/when\(/g) || []).length;
+  assertEqual(whenCount, 2, 'Expected 2 when() calls for if + else-if');
+});
+
+test('parses @else @if syntax', () => {
+  const source = `
+@page App
+
+state {
+  status: "a"
+}
+
+view {
+  @if (status === "a") {
+    div "A"
+  } @else @if (status === "b") {
+    div "B"
+  } @else {
+    div "C"
+  }
+}`;
+  const ast = parse(source);
+  const ifDirective = ast.view.children[0];
+  assertEqual(ifDirective.type, 'IfDirective', 'Expected IfDirective');
+  assert(ifDirective.elseIfBranches.length === 1, 'Expected 1 else-if branch');
+});
+
+// =============================================================================
 // Results
 // =============================================================================
 

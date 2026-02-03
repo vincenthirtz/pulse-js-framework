@@ -177,8 +177,22 @@ export function transformFunctionBody(transformer, tokens) {
   let lastToken = null;
   let lastNonSpaceToken = null;
 
+  // Tokens that must follow } directly without semicolon
+  const NO_SEMI_BEFORE = new Set(['catch', 'finally', 'else']);
+
   const needsManualSemicolon = (token, nextToken, lastNonSpace) => {
     if (!token || lastNonSpace?.value === 'new') return false;
+    // Don't add semicolon after 'await' - it always needs its expression
+    if (lastNonSpace?.value === 'await') return false;
+    // For 'return': bare return followed by statement keyword needs semicolon
+    if (lastNonSpace?.value === 'return') {
+      // If followed by a statement keyword, it's a bare return - needs semicolon
+      if (token.type === 'IDENT' && STATEMENT_KEYWORDS.has(token.value)) return true;
+      if (STATEMENT_TOKEN_TYPES.has(token.type)) return true;
+      return false;  // return expression - no semicolon
+    }
+    // Don't add semicolon before catch/finally/else after }
+    if (lastNonSpace?.type === 'RBRACE' && NO_SEMI_BEFORE.has(token.value)) return false;
     if (STATEMENT_TOKEN_TYPES.has(token.type)) return true;
     if (token.type !== 'IDENT') return false;
     if (STATEMENT_KEYWORDS.has(token.value)) return true;
@@ -245,29 +259,158 @@ export function transformFunctionBody(transformer, tokens) {
     lastNonSpaceToken = token;
   }
 
+  // Protect string literals from state var replacement
+  const stringPlaceholders = [];
+  const protectStrings = (str) => {
+    // Match strings and template literals, handling escapes
+    return str.replace(/(["'`])(?:\\.|(?!\1)[^\\])*\1/g, (match) => {
+      const index = stringPlaceholders.length;
+      stringPlaceholders.push(match);
+      return `__STRING_${index}__`;
+    });
+  };
+  const restoreStrings = (str) => {
+    return str.replace(/__STRING_(\d+)__/g, (_, index) => stringPlaceholders[parseInt(index)]);
+  };
+
+  // Protect strings before transformations
+  code = protectStrings(code);
+
   // Build patterns for state variable transformation
   const stateVarPattern = [...stateVars].join('|');
   const funcPattern = [...actionNames, ...BUILTIN_FUNCTIONS].join('|');
   const keywordsPattern = [...STATEMENT_KEYWORDS].join('|');
 
   // Transform state var assignments: stateVar = value -> stateVar.set(value)
+  // Match assignment and find end by tracking balanced brackets
   for (const stateVar of stateVars) {
-    const boundaryPattern = `\\s+(?:${stateVarPattern})(?:\\s*=(?!=)|\\s*\\.set\\()|\\s+(?:${funcPattern})\\s*\\(|\\s+(?:${keywordsPattern})\\b|;|$`;
-    const assignPattern = new RegExp(`\\b${stateVar}\\s*=(?!=)\\s*(.+?)(?=${boundaryPattern})`, 'g');
-    code = code.replace(assignPattern, (_, value) => `${stateVar}.set(${value.trim()});`);
+    const pattern = new RegExp(`\\b${stateVar}\\s*=(?!=)`, 'g');
+    let match;
+    const replacements = [];
+
+    while ((match = pattern.exec(code)) !== null) {
+      const startIdx = match.index + match[0].length;
+
+      // Skip whitespace
+      let exprStart = startIdx;
+      while (exprStart < code.length && /\s/.test(code[exprStart])) exprStart++;
+
+      // Find end of expression with bracket balancing
+      let depth = 0;
+      let endIdx = exprStart;
+      let inString = false;
+      let stringChar = '';
+
+      for (let i = exprStart; i < code.length; i++) {
+        const ch = code[i];
+        const prevCh = i > 0 ? code[i-1] : '';
+
+        // Handle string literals
+        if (!inString && (ch === '"' || ch === "'" || ch === '`')) {
+          inString = true;
+          stringChar = ch;
+          endIdx = i + 1;
+          continue;
+        }
+        if (inString) {
+          if (ch === stringChar && prevCh !== '\\') {
+            inString = false;
+          }
+          endIdx = i + 1;
+          continue;
+        }
+
+        // Track bracket depth
+        if (ch === '(' || ch === '[' || ch === '{') {
+          depth++;
+          endIdx = i + 1;
+          continue;
+        }
+        if (ch === ')' || ch === ']' || ch === '}') {
+          if (depth > 0) {
+            depth--;
+            endIdx = i + 1;
+            continue;
+          }
+          // depth would go negative - this is a boundary (e.g., closing brace of if block)
+          break;
+        }
+
+        // At depth 0, check for statement boundaries
+        if (depth === 0) {
+          // Semicolon ends the expression
+          if (ch === ';') {
+            break;
+          }
+          // Check for whitespace followed by keyword/identifier that starts a new statement
+          if (/\s/.test(ch)) {
+            const rest = code.slice(i);
+            const keywordBoundary = new RegExp(`^\\s+(?:(?:${stateVarPattern})\\s*=(?!=)|(?:${keywordsPattern}|await|return)\\b|(?:${funcPattern})\\s*\\()`);
+            if (keywordBoundary.test(rest)) {
+              break;
+            }
+          }
+        }
+
+        endIdx = i + 1;
+      }
+
+      const value = code.slice(exprStart, endIdx).trim();
+      if (value) {
+        replacements.push({
+          start: match.index,
+          end: endIdx,
+          replacement: `${stateVar}.set(${value});`
+        });
+      }
+    }
+
+    // Apply replacements in reverse order
+    for (let i = replacements.length - 1; i >= 0; i--) {
+      const r = replacements[i];
+      code = code.slice(0, r.start) + r.replacement + code.slice(r.end);
+    }
   }
 
   // Clean up any double semicolons
   code = code.replace(/;+/g, ';');
   code = code.replace(/; ;/g, ';');
 
-  // Replace state var reads
+  // Handle post-increment/decrement on state vars: stateVar++ -> ((v) => (stateVar.set(v + 1), v))(stateVar.get())
+  for (const stateVar of stateVars) {
+    // Post-increment: stateVar++ (returns old value)
+    code = code.replace(
+      new RegExp(`\\b${stateVar}\\s*\\+\\+`, 'g'),
+      `((v) => (${stateVar}.set(v + 1), v))(${stateVar}.get())`
+    );
+    // Post-decrement: stateVar-- (returns old value)
+    code = code.replace(
+      new RegExp(`\\b${stateVar}\\s*--`, 'g'),
+      `((v) => (${stateVar}.set(v - 1), v))(${stateVar}.get())`
+    );
+    // Pre-increment: ++stateVar (returns new value)
+    code = code.replace(
+      new RegExp(`\\+\\+\\s*${stateVar}\\b`, 'g'),
+      `(${stateVar}.set(${stateVar}.get() + 1), ${stateVar}.get())`
+    );
+    // Pre-decrement: --stateVar (returns new value)
+    code = code.replace(
+      new RegExp(`--\\s*${stateVar}\\b`, 'g'),
+      `(${stateVar}.set(${stateVar}.get() - 1), ${stateVar}.get())`
+    );
+  }
+
+  // Replace state var reads (not in assignments, not already with .get/.set)
+  // Allow spread operators (...stateVar) but block member access (obj.stateVar)
   for (const stateVar of stateVars) {
     code = code.replace(
-      new RegExp(`(?<!\\.\\s*)\\b${stateVar}\\b(?!\\s*=(?!=)|\\s*\\(|\\s*\\.(?:get|set))`, 'g'),
+      new RegExp(`(?:(?<=\\.\\.\\.)|(?<!\\.))\\b${stateVar}\\b(?!\\s*=(?!=)|\\s*\\(|\\s*\\.(?:get|set))`, 'g'),
       `${stateVar}.get()`
     );
   }
+
+  // Restore protected strings
+  code = restoreStrings(code);
 
   return code.trim();
 }

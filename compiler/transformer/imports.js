@@ -39,6 +39,7 @@ export function generateImports(transformer) {
     'el',
     'text',
     'on',
+    'bind',
     'list',
     'when',
     'mount',
