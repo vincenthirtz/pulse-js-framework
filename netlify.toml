@@ -6,6 +6,12 @@
 [build.environment]
   NODE_VERSION = "18"
 
+# Edge Functions for dynamic SEO
+[[edge_functions]]
+  path = "/*"
+  function = "seo"
+  excludedPath = ["/assets/*", "/runtime/*", "/examples/*", "/*.js", "/*.css", "/*.png", "/*.svg", "/*.ico", "/*.json", "/*.xml"]
+
 # Headers for JS files
 [[headers]]
   for = "*.js"
