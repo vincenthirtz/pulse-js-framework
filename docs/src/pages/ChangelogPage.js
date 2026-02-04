@@ -27,7 +27,21 @@ export function ChangelogPage() {
     
     
     
+    
     <section class="doc-section changelog-section">
+      <h2>v1.7.15 - Enhanced Testing Infrastructure</h2>
+      <p class="release-date">February 2026</p>
+
+      <div class="changelog-group">
+        <ul class="feature-list">
+          <li><strong>Added:</strong> add EnhancedMockAdapter for browser API simulation</li>
+          <li><strong>Added:</strong> add global search, TOC sidebar, and breadcrumbs navigation</li>
+          <li><strong>Changed:</strong> improve test coverage across CLI and runtime modules</li>
+          <li><strong>Changed:</strong> add SEO improvements with sitemap and dynamic meta tags</li>
+        </ul>
+      </div>
+    </section>
+<section class="doc-section changelog-section">
       <h2>v1.7.14 - y</h2>
       <p class="release-date">February 2026</p>
 
