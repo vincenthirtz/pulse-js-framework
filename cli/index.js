@@ -486,6 +486,11 @@ async function initProject(args) {
     mkdirSync(join(cwd, 'src'));
   }
 
+  // Create public directory if it doesn't exist
+  if (!existsSync(join(cwd, 'public'))) {
+    mkdirSync(join(cwd, 'public'));
+  }
+
   // Check for existing package.json
   const pkgPath = join(cwd, 'package.json');
   let pkg = {};
@@ -574,12 +579,219 @@ export default defineConfig({
     log.success('Created tsconfig.json');
   }
 
+  // Create index.html if it doesn't exist
+  const indexHtmlPath = join(cwd, 'index.html');
+  if (!existsSync(indexHtmlPath)) {
+    const mainExt = useTypescript ? 'ts' : 'js';
+    const indexHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${projectName}</title>
+</head>
+<body>
+  <div id="app"></div>
+  <script type="module" src="/src/main.${mainExt}"></script>
+</body>
+</html>
+`;
+    writeFileSync(indexHtmlPath, indexHtml);
+    log.success('Created index.html');
+  }
+
+  // Create main entry file if it doesn't exist
+  const mainExt = useTypescript ? 'ts' : 'js';
+  const mainPath = join(cwd, 'src', `main.${mainExt}`);
+  if (!existsSync(mainPath)) {
+    const mainContent = useTypescript
+      ? `import App from './App.pulse';
+
+// Type-safe app mounting
+App.mount('#app');
+
+// Enable HMR in development
+if (import.meta.hot) {
+  import.meta.hot.accept();
+}
+`
+      : `import App from './App.pulse';
+
+App.mount('#app');
+`;
+    writeFileSync(mainPath, mainContent);
+    log.success(`Created src/main.${mainExt}`);
+  }
+
+  // Create App.pulse if it doesn't exist
+  const appPulsePath = join(cwd, 'src', 'App.pulse');
+  if (!existsSync(appPulsePath)) {
+    const appPulse = `@page App
+
+// Welcome to Pulse Framework!
+// Documentation: https://pulse-js.fr
+//
+// Quick links:
+// - Getting Started: https://pulse-js.fr/getting-started
+// - Reactivity (pulse, effect, computed): https://pulse-js.fr/reactivity
+// - DOM Creation (el, mount, list): https://pulse-js.fr/dom
+// - Router: https://pulse-js.fr/router
+// - Store: https://pulse-js.fr/store
+// - Forms: https://pulse-js.fr/forms
+// - CLI Commands: https://pulse-js.fr/cli
+
+state {
+  count: 0
+  name: "Pulse"
+}
+
+view {
+  #app {
+    h1.title "Welcome to {name}!"
+
+    .counter {
+      p "Count: {count}"
+
+      .buttons {
+        button @click(count--) "-"
+        button @click(count++) "+"
+      }
+    }
+
+    p.info "Edit src/App.pulse and save to hot reload."
+
+    .docs {
+      h2 "Resources"
+      ul {
+        li {
+          a[href=https://pulse-js.fr/getting-started] "Getting Started"
+        }
+        li {
+          a[href=https://pulse-js.fr/reactivity] "Reactivity System"
+        }
+        li {
+          a[href=https://pulse-js.fr/cli] "CLI Commands"
+        }
+        li {
+          a[href=https://github.com/vincenthirtz/pulse-js-framework] "GitHub Repository"
+        }
+      }
+    }
+  }
+}
+
+style {
+  #app {
+    font-family: system-ui, -apple-system, sans-serif
+    max-width: 600px
+    margin: 0 auto
+    padding: 40px 20px
+    text-align: center
+  }
+
+  .title {
+    color: #646cff
+    font-size: 2.5em
+    margin-bottom: 30px
+  }
+
+  .counter {
+    background: #f5f5f5
+    padding: 30px
+    border-radius: 12px
+    margin-bottom: 20px
+
+    p {
+      font-size: 1.5em
+      margin-bottom: 20px
+    }
+  }
+
+  .buttons {
+    display: flex
+    gap: 10px
+    justify-content: center
+
+    button {
+      font-size: 1.2em
+      padding: 10px 24px
+      border: none
+      border-radius: 8px
+      background: #646cff
+      color: white
+      cursor: pointer
+      transition: background 0.2s
+    }
+
+    button:hover {
+      background: #535bf2
+    }
+  }
+
+  .info {
+    color: #888
+    font-size: 0.9em
+    margin-bottom: 30px
+  }
+
+  .docs {
+    text-align: left
+    background: #fafafa
+    padding: 20px 30px
+    border-radius: 12px
+
+    h2 {
+      color: #333
+      font-size: 1.2em
+      margin-bottom: 15px
+    }
+
+    ul {
+      list-style: none
+      padding: 0
+      margin: 0
+    }
+
+    li {
+      margin-bottom: 10px
+    }
+
+    a {
+      color: #646cff
+      text-decoration: none
+      font-size: 0.95em
+    }
+
+    a:hover {
+      text-decoration: underline
+    }
+  }
+}
+`;
+    writeFileSync(appPulsePath, appPulse);
+    log.success('Created src/App.pulse');
+  }
+
+  // Create .gitignore if it doesn't exist
+  const gitignorePath = join(cwd, '.gitignore');
+  if (!existsSync(gitignorePath)) {
+    const gitignore = `node_modules
+dist
+.DS_Store
+*.local
+${useTypescript ? '*.tsbuildinfo\n' : ''}`;
+    writeFileSync(gitignorePath, gitignore);
+    log.success('Created .gitignore');
+  }
+
   log.info(`
 Initialization complete!
 
 Next steps:
   npm install
   npm run dev
+
+Documentation: https://pulse-js.fr
   `);
 }
 
