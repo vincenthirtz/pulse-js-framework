@@ -1682,13 +1682,14 @@ export class Parser {
 
     // Tokens that should not have space after them in CSS values
     const noSpaceAfter = new Set(['#', '(', '.', '/', 'rgba', 'rgb', 'hsl', 'hsla', 'var', 'calc', 'url', 'linear-gradient', 'radial-gradient']);
-    // Tokens that should not have space before them
-    const noSpaceBefore = new Set([')', ',', '%', 'px', 'em', 'rem', 'vh', 'vw', 'fr', 's', 'ms', '(']);
+    // Tokens that should not have space before them (units and punctuation)
+    const noSpaceBefore = new Set([')', ',', '%', 'px', 'em', 'rem', 'vh', 'vw', 'vmin', 'vmax', 'fr', 's', 'ms', '(', 'deg', 'rad', 'turn', 'grad', 'ex', 'ch', 'pt', 'pc', 'in', 'cm', 'mm']);
 
     let value = '';
     let lastTokenValue = '';
     let lastTokenLine = this.current()?.line || 0;
     let afterHash = false;  // Track if we're collecting a hex color
+    let hexColorLength = 0; // Track hex color length (max 8 for RRGGBBAA)
     let inCssVar = false;   // Track if we're inside var(--...)
 
     while (!this.is(TokenType.SEMICOLON) && !this.is(TokenType.RBRACE) && !this.is(TokenType.EOF)) {
@@ -1713,12 +1714,24 @@ export class Parser {
       }
 
       // For hex colors (#abc123), collect tokens without spacing after #
+      // Hex colors are 3, 4, 6, or 8 characters long
       if (tokenValue === '#') {
         afterHash = true;
+        hexColorLength = 0;
       } else if (afterHash) {
-        // Still collecting hex color - no space
-        // Stop collecting when we hit a space-requiring character
-        if (tokenValue === ' ' || tokenValue === ';' || tokenValue === ')') {
+        // Check if this token is a valid hex color continuation
+        const tokenStr = String(tokenValue);
+        const isHexChar = /^[0-9a-fA-F]+$/.test(tokenStr);
+        if (isHexChar) {
+          const newLength = hexColorLength + tokenStr.length;
+          // Valid hex color lengths are 3, 4, 6, or 8
+          // If adding this token would exceed a valid length, stop
+          if (hexColorLength >= 6 || newLength > 8) {
+            afterHash = false;
+          } else {
+            hexColorLength = newLength;
+          }
+        } else {
           afterHash = false;
         }
       }
@@ -1727,16 +1740,15 @@ export class Parser {
       // - It's the first token
       // - Last token was in noSpaceAfter
       // - This token is in noSpaceBefore
-      // - We're collecting a hex color (afterHash and last was #)
+      // - We're collecting a hex color (afterHash is true)
       // - We're inside var(--...) and this is part of the variable name
       // - Last was '-' and current is an identifier (hyphenated name)
-      const skipSpace = noSpaceAfter.has(lastTokenValue) ||
+      const skipSpace = noSpaceAfter.has(String(lastTokenValue)) ||
                         noSpaceBefore.has(tokenValue) ||
-                        (afterHash && lastTokenValue === '#') ||
-                        (afterHash && /^[0-9a-fA-F]+$/.test(tokenValue)) ||
+                        afterHash ||
                         inCssVar ||
                         (lastTokenValue === '-' || lastTokenValue === '--') ||
-                        (tokenValue === '-' && /^[a-zA-Z]/.test(this.current()?.value || ''));
+                        (tokenValue === '-' && /^[a-zA-Z]/.test(String(this.current()?.value || '')));
 
       if (value.length > 0 && !skipSpace) {
         value += ' ';
