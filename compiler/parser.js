@@ -1575,17 +1575,24 @@ export class Parser {
         const lastPart = selectorParts[selectorParts.length - 1];
 
         // Don't add space after these (they attach to what follows)
-        const noSpaceAfter = ['.', '#', ':', '[', '(', '>', '+', '~'];
+        const noSpaceAfter = ['.', '#', ':', '[', '(', '>', '+', '~', '-'];
         // Don't add space before these (they attach to what precedes)
-        const noSpaceBefore = [':', ']', ')', ',', '.', '#'];
+        const noSpaceBefore = [':', ']', ')', ',', '.', '#', '-'];
 
         // Special case: . or # after an identifier needs space (descendant selector)
         // e.g., ".school .date" - need space between "school" and "."
         const isDescendantSelector = (tokenValue === '.' || tokenValue === '#') &&
                                      lastToken?.type === TokenType.IDENT;
 
+        // Special case: hyphenated class names like .job-title
+        // Don't add space if current token is '-' and last token was IDENT
+        // Or if last token was '-' (the next token should attach to it)
+        const isHyphenatedIdent = (tokenValue === '-' && lastToken?.type === TokenType.IDENT) ||
+                                  (lastToken?.type === TokenType.MINUS);
+
         const needsSpace = !noSpaceAfter.includes(lastPart) &&
-                          !noSpaceBefore.includes(tokenValue) ||
+                          !noSpaceBefore.includes(tokenValue) &&
+                          !isHyphenatedIdent ||
                           isDescendantSelector;
 
         if (needsSpace) {
