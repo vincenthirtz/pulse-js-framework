@@ -145,7 +145,7 @@ export default {
     },
     faqSSR: {
       q: 'Styður Pulse SSR?',
-      a: 'Ekki ennþá, en það er á vegakorti. Eins og er er Pulse hagrætt fyrir biðlarahliðar SPA og farsímaöpp.'
+      a: 'Já! Frá útgáfu 1.7.0 styður Pulse Server-Side Rendering með <code>renderToString()</code> og <code>hydrate()</code>. Sjá <a href="/ssr">SSR leiðbeiningarnar</a> fyrir nánari upplýsingar.'
     },
     faqDebug: {
       q: 'Hvernig kembi ég forritið mitt?',

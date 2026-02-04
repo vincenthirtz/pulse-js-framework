@@ -83,7 +83,7 @@ const unsubscribe = count.subscribe(value => {
 });
 ```
 
-### effect(fn)
+### effect(fn, options?)
 
 Create a reactive side effect that runs when dependencies change.
 
@@ -97,6 +97,43 @@ effect(() => {
   const id = setInterval(() => tick(), 1000);
   return () => clearInterval(id);
 });
+
+// With options
+effect(() => {
+  riskyOperation();
+}, {
+  id: 'data-sync',  // Custom ID for debugging
+  onError: (err) => {
+    console.error('Effect failed:', err.effectId, err.phase, err.cause);
+  }
+});
+```
+
+### onEffectError(handler)
+
+Global error handler for effects.
+
+```javascript
+import { onEffectError, EffectError } from 'pulse-js-framework/runtime';
+
+onEffectError((err) => {
+  reportError({
+    id: err.effectId,
+    phase: err.phase,  // 'run' | 'cleanup'
+    cause: err.cause
+  });
+});
+```
+
+### pulse.derive(fn)
+
+Shorthand to create a derived pulse (equivalent to computed).
+
+```javascript
+const count = pulse(5);
+const doubled = count.derive(n => n * 2);
+
+doubled.get(); // 10
 ```
 
 ### computed(fn, options?)
@@ -108,6 +145,10 @@ const doubled = computed(() => count.get() * 2);
 
 // Eager evaluation (default is lazy)
 const eager = computed(() => count.get() * 2, { lazy: false });
+
+// Cleanup when no longer needed
+const total = computed(() => heavyCalculation(data.get()));
+total.dispose(); // Clean up subscriptions
 ```
 
 ### batch(fn)
@@ -452,6 +493,135 @@ setAriaAttributes(button, {
 });
 ```
 
+### createAnnouncementQueue(options?)
+
+Queue multiple announcements to prevent overlap.
+
+```javascript
+const queue = createAnnouncementQueue({ minDelay: 500 });
+
+queue.add('First message');
+queue.add('Second message', { priority: 'assertive' });
+queue.queueLength.get();  // Number of queued messages
+queue.clear();
+```
+
+### onEscapeKey(element, handler)
+
+Handle Escape key press (for modals/dialogs).
+
+```javascript
+const removeHandler = onEscapeKey(dialog, () => closeDialog());
+// Later: removeHandler();
+```
+
+### createFocusVisibleTracker()
+
+Detect keyboard vs mouse users.
+
+```javascript
+const { isKeyboardUser, cleanup } = createFocusVisibleTracker();
+
+effect(() => {
+  if (isKeyboardUser.get()) {
+    document.body.classList.add('keyboard-user');
+  }
+});
+```
+
+### ARIA Widgets
+
+#### createModal(element, options?)
+
+Create an accessible modal dialog.
+
+```javascript
+const modal = createModal(dialogElement, {
+  labelledBy: 'modal-title',
+  describedBy: 'modal-description',
+  closeOnBackdropClick: true,
+  onClose: () => console.log('Modal closed')
+});
+
+modal.open();
+modal.close();
+modal.isOpen.get();  // Reactive state
+```
+
+#### createTooltip(trigger, tooltip, options?)
+
+Create an accessible tooltip.
+
+```javascript
+const tooltip = createTooltip(buttonEl, tooltipEl, {
+  showDelay: 500,
+  hideDelay: 100
+});
+
+tooltip.isVisible.get();  // Reactive state
+tooltip.cleanup();
+```
+
+#### createAccordion(container, options?)
+
+Create an accessible accordion.
+
+```javascript
+const accordion = createAccordion(container, {
+  triggerSelector: '[data-accordion-trigger]',
+  panelSelector: '[data-accordion-panel]',
+  allowMultiple: false,
+  defaultOpen: 0
+});
+
+accordion.open(1);
+accordion.closeAll();
+accordion.openIndices.get();  // Reactive array
+```
+
+#### createMenu(button, menuList, options?)
+
+Create an accessible dropdown menu.
+
+```javascript
+const menu = createMenu(menuButton, menuList, {
+  itemSelector: '[role="menuitem"]',
+  closeOnSelect: true,
+  onSelect: (el, index) => console.log('Selected:', el)
+});
+
+menu.open();
+menu.toggle();
+menu.cleanup();
+```
+
+### Color Contrast
+
+#### getContrastRatio(color1, color2)
+
+Calculate WCAG contrast ratio.
+
+```javascript
+const ratio = getContrastRatio('#333', '#fff');  // 12.63
+```
+
+#### meetsContrastRequirement(ratio, level, textSize)
+
+Check if contrast meets WCAG requirements.
+
+```javascript
+meetsContrastRequirement(4.5, 'AA', 'normal');  // true (>= 4.5)
+meetsContrastRequirement(4.5, 'AAA', 'large');  // true (>= 4.5)
+```
+
+#### checkElementContrast(element, level?)
+
+Check element's text contrast.
+
+```javascript
+const { ratio, passes, foreground, background } = checkElementContrast(textEl, 'AA');
+```
+
 ---
 
 ## Router
@@ -639,6 +809,66 @@ const getters = createGetters(store, {
 getters.isLoggedIn.get(); // true/false
 ```
 
+### Plugins
+
+```javascript
+import { usePlugin, loggerPlugin, historyPlugin } from 'pulse-js-framework/runtime/store';
+
+// Logger plugin - logs all state changes
+usePlugin(store, loggerPlugin);
+
+// History plugin - undo/redo support
+usePlugin(store, (s) => historyPlugin(s, 100)); // Keep 100 history states
+
+// History methods
+store.$undo();     // Undo last change
+store.$redo();     // Redo undone change
+store.$canUndo();  // true if undo available
+store.$canRedo();  // true if redo available
+```
+
+### combineStores(stores)
+
+Combine multiple stores.
+
+```javascript
+import { combineStores } from 'pulse-js-framework/runtime/store';
+
+const rootStore = combineStores({
+  user: createStore({ name: '', email: '' }),
+  settings: createStore({ theme: 'dark', lang: 'en' })
+});
+
+rootStore.user.name.get();
+rootStore.settings.theme.set('light');
+```
+
+### createModuleStore(modules)
+
+Vuex-style module store.
+
+```javascript
+import { createModuleStore } from 'pulse-js-framework/runtime/store';
+
+const store = createModuleStore({
+  user: {
+    state: { name: '', loggedIn: false },
+    actions: {
+      login: (store, name) => {
+        store.name.set(name);
+        store.loggedIn.set(true);
+      }
+    },
+    getters: {
+      displayName: (store) => store.loggedIn.get() ? store.name.get() : 'Guest'
+    }
+  }
+});
+
+store.user.login('John');
+store.user.displayName.get(); // 'John'
+```
+
 ---
 
 ## Form
@@ -814,6 +1044,240 @@ async function search(query) {
   const results = await searchApi(query);
   ctx.ifCurrent(() => setResults(results)); // Only if still current
 }
+```
+
+---
+
+## HTTP
+
+```javascript
+import { createHttp, http, HttpError, useHttp, useHttpResource } from 'pulse-js-framework/runtime/http';
+```
+
+### createHttp(options?)
+
+Create an HTTP client instance.
+
+```javascript
+const api = createHttp({
+  baseURL: 'https://api.example.com',
+  timeout: 5000,
+  headers: { 'Authorization': 'Bearer token' },
+  retries: 3,
+  retryDelay: 1000
+});
+
+// HTTP methods
+const users = await api.get('/users');
+const user = await api.post('/users', { name: 'John' });
+await api.put('/users/1', { name: 'Jane' });
+await api.delete('/users/1');
+```
+
+### Interceptors
+
+```javascript
+// Request interceptor
+api.interceptors.request.use(config => {
+  config.headers['X-Timestamp'] = Date.now();
+  return config;
+});
+
+// Response interceptor
+api.interceptors.response.use(
+  response => response,
+  error => {
+    if (error.status === 401) router.navigate('/login');
+    throw error;
+  }
+);
+
+// Remove interceptor
+const id = api.interceptors.request.use(fn);
+api.interceptors.request.eject(id);
+api.interceptors.request.clear();
+```
+
+### HttpError
+
+```javascript
+try {
+  await api.get('/users');
+} catch (error) {
+  if (HttpError.isHttpError(error)) {
+    error.code;      // 'TIMEOUT' | 'NETWORK' | 'ABORT' | 'HTTP_ERROR'
+    error.status;    // HTTP status code
+    error.isTimeout();
+    error.isNetworkError();
+    error.isAborted();
+  }
+}
+
+// Check if error is cancellation
+api.isCancel(error);  // true if request was cancelled
+```
+
+### useHttp(asyncFn, options?)
+
+Reactive HTTP wrapper.
+
+```javascript
+const { data, loading, error, execute, abort } = useHttp(
+  () => api.get('/users'),
+  { immediate: true, retries: 3 }
+);
+```
+
+---
+
+## WebSocket
+
+```javascript
+import { createWebSocket, useWebSocket, WebSocketError } from 'pulse-js-framework/runtime/websocket';
+```
+
+### createWebSocket(url, options?)
+
+Create a WebSocket client with auto-reconnect and heartbeat.
+
+```javascript
+const ws = createWebSocket('wss://api.example.com/ws', {
+  reconnect: true,
+  maxRetries: 5,
+  heartbeat: true,
+  heartbeatInterval: 30000,
+  queueWhileDisconnected: true
+});
+
+// Reactive state
+ws.state.get();           // 'connecting' | 'open' | 'closing' | 'closed'
+ws.connected.get();       // true when open
+ws.reconnecting.get();    // true during reconnection
+ws.queuedCount.get();     // Queued message count
+
+// Send messages
+ws.send({ type: 'subscribe', channel: 'updates' });
+
+// Listen for events
+ws.on('message', (data) => console.log('Received:', data));
+ws.on('open', () => console.log('Connected'));
+
+// Interceptors
+ws.interceptors.incoming.use(data => ({ ...data, timestamp: Date.now() }));
+ws.interceptors.outgoing.use(data => JSON.stringify({ ...JSON.parse(data), token: 'abc' }));
+```
+
+### useWebSocket(url, options?)
+
+Reactive WebSocket hook.
+
+```javascript
+const { connected, lastMessage, messages, send, disconnect } = useWebSocket(
+  'wss://api.example.com/ws',
+  {
+    immediate: true,
+    messageHistorySize: 100,
+    onMessage: (data) => console.log('Message:', data)
+  }
+);
+
+effect(() => {
+  if (connected.get()) {
+    send({ type: 'subscribe' });
+  }
+});
+```
+
+---
+
+## GraphQL
+
+```javascript
+import {
+  createGraphQLClient, setDefaultClient,
+  useQuery, useMutation, useSubscription
+} from 'pulse-js-framework/runtime/graphql';
+```
+
+### createGraphQLClient(options)
+
+Create a GraphQL client.
+
+```javascript
+const client = createGraphQLClient({
+  url: 'https://api.example.com/graphql',
+  wsUrl: 'wss://api.example.com/graphql',  // For subscriptions
+  headers: { 'Authorization': 'Bearer token' },
+  cache: true,
+  staleTime: 5000,
+  dedupe: true  // Deduplicate in-flight queries
+});
+
+setDefaultClient(client);  // Set as default for hooks
+```
+
+### useQuery(query, variables?, options?)
+
+Execute GraphQL queries with caching.
+
+```javascript
+const { data, loading, error, refetch, isStale } = useQuery(
+  `query GetUsers($limit: Int) {
+    users(limit: $limit) { id name }
+  }`,
+  { limit: 10 },
+  {
+    staleTime: 30000,
+    refetchOnFocus: true,
+    refetchInterval: 60000
+  }
+);
+```
+
+### useMutation(mutation, options?)
+
+Execute GraphQL mutations with optimistic updates.
+
+```javascript
+const { mutate, loading } = useMutation(
+  `mutation CreateUser($input: CreateUserInput!) {
+    createUser(input: $input) { id name }
+  }`,
+  {
+    onMutate: (vars) => {
+      // Optimistic update
+      const previous = cache.get();
+      cache.update(users => [...users, { id: 'temp', ...vars.input }]);
+      return { previous };
+    },
+    onError: (err, vars, ctx) => cache.set(ctx.previous),
+    invalidateQueries: ['gql:GetUsers']
+  }
+);
+
+await mutate({ input: { name: 'John' } });
+```
+
+### useSubscription(subscription, variables?, options?)
+
+Subscribe to GraphQL subscriptions.
+
+```javascript
+const { data, status, unsubscribe } = useSubscription(
+  `subscription OnMessage($channelId: ID!) {
+    messageAdded(channelId: $channelId) { id content }
+  }`,
+  { channelId: '123' },
+  { onData: (msg) => notifications.push(msg) }
+);
+```
+
+### Cache Management
+
+```javascript
+client.invalidate('gql:GetUsers');  // Invalidate specific query
+client.invalidateAll();              // Clear all cache
+client.getCacheStats();              // { size, keys }
 ```
 
 ---

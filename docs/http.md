@@ -111,6 +111,222 @@ api.interceptors.request.eject(id);
 api.interceptors.request.clear();
 ```
 
+### Real-World Interceptor Examples
+
+#### Authentication with Token Refresh
+
+```javascript
+import { pulse } from 'pulse-js-framework/runtime';
+
+const authToken = pulse(localStorage.getItem('token'));
+const refreshToken = pulse(localStorage.getItem('refreshToken'));
+let isRefreshing = false;
+let pendingRequests = [];
+
+// Add auth token to all requests
+api.interceptors.request.use(config => {
+  const token = authToken.get();
+  if (token) {
+    config.headers['Authorization'] = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// Handle 401 and refresh token
+api.interceptors.response.use(
+  response => response,
+  async error => {
+    const originalRequest = error.config;
+
+    // If 401 and we haven't already tried to refresh
+    if (error.status === 401 && !originalRequest._retry) {
+      if (isRefreshing) {
+        // Queue request while refreshing
+        return new Promise((resolve, reject) => {
+          pendingRequests.push({ resolve, reject, config: originalRequest });
+        });
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        const response = await api.post('/auth/refresh', {
+          refreshToken: refreshToken.get()
+        });
+
+        const { token, refresh } = response.data;
+        authToken.set(token);
+        refreshToken.set(refresh);
+        localStorage.setItem('token', token);
+        localStorage.setItem('refreshToken', refresh);
+
+        // Retry pending requests
+        pendingRequests.forEach(({ resolve, config }) => {
+          config.headers['Authorization'] = `Bearer ${token}`;
+          resolve(api.request(config));
+        });
+        pendingRequests = [];
+
+        // Retry original request
+        originalRequest.headers['Authorization'] = `Bearer ${token}`;
+        return api.request(originalRequest);
+      } catch (refreshError) {
+        // Refresh failed, logout
+        pendingRequests.forEach(({ reject }) => reject(refreshError));
+        pendingRequests = [];
+        authToken.set(null);
+        refreshToken.set(null);
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
+        router.navigate('/login');
+        throw refreshError;
+      } finally {
+        isRefreshing = false;
+      }
+    }
+
+    throw error;
+  }
+);
+```
+
+#### Request/Response Logging
+
+```javascript
+api.interceptors.request.use(config => {
+  const requestId = crypto.randomUUID();
+  config.headers['X-Request-ID'] = requestId;
+  config._startTime = Date.now();
+  config._requestId = requestId;
+
+  console.log(`[${requestId}] ${config.method.toUpperCase()} ${config.url}`);
+  return config;
+});
+
+api.interceptors.response.use(
+  response => {
+    const duration = Date.now() - response.config._startTime;
+    console.log(
+      `[${response.config._requestId}] ${response.status} (${duration}ms)`
+    );
+    return response;
+  },
+  error => {
+    const duration = Date.now() - error.config._startTime;
+    console.error(
+      `[${error.config._requestId}] ERROR ${error.status || 'NETWORK'} (${duration}ms)`
+    );
+    throw error;
+  }
+);
+```
+
+#### Caching GET Requests
+
+```javascript
+const cache = new Map();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+api.interceptors.request.use(config => {
+  // Only cache GET requests
+  if (config.method !== 'get') return config;
+
+  const cacheKey = `${config.url}?${new URLSearchParams(config.params || {})}`;
+  const cached = cache.get(cacheKey);
+
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    // Return cached response by throwing a special error
+    const error = new Error('CACHE_HIT');
+    error.cachedResponse = cached.response;
+    throw error;
+  }
+
+  config._cacheKey = cacheKey;
+  return config;
+});
+
+api.interceptors.response.use(
+  response => {
+    // Cache successful GET responses
+    if (response.config._cacheKey) {
+      cache.set(response.config._cacheKey, {
+        response: { ...response },
+        timestamp: Date.now()
+      });
+    }
+    return response;
+  },
+  error => {
+    // Handle cache hit
+    if (error.message === 'CACHE_HIT') {
+      return error.cachedResponse;
+    }
+    throw error;
+  }
+);
+```
+
+#### Rate Limiting
+
+```javascript
+const requestQueue = [];
+const MAX_CONCURRENT = 5;
+let activeRequests = 0;
+
+api.interceptors.request.use(async config => {
+  while (activeRequests >= MAX_CONCURRENT) {
+    await new Promise(resolve => requestQueue.push(resolve));
+  }
+  activeRequests++;
+  return config;
+});
+
+api.interceptors.response.use(
+  response => {
+    activeRequests--;
+    if (requestQueue.length > 0) {
+      requestQueue.shift()();
+    }
+    return response;
+  },
+  error => {
+    activeRequests--;
+    if (requestQueue.length > 0) {
+      requestQueue.shift()();
+    }
+    throw error;
+  }
+);
+```
+
+#### Error Normalization
+
+```javascript
+api.interceptors.response.use(
+  response => response,
+  error => {
+    // Normalize error structure for consistent handling
+    const normalizedError = {
+      message: error.response?.data?.message || error.message || 'Unknown error',
+      code: error.response?.data?.code || error.code || 'UNKNOWN',
+      status: error.status || 0,
+      details: error.response?.data?.details || null,
+      requestId: error.config?.headers?.['X-Request-ID']
+    };
+
+    // Log for monitoring
+    if (error.status >= 500) {
+      console.error('Server error:', normalizedError);
+      // Send to error tracking service
+      // errorTracker.captureException(error, { extra: normalizedError });
+    }
+
+    throw normalizedError;
+  }
+);
+```
+
 ## Child Instances
 
 Create a child instance that inherits config:

@@ -145,7 +145,7 @@ export default {
     },
     faqSSR: {
       q: 'PulseはSSRをサポートしていますか？',
-      a: 'まだですが、ロードマップにあります。現在、Pulseはクライアントサイドのシングルページアプリケーションとモバイルアプリに最適化されています。'
+      a: 'はい！v1.7.0以降、Pulseは<code>renderToString()</code>と<code>hydrate()</code>によるServer-Side Renderingをサポートしています。詳細は<a href="/ssr">SSRガイド</a>をご覧ください。'
     },
     faqDebug: {
       q: 'アプリのデバッグはどうしますか？',

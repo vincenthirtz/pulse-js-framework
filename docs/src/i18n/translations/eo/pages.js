@@ -145,7 +145,7 @@ export default {
     },
     faqSSR: {
       q: 'Ĉu Pulse subtenas SSR?',
-      a: 'Ne ankoraŭ, sed ĝi estas en la vojmapo. Nuntempe Pulse estas optimumigita por klient-flankaj SPA-oj kaj poŝtelefonaj aplikaĵoj.'
+      a: 'Jes! Ekde v1.7.0, Pulse subtenas Server-Side Rendering per <code>renderToString()</code> kaj <code>hydrate()</code>. Vidu la <a href="/ssr">SSR Gvidilon</a> por detaloj.'
     },
     faqDebug: {
       q: 'Kiel mi sencimigas mian aplikaĵon?',

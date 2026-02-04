@@ -25,6 +25,22 @@ npm install
 npm run dev
 ```
 
+Options:
+- `--typescript` - Create a TypeScript project with type definitions
+
+```bash
+pulse create my-app --typescript
+```
+
+#### `pulse init`
+
+Initialize Pulse in the current directory (useful for existing projects).
+
+```bash
+pulse init              # Initialize JavaScript project
+pulse init --typescript # Initialize TypeScript project
+```
+
 #### `pulse dev [port]`
 
 Start the development server with hot module replacement.
@@ -74,6 +90,23 @@ Options:
 - `--watch, -w` - Watch for changes and recompile
 - `--dry-run` - Preview compilation without writing files
 - `--out <dir>` - Output directory (default: same as source)
+
+#### `pulse new <name>`
+
+Quickly create a new `.pulse` file with boilerplate.
+
+```bash
+pulse new Button                      # Create src/components/Button.pulse
+pulse new UserProfile --type page     # Create src/pages/UserProfile.pulse
+pulse new Main --type layout          # Create src/layouts/Main.pulse
+pulse new Counter --props             # Include props section
+pulse new Modal -d src/ui             # Custom output directory
+```
+
+Options:
+- `--type <type>` - Component type: `component` (default), `page`, `layout`
+- `--props` - Include a props section in the template
+- `-d, --dir <path>` - Custom output directory
 
 ---
 
@@ -152,6 +185,92 @@ Import Graph:
 Dead Files (unreachable):
   - src/unused/OldComponent.pulse
 ```
+
+---
+
+### Testing Commands
+
+#### `pulse test`
+
+Run tests using the Node.js built-in test runner.
+
+```bash
+pulse test                    # Run all tests
+pulse test --coverage         # Run with coverage report
+pulse test --watch            # Watch mode
+pulse test --create <name>    # Generate a test file
+```
+
+Options:
+- `--coverage` - Generate code coverage report
+- `--watch` - Watch for file changes and re-run tests
+- `--create <name>` - Create a new test file from template
+
+---
+
+### Scaffolding Commands
+
+#### `pulse scaffold <type> <name>`
+
+Generate code from templates for common patterns.
+
+```bash
+pulse scaffold component Button    # Generate component
+pulse scaffold page Dashboard      # Generate page with routing
+pulse scaffold store cart          # Generate store module
+pulse scaffold hook useTimer       # Generate custom hook
+pulse scaffold service api         # Generate API service
+pulse scaffold context theme       # Generate context provider
+pulse scaffold layout admin        # Generate layout component
+```
+
+Available types:
+- `component` - UI component with state and view
+- `page` - Page component (PascalCase enforced)
+- `store` - Store module with state and actions
+- `hook` - Custom hook (use* prefix enforced)
+- `service` - API service with HTTP methods
+- `context` - Context provider with useContext hook
+- `layout` - Layout component for page structure
+
+---
+
+### Documentation Commands
+
+#### `pulse docs`
+
+Generate API documentation from your codebase.
+
+```bash
+pulse docs --generate                # Generate Markdown docs
+pulse docs --generate --format html  # Generate HTML docs
+pulse docs --generate --format json  # Generate JSON (for tooling)
+```
+
+Options:
+- `--generate` - Generate documentation
+- `--format <format>` - Output format: `markdown` (default), `html`, `json`
+
+---
+
+### Diagnostic Commands
+
+#### `pulse doctor`
+
+Run project diagnostics to identify issues.
+
+```bash
+pulse doctor              # Run all diagnostics
+pulse doctor --verbose    # Detailed output
+```
+
+Checks performed:
+- Node.js version compatibility
+- Package.json validity
+- Dependency issues
+- Configuration errors
+- Pulse file syntax errors
+- Circular dependencies
 
 ---
 

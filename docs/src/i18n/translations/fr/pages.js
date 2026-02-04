@@ -148,7 +148,7 @@ export default {
     },
     faqSSR: {
       q: 'Pulse supporte-t-il le SSR ?',
-      a: 'Pas encore, mais c\'est sur la feuille de route. Actuellement, Pulse est optimisé pour les SPAs côté client et les apps mobiles.'
+      a: 'Oui ! Depuis la v1.7.0, Pulse supporte le Server-Side Rendering avec <code>renderToString()</code> et <code>hydrate()</code>. Voir le <a href="/ssr">Guide SSR</a> pour plus de détails.'
     },
     faqDebug: {
       q: 'Comment déboguer mon application ?',
