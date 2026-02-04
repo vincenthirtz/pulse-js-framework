@@ -25,6 +25,8 @@ export default {
     graphqlDesc: 'クエリ、ミューテーション、サブスクリプション',
     context: '🎯 Context API',
     contextDesc: '依存性注入',
+    ssr: '🖥️ SSR',
+    ssrDesc: 'サーバーサイドレンダリングとハイドレーション',
     devtools: '🛠️ DevTools',
     devtoolsDesc: 'デバッグとプロファイリング',
     accessibility: '♿ アクセシビリティ',

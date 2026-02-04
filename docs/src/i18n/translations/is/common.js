@@ -25,6 +25,8 @@ export default {
     graphqlDesc: 'Query, mutation og subscription',
     context: '🎯 Context API',
     contextDesc: 'Innspýting háðra',
+    ssr: '🖥️ SSR',
+    ssrDesc: 'Netþjóns-hliðar teikning og hydrering',
     devtools: '🛠️ DevTools',
     devtoolsDesc: 'Villuleit og afkastamæling',
     accessibility: '♿ Aðgengi',

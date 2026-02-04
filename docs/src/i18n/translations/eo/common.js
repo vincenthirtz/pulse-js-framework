@@ -25,6 +25,8 @@ export default {
     graphqlDesc: 'Query, mutation kaj subscription',
     context: '🎯 Context API',
     contextDesc: 'Dependeca injektado',
+    ssr: '🖥️ SSR',
+    ssrDesc: 'Servila flanka renderado kaj hidratado',
     devtools: '🛠️ DevTools',
     devtoolsDesc: 'Sencimigado kaj efikeco-profilado',
     accessibility: '♿ Alirebleco',
