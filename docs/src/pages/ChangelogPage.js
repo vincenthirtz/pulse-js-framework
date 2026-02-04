@@ -33,7 +33,18 @@ export function ChangelogPage() {
     
     
     
+    
     <section class="doc-section changelog-section">
+      <h2>v1.7.22 - CSS Selector Bug Fix</h2>
+      <p class="release-date">February 2026</p>
+
+      <div class="changelog-group">
+        <ul class="feature-list">
+          <li><strong>Fixed:</strong> preserve hyphenated class names in CSS selectors</li>
+        </ul>
+      </div>
+    </section>
+<section class="doc-section changelog-section">
       <h2>v1.7.21 - Release</h2>
       <p class="release-date">February 2026</p>
 
