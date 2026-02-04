@@ -216,6 +216,23 @@ export function getNavigation() {
 export const version = '1.7.17';
 
 // =============================================================================
+// Current Path State (for reactive active link detection)
+// =============================================================================
+
+/**
+ * Current path without locale prefix (reactive)
+ * Updated on every route change for active link detection
+ */
+export const currentPath = pulse((() => {
+  const path = window.location.pathname;
+  const parts = path.split('/').filter(Boolean);
+  if (parts.length > 0 && isValidLocale(parts[0])) {
+    return '/' + parts.slice(1).join('/') || '/';
+  }
+  return path || '/';
+})());
+
+// =============================================================================
 // Router
 // =============================================================================
 
@@ -227,7 +244,7 @@ export function initRouter(routes) {
     mode: 'history'
   });
 
-  // Sync locale from URL on route change
+  // Sync locale and current path from URL on route change
   router.afterEach(() => {
     mobileMenuOpen.set(false);
     window.scrollTo(0, 0);
@@ -244,6 +261,12 @@ export function initRouter(routes) {
       // URL has no locale prefix, set to default
       locale.set(defaultLocale);
     }
+
+    // Update current path (without locale) for active link detection
+    const newPath = pathParts.length > 0 && isValidLocale(pathParts[0])
+      ? '/' + pathParts.slice(1).join('/') || '/'
+      : window.location.pathname || '/';
+    currentPath.set(newPath);
 
     // Update SEO metadata for the current page
     const seoPath = extractPathForSEO(window.location.pathname);

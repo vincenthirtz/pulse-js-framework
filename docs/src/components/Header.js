@@ -3,7 +3,7 @@
  */
 
 import { effect, el } from '/runtime/index.js';
-import { mobileMenuOpen, theme, toggleTheme, navStructure, navStructureFlat, router, version, locale, locales, setLocale, navigateLocale, getPathWithoutLocale, t } from '../state.js';
+import { mobileMenuOpen, theme, toggleTheme, navStructure, navStructureFlat, router, version, locale, locales, setLocale, navigateLocale, currentPath, t } from '../state.js';
 import { SearchButton } from './Search.js';
 
 export function Header() {
@@ -100,14 +100,14 @@ export function Header() {
 
         // Update active state (compare without locale prefix)
         effect(() => {
-          const currentPath = getPathWithoutLocale();
-          if (currentPath === child.path) {
+          const path = currentPath.get();
+          if (path === child.path) {
             menuItem.classList.add('active');
             trigger.classList.add('has-active');
           } else {
             menuItem.classList.remove('active');
             // Check if any child is active
-            const pathWithoutLocale = getPathWithoutLocale();
+            const pathWithoutLocale = currentPath.get();
             const anyActive = item.children.some(c => pathWithoutLocale === c.path);
             if (!anyActive) trigger.classList.remove('has-active');
           }
@@ -144,8 +144,8 @@ export function Header() {
       });
       // Update active state
       effect(() => {
-        const currentPath = getPathWithoutLocale();
-        if (currentPath === item.path) {
+        const path = currentPath.get();
+        if (path === item.path) {
           link.classList.add('active');
         } else {
           link.classList.remove('active');
@@ -257,8 +257,8 @@ export function Header() {
     });
     // Update active state
     effect(() => {
-      const currentPath = getPathWithoutLocale();
-      if (currentPath === item.path) {
+      const path = currentPath.get();
+      if (path === item.path) {
         link.classList.add('active');
       } else {
         link.classList.remove('active');
