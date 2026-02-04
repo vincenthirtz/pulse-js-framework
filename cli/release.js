@@ -350,14 +350,15 @@ function updateDocsChangelog(newVersion, title, changes) {
 }
 
 /**
- * Escape HTML entities
+ * Escape HTML entities and convert backticks to <code> tags
  */
 function escapeHtml(str) {
   return str
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+    .replace(/"/g, '&quot;')
+    .replace(/`([^`]+)`/g, '<code>$1</code>');
 }
 
 /**

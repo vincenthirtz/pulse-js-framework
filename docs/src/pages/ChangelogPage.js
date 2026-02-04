@@ -37,7 +37,7 @@ export function ChangelogPage() {
       <div class="changelog-group">
         <ul class="feature-list">
           <li><strong>Added:</strong> improve runtime exports, docs, and add security guide</li>
-          <li><strong>Added:</strong> add `pulse new` command for creating .pulse files</li>
+          <li><strong>Added:</strong> add <code>pulse new</code> command for creating .pulse files</li>
         </ul>
       </div>
     </section>
