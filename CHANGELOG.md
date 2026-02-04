@@ -5,6 +5,23 @@ All notable changes to Pulse Framework will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.18] - 2026-02-04
+
+### SEO & Active Links Fix
+
+### Added
+
+- add page-specific images from Unsplash for social sharing
+- add Netlify Edge Function for dynamic meta tags
+- add per-page SEO and initial SEO on load
+
+### Fixed
+
+- make active menu links reactive to route changes
+- correct Netlify Edge Function configuration
+- escape backticks in changelog HTML template strings
+
+
 ## [1.7.17] - 2026-02-04
 
 ### Added

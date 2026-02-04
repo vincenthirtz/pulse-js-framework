@@ -30,7 +30,23 @@ export function ChangelogPage() {
     
     
     
+    
     <section class="doc-section changelog-section">
+      <h2>v1.7.18 - SEO & Active Links Fix</h2>
+      <p class="release-date">February 2026</p>
+
+      <div class="changelog-group">
+        <ul class="feature-list">
+          <li><strong>Added:</strong> add page-specific images from Unsplash for social sharing</li>
+          <li><strong>Added:</strong> add Netlify Edge Function for dynamic meta tags</li>
+          <li><strong>Added:</strong> add per-page SEO and initial SEO on load</li>
+          <li><strong>Fixed:</strong> make active menu links reactive to route changes</li>
+          <li><strong>Fixed:</strong> correct Netlify Edge Function configuration</li>
+          <li><strong>Fixed:</strong> escape backticks in changelog HTML template strings</li>
+        </ul>
+      </div>
+    </section>
+<section class="doc-section changelog-section">
       <h2>v1.7.17 - Release</h2>
       <p class="release-date">February 2026</p>
 
