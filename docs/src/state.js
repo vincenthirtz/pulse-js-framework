@@ -7,6 +7,31 @@ import { createRouter } from '/runtime/router.js';
 import { locale, localePath, isValidLocale, defaultLocale, t } from './i18n/index.js';
 import { updateSEO, extractPathForSEO } from './seo.js';
 
+// Page imports (centralized here to avoid duplication)
+import { HomePage } from './pages/HomePage.js';
+import { GettingStartedPage } from './pages/GettingStartedPage.js';
+import { CoreConceptsPage } from './pages/CoreConceptsPage.js';
+import { ApiReferencePage } from './pages/ApiReferencePage.js';
+import { MobilePage } from './pages/MobilePage.js';
+import { ExamplesPage } from './pages/ExamplesPage.js';
+import { PlaygroundPage } from './pages/PlaygroundPage.js';
+import { ChangelogPage } from './pages/ChangelogPage.js';
+import { DebuggingPage } from './pages/DebuggingPage.js';
+import { SecurityPage } from './pages/SecurityPage.js';
+import { PerformancePage } from './pages/PerformancePage.js';
+import { ErrorHandlingPage } from './pages/ErrorHandlingPage.js';
+import { HttpPage } from './pages/HttpPage.js';
+import { AccessibilityPage } from './pages/AccessibilityPage.js';
+import { MigrationReactPage } from './pages/MigrationReactPage.js';
+import { MigrationAngularPage } from './pages/MigrationAngularPage.js';
+import { MigrationVuePage } from './pages/MigrationVuePage.js';
+import { BenchmarksPage } from './pages/BenchmarksPage.js';
+import { WebSocketPage } from './pages/WebSocketPage.js';
+import { GraphQLPage } from './pages/GraphQLPage.js';
+import { ContextPage } from './pages/ContextPage.js';
+import { DevToolsPage } from './pages/DevToolsPage.js';
+import { SSRPage } from './pages/SSRPage.js';
+
 // Re-export i18n for convenience
 export { locale, localePath, t, setLocale, getPathWithoutLocale, translations } from './i18n/index.js';
 export { locales, isValidLocale, defaultLocale } from './i18n/locales.js';
@@ -60,82 +85,89 @@ export const tocExpanded = pulse(false);  // Mobile TOC accordion state
  * Use these with t() in effects to get translated labels
  */
 export const navStructure = [
-  { path: '/', labelKey: 'nav.home' },
+  { path: '/', labelKey: 'nav.home', handler: HomePage },
   {
     labelKey: 'nav.learn',
     children: [
-      { path: '/getting-started', labelKey: 'nav.gettingStarted', descKey: 'nav.gettingStartedDesc' },
-      { path: '/core-concepts', labelKey: 'nav.coreConcepts', descKey: 'nav.coreConceptsDesc' },
-      { path: '/migration-react', labelKey: 'nav.migrationReact', descKey: 'nav.migrationReactDesc' },
-      { path: '/migration-angular', labelKey: 'nav.migrationAngular', descKey: 'nav.migrationAngularDesc' },
-      { path: '/migration-vue', labelKey: 'nav.migrationVue', descKey: 'nav.migrationVueDesc' }
+      { path: '/getting-started', labelKey: 'nav.gettingStarted', descKey: 'nav.gettingStartedDesc', handler: GettingStartedPage },
+      { path: '/core-concepts', labelKey: 'nav.coreConcepts', descKey: 'nav.coreConceptsDesc', handler: CoreConceptsPage },
+      { path: '/migration-react', labelKey: 'nav.migrationReact', descKey: 'nav.migrationReactDesc', handler: MigrationReactPage },
+      { path: '/migration-angular', labelKey: 'nav.migrationAngular', descKey: 'nav.migrationAngularDesc', handler: MigrationAngularPage },
+      { path: '/migration-vue', labelKey: 'nav.migrationVue', descKey: 'nav.migrationVueDesc', handler: MigrationVuePage }
     ]
   },
   {
     labelKey: 'nav.reference',
     children: [
-      { path: '/api-reference', labelKey: 'nav.apiReference', descKey: 'nav.apiReferenceDesc' },
-      { path: '/http', labelKey: 'nav.http', descKey: 'nav.httpDesc' },
-      { path: '/websocket', labelKey: 'nav.websocket', descKey: 'nav.websocketDesc' },
-      { path: '/graphql', labelKey: 'nav.graphql', descKey: 'nav.graphqlDesc' },
-      { path: '/context', labelKey: 'nav.context', descKey: 'nav.contextDesc' },
-      { path: '/ssr', labelKey: 'nav.ssr', descKey: 'nav.ssrDesc' }
+      { path: '/api-reference', labelKey: 'nav.apiReference', descKey: 'nav.apiReferenceDesc', handler: ApiReferencePage },
+      { path: '/http', labelKey: 'nav.http', descKey: 'nav.httpDesc', handler: HttpPage },
+      { path: '/websocket', labelKey: 'nav.websocket', descKey: 'nav.websocketDesc', handler: WebSocketPage },
+      { path: '/graphql', labelKey: 'nav.graphql', descKey: 'nav.graphqlDesc', handler: GraphQLPage },
+      { path: '/context', labelKey: 'nav.context', descKey: 'nav.contextDesc', handler: ContextPage },
+      { path: '/ssr', labelKey: 'nav.ssr', descKey: 'nav.ssrDesc', handler: SSRPage }
     ]
   },
   {
     labelKey: 'nav.tools',
     children: [
-      { path: '/devtools', labelKey: 'nav.devtools', descKey: 'nav.devtoolsDesc' },
-      { path: '/debugging', labelKey: 'nav.debugging', descKey: 'nav.debuggingDesc' },
-      { path: '/benchmarks', labelKey: 'nav.benchmarks', descKey: 'nav.benchmarksDesc' }
+      { path: '/devtools', labelKey: 'nav.devtools', descKey: 'nav.devtoolsDesc', handler: DevToolsPage },
+      { path: '/debugging', labelKey: 'nav.debugging', descKey: 'nav.debuggingDesc', handler: DebuggingPage },
+      { path: '/benchmarks', labelKey: 'nav.benchmarks', descKey: 'nav.benchmarksDesc', handler: BenchmarksPage }
     ]
   },
   {
     labelKey: 'nav.guides',
     children: [
-      { path: '/accessibility', labelKey: 'nav.accessibility', descKey: 'nav.accessibilityDesc' },
-      { path: '/security', labelKey: 'nav.security', descKey: 'nav.securityDesc' },
-      { path: '/performance', labelKey: 'nav.performance', descKey: 'nav.performanceDesc' },
-      { path: '/error-handling', labelKey: 'nav.errorHandling', descKey: 'nav.errorHandlingDesc' },
-      { path: '/mobile', labelKey: 'nav.mobile', descKey: 'nav.mobileDesc' }
+      { path: '/accessibility', labelKey: 'nav.accessibility', descKey: 'nav.accessibilityDesc', handler: AccessibilityPage },
+      { path: '/security', labelKey: 'nav.security', descKey: 'nav.securityDesc', handler: SecurityPage },
+      { path: '/performance', labelKey: 'nav.performance', descKey: 'nav.performanceDesc', handler: PerformancePage },
+      { path: '/error-handling', labelKey: 'nav.errorHandling', descKey: 'nav.errorHandlingDesc', handler: ErrorHandlingPage },
+      { path: '/mobile', labelKey: 'nav.mobile', descKey: 'nav.mobileDesc', handler: MobilePage }
     ]
   },
   {
     labelKey: 'nav.examples',
     children: [
-      { path: '/examples', labelKey: 'nav.examplesPage', descKey: 'nav.examplesDesc' },
-      { path: '/playground', labelKey: 'nav.playground', descKey: 'nav.playgroundDesc' }
+      { path: '/examples', labelKey: 'nav.examplesPage', descKey: 'nav.examplesDesc', handler: ExamplesPage },
+      { path: '/playground', labelKey: 'nav.playground', descKey: 'nav.playgroundDesc', handler: PlaygroundPage }
     ]
   },
+  // Hidden routes (not in navigation but need routing)
+  { path: '/changelog', handler: ChangelogPage, hidden: true }
 ];
 
 /**
- * Flat navigation structure for mobile menu (with translation keys)
+ * Derive flat navigation from navStructure (for mobile menu)
+ * Excludes hidden routes
  */
-export const navStructureFlat = [
-  { path: '/', labelKey: 'nav.home' },
-  { path: '/getting-started', labelKey: 'nav.gettingStarted' },
-  { path: '/core-concepts', labelKey: 'nav.coreConcepts' },
-  { path: '/api-reference', labelKey: 'nav.apiReference' },
-  { path: '/http', labelKey: 'nav.http' },
-  { path: '/websocket', labelKey: 'nav.websocket' },
-  { path: '/graphql', labelKey: 'nav.graphql' },
-  { path: '/context', labelKey: 'nav.context' },
-  { path: '/ssr', labelKey: 'nav.ssr' },
-  { path: '/devtools', labelKey: 'nav.devtools' },
-  { path: '/accessibility', labelKey: 'nav.accessibility' },
-  { path: '/debugging', labelKey: 'nav.debugging' },
-  { path: '/security', labelKey: 'nav.security' },
-  { path: '/performance', labelKey: 'nav.performance' },
-  { path: '/benchmarks', labelKey: 'nav.benchmarks' },
-  { path: '/error-handling', labelKey: 'nav.errorHandling' },
-  { path: '/mobile', labelKey: 'nav.mobile' },
-  { path: '/examples', labelKey: 'nav.examplesPage' },
-  { path: '/playground', labelKey: 'nav.playground' },
-  { path: '/migration-react', labelKey: 'nav.migrationReact' },
-  { path: '/migration-angular', labelKey: 'nav.migrationAngular' },
-  { path: '/migration-vue', labelKey: 'nav.migrationVue' }
-];
+export const navStructureFlat = navStructure
+  .flatMap(item => {
+    if (item.hidden) return [];
+    if (item.children) {
+      return item.children.map(child => ({
+        path: child.path,
+        labelKey: child.labelKey
+      }));
+    }
+    return [{ path: item.path, labelKey: item.labelKey }];
+  });
+
+/**
+ * Derive routes object from navStructure (path -> handler)
+ */
+export const baseRoutes = navStructure.reduce((routes, item) => {
+  if (item.path && item.handler) {
+    routes[item.path] = item.handler;
+  }
+  if (item.children) {
+    for (const child of item.children) {
+      if (child.path && child.handler) {
+        routes[child.path] = child.handler;
+      }
+    }
+  }
+  return routes;
+}, {});
 
 /**
  * Get flat navigation for mobile menu (translated)

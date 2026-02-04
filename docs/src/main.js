@@ -5,8 +5,8 @@
 
 import { el, mount } from '/runtime/index.js';
 
-// State & Router
-import { initRouter } from './state.js';
+// State & Router (includes baseRoutes derived from navStructure)
+import { initRouter, baseRoutes } from './state.js';
 import { localeKeys, defaultLocale } from './i18n/locales.js';
 
 // Components
@@ -16,31 +16,6 @@ import { SearchModal, initSearchKeyboard } from './components/Search.js';
 import { TocSidebar, TocMobile, updateTocItems } from './components/TableOfContents.js';
 import { Breadcrumbs } from './components/Breadcrumbs.js';
 
-// Pages
-import { HomePage } from './pages/HomePage.js';
-import { GettingStartedPage } from './pages/GettingStartedPage.js';
-import { CoreConceptsPage } from './pages/CoreConceptsPage.js';
-import { ApiReferencePage } from './pages/ApiReferencePage.js';
-import { MobilePage } from './pages/MobilePage.js';
-import { ExamplesPage } from './pages/ExamplesPage.js';
-import { PlaygroundPage } from './pages/PlaygroundPage.js';
-import { ChangelogPage } from './pages/ChangelogPage.js';
-import { DebuggingPage } from './pages/DebuggingPage.js';
-import { SecurityPage } from './pages/SecurityPage.js';
-import { PerformancePage } from './pages/PerformancePage.js';
-import { ErrorHandlingPage } from './pages/ErrorHandlingPage.js';
-import { HttpPage } from './pages/HttpPage.js';
-import { AccessibilityPage } from './pages/AccessibilityPage.js';
-import { MigrationReactPage } from './pages/MigrationReactPage.js';
-import { MigrationAngularPage } from './pages/MigrationAngularPage.js';
-import { MigrationVuePage } from './pages/MigrationVuePage.js';
-import { BenchmarksPage } from './pages/BenchmarksPage.js';
-import { WebSocketPage } from './pages/WebSocketPage.js';
-import { GraphQLPage } from './pages/GraphQLPage.js';
-import { ContextPage } from './pages/ContextPage.js';
-import { DevToolsPage } from './pages/DevToolsPage.js';
-import { SSRPage } from './pages/SSRPage.js';
-
 // Styles & Utilities
 import { injectStyles } from './styles.js';
 import { highlightAllCode } from './highlighter.js';
@@ -49,34 +24,8 @@ import { highlightAllCode } from './highlighter.js';
 // Routes Configuration
 // =============================================================================
 
-// Base routes (without locale prefix)
-const baseRoutes = {
-  '/': HomePage,
-  '/getting-started': GettingStartedPage,
-  '/core-concepts': CoreConceptsPage,
-  '/api-reference': ApiReferencePage,
-  '/http': HttpPage,
-  '/accessibility': AccessibilityPage,
-  '/debugging': DebuggingPage,
-  '/security': SecurityPage,
-  '/performance': PerformancePage,
-  '/error-handling': ErrorHandlingPage,
-  '/mobile': MobilePage,
-  '/examples': ExamplesPage,
-  '/playground': PlaygroundPage,
-  '/changelog': ChangelogPage,
-  '/migration-react': MigrationReactPage,
-  '/migration-angular': MigrationAngularPage,
-  '/migration-vue': MigrationVuePage,
-  '/benchmarks': BenchmarksPage,
-  '/websocket': WebSocketPage,
-  '/graphql': GraphQLPage,
-  '/context': ContextPage,
-  '/devtools': DevToolsPage,
-  '/ssr': SSRPage
-};
-
 // Build routes with locale prefixes (fr, es, de)
+// baseRoutes is imported from state.js (derived from navStructure)
 const routes = { ...baseRoutes };
 
 // Add locale-prefixed routes for non-default locales
@@ -90,7 +39,7 @@ for (const loc of localeKeys) {
 }
 
 // Fallback to home for unknown routes
-routes['*'] = HomePage;
+routes['*'] = baseRoutes['/'];
 
 // =============================================================================
 // App Component

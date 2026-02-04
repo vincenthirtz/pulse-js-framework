@@ -983,9 +983,9 @@ test('main.js imports router', () => {
   assert(content.includes('router') || content.includes('Router'), 'Should use router');
 });
 
-test('main.js imports pages', () => {
+test('main.js uses baseRoutes from state.js', () => {
   const content = readFileSync(join(docsDir, 'src/main.js'), 'utf-8');
-  assert(content.includes('HomePage'), 'Should import HomePage');
+  assert(content.includes('baseRoutes'), 'Should import baseRoutes from state.js');
 });
 
 test('main.js mounts to app', () => {
