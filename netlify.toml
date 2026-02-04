@@ -7,10 +7,163 @@
   NODE_VERSION = "18"
 
 # Edge Functions for dynamic SEO
+[functions]
+  directory = "netlify/edge-functions"
+
 [[edge_functions]]
-  path = "/*"
+  path = "/"
   function = "seo"
-  excludedPath = ["/assets/*", "/runtime/*", "/examples/*", "/*.js", "/*.css", "/*.png", "/*.svg", "/*.ico", "/*.json", "/*.xml"]
+
+[[edge_functions]]
+  path = "/getting-started"
+  function = "seo"
+
+[[edge_functions]]
+  path = "/core-concepts"
+  function = "seo"
+
+[[edge_functions]]
+  path = "/api-reference"
+  function = "seo"
+
+[[edge_functions]]
+  path = "/http"
+  function = "seo"
+
+[[edge_functions]]
+  path = "/websocket"
+  function = "seo"
+
+[[edge_functions]]
+  path = "/graphql"
+  function = "seo"
+
+[[edge_functions]]
+  path = "/context"
+  function = "seo"
+
+[[edge_functions]]
+  path = "/devtools"
+  function = "seo"
+
+[[edge_functions]]
+  path = "/accessibility"
+  function = "seo"
+
+[[edge_functions]]
+  path = "/debugging"
+  function = "seo"
+
+[[edge_functions]]
+  path = "/security"
+  function = "seo"
+
+[[edge_functions]]
+  path = "/performance"
+  function = "seo"
+
+[[edge_functions]]
+  path = "/error-handling"
+  function = "seo"
+
+[[edge_functions]]
+  path = "/mobile"
+  function = "seo"
+
+[[edge_functions]]
+  path = "/examples"
+  function = "seo"
+
+[[edge_functions]]
+  path = "/playground"
+  function = "seo"
+
+[[edge_functions]]
+  path = "/benchmarks"
+  function = "seo"
+
+[[edge_functions]]
+  path = "/migration-react"
+  function = "seo"
+
+[[edge_functions]]
+  path = "/migration-angular"
+  function = "seo"
+
+[[edge_functions]]
+  path = "/migration-vue"
+  function = "seo"
+
+[[edge_functions]]
+  path = "/changelog"
+  function = "seo"
+
+[[edge_functions]]
+  path = "/ssr"
+  function = "seo"
+
+# Localized routes (fr)
+[[edge_functions]]
+  path = "/fr"
+  function = "seo"
+
+[[edge_functions]]
+  path = "/fr/*"
+  function = "seo"
+
+# Localized routes (es)
+[[edge_functions]]
+  path = "/es"
+  function = "seo"
+
+[[edge_functions]]
+  path = "/es/*"
+  function = "seo"
+
+# Localized routes (de)
+[[edge_functions]]
+  path = "/de"
+  function = "seo"
+
+[[edge_functions]]
+  path = "/de/*"
+  function = "seo"
+
+# Localized routes (ja)
+[[edge_functions]]
+  path = "/ja"
+  function = "seo"
+
+[[edge_functions]]
+  path = "/ja/*"
+  function = "seo"
+
+# Localized routes (pt)
+[[edge_functions]]
+  path = "/pt"
+  function = "seo"
+
+[[edge_functions]]
+  path = "/pt/*"
+  function = "seo"
+
+# Localized routes (is)
+[[edge_functions]]
+  path = "/is"
+  function = "seo"
+
+[[edge_functions]]
+  path = "/is/*"
+  function = "seo"
+
+# Localized routes (eo)
+[[edge_functions]]
+  path = "/eo"
+  function = "seo"
+
+[[edge_functions]]
+  path = "/eo/*"
+  function = "seo"
 
 # Headers for JS files
 [[headers]]

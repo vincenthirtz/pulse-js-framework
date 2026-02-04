@@ -238,10 +238,3 @@ export default async function handler(request, context) {
   });
 }
 
-/**
- * Edge function config
- */
-export const config = {
-  path: "/*",
-  excludedPath: ["/assets/*", "/runtime/*", "/examples/*", "/*.js", "/*.css", "/*.png", "/*.svg", "/*.ico", "/*.json", "/*.xml"]
-};
