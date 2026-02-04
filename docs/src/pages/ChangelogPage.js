@@ -28,7 +28,25 @@ export function ChangelogPage() {
     
     
     
+    
     <section class="doc-section changelog-section">
+      <h2>v1.7.16 - Collapsible TOC Sidebar</h2>
+      <p class="release-date">February 2026</p>
+
+      <div class="changelog-group">
+        <ul class="feature-list">
+          <li><strong>Added:</strong> add collapsible TOC sidebar with slide animation</li>
+          <li><strong>Added:</strong> add server-side rendering with hydration support</li>
+          <li><strong>Added:</strong> add comprehensive help command with per-command documentation</li>
+          <li><strong>Changed:</strong> refactor(docs): centralize routes in navStructure</li>
+          <li><strong>Changed:</strong> i18n: add SSR translations for all locales</li>
+          <li><strong>Changed:</strong> add SSR documentation page and update translations</li>
+          <li><strong>Changed:</strong> test(ssr): improve SSR test coverage from 36 to 116 tests</li>
+          <li><strong>Fixed:</strong> align SSR translation keys with English structure</li>
+        </ul>
+      </div>
+    </section>
+<section class="doc-section changelog-section">
       <h2>v1.7.15 - Enhanced Testing Infrastructure</h2>
       <p class="release-date">February 2026</p>
 

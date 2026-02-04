@@ -5,6 +5,28 @@ All notable changes to Pulse Framework will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.16] - 2026-02-04
+
+### Collapsible TOC Sidebar
+
+### Added
+
+- add collapsible TOC sidebar with slide animation
+- add server-side rendering with hydration support
+- add comprehensive help command with per-command documentation
+
+### Changed
+
+- refactor(docs): centralize routes in navStructure
+- i18n: add SSR translations for all locales
+- add SSR documentation page and update translations
+- test(ssr): improve SSR test coverage from 36 to 116 tests
+
+### Fixed
+
+- align SSR translation keys with English structure
+
+
 ## [1.7.15] - 2026-02-04
 
 ### Enhanced Testing Infrastructure
