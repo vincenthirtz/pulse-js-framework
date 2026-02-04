@@ -121,6 +121,11 @@ export const pageSEO = {
     title: 'Changelog - Pulse Framework',
     description: 'Pulse Framework release history. See all version updates, new features, bug fixes, and breaking changes.',
     keywords: 'changelog, releases, versions, updates, history'
+  },
+  '/ssr': {
+    title: 'Server-Side Rendering (SSR) - Pulse Framework',
+    description: 'Server-side rendering and hydration for Pulse applications. Render to string, hydrate on client, and serialize state for SEO and performance.',
+    keywords: 'SSR, server-side rendering, hydration, SEO, renderToString, isomorphic, universal'
   }
 };
 

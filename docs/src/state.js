@@ -255,6 +255,15 @@ export function initRouter(routes) {
     navigate: (path) => navigateLocale(path)
   };
 
+  // Apply initial SEO on page load
+  const initialPathParts = window.location.pathname.split('/').filter(Boolean);
+  let initialLocale = defaultLocale;
+  if (initialPathParts.length > 0 && isValidLocale(initialPathParts[0])) {
+    initialLocale = initialPathParts[0];
+  }
+  const initialSeoPath = extractPathForSEO(window.location.pathname);
+  updateSEO(initialSeoPath, initialLocale);
+
   return router;
 }
 
