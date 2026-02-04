@@ -12,6 +12,9 @@ import { localeKeys, defaultLocale } from './i18n/locales.js';
 // Components
 import { Header } from './components/Header.js';
 import { Footer } from './components/Footer.js';
+import { SearchModal, initSearchKeyboard } from './components/Search.js';
+import { TocSidebar, TocMobile, updateTocItems } from './components/TableOfContents.js';
+import { Breadcrumbs } from './components/Breadcrumbs.js';
 
 // Pages
 import { HomePage } from './pages/HomePage.js';
@@ -96,9 +99,20 @@ function App() {
 
   app.appendChild(Header());
 
+  // Search modal (appended to app for proper stacking)
+  app.appendChild(SearchModal());
+
+  // Main content wrapper with TOC
+  const contentWrapper = el('.content-wrapper');
+
   // Router outlet - this is where pages will be rendered
   const main = el('main.main#router-outlet');
-  app.appendChild(main);
+  contentWrapper.appendChild(main);
+
+  // Desktop TOC sidebar
+  contentWrapper.appendChild(TocSidebar());
+
+  app.appendChild(contentWrapper);
 
   app.appendChild(Footer());
 
@@ -124,12 +138,47 @@ appRouter.outlet('#router-outlet');
 // Start router (listen to URL changes)
 appRouter.start();
 
-// Apply syntax highlighting after route changes
+// Initialize search keyboard shortcut (Cmd/Ctrl+K)
+initSearchKeyboard();
+
+// Apply syntax highlighting and update TOC after route changes
 appRouter.afterEach(() => {
-  setTimeout(highlightAllCode, 50);
+  setTimeout(() => {
+    highlightAllCode();
+
+    // Update TOC items from page content
+    updateTocItems();
+
+    // Add breadcrumbs and mobile TOC to page
+    const page = document.querySelector('.docs-page');
+    if (page) {
+      // Check if breadcrumbs already exist
+      if (!page.querySelector('.breadcrumbs')) {
+        page.insertBefore(Breadcrumbs(), page.firstChild);
+      }
+      // Check if mobile TOC already exists
+      const breadcrumbs = page.querySelector('.breadcrumbs');
+      if (breadcrumbs && !page.querySelector('.toc-mobile')) {
+        breadcrumbs.insertAdjacentElement('afterend', TocMobile());
+      }
+    }
+  }, 50);
 });
 
-// Initial syntax highlighting
-setTimeout(highlightAllCode, 100);
+// Initial setup
+setTimeout(() => {
+  highlightAllCode();
+  updateTocItems();
+
+  // Add breadcrumbs and mobile TOC to initial page
+  const page = document.querySelector('.docs-page');
+  if (page) {
+    page.insertBefore(Breadcrumbs(), page.firstChild);
+    const breadcrumbs = page.querySelector('.breadcrumbs');
+    if (breadcrumbs) {
+      breadcrumbs.insertAdjacentElement('afterend', TocMobile());
+    }
+  }
+}, 100);
 
 console.log('📖 Pulse Documentation loaded!');

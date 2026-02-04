@@ -4,6 +4,7 @@
 
 import { effect, el } from '/runtime/index.js';
 import { mobileMenuOpen, theme, toggleTheme, navStructure, navStructureFlat, router, version, locale, locales, setLocale, navigateLocale, getPathWithoutLocale, t } from '../state.js';
+import { SearchButton } from './Search.js';
 
 export function Header() {
   const header = el('header.header');
@@ -161,8 +162,11 @@ export function Header() {
 
   header.appendChild(nav);
 
-  // Header actions container (language + theme)
+  // Header actions container (search + language + theme)
   const headerActions = el('.header-actions');
+
+  // Search button
+  headerActions.appendChild(SearchButton());
 
   // Language selector
   const langSelector = el('.lang-selector');

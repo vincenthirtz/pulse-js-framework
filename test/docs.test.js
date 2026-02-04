@@ -102,7 +102,10 @@ console.log('\nRequired Components:');
 
 const requiredComponents = [
   'Header.js',
-  'Footer.js'
+  'Footer.js',
+  'Search.js',
+  'TableOfContents.js',
+  'Breadcrumbs.js'
 ];
 
 for (const component of requiredComponents) {
@@ -290,6 +293,18 @@ test('state.js exports translation functions for navigation', () => {
 test('state.js exports initRouter', () => {
   const content = readFileSync(join(docsDir, 'src/state.js'), 'utf-8');
   assert(content.includes('export function initRouter'), 'Should export initRouter');
+});
+
+test('state.js exports search state', () => {
+  const content = readFileSync(join(docsDir, 'src/state.js'), 'utf-8');
+  assert(content.includes('export const searchOpen'), 'Should export searchOpen');
+});
+
+test('state.js exports TOC state', () => {
+  const content = readFileSync(join(docsDir, 'src/state.js'), 'utf-8');
+  assert(content.includes('export const tocItems'), 'Should export tocItems');
+  assert(content.includes('export const currentSection'), 'Should export currentSection');
+  assert(content.includes('export const tocExpanded'), 'Should export tocExpanded');
 });
 
 test('state.js has all required routes', () => {

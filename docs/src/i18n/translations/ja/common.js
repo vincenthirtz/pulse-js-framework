@@ -280,12 +280,26 @@ export default {
   // Search
   search: {
     placeholder: '検索...',
-    noResults: '結果なし',
+    noResults: '該当なし：',
     resultsFound: '件の結果',
     searchIn: '検索対象：',
     clearSearch: '検索をクリア',
     recentSearches: '最近の検索',
-    suggestions: '候補'
+    suggestions: '候補',
+    openSearch: '検索を開く',
+    closeSearch: '検索を閉じる'
+  },
+
+  // Table of Contents
+  toc: {
+    title: 'このページの内容',
+    showContents: '目次を表示',
+    hideContents: '目次を非表示'
+  },
+
+  // Breadcrumbs
+  breadcrumbs: {
+    home: 'ホーム'
   },
 
   // API Reference Page

@@ -38,6 +38,20 @@ export function toggleTheme() {
 export const mobileMenuOpen = pulse(false);
 
 // =============================================================================
+// Search State
+// =============================================================================
+
+export const searchOpen = pulse(false);
+
+// =============================================================================
+// Table of Contents State
+// =============================================================================
+
+export const tocItems = pulse([]);        // Array of {id, text, level}
+export const currentSection = pulse('');  // Currently visible section ID
+export const tocExpanded = pulse(false);  // Mobile TOC accordion state
+
+// =============================================================================
 // Navigation Data (with translation keys for reactivity)
 // =============================================================================
 

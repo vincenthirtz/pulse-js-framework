@@ -280,12 +280,26 @@ export default {
   // Search
   search: {
     placeholder: 'Rechercher...',
-    noResults: 'Aucun résultat',
+    noResults: 'Aucun résultat pour',
     resultsFound: 'résultat(s) trouvé(s)',
     searchIn: 'Rechercher dans',
     clearSearch: 'Effacer la recherche',
     recentSearches: 'Recherches récentes',
-    suggestions: 'Suggestions'
+    suggestions: 'Suggestions',
+    openSearch: 'Ouvrir la recherche',
+    closeSearch: 'Fermer la recherche'
+  },
+
+  // Table of Contents
+  toc: {
+    title: 'Sur cette page',
+    showContents: 'Afficher le sommaire',
+    hideContents: 'Masquer le sommaire'
+  },
+
+  // Breadcrumbs
+  breadcrumbs: {
+    home: 'Accueil'
   },
 
   // API Reference Page

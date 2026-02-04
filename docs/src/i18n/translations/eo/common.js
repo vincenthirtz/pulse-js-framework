@@ -280,12 +280,26 @@ export default {
   // Search
   search: {
     placeholder: 'Serĉi...',
-    noResults: 'Neniuj rezultoj',
+    noResults: 'Neniuj rezultoj por',
     resultsFound: 'rezulto(j) trovita(j)',
     searchIn: 'Serĉi en',
     clearSearch: 'Forigi serĉon',
     recentSearches: 'Lastaj serĉoj',
-    suggestions: 'Sugestoj'
+    suggestions: 'Sugestoj',
+    openSearch: 'Malfermi serĉon',
+    closeSearch: 'Fermi serĉon'
+  },
+
+  // Table of Contents
+  toc: {
+    title: 'Sur ĉi tiu paĝo',
+    showContents: 'Montri enhavon',
+    hideContents: 'Kaŝi enhavon'
+  },
+
+  // Breadcrumbs
+  breadcrumbs: {
+    home: 'Hejmo'
   },
 
   // API Reference Page

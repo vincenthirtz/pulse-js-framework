@@ -280,12 +280,26 @@ export default {
   // Search
   search: {
     placeholder: 'Leita...',
-    noResults: 'Engar niðurstöður',
+    noResults: 'Engar niðurstöður fyrir',
     resultsFound: 'niðurstöður fundust',
     searchIn: 'Leita í',
     clearSearch: 'Hreinsa leit',
     recentSearches: 'Nýlegar leitir',
-    suggestions: 'Tillögur'
+    suggestions: 'Tillögur',
+    openSearch: 'Opna leit',
+    closeSearch: 'Loka leit'
+  },
+
+  // Table of Contents
+  toc: {
+    title: 'Á þessari síðu',
+    showContents: 'Sýna efnisyfirlit',
+    hideContents: 'Fela efnisyfirlit'
+  },
+
+  // Breadcrumbs
+  breadcrumbs: {
+    home: 'Heim'
   },
 
   // API Reference Page
