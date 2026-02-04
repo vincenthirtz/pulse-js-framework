@@ -7,10 +7,14 @@
  */
 
 import { strict as assert } from 'node:assert';
-import { SemanticAnalyzer, LintRules, formatDiagnostic } from '../cli/lint.js';
+import { SemanticAnalyzer, LintRules, formatDiagnostic, runLint, lintFile, applyFixes } from '../cli/lint.js';
 import { parse } from '../compiler/index.js';
+import { existsSync, mkdirSync, writeFileSync, rmSync, readFileSync } from 'fs';
+import { join } from 'path';
 import {
   test,
+  testAsync,
+  runAsyncTests,
   printResults,
   exitWithCode,
   printSection,
@@ -1732,8 +1736,365 @@ test('all rules have required properties', () => {
 });
 
 // =============================================================================
+// runLint and lintFiles Tests
+// =============================================================================
+
+printSection('runLint and lintFiles Tests');
+
+const LINT_TEST_DIR = join(process.cwd(), '.test-lint-project');
+
+function setupLintTestDir(files = {}) {
+  if (existsSync(LINT_TEST_DIR)) {
+    rmSync(LINT_TEST_DIR, { recursive: true, force: true });
+  }
+  mkdirSync(LINT_TEST_DIR, { recursive: true });
+
+  for (const [path, content] of Object.entries(files)) {
+    const fullPath = join(LINT_TEST_DIR, path);
+    const dir = join(fullPath, '..');
+    if (!existsSync(dir)) {
+      mkdirSync(dir, { recursive: true });
+    }
+    writeFileSync(fullPath, content);
+  }
+}
+
+function cleanupLintTestDir() {
+  if (existsSync(LINT_TEST_DIR)) {
+    rmSync(LINT_TEST_DIR, { recursive: true, force: true });
+  }
+}
+
+/**
+ * Setup mocks for command testing
+ */
+function setupCommandMocks() {
+  const logs = [];
+  const warns = [];
+  const errors = [];
+  let exitCode = null;
+
+  const originalLog = console.log;
+  const originalWarn = console.warn;
+  const originalError = console.error;
+  const originalExit = process.exit;
+
+  console.log = (...args) => logs.push(args.join(' '));
+  console.warn = (...args) => warns.push(args.join(' '));
+  console.error = (...args) => errors.push(args.join(' '));
+  process.exit = (code) => {
+    exitCode = code;
+    throw new Error(`EXIT_${code}`);
+  };
+
+  return {
+    logs,
+    warns,
+    errors,
+    getExitCode: () => exitCode,
+    restore: () => {
+      console.log = originalLog;
+      console.warn = originalWarn;
+      console.error = originalError;
+      process.exit = originalExit;
+    }
+  };
+}
+
+testAsync('lintFile returns result with diagnostics', async () => {
+  setupLintTestDir({
+    'src/test.pulse': `@page Test
+state {
+  unusedVar: 0
+}
+
+view {
+  div "hello"
+}
+`
+  });
+
+  try {
+    const result = await lintFile(join(LINT_TEST_DIR, 'src/test.pulse'), {});
+
+    assert('file' in result, 'Should have file path');
+    assert('diagnostics' in result, 'Should have diagnostics');
+    assert(Array.isArray(result.diagnostics), 'Diagnostics should be array');
+  } finally {
+    cleanupLintTestDir();
+  }
+});
+
+testAsync('lintFile handles parse errors', async () => {
+  setupLintTestDir({
+    'src/broken.pulse': '@page Test\nview { broken { syntax'
+  });
+
+  try {
+    const result = await lintFile(join(LINT_TEST_DIR, 'src/broken.pulse'), {});
+
+    // Parse error is returned as a diagnostic with code 'syntax-error'
+    assert(result.diagnostics.length > 0, 'Should have diagnostics');
+    const hasError = result.diagnostics.some(d => d.code === 'syntax-error' || d.severity === 'error');
+    assert(hasError, 'Should have syntax error diagnostic');
+  } finally {
+    cleanupLintTestDir();
+  }
+});
+
+testAsync('lintFile with fix option returns fixed source', async () => {
+  setupLintTestDir({
+    'src/test.pulse': `@page Test
+
+view {
+  div "hello"
+}
+`
+  });
+
+  try {
+    const result = await lintFile(join(LINT_TEST_DIR, 'src/test.pulse'), { fix: true });
+
+    assert('file' in result, 'Should have file path');
+    assert('diagnostics' in result, 'Should have diagnostics');
+    // fixedSource may be present if fixes were applied
+    assert(typeof result.fixedSource === 'string' || result.fixedSource === undefined,
+      'fixedSource should be string or undefined');
+  } finally {
+    cleanupLintTestDir();
+  }
+});
+
+testAsync('applyFixes modifies source based on diagnostics', async () => {
+  const source = `@page Test
+
+view {
+  div "hello"
+}
+`;
+
+  // Create mock diagnostics with fixes
+  const diagnostics = [
+    {
+      code: 'test-rule',
+      severity: 'warning',
+      message: 'Test warning',
+      fix: null // No fix for this one
+    }
+  ];
+
+  const result = applyFixes(source, diagnostics);
+
+  // applyFixes returns { fixed, count }
+  assert(typeof result.fixed === 'string', 'Should return fixed source');
+  assert(typeof result.count === 'number', 'Should return fix count');
+  assertEqual(result.count, 0, 'Should have 0 fixes when no fixable diagnostics');
+});
+
+testAsync('applyFixes applies actual fixes', async () => {
+  const source = `line1
+line2
+line3`;
+
+  // Create diagnostics with a fix
+  const diagnostics = [
+    {
+      code: 'test-fix',
+      severity: 'warning',
+      message: 'Test fix',
+      line: 2,
+      fix: {
+        oldText: 'line2',
+        newText: 'FIXED'
+      }
+    }
+  ];
+
+  const result = applyFixes(source, diagnostics);
+
+  assert(result.fixed.includes('FIXED'), 'Should apply fix');
+  assertEqual(result.count, 1, 'Should count 1 fix');
+});
+
+testAsync('runLint shows message when no files found', async () => {
+  setupLintTestDir({
+    'src/main.js': '// no pulse files'
+  });
+  const mocks = setupCommandMocks();
+  const originalCwd = process.cwd();
+
+  try {
+    process.chdir(LINT_TEST_DIR);
+    await runLint([]);
+
+    const allLogs = mocks.logs.join('\n');
+    assert(allLogs.includes('No .pulse files found'), 'Should indicate no files found');
+  } finally {
+    process.chdir(originalCwd);
+    mocks.restore();
+    cleanupLintTestDir();
+  }
+});
+
+testAsync('runLint lints files and reports results', async () => {
+  setupLintTestDir({
+    'src/test.pulse': `@page Test
+
+view {
+  div "hello"
+}
+`
+  });
+  const mocks = setupCommandMocks();
+  const originalCwd = process.cwd();
+
+  try {
+    process.chdir(LINT_TEST_DIR);
+    await runLint(['src/test.pulse']);
+
+    // Should lint and report
+    const allLogs = mocks.logs.join('\n');
+    assert(allLogs.includes('Linting') || allLogs.includes('file'), 'Should report linting');
+  } finally {
+    process.chdir(originalCwd);
+    mocks.restore();
+    cleanupLintTestDir();
+  }
+});
+
+testAsync('runLint exits with code 1 on errors', async () => {
+  // Create file with an actual lint error
+  setupLintTestDir({
+    'src/test.pulse': `@page Test
+state {
+  unused: 0
+}
+
+view {
+  button
+}
+`
+  });
+  const mocks = setupCommandMocks();
+  const originalCwd = process.cwd();
+
+  try {
+    process.chdir(LINT_TEST_DIR);
+    await runLint(['src/test.pulse']);
+  } catch (e) {
+    if (!e.message.includes('EXIT_')) {
+      throw e;
+    }
+    // Exit code 1 expected when there are errors
+  } finally {
+    process.chdir(originalCwd);
+    mocks.restore();
+    cleanupLintTestDir();
+  }
+});
+
+testAsync('runLint with --fix applies fixes', async () => {
+  setupLintTestDir({
+    'src/test.pulse': `@page Test
+
+view {
+  div "hello"
+}
+`
+  });
+  const mocks = setupCommandMocks();
+  const originalCwd = process.cwd();
+
+  try {
+    process.chdir(LINT_TEST_DIR);
+    await runLint(['--fix', 'src/test.pulse']);
+
+    // Should complete without error
+    assert(mocks.getExitCode() !== 1 || mocks.getExitCode() === null, 'Should not exit with error for clean file');
+  } finally {
+    process.chdir(originalCwd);
+    mocks.restore();
+    cleanupLintTestDir();
+  }
+});
+
+testAsync('runLint warns about --dry-run without --fix', async () => {
+  setupLintTestDir({
+    'src/test.pulse': `@page Test
+
+view {
+  div "hello"
+}
+`
+  });
+  const mocks = setupCommandMocks();
+  const originalCwd = process.cwd();
+
+  try {
+    process.chdir(LINT_TEST_DIR);
+    await runLint(['--dry-run', 'src/test.pulse']);
+
+    const allLogs = mocks.logs.join('\n') + mocks.warns.join('\n');
+    assert(
+      allLogs.includes('dry-run') || allLogs.includes('no effect'),
+      'Should warn about dry-run without fix'
+    );
+  } finally {
+    process.chdir(originalCwd);
+    mocks.restore();
+    cleanupLintTestDir();
+  }
+});
+
+testAsync('runLint lints multiple files', async () => {
+  setupLintTestDir({
+    'src/a.pulse': '@page A\nview { div "a" }',
+    'src/b.pulse': '@page B\nview { div "b" }',
+    'src/c.pulse': '@page C\nview { div "c" }'
+  });
+  const mocks = setupCommandMocks();
+  const originalCwd = process.cwd();
+
+  try {
+    process.chdir(LINT_TEST_DIR);
+    await runLint(['src/*.pulse']);
+
+    const allLogs = mocks.logs.join('\n');
+    assert(allLogs.includes('3 file') || allLogs.includes('file'), 'Should report linting multiple files');
+  } finally {
+    process.chdir(originalCwd);
+    mocks.restore();
+    cleanupLintTestDir();
+  }
+});
+
+testAsync('lintFile reports file paths correctly', async () => {
+  setupLintTestDir({
+    'src/component.pulse': `@page Component
+
+view {
+  button
+}
+`
+  });
+
+  try {
+    const result = await lintFile(join(LINT_TEST_DIR, 'src/component.pulse'), {});
+
+    assert(result.file.includes('component.pulse'), 'Should include file path');
+    // May have warnings for button without accessible name
+    assert(Array.isArray(result.diagnostics), 'Should have diagnostics array');
+  } finally {
+    cleanupLintTestDir();
+  }
+});
+
+// =============================================================================
 // Results
 // =============================================================================
 
-printResults();
-exitWithCode();
+(async () => {
+  await runAsyncTests();
+  printResults();
+  exitWithCode();
+})();

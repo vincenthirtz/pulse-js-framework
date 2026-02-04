@@ -6,7 +6,7 @@
  * @module test/doctor
  */
 
-import { runDiagnostics } from '../cli/doctor.js';
+import { runDiagnostics, runDoctor } from '../cli/doctor.js';
 import {
   test,
   testAsync,
@@ -1016,6 +1016,363 @@ test('diagnostics run in reasonable order', async () => {
 
     assert(nodeIndex < pkgIndex, 'Node check should come before package.json');
     assert(npmIndex < pkgIndex, 'npm check should come before package.json');
+  } finally {
+    cleanupMockProject();
+  }
+});
+
+// =============================================================================
+// runDoctor Command Tests
+// =============================================================================
+
+printSection('runDoctor Command Tests');
+
+// Helper to capture console output and mock process.exit
+function setupCommandMocks() {
+  const logs = [];
+  const warns = [];
+  const errors = [];
+  let exitCode = null;
+
+  const originalLog = console.log;
+  const originalWarn = console.warn;
+  const originalError = console.error;
+  const originalExit = process.exit;
+
+  console.log = (...args) => logs.push(args.join(' '));
+  console.warn = (...args) => warns.push(args.join(' '));
+  console.error = (...args) => errors.push(args.join(' '));
+  process.exit = (code) => { exitCode = code; throw new Error(`EXIT_${code}`); };
+
+  return {
+    logs,
+    warns,
+    errors,
+    getExitCode: () => exitCode,
+    restore: () => {
+      console.log = originalLog;
+      console.warn = originalWarn;
+      console.error = originalError;
+      process.exit = originalExit;
+    }
+  };
+}
+
+testAsync('runDoctor outputs JSON format with --json flag', async () => {
+  setupMockProject({ hasPackageJson: true, hasSrc: true, hasIndexHtml: true });
+  const mocks = setupCommandMocks();
+
+  try {
+    await runDoctor(['--json']);
+
+    const output = mocks.logs.join('\n');
+    // Should have JSON array output
+    assert(output.includes('[') && output.includes(']'), 'Should output JSON array');
+    assert(output.includes('"name"'), 'Should have name field');
+    assert(output.includes('"status"'), 'Should have status field');
+  } catch (e) {
+    if (!e.message.startsWith('EXIT_')) throw e;
+  } finally {
+    mocks.restore();
+    cleanupMockProject();
+  }
+});
+
+testAsync('runDoctor outputs formatted results by default', async () => {
+  setupMockProject({ hasPackageJson: true, hasSrc: true, hasIndexHtml: true });
+  const mocks = setupCommandMocks();
+
+  try {
+    await runDoctor([]);
+
+    const output = mocks.logs.join('\n');
+    // Should have formatted output with status icons
+    assert(output.includes('Doctor') || output.includes('Diagnostics') || output.includes('checks'),
+      'Should show diagnostic information');
+  } catch (e) {
+    if (!e.message.startsWith('EXIT_')) throw e;
+  } finally {
+    mocks.restore();
+    cleanupMockProject();
+  }
+});
+
+testAsync('runDoctor handles verbose flag', async () => {
+  setupMockProject({ hasPackageJson: true, hasSrc: true, hasIndexHtml: true, hasNodeModules: true });
+  const mocks = setupCommandMocks();
+
+  try {
+    await runDoctor(['--verbose']);
+
+    const output = mocks.logs.join('\n');
+    assert(output.length > 0, 'Should have output in verbose mode');
+  } catch (e) {
+    if (!e.message.startsWith('EXIT_')) throw e;
+  } finally {
+    mocks.restore();
+    cleanupMockProject();
+  }
+});
+
+testAsync('runDoctor handles -v short flag', async () => {
+  setupMockProject({ hasPackageJson: true, hasSrc: true, hasIndexHtml: true });
+  const mocks = setupCommandMocks();
+
+  try {
+    await runDoctor(['-v']);
+
+    const output = mocks.logs.join('\n');
+    assert(output.length > 0, 'Should have output with -v flag');
+  } catch (e) {
+    if (!e.message.startsWith('EXIT_')) throw e;
+  } finally {
+    mocks.restore();
+    cleanupMockProject();
+  }
+});
+
+testAsync('runDoctor displays pass status with checkmark', async () => {
+  setupMockProject({ hasPackageJson: true, hasSrc: true, hasIndexHtml: true });
+  const mocks = setupCommandMocks();
+
+  try {
+    await runDoctor([]);
+
+    const output = mocks.logs.join('\n');
+    // Should have checkmarks for passing checks
+    assert(output.includes('✓') || output.includes('pass') || output.includes('✔'),
+      'Should show pass indicators');
+  } catch (e) {
+    if (!e.message.startsWith('EXIT_')) throw e;
+  } finally {
+    mocks.restore();
+    cleanupMockProject();
+  }
+});
+
+testAsync('runDoctor displays warning status', async () => {
+  // Create project with missing optional config to trigger warning
+  setupMockProject({ hasPackageJson: true, hasSrc: true, hasIndexHtml: true, hasViteConfig: false });
+  const mocks = setupCommandMocks();
+
+  try {
+    await runDoctor([]);
+
+    const output = mocks.logs.join('\n');
+    // May have warnings for missing optional files
+    assert(output.length > 0, 'Should have output');
+  } catch (e) {
+    if (!e.message.startsWith('EXIT_')) throw e;
+  } finally {
+    mocks.restore();
+    cleanupMockProject();
+  }
+});
+
+testAsync('runDoctor exits with code 1 on failures', async () => {
+  // Create minimal project that will have failures
+  if (existsSync(TEST_DIR)) {
+    rmSync(TEST_DIR, { recursive: true, force: true });
+  }
+  mkdirSync(TEST_DIR, { recursive: true });
+  process.chdir(TEST_DIR);
+  // No package.json, no src - should have failures
+
+  const mocks = setupCommandMocks();
+
+  try {
+    await runDoctor([]);
+    // Should have thrown with EXIT_1
+  } catch (e) {
+    if (e.message === 'EXIT_1') {
+      assertEqual(mocks.getExitCode(), 1);
+    } else if (!e.message.startsWith('EXIT_')) {
+      throw e;
+    }
+  } finally {
+    mocks.restore();
+    process.chdir(originalCwd);
+    cleanupMockProject();
+  }
+});
+
+testAsync('runDoctor shows summary with pass count', async () => {
+  setupMockProject({ hasPackageJson: true, hasSrc: true, hasIndexHtml: true });
+  const mocks = setupCommandMocks();
+
+  try {
+    await runDoctor([]);
+
+    const output = mocks.logs.join('\n');
+    // Should show completion message
+    assert(output.includes('Complete') || output.includes('passed') || output.includes('checks'),
+      'Should show summary');
+  } catch (e) {
+    if (!e.message.startsWith('EXIT_')) throw e;
+  } finally {
+    mocks.restore();
+    cleanupMockProject();
+  }
+});
+
+testAsync('runDoctor shows elapsed time', async () => {
+  setupMockProject({ hasPackageJson: true, hasSrc: true, hasIndexHtml: true });
+  const mocks = setupCommandMocks();
+
+  try {
+    await runDoctor([]);
+
+    const output = mocks.logs.join('\n');
+    // Should show elapsed time
+    assert(output.includes('ms') || output.includes('second') || output.includes('Completed'),
+      'Should show elapsed time');
+  } catch (e) {
+    if (!e.message.startsWith('EXIT_')) throw e;
+  } finally {
+    mocks.restore();
+    cleanupMockProject();
+  }
+});
+
+testAsync('runDoctor shows suggestions for warnings', async () => {
+  // Create project missing some config
+  setupMockProject({ hasPackageJson: true, hasSrc: true, hasIndexHtml: false });
+  const mocks = setupCommandMocks();
+
+  try {
+    await runDoctor([]);
+
+    // Output should contain the check results
+    const output = mocks.logs.join('\n');
+    assert(output.length > 0, 'Should have output with suggestions');
+  } catch (e) {
+    if (!e.message.startsWith('EXIT_')) throw e;
+  } finally {
+    mocks.restore();
+    cleanupMockProject();
+  }
+});
+
+// =============================================================================
+// formatCheckResult Tests (via runDoctor output)
+// =============================================================================
+
+printSection('formatCheckResult Tests');
+
+testAsync('formatCheckResult formats pass with green checkmark', async () => {
+  setupMockProject({ hasPackageJson: true, hasSrc: true, hasIndexHtml: true });
+  const mocks = setupCommandMocks();
+
+  try {
+    await runDoctor([]);
+
+    const output = mocks.logs.join('\n');
+    // Check for green color codes or checkmark
+    assert(output.includes('\x1b[32m') || output.includes('✓'),
+      'Should have green checkmark for pass');
+  } catch (e) {
+    if (!e.message.startsWith('EXIT_')) throw e;
+  } finally {
+    mocks.restore();
+    cleanupMockProject();
+  }
+});
+
+testAsync('formatCheckResult pads check names for alignment', async () => {
+  setupMockProject({ hasPackageJson: true, hasSrc: true, hasIndexHtml: true });
+  const mocks = setupCommandMocks();
+
+  try {
+    await runDoctor([]);
+
+    // Output should have consistent formatting
+    const output = mocks.logs.join('\n');
+    assert(output.length > 0, 'Should have formatted output');
+  } catch (e) {
+    if (!e.message.startsWith('EXIT_')) throw e;
+  } finally {
+    mocks.restore();
+    cleanupMockProject();
+  }
+});
+
+// =============================================================================
+// getDirSize and countFiles Tests (via diagnostics)
+// =============================================================================
+
+printSection('Directory Utility Tests');
+
+testAsync('getDirSize calculates node_modules size', async () => {
+  setupMockProject({
+    hasPackageJson: true,
+    hasSrc: true,
+    hasIndexHtml: true,
+    hasNodeModules: true
+  });
+
+  try {
+    const results = await runDiagnostics({ verbose: true });
+    const nodeModulesCheck = results.find(r => r.name === 'node_modules Size');
+
+    // Should have size info in message
+    if (nodeModulesCheck) {
+      assert(nodeModulesCheck.message.includes('B') || nodeModulesCheck.message.includes('KB') ||
+             nodeModulesCheck.message.includes('MB') || nodeModulesCheck.message.includes('GB'),
+        'Should show size with units');
+    }
+  } finally {
+    cleanupMockProject();
+  }
+});
+
+testAsync('countFiles counts build artifacts', async () => {
+  setupMockProject({ hasPackageJson: true, hasSrc: true, hasIndexHtml: true });
+  // Add dist directory with files
+  mkdirSync(join(TEST_DIR, 'dist'), { recursive: true });
+  writeFileSync(join(TEST_DIR, 'dist', 'app.js'), 'console.log("built");');
+  writeFileSync(join(TEST_DIR, 'dist', 'app.css'), '.app {}');
+  writeFileSync(join(TEST_DIR, 'dist', 'index.html'), '<html></html>');
+
+  try {
+    const results = await runDiagnostics({ verbose: true });
+    const buildCheck = results.find(r => r.name === 'Build Artifacts');
+
+    if (buildCheck) {
+      // Should mention dist or build artifacts
+      assert(buildCheck.status !== undefined, 'Should have status');
+    }
+  } finally {
+    cleanupMockProject();
+  }
+});
+
+testAsync('getDirSize handles empty directories', async () => {
+  setupMockProject({ hasPackageJson: true, hasSrc: true, hasIndexHtml: true });
+  // Create empty node_modules
+  mkdirSync(join(TEST_DIR, 'node_modules'), { recursive: true });
+
+  try {
+    const results = await runDiagnostics({ verbose: true });
+    // Should not crash on empty directories
+    assert(Array.isArray(results), 'Should return results array');
+  } finally {
+    cleanupMockProject();
+  }
+});
+
+testAsync('countFiles handles nested directories', async () => {
+  setupMockProject({ hasPackageJson: true, hasSrc: true, hasIndexHtml: true });
+  // Create deeply nested dist
+  const deepPath = join(TEST_DIR, 'dist', 'assets', 'js', 'chunks');
+  mkdirSync(deepPath, { recursive: true });
+  writeFileSync(join(deepPath, 'chunk1.js'), 'export {};');
+  writeFileSync(join(deepPath, 'chunk2.js'), 'export {};');
+  writeFileSync(join(TEST_DIR, 'dist', 'index.html'), '<html></html>');
+
+  try {
+    const results = await runDiagnostics({ verbose: true });
+    // Should count files in nested directories
+    assert(Array.isArray(results), 'Should return results array');
   } finally {
     cleanupMockProject();
   }

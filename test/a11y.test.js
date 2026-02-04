@@ -1148,6 +1148,198 @@ describe('Additional A11y Edge Cases', () => {
       assert.strictEqual(getAccessibleName(el), 'Submit');
     });
 
+    it('should return alt attribute for images', () => {
+      const el = document.createElement('img');
+      el.tagName = 'IMG';
+      el.getAttribute = (attr) => attr === 'alt' ? 'Profile picture' : null;
+      el.hasAttribute = () => false;
+      el.textContent = '';
+      assert.strictEqual(getAccessibleName(el), 'Profile picture');
+    });
+
+    it('should return title attribute when no other name', () => {
+      const el = document.createElement('button');
+      el.getAttribute = (attr) => attr === 'title' ? 'Click for more info' : null;
+      el.hasAttribute = () => false;
+      el.textContent = '';
+      assert.strictEqual(getAccessibleName(el), 'Click for more info');
+    });
+
+    it('should return value for input type=button', () => {
+      const el = document.createElement('input');
+      el.tagName = 'INPUT';
+      el.value = 'Click Me';
+      el.getAttribute = (attr) => attr === 'type' ? 'button' : null;
+      el.hasAttribute = () => false;
+      el.textContent = '';
+      assert.strictEqual(getAccessibleName(el), 'Click Me');
+    });
+
+    it('should return value for input type=submit', () => {
+      const el = document.createElement('input');
+      el.tagName = 'INPUT';
+      el.value = 'Submit Form';
+      el.getAttribute = (attr) => attr === 'type' ? 'submit' : null;
+      el.hasAttribute = () => false;
+      el.textContent = '';
+      assert.strictEqual(getAccessibleName(el), 'Submit Form');
+    });
+
+    it('should return empty string when no accessible name found', () => {
+      const el = document.createElement('div');
+      el.tagName = 'DIV';
+      el.getAttribute = () => null;
+      el.hasAttribute = () => false;
+      el.textContent = '';
+      el.value = undefined;
+      assert.strictEqual(getAccessibleName(el), '');
+    });
+
+    it('should prefer aria-label over text content', () => {
+      const el = document.createElement('button');
+      el.getAttribute = (attr) => attr === 'aria-label' ? 'Close dialog' : null;
+      el.hasAttribute = () => false;
+      el.textContent = 'X';
+      assert.strictEqual(getAccessibleName(el), 'Close dialog');
+    });
+
+  });
+
+  describe('isAccessiblyHidden - additional tests', () => {
+
+    it('should return true for elements with display:none', () => {
+      const el = document.createElement('div');
+      el.getAttribute = () => null;
+      el.hasAttribute = () => false;
+      el.parentElement = null;
+      // Mock getComputedStyle to return display: none
+      const originalGetComputedStyle = globalThis.getComputedStyle;
+      globalThis.getComputedStyle = () => ({ display: 'none', visibility: 'visible' });
+
+      assert.strictEqual(isAccessiblyHidden(el), true);
+
+      globalThis.getComputedStyle = originalGetComputedStyle;
+    });
+
+    it('should return true for elements with visibility:hidden', () => {
+      const el = document.createElement('div');
+      el.getAttribute = () => null;
+      el.hasAttribute = () => false;
+      el.parentElement = null;
+      const originalGetComputedStyle = globalThis.getComputedStyle;
+      globalThis.getComputedStyle = () => ({ display: 'block', visibility: 'hidden' });
+
+      assert.strictEqual(isAccessiblyHidden(el), true);
+
+      globalThis.getComputedStyle = originalGetComputedStyle;
+    });
+
+    it('should return true when ancestor has aria-hidden', () => {
+      const parent = document.createElement('div');
+      parent.getAttribute = (attr) => attr === 'aria-hidden' ? 'true' : null;
+      parent.hasAttribute = () => false;
+      parent.parentElement = null;
+
+      const el = document.createElement('div');
+      el.getAttribute = () => null;
+      el.hasAttribute = () => false;
+      el.parentElement = parent;
+
+      const originalGetComputedStyle = globalThis.getComputedStyle;
+      globalThis.getComputedStyle = () => ({ display: 'block', visibility: 'visible' });
+
+      assert.strictEqual(isAccessiblyHidden(el), true);
+
+      globalThis.getComputedStyle = originalGetComputedStyle;
+    });
+
+    it('should return true when ancestor has inert', () => {
+      const parent = document.createElement('div');
+      parent.getAttribute = () => null;
+      parent.hasAttribute = (attr) => attr === 'inert';
+      parent.parentElement = null;
+
+      const el = document.createElement('div');
+      el.getAttribute = () => null;
+      el.hasAttribute = () => false;
+      el.parentElement = parent;
+
+      const originalGetComputedStyle = globalThis.getComputedStyle;
+      globalThis.getComputedStyle = () => ({ display: 'block', visibility: 'visible' });
+
+      assert.strictEqual(isAccessiblyHidden(el), true);
+
+      globalThis.getComputedStyle = originalGetComputedStyle;
+    });
+
+    it('should return false for visible element', () => {
+      const el = document.createElement('div');
+      el.getAttribute = () => null;
+      el.hasAttribute = () => false;
+      el.parentElement = null;
+
+      const originalGetComputedStyle = globalThis.getComputedStyle;
+      globalThis.getComputedStyle = () => ({ display: 'block', visibility: 'visible' });
+
+      assert.strictEqual(isAccessiblyHidden(el), false);
+
+      globalThis.getComputedStyle = originalGetComputedStyle;
+    });
+
+  });
+
+  describe('makeInert - additional tests', () => {
+
+    it('should add inert and aria-hidden attributes', () => {
+      const el = document.createElement('div');
+      el.hasAttribute = (attr) => false;
+      el.removeAttribute = () => {};
+
+      const setAttributeCalls = [];
+      el.setAttribute = (name, value) => {
+        setAttributeCalls.push({ name, value });
+      };
+
+      makeInert(el);
+
+      assert.ok(setAttributeCalls.some(c => c.name === 'inert'));
+      assert.ok(setAttributeCalls.some(c => c.name === 'aria-hidden' && c.value === 'true'));
+    });
+
+    it('should restore inert state correctly', () => {
+      const el = document.createElement('div');
+      let inertValue = false;
+      el.hasAttribute = (attr) => attr === 'inert' ? inertValue : false;
+      el.setAttribute = (name, value) => {
+        if (name === 'inert') inertValue = true;
+      };
+      el.removeAttribute = (name) => {
+        if (name === 'inert') inertValue = false;
+      };
+
+      const restore = makeInert(el);
+      assert.strictEqual(inertValue, true, 'Element should be inert after makeInert');
+
+      restore();
+      assert.strictEqual(inertValue, false, 'Element should not be inert after restore');
+    });
+
+    it('should not remove inert if element was already inert', () => {
+      const el = document.createElement('div');
+      let removeAttributeCalled = false;
+      el.hasAttribute = (attr) => attr === 'inert'; // Already inert
+      el.setAttribute = () => {};
+      el.removeAttribute = (name) => {
+        if (name === 'inert') removeAttributeCalled = true;
+      };
+
+      const restore = makeInert(el);
+      restore();
+
+      // Should NOT remove inert since it was already there
+      assert.strictEqual(removeAttributeCalled, false, 'Should not remove pre-existing inert');
+    });
+
   });
 
   describe('createModal', () => {

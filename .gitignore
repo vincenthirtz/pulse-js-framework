@@ -8,3 +8,4 @@ dist/
 .claude
 .test-doctor-project
 test-fixtures-analyze
+coverage

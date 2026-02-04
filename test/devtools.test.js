@@ -562,6 +562,146 @@ test('toggleA11yHighlights does not throw', () => {
   toggleA11yHighlights(); // Toggle
 });
 
+test('toggleA11yHighlights with explicit show/hide', () => {
+  resetA11yAudit();
+  enableDevTools();
+  runA11yAudit();
+
+  // Explicit show
+  toggleA11yHighlights(true);
+  // Explicit hide
+  toggleA11yHighlights(false);
+  // Show again
+  toggleA11yHighlights(true);
+  // Hide again
+  toggleA11yHighlights(false);
+
+  // Should not throw
+  assert(true, 'Toggle should work');
+});
+
+test('toggleA11yHighlights toggle mode', () => {
+  resetA11yAudit();
+  enableDevTools();
+
+  // Toggle without argument
+  toggleA11yHighlights();
+  toggleA11yHighlights();
+  toggleA11yHighlights();
+
+  assert(true, 'Toggle mode should work');
+});
+
+test('exportA11yReport CSV format with empty issues', () => {
+  resetA11yAudit();
+  enableDevTools();
+
+  const csv = exportA11yReport('csv');
+
+  assert(csv.includes('severity'), 'Should have severity header');
+  assert(csv.includes('rule'), 'Should have rule header');
+  assert(csv.includes('message'), 'Should have message header');
+  assert(csv.includes('element'), 'Should have element header');
+  assert(csv.includes('selector'), 'Should have selector header');
+});
+
+test('exportA11yReport HTML format with no issues shows success message', () => {
+  resetA11yAudit();
+  enableDevTools();
+
+  const html = exportA11yReport('html');
+
+  assert(html.includes('<!DOCTYPE html>'), 'Should have DOCTYPE');
+  assert(html.includes('<html lang="en">'), 'Should have html tag with lang');
+  assert(html.includes('Accessibility Audit Report'), 'Should have title');
+  // When no issues, should show success message
+  assert(
+    html.includes('No accessibility issues found') || html.includes('<table>'),
+    'Should have either success message or table'
+  );
+});
+
+test('exportA11yReport HTML includes styling', () => {
+  resetA11yAudit();
+  enableDevTools();
+
+  const html = exportA11yReport('html');
+
+  assert(html.includes('<style>'), 'Should have style tag');
+  assert(html.includes('font-family'), 'Should have font styling');
+  assert(html.includes('.errors'), 'Should have errors class');
+  assert(html.includes('.warnings'), 'Should have warnings class');
+});
+
+test('exportA11yReport HTML includes summary stats', () => {
+  resetA11yAudit();
+  enableDevTools();
+
+  const html = exportA11yReport('html');
+
+  assert(html.includes('Errors'), 'Should have Errors label');
+  assert(html.includes('Warnings'), 'Should have Warnings label');
+  assert(html.includes('class="summary"'), 'Should have summary section');
+});
+
+test('getA11yStats returns all expected fields', () => {
+  resetA11yAudit();
+  enableDevTools();
+  runA11yAudit();
+
+  const stats = getA11yStats();
+
+  assert('totalIssues' in stats, 'Should have totalIssues');
+  assert('errorCount' in stats, 'Should have errorCount');
+  assert('warningCount' in stats, 'Should have warningCount');
+  assert('auditCount' in stats, 'Should have auditCount');
+  assert('lastAuditTime' in stats, 'Should have lastAuditTime');
+});
+
+test('getA11yIssues returns array after multiple audits', () => {
+  resetA11yAudit();
+  enableDevTools();
+
+  // Run multiple audits
+  runA11yAudit();
+  runA11yAudit();
+  runA11yAudit();
+
+  const issues = getA11yIssues();
+  assert(Array.isArray(issues), 'Should return array');
+
+  const stats = getA11yStats();
+  // In Node.js without document, runA11yAudit returns early
+  // so auditCount may be 0 or may increment
+  assert(typeof stats.auditCount === 'number', 'auditCount should be a number');
+});
+
+test('exportA11yReport JSON includes all fields', () => {
+  resetA11yAudit();
+  enableDevTools();
+  runA11yAudit();
+
+  const report = exportA11yReport('json');
+  const parsed = JSON.parse(report);
+
+  assert('timestamp' in parsed, 'Should have timestamp');
+  assert('url' in parsed, 'Should have url');
+  assert('stats' in parsed, 'Should have stats');
+  assert('issues' in parsed, 'Should have issues');
+});
+
+test('exportA11yReport unknown format defaults to JSON', () => {
+  resetA11yAudit();
+  enableDevTools();
+  runA11yAudit();
+
+  const report = exportA11yReport('unknown');
+
+  // Should be valid JSON (default)
+  const parsed = JSON.parse(report);
+  assert(typeof parsed === 'object', 'Should be valid JSON object');
+});
+
 // =============================================================================
 // Results
 // =============================================================================

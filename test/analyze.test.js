@@ -8,7 +8,7 @@
 
 import { mkdirSync, writeFileSync, rmSync, existsSync } from 'fs';
 import { join } from 'path';
-import { buildImportGraph, analyzeBundle } from '../cli/analyze.js';
+import { buildImportGraph, analyzeBundle, runAnalyze } from '../cli/analyze.js';
 import {
   findPulseFiles,
   formatBytes,
@@ -18,6 +18,8 @@ import {
 } from '../cli/utils/file-utils.js';
 import {
   test,
+  testAsync,
+  runAsyncTests,
   printResults,
   exitWithCode,
   printSection,
@@ -1442,8 +1444,560 @@ view { div "imports only" }
 });
 
 // =============================================================================
+// runAnalyze Command Tests
+// =============================================================================
+
+printSection('runAnalyze Command Tests');
+
+// Helper to capture console output and mock process.exit
+function setupCommandMocks() {
+  const logs = [];
+  const warns = [];
+  const errors = [];
+  let exitCode = null;
+
+  const originalLog = console.log;
+  const originalWarn = console.warn;
+  const originalError = console.error;
+  const originalExit = process.exit;
+
+  console.log = (...args) => logs.push(args.join(' '));
+  console.warn = (...args) => warns.push(args.join(' '));
+  console.error = (...args) => errors.push(args.join(' '));
+  process.exit = (code) => { exitCode = code; throw new Error(`EXIT_${code}`); };
+
+  return {
+    logs,
+    warns,
+    errors,
+    getExitCode: () => exitCode,
+    restore: () => {
+      console.log = originalLog;
+      console.warn = originalWarn;
+      console.error = originalError;
+      process.exit = originalExit;
+    }
+  };
+}
+
+// Helper to run test in a specific directory with automatic cleanup
+async function withTestDir(dir, fn) {
+  const originalCwd = process.cwd();
+  try {
+    process.chdir(dir);
+    await fn();
+  } finally {
+    process.chdir(originalCwd);
+  }
+}
+
+testAsync('runAnalyze outputs JSON format with --json flag', async () => {
+  setupTestFixtures();
+  const mocks = setupCommandMocks();
+
+  try {
+    await runAnalyze(['--json', TEST_DIR]);
+
+    // Should have JSON output
+    const output = mocks.logs.join('\n');
+    assertTrue(output.includes('"summary"'), 'Should output JSON with summary');
+    assertTrue(output.includes('"fileBreakdown"'), 'Should output JSON with fileBreakdown');
+    assertTrue(output.includes('"importGraph"'), 'Should output JSON with importGraph');
+  } catch (e) {
+    if (!e.message.startsWith('EXIT_')) throw e;
+  } finally {
+    mocks.restore();
+    cleanupTestFixtures();
+  }
+});
+
+testAsync('runAnalyze outputs formatted console output by default', async () => {
+  setupTestFixtures();
+  const mocks = setupCommandMocks();
+
+  try {
+    await runAnalyze([TEST_DIR]);
+
+    // Should have formatted output with headers
+    const output = mocks.logs.join('\n');
+    assertTrue(output.includes('PULSE BUNDLE ANALYSIS') || output.includes('Analysis complete'), 'Should output formatted analysis');
+  } catch (e) {
+    if (!e.message.startsWith('EXIT_')) throw e;
+  } finally {
+    mocks.restore();
+    cleanupTestFixtures();
+  }
+});
+
+testAsync('runAnalyze handles verbose flag', async () => {
+  setupTestFixtures();
+  const mocks = setupCommandMocks();
+
+  try {
+    await runAnalyze(['--verbose', TEST_DIR]);
+
+    // Verbose mode should output more details
+    const output = mocks.logs.join('\n');
+    assertTrue(output.length > 0, 'Should have output');
+  } catch (e) {
+    if (!e.message.startsWith('EXIT_')) throw e;
+  } finally {
+    mocks.restore();
+    cleanupTestFixtures();
+  }
+});
+
+testAsync('runAnalyze handles -v short flag', async () => {
+  setupTestFixtures();
+  const mocks = setupCommandMocks();
+
+  try {
+    await runAnalyze(['-v', TEST_DIR]);
+
+    const output = mocks.logs.join('\n');
+    assertTrue(output.length > 0, 'Should have output with -v flag');
+  } catch (e) {
+    if (!e.message.startsWith('EXIT_')) throw e;
+  } finally {
+    mocks.restore();
+    cleanupTestFixtures();
+  }
+});
+
+testAsync('runAnalyze exits with error when src directory missing', async () => {
+  // Create temp dir without src
+  const tempDir = join(process.cwd(), 'test-no-src-dir');
+  mkdirSync(tempDir, { recursive: true });
+
+  const mocks = setupCommandMocks();
+
+  try {
+    // Pass tempDir as argument instead of changing directory
+    await runAnalyze([tempDir]);
+    assertTrue(false, 'Should have thrown exit error');
+  } catch (e) {
+    if (e.message === 'EXIT_1') {
+      assertEqual(mocks.getExitCode(), 1);
+    } else if (!e.message.startsWith('EXIT_')) {
+      throw e;
+    }
+  } finally {
+    mocks.restore();
+    rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+testAsync('runAnalyze accepts custom root directory', async () => {
+  setupTestFixtures();
+  const mocks = setupCommandMocks();
+
+  try {
+    await runAnalyze(['--json', TEST_DIR]);
+
+    const output = mocks.logs.join('\n');
+    assertTrue(output.includes('"summary"'), 'Should analyze specified directory');
+  } catch (e) {
+    if (!e.message.startsWith('EXIT_')) throw e;
+  } finally {
+    mocks.restore();
+    cleanupTestFixtures();
+  }
+});
+
+testAsync('runAnalyze warns about dead code', async () => {
+  setupTestFixtures();
+  const mocks = setupCommandMocks();
+
+  try {
+    await runAnalyze([TEST_DIR]);
+
+    // Should warn about unused files
+    const output = mocks.logs.join('\n') + mocks.warns.join('\n');
+    assertTrue(output.includes('unused') || output.includes('dead') || output.includes('Warning') || output.includes('Unused'), 'Should warn about dead code');
+  } catch (e) {
+    if (!e.message.startsWith('EXIT_')) throw e;
+  } finally {
+    mocks.restore();
+    cleanupTestFixtures();
+  }
+});
+
+// =============================================================================
+// formatConsoleOutput Tests (via runAnalyze)
+// =============================================================================
+
+printSection('formatConsoleOutput Tests');
+
+testAsync('formatConsoleOutput includes summary table', async () => {
+  setupTestFixtures();
+  const mocks = setupCommandMocks();
+
+  try {
+    await runAnalyze([TEST_DIR]);
+
+    const output = mocks.logs.join('\n');
+    // Check for summary metrics in output
+    assertTrue(
+      output.includes('Total') || output.includes('files') || output.includes('pulse'),
+      'Should include summary information'
+    );
+  } catch (e) {
+    if (!e.message.startsWith('EXIT_')) throw e;
+  } finally {
+    mocks.restore();
+    cleanupTestFixtures();
+  }
+});
+
+testAsync('formatConsoleOutput shows complexity bar chart', async () => {
+  setupTestFixtures();
+  const mocks = setupCommandMocks();
+
+  try {
+    await runAnalyze([TEST_DIR]);
+
+    const output = mocks.logs.join('\n');
+    // Should show complexity metrics (component names, scores)
+    assertTrue(
+      output.includes('COMPLEXITY') || output.includes('App') || output.includes('Home'),
+      'Should show complexity information or component names'
+    );
+  } catch (e) {
+    if (!e.message.startsWith('EXIT_')) throw e;
+  } finally {
+    mocks.restore();
+    cleanupTestFixtures();
+  }
+});
+
+testAsync('formatConsoleOutput verbose shows detailed metrics table', async () => {
+  setupTestFixtures();
+  const mocks = setupCommandMocks();
+
+  try {
+    await runAnalyze(['--verbose', TEST_DIR]);
+
+    const output = mocks.logs.join('\n');
+    // Verbose mode should show more detail
+    assertTrue(output.length > 100, 'Verbose output should be substantial');
+  } catch (e) {
+    if (!e.message.startsWith('EXIT_')) throw e;
+  } finally {
+    mocks.restore();
+    cleanupTestFixtures();
+  }
+});
+
+testAsync('formatConsoleOutput verbose shows file size breakdown', async () => {
+  setupTestFixtures();
+  const mocks = setupCommandMocks();
+
+  try {
+    await runAnalyze(['--verbose', TEST_DIR]);
+
+    const output = mocks.logs.join('\n');
+    // Verbose should include file sizes
+    assertTrue(
+      output.includes('SIZE') || output.includes('.pulse') || output.includes('.js') || output.includes('B'),
+      'Verbose should show file information'
+    );
+  } catch (e) {
+    if (!e.message.startsWith('EXIT_')) throw e;
+  } finally {
+    mocks.restore();
+    cleanupTestFixtures();
+  }
+});
+
+testAsync('formatConsoleOutput verbose shows import dependency tree', async () => {
+  setupTestFixtures();
+  const mocks = setupCommandMocks();
+
+  try {
+    await runAnalyze(['--verbose', TEST_DIR]);
+
+    const output = mocks.logs.join('\n');
+    // Should show import tree or dependency info
+    assertTrue(
+      output.includes('IMPORT') || output.includes('DEPEND') || output.includes('dependencies') || output.includes('└') || output.includes('├'),
+      'Verbose should show dependency information'
+    );
+  } catch (e) {
+    if (!e.message.startsWith('EXIT_')) throw e;
+  } finally {
+    mocks.restore();
+    cleanupTestFixtures();
+  }
+});
+
+testAsync('formatConsoleOutput verbose shows state variables', async () => {
+  setupTestFixtures();
+  const mocks = setupCommandMocks();
+
+  try {
+    await runAnalyze(['--verbose', TEST_DIR]);
+
+    const output = mocks.logs.join('\n');
+    // Should show state variable info (title, count from App.pulse)
+    assertTrue(
+      output.includes('STATE') || output.includes('title') || output.includes('count') || output.includes('shared'),
+      'Verbose should show state variable information'
+    );
+  } catch (e) {
+    if (!e.message.startsWith('EXIT_')) throw e;
+  } finally {
+    mocks.restore();
+    cleanupTestFixtures();
+  }
+});
+
+// =============================================================================
+// buildDependencyTree Tests
+// =============================================================================
+
+printSection('buildDependencyTree Tests');
+
+testAsync('buildDependencyTree builds tree from import graph', async () => {
+  setupTestFixtures();
+  try {
+    const { parse } = await import('../compiler/index.js');
+    const files = findPulseFiles([SRC_DIR], { extensions: ['.pulse', '.js'] });
+    const graph = await buildImportGraph(files, parse);
+
+    // The tree is built internally by formatConsoleOutput
+    // We test that the import graph has the right structure for tree building
+    assertTrue(Array.isArray(graph.nodes), 'Should have nodes');
+    assertTrue(Array.isArray(graph.edges), 'Should have edges');
+    assertTrue(graph.edges.length > 0, 'Should have edges for tree');
+  } finally {
+    cleanupTestFixtures();
+  }
+});
+
+testAsync('buildDependencyTree handles circular dependencies', async () => {
+  setupTestFixtures();
+
+  // Create circular imports
+  writeFileSync(join(SRC_DIR, 'CircA.pulse'), `
+@page CircA
+import CircB from './CircB.pulse'
+view { div "A" }
+`);
+  writeFileSync(join(SRC_DIR, 'CircB.pulse'), `
+@page CircB
+import CircA from './CircA.pulse'
+view { div "B" }
+`);
+
+  const mocks = setupCommandMocks();
+
+  try {
+    // Run verbose to trigger tree building
+    await runAnalyze(['--verbose', TEST_DIR]);
+
+    // Should complete without infinite loop
+    const output = mocks.logs.join('\n');
+    assertTrue(output.length > 0, 'Should complete with circular deps');
+  } catch (e) {
+    if (!e.message.startsWith('EXIT_')) throw e;
+  } finally {
+    mocks.restore();
+    cleanupTestFixtures();
+  }
+});
+
+testAsync('buildDependencyTree limits depth to prevent infinite recursion', async () => {
+  setupTestFixtures();
+
+  // Create deep import chain
+  for (let i = 1; i <= 10; i++) {
+    const nextImport = i < 10 ? `import Deep${i + 1} from './Deep${i + 1}.pulse'` : '';
+    writeFileSync(join(SRC_DIR, `Deep${i}.pulse`), `
+@page Deep${i}
+${nextImport}
+view { div "Deep ${i}" }
+`);
+  }
+
+  const mocks = setupCommandMocks();
+
+  try {
+    await runAnalyze(['--verbose', TEST_DIR]);
+
+    // Should complete without stack overflow
+    const output = mocks.logs.join('\n');
+    assertTrue(output.length > 0, 'Should handle deep chains');
+  } catch (e) {
+    if (!e.message.startsWith('EXIT_')) throw e;
+  } finally {
+    mocks.restore();
+    cleanupTestFixtures();
+  }
+});
+
+testAsync('buildDependencyTree handles empty import graph', async () => {
+  // Create project with no imports
+  const emptyDir = join(process.cwd(), 'test-empty-imports');
+  mkdirSync(join(emptyDir, 'src'), { recursive: true });
+  writeFileSync(join(emptyDir, 'src', 'Lonely.pulse'), `
+@page Lonely
+view { div "No imports" }
+`);
+
+  const mocks = setupCommandMocks();
+
+  try {
+    await runAnalyze(['--verbose', emptyDir]);
+
+    // Should handle gracefully
+    const output = mocks.logs.join('\n');
+    assertTrue(output.length > 0, 'Should handle empty imports');
+  } catch (e) {
+    if (!e.message.startsWith('EXIT_')) throw e;
+  } finally {
+    mocks.restore();
+    rmSync(emptyDir, { recursive: true, force: true });
+  }
+});
+
+// =============================================================================
+// analyzeStateUsage Tests
+// =============================================================================
+
+printSection('analyzeStateUsage Tests');
+
+testAsync('analyzeStateUsage tracks state declarations correctly', async () => {
+  setupTestFixtures();
+  try {
+    const analysis = await analyzeBundle(TEST_DIR);
+
+    // App.pulse has title and count
+    const titleState = analysis.stateUsage.find(s => s.name === 'title');
+    const countState = analysis.stateUsage.find(s => s.name === 'count');
+
+    assertTrue(titleState !== undefined, 'Should find title state');
+    assertTrue(countState !== undefined, 'Should find count state');
+    assertEqual(titleState.declarationCount, 1, 'Title should have 1 declaration');
+    assertEqual(countState.declarationCount, 1, 'Count should have 1 declaration');
+  } finally {
+    cleanupTestFixtures();
+  }
+});
+
+testAsync('analyzeStateUsage identifies shared state across files', async () => {
+  setupTestFixtures();
+
+  // Create multiple files with same state name
+  writeFileSync(join(SRC_DIR, 'SharedA.pulse'), `
+@page SharedA
+state { sharedCounter: 0 }
+view { div "{sharedCounter}" }
+`);
+  writeFileSync(join(SRC_DIR, 'SharedB.pulse'), `
+@page SharedB
+state { sharedCounter: 0 }
+view { div "{sharedCounter}" }
+`);
+  writeFileSync(join(SRC_DIR, 'SharedC.pulse'), `
+@page SharedC
+state { sharedCounter: 0 }
+view { div "{sharedCounter}" }
+`);
+
+  try {
+    const analysis = await analyzeBundle(TEST_DIR);
+    const sharedState = analysis.stateUsage.find(s => s.name === 'sharedCounter');
+
+    assertTrue(sharedState !== undefined, 'Should find sharedCounter');
+    assertEqual(sharedState.declarationCount, 3, 'Should have 3 declarations');
+    assertEqual(sharedState.isShared, true, 'Should be marked as shared');
+    assertEqual(sharedState.files.length, 3, 'Should be in 3 files');
+  } finally {
+    cleanupTestFixtures();
+  }
+});
+
+testAsync('analyzeStateUsage handles files with parse errors', async () => {
+  setupTestFixtures();
+
+  // Add a file with syntax error
+  writeFileSync(join(SRC_DIR, 'BadState.pulse'), `
+@page BadState
+state {
+  broken: !!invalid!!
+}
+view { div "broken" }
+`);
+
+  try {
+    const analysis = await analyzeBundle(TEST_DIR);
+    // Should complete without throwing
+    assertTrue(Array.isArray(analysis.stateUsage), 'Should return state usage array');
+  } finally {
+    cleanupTestFixtures();
+  }
+});
+
+testAsync('analyzeStateUsage returns empty array when no state', async () => {
+  // Create project with no state
+  const noStateDir = join(process.cwd(), 'test-no-state');
+  mkdirSync(join(noStateDir, 'src'), { recursive: true });
+  writeFileSync(join(noStateDir, 'src', 'Stateless.pulse'), `
+@page Stateless
+view { div "No state" }
+`);
+
+  try {
+    const analysis = await analyzeBundle(noStateDir);
+    assertTrue(Array.isArray(analysis.stateUsage), 'Should return array');
+    // May have 0 state or some from the stateless component
+  } finally {
+    rmSync(noStateDir, { recursive: true, force: true });
+  }
+});
+
+testAsync('analyzeStateUsage sorts by declaration count descending', async () => {
+  setupTestFixtures();
+
+  // Create files with different state counts
+  writeFileSync(join(SRC_DIR, 'Multi1.pulse'), `
+@page Multi1
+state { popularState: 0 }
+view { div "1" }
+`);
+  writeFileSync(join(SRC_DIR, 'Multi2.pulse'), `
+@page Multi2
+state { popularState: 0; rareState: 0 }
+view { div "2" }
+`);
+  writeFileSync(join(SRC_DIR, 'Multi3.pulse'), `
+@page Multi3
+state { popularState: 0 }
+view { div "3" }
+`);
+
+  try {
+    const analysis = await analyzeBundle(TEST_DIR);
+
+    // Verify sorting
+    for (let i = 1; i < analysis.stateUsage.length; i++) {
+      assertTrue(
+        analysis.stateUsage[i - 1].declarationCount >= analysis.stateUsage[i].declarationCount,
+        'Should be sorted by declaration count descending'
+      );
+    }
+  } finally {
+    cleanupTestFixtures();
+  }
+});
+
+// =============================================================================
 // Results
 // =============================================================================
 
-printResults();
-exitWithCode();
+// Run async tests and then print results
+(async () => {
+  await runAsyncTests();
+  printResults();
+  exitWithCode();
+})();

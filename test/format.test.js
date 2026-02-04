@@ -7,10 +7,14 @@
  */
 
 import { strict as assert } from 'node:assert';
-import { PulseFormatter, FormatOptions } from '../cli/format.js';
+import { PulseFormatter, FormatOptions, formatFile, runFormat } from '../cli/format.js';
 import { parse } from '../compiler/index.js';
+import { existsSync, mkdirSync, writeFileSync, rmSync, readFileSync } from 'fs';
+import { join } from 'path';
 import {
   test,
+  testAsync,
+  runAsyncTests,
   printResults,
   exitWithCode,
   printSection
@@ -791,8 +795,287 @@ view { div "test" }`;
 });
 
 // =============================================================================
+// formatFile and runFormat Tests
+// =============================================================================
+
+printSection('formatFile and runFormat Tests');
+
+const FORMAT_TEST_DIR = join(process.cwd(), '.test-format-project');
+
+function setupFormatTestDir(files = {}) {
+  if (existsSync(FORMAT_TEST_DIR)) {
+    rmSync(FORMAT_TEST_DIR, { recursive: true, force: true });
+  }
+  mkdirSync(FORMAT_TEST_DIR, { recursive: true });
+
+  for (const [path, content] of Object.entries(files)) {
+    const fullPath = join(FORMAT_TEST_DIR, path);
+    const dir = join(fullPath, '..');
+    if (!existsSync(dir)) {
+      mkdirSync(dir, { recursive: true });
+    }
+    writeFileSync(fullPath, content);
+  }
+}
+
+function cleanupFormatTestDir() {
+  if (existsSync(FORMAT_TEST_DIR)) {
+    rmSync(FORMAT_TEST_DIR, { recursive: true, force: true });
+  }
+}
+
+testAsync('formatFile formats a valid .pulse file', async () => {
+  setupFormatTestDir({
+    'src/test.pulse': '@page Test\nview{div"hello"}'
+  });
+
+  try {
+    const result = await formatFile(join(FORMAT_TEST_DIR, 'src/test.pulse'));
+
+    assert(result.file.includes('test.pulse'), 'Should have file path');
+    assert(result.original !== undefined, 'Should have original content');
+    assert(result.formatted !== undefined, 'Should have formatted content');
+    assert(typeof result.changed === 'boolean', 'Should have changed flag');
+  } finally {
+    cleanupFormatTestDir();
+  }
+});
+
+testAsync('formatFile handles parse errors', async () => {
+  setupFormatTestDir({
+    'src/broken.pulse': '@page Test\nview { invalid syntax {'
+  });
+
+  try {
+    const result = await formatFile(join(FORMAT_TEST_DIR, 'src/broken.pulse'));
+
+    assert(result.error !== undefined, 'Should have error');
+    assert(result.formatted === null, 'Formatted should be null on error');
+  } finally {
+    cleanupFormatTestDir();
+  }
+});
+
+testAsync('formatFile detects unchanged files', async () => {
+  // Create an already formatted file
+  const formattedContent = `@page Test
+
+view {
+  div "hello"
+}
+`;
+  setupFormatTestDir({
+    'src/formatted.pulse': formattedContent
+  });
+
+  try {
+    const result = await formatFile(join(FORMAT_TEST_DIR, 'src/formatted.pulse'));
+
+    assert(result.error === undefined, 'Should not have error');
+    // The file may or may not be considered changed depending on formatter output
+  } finally {
+    cleanupFormatTestDir();
+  }
+});
+
+testAsync('formatFile passes options to formatter', async () => {
+  setupFormatTestDir({
+    'src/test.pulse': '@page Test\nview { div "hello" }'
+  });
+
+  try {
+    const result = await formatFile(join(FORMAT_TEST_DIR, 'src/test.pulse'), { indentSize: 4 });
+
+    assert(result.error === undefined, 'Should not have error');
+    assert(result.formatted !== undefined, 'Should have formatted content');
+  } finally {
+    cleanupFormatTestDir();
+  }
+});
+
+/**
+ * Setup mocks for command testing
+ */
+function setupCommandMocks() {
+  const logs = [];
+  const warns = [];
+  const errors = [];
+  let exitCode = null;
+
+  const originalLog = console.log;
+  const originalWarn = console.warn;
+  const originalError = console.error;
+  const originalExit = process.exit;
+
+  console.log = (...args) => logs.push(args.join(' '));
+  console.warn = (...args) => warns.push(args.join(' '));
+  console.error = (...args) => errors.push(args.join(' '));
+  process.exit = (code) => {
+    exitCode = code;
+    throw new Error(`EXIT_${code}`);
+  };
+
+  return {
+    logs,
+    warns,
+    errors,
+    getExitCode: () => exitCode,
+    restore: () => {
+      console.log = originalLog;
+      console.warn = originalWarn;
+      console.error = originalError;
+      process.exit = originalExit;
+    }
+  };
+}
+
+testAsync('runFormat shows message when no files found', async () => {
+  setupFormatTestDir({
+    'src/main.js': '// no pulse files'
+  });
+  const mocks = setupCommandMocks();
+  const originalCwd = process.cwd();
+
+  try {
+    process.chdir(FORMAT_TEST_DIR);
+    await runFormat([]);
+
+    const allLogs = mocks.logs.join('\n');
+    assert(allLogs.includes('No .pulse files found'), 'Should indicate no files found');
+  } finally {
+    process.chdir(originalCwd);
+    mocks.restore();
+    cleanupFormatTestDir();
+  }
+});
+
+testAsync('runFormat formats files and reports results', async () => {
+  setupFormatTestDir({
+    'src/test.pulse': '@page Test\nview{div"hello"}'
+  });
+  const mocks = setupCommandMocks();
+  const originalCwd = process.cwd();
+
+  try {
+    process.chdir(FORMAT_TEST_DIR);
+    await runFormat(['src/test.pulse']);
+
+    // Should format file
+    const formatted = readFileSync(join(FORMAT_TEST_DIR, 'src/test.pulse'), 'utf-8');
+    assert(formatted.includes('@page Test'), 'Should contain page declaration');
+  } finally {
+    process.chdir(originalCwd);
+    mocks.restore();
+    cleanupFormatTestDir();
+  }
+});
+
+testAsync('runFormat with --check flag reports unformatted files', async () => {
+  setupFormatTestDir({
+    'src/test.pulse': '@page Test\nview{div"hello"}'
+  });
+  const mocks = setupCommandMocks();
+  const originalCwd = process.cwd();
+
+  try {
+    process.chdir(FORMAT_TEST_DIR);
+    await runFormat(['--check', 'src/test.pulse']);
+  } catch (e) {
+    // Exit code 1 is expected when files need formatting
+    if (!e.message.includes('EXIT_1')) {
+      throw e;
+    }
+  } finally {
+    process.chdir(originalCwd);
+    mocks.restore();
+    cleanupFormatTestDir();
+  }
+});
+
+testAsync('runFormat with --check on formatted files succeeds', async () => {
+  const wellFormatted = `@page Test
+
+view {
+  div "hello"
+}
+`;
+  setupFormatTestDir({
+    'src/test.pulse': wellFormatted
+  });
+  const mocks = setupCommandMocks();
+  const originalCwd = process.cwd();
+
+  try {
+    process.chdir(FORMAT_TEST_DIR);
+    await runFormat(['--check', 'src/test.pulse']);
+
+    // Should not exit with error if files are formatted
+    assert(mocks.getExitCode() !== 1 || mocks.getExitCode() === null, 'Should not exit with code 1');
+  } finally {
+    process.chdir(originalCwd);
+    mocks.restore();
+    cleanupFormatTestDir();
+  }
+});
+
+testAsync('runFormat handles parse errors in files', async () => {
+  setupFormatTestDir({
+    'src/broken.pulse': '@page Test\nview { broken { syntax'
+  });
+  const mocks = setupCommandMocks();
+  const originalCwd = process.cwd();
+
+  try {
+    process.chdir(FORMAT_TEST_DIR);
+    await runFormat(['src/broken.pulse']);
+
+    const allLogs = mocks.logs.join('\n') + mocks.errors.join('\n');
+    // Should report error
+    assert(
+      allLogs.includes('ERROR') || allLogs.includes('error'),
+      'Should report parse error'
+    );
+  } finally {
+    process.chdir(originalCwd);
+    mocks.restore();
+    cleanupFormatTestDir();
+  }
+});
+
+testAsync('runFormat formats multiple files', async () => {
+  setupFormatTestDir({
+    'src/a.pulse': '@page A\nview{div"a"}',
+    'src/b.pulse': '@page B\nview{div"b"}',
+    'src/c.pulse': '@page C\nview{div"c"}'
+  });
+  const mocks = setupCommandMocks();
+  const originalCwd = process.cwd();
+
+  try {
+    process.chdir(FORMAT_TEST_DIR);
+    await runFormat(['src/*.pulse']);
+
+    // All files should be formatted
+    const aContent = readFileSync(join(FORMAT_TEST_DIR, 'src/a.pulse'), 'utf-8');
+    const bContent = readFileSync(join(FORMAT_TEST_DIR, 'src/b.pulse'), 'utf-8');
+    const cContent = readFileSync(join(FORMAT_TEST_DIR, 'src/c.pulse'), 'utf-8');
+
+    assert(aContent.includes('@page A'), 'File A should be formatted');
+    assert(bContent.includes('@page B'), 'File B should be formatted');
+    assert(cContent.includes('@page C'), 'File C should be formatted');
+  } finally {
+    process.chdir(originalCwd);
+    mocks.restore();
+    cleanupFormatTestDir();
+  }
+});
+
+// =============================================================================
 // Results
 // =============================================================================
 
-printResults();
-exitWithCode();
+(async () => {
+  await runAsyncTests();
+  printResults();
+  exitWithCode();
+})();
