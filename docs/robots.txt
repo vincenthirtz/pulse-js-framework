@@ -1,0 +1,8 @@
+# Pulse Framework Documentation
+# https://pulse-js.fr/
+
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://pulse-js.fr/sitemap.xml

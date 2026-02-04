@@ -5,6 +5,7 @@
 import { pulse, effect } from '/runtime/index.js';
 import { createRouter } from '/runtime/router.js';
 import { locale, localePath, isValidLocale, defaultLocale, t } from './i18n/index.js';
+import { updateSEO, extractPathForSEO } from './seo.js';
 
 // Re-export i18n for convenience
 export { locale, localePath, t, setLocale, getPathWithoutLocale, translations } from './i18n/index.js';
@@ -173,14 +174,20 @@ export function initRouter(routes) {
 
     // Update locale from URL if needed
     const pathParts = window.location.pathname.split('/').filter(Boolean);
+    let currentLocale = defaultLocale;
     if (pathParts.length > 0 && isValidLocale(pathParts[0])) {
-      if (locale.get() !== pathParts[0]) {
-        locale.set(pathParts[0]);
+      currentLocale = pathParts[0];
+      if (locale.get() !== currentLocale) {
+        locale.set(currentLocale);
       }
     } else if (locale.get() !== defaultLocale) {
       // URL has no locale prefix, set to default
       locale.set(defaultLocale);
     }
+
+    // Update SEO metadata for the current page
+    const seoPath = extractPathForSEO(window.location.pathname);
+    updateSEO(seoPath, currentLocale);
   });
 
   // Global API for onclick handlers in HTML

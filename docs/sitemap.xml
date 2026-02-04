@@ -1,0 +1,311 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <!-- Home Page -->
+  <url>
+    <loc>https://pulse-js.fr/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://pulse-js.fr/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://pulse-js.fr/fr"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://pulse-js.fr/es"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://pulse-js.fr/de"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://pulse-js.fr/ja"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://pulse-js.fr/pt"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://pulse-js.fr/"/>
+  </url>
+
+  <!-- Getting Started -->
+  <url>
+    <loc>https://pulse-js.fr/getting-started</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://pulse-js.fr/getting-started"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://pulse-js.fr/fr/getting-started"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://pulse-js.fr/es/getting-started"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://pulse-js.fr/de/getting-started"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://pulse-js.fr/ja/getting-started"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://pulse-js.fr/pt/getting-started"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://pulse-js.fr/getting-started"/>
+  </url>
+
+  <!-- Core Concepts -->
+  <url>
+    <loc>https://pulse-js.fr/core-concepts</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://pulse-js.fr/core-concepts"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://pulse-js.fr/fr/core-concepts"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://pulse-js.fr/es/core-concepts"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://pulse-js.fr/de/core-concepts"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://pulse-js.fr/ja/core-concepts"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://pulse-js.fr/pt/core-concepts"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://pulse-js.fr/core-concepts"/>
+  </url>
+
+  <!-- API Reference -->
+  <url>
+    <loc>https://pulse-js.fr/api-reference</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://pulse-js.fr/api-reference"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://pulse-js.fr/fr/api-reference"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://pulse-js.fr/es/api-reference"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://pulse-js.fr/de/api-reference"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://pulse-js.fr/ja/api-reference"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://pulse-js.fr/pt/api-reference"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://pulse-js.fr/api-reference"/>
+  </url>
+
+  <!-- HTTP Client -->
+  <url>
+    <loc>https://pulse-js.fr/http</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://pulse-js.fr/http"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://pulse-js.fr/fr/http"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://pulse-js.fr/es/http"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://pulse-js.fr/de/http"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://pulse-js.fr/ja/http"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://pulse-js.fr/pt/http"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://pulse-js.fr/http"/>
+  </url>
+
+  <!-- WebSocket -->
+  <url>
+    <loc>https://pulse-js.fr/websocket</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://pulse-js.fr/websocket"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://pulse-js.fr/fr/websocket"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://pulse-js.fr/es/websocket"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://pulse-js.fr/de/websocket"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://pulse-js.fr/ja/websocket"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://pulse-js.fr/pt/websocket"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://pulse-js.fr/websocket"/>
+  </url>
+
+  <!-- GraphQL -->
+  <url>
+    <loc>https://pulse-js.fr/graphql</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://pulse-js.fr/graphql"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://pulse-js.fr/fr/graphql"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://pulse-js.fr/es/graphql"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://pulse-js.fr/de/graphql"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://pulse-js.fr/ja/graphql"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://pulse-js.fr/pt/graphql"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://pulse-js.fr/graphql"/>
+  </url>
+
+  <!-- Context API -->
+  <url>
+    <loc>https://pulse-js.fr/context</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://pulse-js.fr/context"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://pulse-js.fr/fr/context"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://pulse-js.fr/es/context"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://pulse-js.fr/de/context"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://pulse-js.fr/ja/context"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://pulse-js.fr/pt/context"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://pulse-js.fr/context"/>
+  </url>
+
+  <!-- DevTools -->
+  <url>
+    <loc>https://pulse-js.fr/devtools</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://pulse-js.fr/devtools"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://pulse-js.fr/fr/devtools"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://pulse-js.fr/es/devtools"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://pulse-js.fr/de/devtools"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://pulse-js.fr/ja/devtools"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://pulse-js.fr/pt/devtools"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://pulse-js.fr/devtools"/>
+  </url>
+
+  <!-- Accessibility -->
+  <url>
+    <loc>https://pulse-js.fr/accessibility</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://pulse-js.fr/accessibility"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://pulse-js.fr/fr/accessibility"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://pulse-js.fr/es/accessibility"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://pulse-js.fr/de/accessibility"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://pulse-js.fr/ja/accessibility"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://pulse-js.fr/pt/accessibility"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://pulse-js.fr/accessibility"/>
+  </url>
+
+  <!-- Debugging -->
+  <url>
+    <loc>https://pulse-js.fr/debugging</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://pulse-js.fr/debugging"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://pulse-js.fr/fr/debugging"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://pulse-js.fr/es/debugging"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://pulse-js.fr/de/debugging"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://pulse-js.fr/ja/debugging"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://pulse-js.fr/pt/debugging"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://pulse-js.fr/debugging"/>
+  </url>
+
+  <!-- Security -->
+  <url>
+    <loc>https://pulse-js.fr/security</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://pulse-js.fr/security"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://pulse-js.fr/fr/security"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://pulse-js.fr/es/security"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://pulse-js.fr/de/security"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://pulse-js.fr/ja/security"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://pulse-js.fr/pt/security"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://pulse-js.fr/security"/>
+  </url>
+
+  <!-- Performance -->
+  <url>
+    <loc>https://pulse-js.fr/performance</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://pulse-js.fr/performance"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://pulse-js.fr/fr/performance"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://pulse-js.fr/es/performance"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://pulse-js.fr/de/performance"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://pulse-js.fr/ja/performance"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://pulse-js.fr/pt/performance"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://pulse-js.fr/performance"/>
+  </url>
+
+  <!-- Error Handling -->
+  <url>
+    <loc>https://pulse-js.fr/error-handling</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://pulse-js.fr/error-handling"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://pulse-js.fr/fr/error-handling"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://pulse-js.fr/es/error-handling"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://pulse-js.fr/de/error-handling"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://pulse-js.fr/ja/error-handling"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://pulse-js.fr/pt/error-handling"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://pulse-js.fr/error-handling"/>
+  </url>
+
+  <!-- Mobile -->
+  <url>
+    <loc>https://pulse-js.fr/mobile</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://pulse-js.fr/mobile"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://pulse-js.fr/fr/mobile"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://pulse-js.fr/es/mobile"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://pulse-js.fr/de/mobile"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://pulse-js.fr/ja/mobile"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://pulse-js.fr/pt/mobile"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://pulse-js.fr/mobile"/>
+  </url>
+
+  <!-- Examples -->
+  <url>
+    <loc>https://pulse-js.fr/examples</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://pulse-js.fr/examples"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://pulse-js.fr/fr/examples"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://pulse-js.fr/es/examples"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://pulse-js.fr/de/examples"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://pulse-js.fr/ja/examples"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://pulse-js.fr/pt/examples"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://pulse-js.fr/examples"/>
+  </url>
+
+  <!-- Playground -->
+  <url>
+    <loc>https://pulse-js.fr/playground</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://pulse-js.fr/playground"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://pulse-js.fr/fr/playground"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://pulse-js.fr/es/playground"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://pulse-js.fr/de/playground"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://pulse-js.fr/ja/playground"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://pulse-js.fr/pt/playground"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://pulse-js.fr/playground"/>
+  </url>
+
+  <!-- Benchmarks -->
+  <url>
+    <loc>https://pulse-js.fr/benchmarks</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://pulse-js.fr/benchmarks"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://pulse-js.fr/fr/benchmarks"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://pulse-js.fr/es/benchmarks"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://pulse-js.fr/de/benchmarks"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://pulse-js.fr/ja/benchmarks"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://pulse-js.fr/pt/benchmarks"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://pulse-js.fr/benchmarks"/>
+  </url>
+
+  <!-- Migration from React -->
+  <url>
+    <loc>https://pulse-js.fr/migration-react</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://pulse-js.fr/migration-react"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://pulse-js.fr/fr/migration-react"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://pulse-js.fr/es/migration-react"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://pulse-js.fr/de/migration-react"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://pulse-js.fr/ja/migration-react"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://pulse-js.fr/pt/migration-react"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://pulse-js.fr/migration-react"/>
+  </url>
+
+  <!-- Migration from Angular -->
+  <url>
+    <loc>https://pulse-js.fr/migration-angular</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://pulse-js.fr/migration-angular"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://pulse-js.fr/fr/migration-angular"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://pulse-js.fr/es/migration-angular"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://pulse-js.fr/de/migration-angular"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://pulse-js.fr/ja/migration-angular"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://pulse-js.fr/pt/migration-angular"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://pulse-js.fr/migration-angular"/>
+  </url>
+
+  <!-- Migration from Vue -->
+  <url>
+    <loc>https://pulse-js.fr/migration-vue</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://pulse-js.fr/migration-vue"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://pulse-js.fr/fr/migration-vue"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://pulse-js.fr/es/migration-vue"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://pulse-js.fr/de/migration-vue"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://pulse-js.fr/ja/migration-vue"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://pulse-js.fr/pt/migration-vue"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://pulse-js.fr/migration-vue"/>
+  </url>
+
+  <!-- Changelog -->
+  <url>
+    <loc>https://pulse-js.fr/changelog</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://pulse-js.fr/changelog"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://pulse-js.fr/fr/changelog"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://pulse-js.fr/es/changelog"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://pulse-js.fr/de/changelog"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://pulse-js.fr/ja/changelog"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://pulse-js.fr/pt/changelog"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://pulse-js.fr/changelog"/>
+  </url>
+</urlset>
