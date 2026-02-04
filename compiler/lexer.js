@@ -383,15 +383,25 @@ export class Lexer {
       }
     }
 
-    // Exponent part
+    // Exponent part - only consume 'e' if followed by digits (or +/- then digits)
     if (this.current() === 'e' || this.current() === 'E') {
-      value += this.advance();
-      if (this.current() === '+' || this.current() === '-') {
-        value += this.advance();
+      const nextChar = this.peek();
+      const nextNextChar = this.peek(2);
+      // Check if this is actually scientific notation:
+      // e followed by digit, or e followed by +/- then digit
+      const isScientific = /[0-9]/.test(nextChar) ||
+                          ((nextChar === '+' || nextChar === '-') && /[0-9]/.test(nextNextChar));
+
+      if (isScientific) {
+        value += this.advance(); // consume 'e' or 'E'
+        if (this.current() === '+' || this.current() === '-') {
+          value += this.advance();
+        }
+        while (!this.isEOF() && /[0-9]/.test(this.current())) {
+          value += this.advance();
+        }
       }
-      while (!this.isEOF() && /[0-9]/.test(this.current())) {
-        value += this.advance();
-      }
+      // If not scientific notation, leave 'e' for the next token (e.g., 'em' unit)
     }
 
     return new Token(TokenType.NUMBER, parseFloat(value), startLine, startColumn, value);

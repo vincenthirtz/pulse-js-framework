@@ -1560,12 +1560,43 @@ export class Parser {
    * Parse style rule
    */
   parseStyleRule() {
-    // Parse selector
-    let selector = '';
+    // Parse selector - preserve spaces between tokens
+    const selectorParts = [];
+    let lastLine = this.current()?.line;
+    let lastToken = null;
+
     while (!this.is(TokenType.LBRACE) && !this.is(TokenType.EOF)) {
-      selector += this.advance().value;
+      const token = this.advance();
+      const currentLine = token.line;
+      const tokenValue = String(token.value);
+
+      // Determine if we need a space before this token
+      if (selectorParts.length > 0 && currentLine === lastLine) {
+        const lastPart = selectorParts[selectorParts.length - 1];
+
+        // Don't add space after these (they attach to what follows)
+        const noSpaceAfter = ['.', '#', ':', '[', '(', '>', '+', '~'];
+        // Don't add space before these (they attach to what precedes)
+        const noSpaceBefore = [':', ']', ')', ',', '.', '#'];
+
+        // Special case: . or # after an identifier needs space (descendant selector)
+        // e.g., ".school .date" - need space between "school" and "."
+        const isDescendantSelector = (tokenValue === '.' || tokenValue === '#') &&
+                                     lastToken?.type === TokenType.IDENT;
+
+        const needsSpace = !noSpaceAfter.includes(lastPart) &&
+                          !noSpaceBefore.includes(tokenValue) ||
+                          isDescendantSelector;
+
+        if (needsSpace) {
+          selectorParts.push(' ');
+        }
+      }
+      selectorParts.push(tokenValue);
+      lastLine = currentLine;
+      lastToken = token;
     }
-    selector = selector.trim();
+    const selector = selectorParts.join('').trim();
 
     this.expect(TokenType.LBRACE);
 
@@ -2017,12 +2048,21 @@ export class Parser {
    * Check if current position starts a new property
    */
   isPropertyStart() {
-    // Check if it looks like: identifier followed by :
-    if (!this.is(TokenType.IDENT)) return false;
-    let i = 1;
-    while (this.peek(i) && this.peek(i).type === TokenType.IDENT) {
-      i++;
+    // Check if it looks like: identifier (with possible hyphens) followed by :
+    // CSS properties can be: margin, margin-bottom, -webkit-transform, etc.
+    if (!this.is(TokenType.IDENT) && !this.is(TokenType.MINUS)) return false;
+
+    let i = 0;
+    // Skip over property name tokens (IDENT and MINUS for hyphenated names)
+    while (this.peek(i)) {
+      const token = this.peek(i);
+      if (token.type === TokenType.IDENT || token.type === TokenType.MINUS) {
+        i++;
+      } else {
+        break;
+      }
     }
+
     return this.peek(i)?.type === TokenType.COLON;
   }
 }
