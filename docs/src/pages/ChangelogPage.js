@@ -29,7 +29,19 @@ export function ChangelogPage() {
     
     
     
+    
     <section class="doc-section changelog-section">
+      <h2>v1.7.17 - Release</h2>
+      <p class="release-date">February 2026</p>
+
+      <div class="changelog-group">
+        <ul class="feature-list">
+          <li><strong>Added:</strong> improve runtime exports, docs, and add security guide</li>
+          <li><strong>Added:</strong> add `pulse new` command for creating .pulse files</li>
+        </ul>
+      </div>
+    </section>
+<section class="doc-section changelog-section">
       <h2>v1.7.16 - Collapsible TOC Sidebar</h2>
       <p class="release-date">February 2026</p>
 
