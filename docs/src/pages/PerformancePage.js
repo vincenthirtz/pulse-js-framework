@@ -3,7 +3,7 @@
  */
 
 import { el } from '/runtime/index.js';
-import { t } from '../state.js';
+import { t, navigateLocale } from '../state.js';
 
 export function PerformancePage() {
   const page = el('.page.docs-page');
@@ -458,12 +458,14 @@ console.table(slowEffects);</code></pre>
       </table>
     </section>
 
-    <div class="next-section">
-      <button class="btn btn-primary" onclick="window.docs.navigate('/error-handling')">
-        ${t('performance.nextErrorHandling')}
-      </button>
-    </div>
+    <div class="next-section"></div>
   `;
+
+  // Attach click handler programmatically for navigation button
+  const nextSection = page.querySelector('.next-section');
+  const nextBtn = el('button.btn.btn-primary', t('performance.nextErrorHandling'));
+  nextBtn.onclick = () => navigateLocale('/error-handling');
+  nextSection.appendChild(nextBtn);
 
   return page;
 }

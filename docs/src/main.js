@@ -39,6 +39,7 @@ import { WebSocketPage } from './pages/WebSocketPage.js';
 import { GraphQLPage } from './pages/GraphQLPage.js';
 import { ContextPage } from './pages/ContextPage.js';
 import { DevToolsPage } from './pages/DevToolsPage.js';
+import { SSRPage } from './pages/SSRPage.js';
 
 // Styles & Utilities
 import { injectStyles } from './styles.js';
@@ -71,7 +72,8 @@ const baseRoutes = {
   '/websocket': WebSocketPage,
   '/graphql': GraphQLPage,
   '/context': ContextPage,
-  '/devtools': DevToolsPage
+  '/devtools': DevToolsPage,
+  '/ssr': SSRPage
 };
 
 // Build routes with locale prefixes (fr, es, de)

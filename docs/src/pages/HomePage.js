@@ -3,7 +3,7 @@
  */
 
 import { el } from '/runtime/index.js';
-import { t } from '../state.js';
+import { t, navigateLocale } from '../state.js';
 
 export function HomePage() {
   const page = el('.page.home-page');
@@ -27,12 +27,17 @@ export function HomePage() {
       <span class="feature">${t('home.features.noBuild')}</span>
       <span class="feature">${t('home.features.mobile')}</span>
     </div>
-    <div class="hero-buttons">
-      <button class="btn btn-primary" onclick="window.docs.navigate('/getting-started')">${t('home.getStarted')}</button>
-      <button class="btn btn-secondary" onclick="window.docs.navigate('/examples')">${t('home.viewExamples')}</button>
-    </div>
+    <div class="hero-buttons"></div>
   `;
   page.appendChild(hero);
+
+  // Attach click handlers programmatically for hero buttons
+  const heroButtons = hero.querySelector('.hero-buttons');
+  const getStartedBtn = el('button.btn.btn-primary', t('home.getStarted'));
+  getStartedBtn.onclick = () => navigateLocale('/getting-started');
+  const viewExamplesBtn = el('button.btn.btn-secondary', t('home.viewExamples'));
+  viewExamplesBtn.onclick = () => navigateLocale('/examples');
+  heroButtons.append(getStartedBtn, viewExamplesBtn);
 
   // Typing effect for tagline
   const tagline = t('home.tagline');

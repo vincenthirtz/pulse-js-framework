@@ -3,7 +3,7 @@
  */
 
 import { el } from '/runtime/index.js';
-import { t } from '../state.js';
+import { t, navigateLocale } from '../state.js';
 
 export function AccessibilityPage() {
   const page = el('.page.docs-page');
@@ -477,12 +477,14 @@ img[src="logo.png"]  // Missing alt</code></pre>
       </div>
     </section>
 
-    <div class="next-section">
-      <button class="btn btn-primary" onclick="window.docs.navigate('/security')">
-        ${t('accessibility.nextSecurity')}
-      </button>
-    </div>
+    <div class="next-section"></div>
   `;
+
+  // Attach click handler programmatically for navigation button
+  const nextSection = page.querySelector('.next-section');
+  const nextBtn = el('button.btn.btn-primary', t('accessibility.nextSecurity'));
+  nextBtn.onclick = () => navigateLocale('/security');
+  nextSection.appendChild(nextBtn);
 
   return page;
 }

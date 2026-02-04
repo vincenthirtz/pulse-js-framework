@@ -3,7 +3,7 @@
  */
 
 import { el, effect } from '/runtime/index.js';
-import { t, locale, translations } from '../state.js';
+import { t, locale, translations, navigateLocale } from '../state.js';
 
 export function ApiReferencePage() {
   const page = el('.page.docs-page');
@@ -541,10 +541,15 @@ console.log(hmr.data.myCustomState); // { x: 1, y: 2 }</code></pre>
       </div>
     </section>
 
-    <div class="next-section">
-      <button class="btn btn-primary" onclick="window.docs.navigate('/mobile')" data-i18n="apiReference.nextMobile"></button>
-    </div>
+    <div class="next-section"></div>
   `;
+
+  // Attach click handler programmatically for navigation button
+  const nextSection = page.querySelector('.next-section');
+  const nextBtn = el('button.btn.btn-primary');
+  nextBtn.dataset.i18n = 'apiReference.nextMobile';
+  nextBtn.onclick = () => navigateLocale('/mobile');
+  nextSection.appendChild(nextBtn);
 
   // Reactive i18n: update all translated elements when locale/translations change
   effect(() => {

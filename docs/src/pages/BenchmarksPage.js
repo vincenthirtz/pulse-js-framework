@@ -4,7 +4,7 @@
  */
 
 import { el, pulse, effect, computed, batch } from '/runtime/index.js';
-import { t } from '../state.js';
+import { t, navigateLocale } from '../state.js';
 
 // Benchmark utilities
 function formatNumber(num) {
@@ -534,12 +534,14 @@ export function BenchmarksPage() {
       </div>
     </section>
 
-    <div class="next-section">
-      <button class="btn btn-primary" onclick="window.docs.navigate('/performance')">
-        ${t('benchmarks.nextPerformance')}
-      </button>
-    </div>
+    <div class="next-section"></div>
   `;
+
+  // Attach click handler programmatically for navigation button
+  const nextSection = page.querySelector('.next-section');
+  const nextBtn = el('button.btn.btn-primary', t('benchmarks.nextPerformance'));
+  nextBtn.onclick = () => navigateLocale('/performance');
+  nextSection.appendChild(nextBtn);
 
   // Attach event handlers
   page.querySelector('.run-all-btn').addEventListener('click', runAll);

@@ -3,7 +3,7 @@
  */
 
 import { el } from '/runtime/index.js';
-import { t } from '../state.js';
+import { t, navigateLocale } from '../state.js';
 
 export function MobilePage() {
   const page = el('.page.mobile-page');
@@ -240,12 +240,14 @@ onBackButton(() => {
       </ul>
     </section>
 
-    <div class="next-section">
-      <button class="btn btn-primary" onclick="window.docs.navigate('/examples')">
-        ${t('mobile.nextExamples')}
-      </button>
-    </div>
+    <div class="next-section"></div>
   `;
+
+  // Attach click handler programmatically for navigation button
+  const nextSection = page.querySelector('.next-section');
+  const nextBtn = el('button.btn.btn-primary', t('mobile.nextExamples'));
+  nextBtn.onclick = () => navigateLocale('/examples');
+  nextSection.appendChild(nextBtn);
 
   return page;
 }

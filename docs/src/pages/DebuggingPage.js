@@ -3,7 +3,7 @@
  */
 
 import { el, effect } from '/runtime/index.js';
-import { t, locale, translations } from '../state.js';
+import { t, locale, translations, navigateLocale } from '../state.js';
 
 export function DebuggingPage() {
   const page = el('.page.docs-page');
@@ -323,10 +323,15 @@ lazy(() => import('./Dashboard.js'))  // export default Dashboard</code></pre>
       </ul>
     </section>
 
-    <div class="next-section">
-      <button class="btn btn-primary" onclick="window.docs.navigate('/api-reference')" data-i18n="debugging.nextApiReference"></button>
-    </div>
+    <div class="next-section"></div>
   `;
+
+  // Attach click handler programmatically for navigation button
+  const nextSection = page.querySelector('.next-section');
+  const nextBtn = el('button.btn.btn-primary');
+  nextBtn.dataset.i18n = 'debugging.nextApiReference';
+  nextBtn.onclick = () => navigateLocale('/api-reference');
+  nextSection.appendChild(nextBtn);
 
   // Reactive i18n: update all translated elements when locale/translations change
   effect(() => {

@@ -78,7 +78,8 @@ export const navStructure = [
       { path: '/http', labelKey: 'nav.http', descKey: 'nav.httpDesc' },
       { path: '/websocket', labelKey: 'nav.websocket', descKey: 'nav.websocketDesc' },
       { path: '/graphql', labelKey: 'nav.graphql', descKey: 'nav.graphqlDesc' },
-      { path: '/context', labelKey: 'nav.context', descKey: 'nav.contextDesc' }
+      { path: '/context', labelKey: 'nav.context', descKey: 'nav.contextDesc' },
+      { path: '/ssr', labelKey: 'nav.ssr', descKey: 'nav.ssrDesc' }
     ]
   },
   {
@@ -120,6 +121,7 @@ export const navStructureFlat = [
   { path: '/websocket', labelKey: 'nav.websocket' },
   { path: '/graphql', labelKey: 'nav.graphql' },
   { path: '/context', labelKey: 'nav.context' },
+  { path: '/ssr', labelKey: 'nav.ssr' },
   { path: '/devtools', labelKey: 'nav.devtools' },
   { path: '/accessibility', labelKey: 'nav.accessibility' },
   { path: '/debugging', labelKey: 'nav.debugging' },

@@ -3,7 +3,7 @@
  */
 
 import { el } from '/runtime/index.js';
-import { t } from '../state.js';
+import { t, navigateLocale } from '../state.js';
 
 export function GettingStartedPage() {
   const page = el('.page.docs-page');
@@ -213,12 +213,14 @@ effect(() => {
       </div>
     </section>
 
-    <div class="next-section">
-      <button class="btn btn-primary" onclick="window.docs.navigate('/core-concepts')">
-        ${t('gettingStarted.nextCoreConcepts')}
-      </button>
-    </div>
+    <div class="next-section"></div>
   `;
+
+  // Attach click handler programmatically for navigation button
+  const nextSection = page.querySelector('.next-section');
+  const nextBtn = el('button.btn.btn-primary', t('gettingStarted.nextCoreConcepts'));
+  nextBtn.onclick = () => navigateLocale('/core-concepts');
+  nextSection.appendChild(nextBtn);
 
   return page;
 }

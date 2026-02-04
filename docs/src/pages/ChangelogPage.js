@@ -3,7 +3,7 @@
  */
 
 import { el } from '/runtime/index.js';
-import { t } from '../state.js';
+import { t, navigateLocale } from '../state.js';
 
 export function ChangelogPage() {
   const page = el('.page.docs-page');
@@ -962,12 +962,14 @@ state.items$filter(x => x > 2);  // [3, 4]</code></pre>
       </div>
     </section>
 
-    <div class="next-section">
-      <button class="btn btn-primary" onclick="window.docs.navigate('/')">
-        ← Back to Home
-      </button>
-    </div>
+    <div class="next-section"></div>
   `;
+
+  // Attach click handler programmatically for navigation button
+  const nextSection = page.querySelector('.next-section');
+  const backBtn = el('button.btn.btn-primary', '← Back to Home');
+  backBtn.onclick = () => navigateLocale('/');
+  nextSection.appendChild(backBtn);
 
   return page;
 }

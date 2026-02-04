@@ -3,7 +3,7 @@
  */
 
 import { el } from '/runtime/index.js';
-import { t } from '../state.js';
+import { t, navigateLocale } from '../state.js';
 
 export function MigrationAngularPage() {
   const page = el('.page.docs-page.migration-page');
@@ -823,15 +823,16 @@ effect(async () => {
       </div>
     </section>
 
-    <div class="next-section">
-      <button class="btn btn-primary" onclick="window.docs.navigate('/getting-started')">
-        ${t('migrationAngular.getStarted')}
-      </button>
-      <button class="btn btn-secondary" onclick="window.docs.navigate('/examples')">
-        ${t('migrationAngular.viewExamples')}
-      </button>
-    </div>
+    <div class="next-section"></div>
   `;
+
+  // Attach click handlers programmatically for navigation buttons
+  const nextSection = page.querySelector('.next-section');
+  const getStartedBtn = el('button.btn.btn-primary', t('migrationAngular.getStarted'));
+  getStartedBtn.onclick = () => navigateLocale('/getting-started');
+  const viewExamplesBtn = el('button.btn.btn-secondary', t('migrationAngular.viewExamples'));
+  viewExamplesBtn.onclick = () => navigateLocale('/examples');
+  nextSection.append(getStartedBtn, viewExamplesBtn);
 
   return page;
 }

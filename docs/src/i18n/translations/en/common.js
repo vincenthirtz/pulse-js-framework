@@ -25,6 +25,8 @@ export default {
     graphqlDesc: 'Query, mutation & subscription',
     context: '🎯 Context API',
     contextDesc: 'Dependency injection',
+    ssr: '🖥️ SSR',
+    ssrDesc: 'Server-side rendering & hydration',
     devtools: '🛠️ DevTools',
     devtoolsDesc: 'Debugging & profiling',
     accessibility: '♿ Accessibility',
