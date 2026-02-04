@@ -9,3 +9,4 @@ dist/
 .test-doctor-project
 test-fixtures-analyze
 coverage
+.test-runner-project

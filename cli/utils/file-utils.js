@@ -247,6 +247,10 @@ export function resolveImportPath(fromFile, importPath) {
 
 /**
  * Parse CLI arguments into options and file patterns
+ * Supports:
+ * - Boolean flags: --verbose, -v
+ * - Value options: --dir /path, -d /path
+ * - Negation: --no-state
  * @param {string[]} args - Command line arguments
  * @returns {{ options: object, patterns: string[] }}
  */
@@ -254,15 +258,33 @@ export function parseArgs(args) {
   const options = {};
   const patterns = [];
 
+  // Options that take a value (not boolean)
+  const valueOptions = new Set([
+    'dir', 'd', 'output', 'o', 'type', 't', 'format', 'f', 'filter', 'timeout', 'title', 'from'
+  ]);
+
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
-    if (arg.startsWith('--')) {
+    if (arg.startsWith('--no-')) {
+      // Negation: --no-state -> state: false
+      const key = arg.slice(5);
+      options[key] = false;
+    } else if (arg.startsWith('--')) {
       const key = arg.slice(2);
-      // Boolean flags - don't consume next argument
-      options[key] = true;
+      // Check if this option takes a value
+      if (valueOptions.has(key) && i + 1 < args.length && !args[i + 1].startsWith('-')) {
+        options[key] = args[++i];
+      } else {
+        options[key] = true;
+      }
     } else if (arg.startsWith('-') && arg.length === 2) {
       const key = arg.slice(1);
-      options[key] = true;
+      // Check if this option takes a value
+      if (valueOptions.has(key) && i + 1 < args.length && !args[i + 1].startsWith('-')) {
+        options[key] = args[++i];
+      } else {
+        options[key] = true;
+      }
     } else {
       patterns.push(arg);
     }

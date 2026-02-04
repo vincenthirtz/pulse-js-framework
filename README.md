@@ -163,6 +163,12 @@ pulse test --create <name>       # Generate test file
 pulse doctor                     # Run project diagnostics
 pulse doctor --verbose           # Detailed diagnostics
 
+# Creating .pulse Files
+pulse new <name>                 # Create component (src/components/<Name>.pulse)
+pulse new <name> --type page     # Create page (src/pages/<Name>.pulse)
+pulse new <name> --type layout   # Create layout (src/layouts/<Name>.pulse)
+pulse new <name> --props         # Include props section
+
 # Scaffolding
 pulse scaffold component <name>  # Generate component
 pulse scaffold page <name>       # Generate page

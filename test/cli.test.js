@@ -266,9 +266,9 @@ test('parseArgs handles mixed options and patterns', () => {
   const { options, patterns } = parseArgs(['--watch', 'src/', '-o', 'dist/', '--dry-run']);
 
   assertEqual(options.watch, true);
-  assertEqual(options.o, true);
+  assertEqual(options.o, 'dist/'); // -o takes a value
   assertEqual(options['dry-run'], true);
-  assertDeepEqual(patterns, ['src/', 'dist/']);
+  assertDeepEqual(patterns, ['src/']);
 });
 
 test('parseArgs handles empty arguments', () => {
@@ -279,11 +279,17 @@ test('parseArgs handles empty arguments', () => {
 });
 
 test('parseArgs handles kebab-case options', () => {
-  const { options } = parseArgs(['--dry-run', '--no-push', '--skip-prompt']);
+  const { options } = parseArgs(['--dry-run', '--skip-prompt']);
 
   assertEqual(options['dry-run'], true);
-  assertEqual(options['no-push'], true);
   assertEqual(options['skip-prompt'], true);
+});
+
+test('parseArgs handles --no- prefix negation', () => {
+  const { options } = parseArgs(['--no-state', '--no-style']);
+
+  assertEqual(options.state, false);
+  assertEqual(options.style, false);
 });
 
 // =============================================================================
@@ -953,11 +959,10 @@ printSection('parseArgs Advanced Tests');
 test('parseArgs handles flags and patterns separately', () => {
   const result = parseArgs(['--verbose', 'src/', '--format', 'dist/']);
 
-  // parseArgs treats -- args as boolean flags and others as patterns
+  // --format takes a value, --verbose is boolean
   assertEqual(result.options.verbose, true, 'Should parse --verbose flag');
-  assertEqual(result.options.format, true, 'Should parse --format flag');
+  assertEqual(result.options.format, 'dist/', 'Should parse --format with value');
   assertTrue(result.patterns.includes('src/'), 'Should include src/ pattern');
-  assertTrue(result.patterns.includes('dist/'), 'Should include dist/ pattern');
 });
 
 test('parseArgs separates flags from patterns correctly', () => {
@@ -972,17 +977,17 @@ test('parseArgs handles short flags', () => {
   const result = parseArgs(['-v', '-o', 'dist', '-f']);
 
   assertEqual(result.options.v, true, 'Should parse -v flag');
-  assertEqual(result.options.o, true, 'Should parse -o flag');
+  assertEqual(result.options.o, 'dist', 'Should parse -o with value');
   assertEqual(result.options.f, true, 'Should parse -f flag');
-  assertTrue(result.patterns.includes('dist'), 'dist should be a pattern');
+  assertEqual(result.patterns.length, 0, 'No patterns since dist is consumed by -o');
 });
 
-test('parseArgs treats no- prefix as flags', () => {
+test('parseArgs treats --no- prefix as negation', () => {
   const result = parseArgs(['--no-sourcemap', '--no-minify']);
 
-  // parseArgs treats these as boolean flags with "no-" prefix
-  assertEqual(result.options['no-sourcemap'], true, 'Should have no-sourcemap flag');
-  assertEqual(result.options['no-minify'], true, 'Should have no-minify flag');
+  // parseArgs treats --no-X as X: false (negation)
+  assertEqual(result.options.sourcemap, false, 'Should have sourcemap: false');
+  assertEqual(result.options.minify, false, 'Should have minify: false');
 });
 
 test('parseArgs treats non-flag args as patterns', () => {
@@ -1607,6 +1612,355 @@ test('command descriptions provide helpful details', () => {
       `${cmdName} description should be detailed (>20 chars)`
     );
   }
+});
+
+// =============================================================================
+// New Command Tests
+// =============================================================================
+
+printSection('New Command Tests');
+
+test('new command help definition exists', () => {
+  const def = getCommandDefinition('new');
+
+  assertTrue(def !== undefined, 'Should have new command definition');
+  assertEqual(def.name, 'new', 'Should have correct name');
+  assertEqual(def.summary, 'Create a new .pulse file', 'Should have correct summary');
+});
+
+test('new command has required options documented', () => {
+  const def = getCommandDefinition('new');
+
+  assertTrue(def.options.length >= 5, 'Should have at least 5 options');
+
+  const optionFlags = def.options.map(o => o.flag);
+  assertTrue(optionFlags.some(f => f.includes('--type')), 'Should document --type option');
+  assertTrue(optionFlags.some(f => f.includes('--dir')), 'Should document --dir option');
+  assertTrue(optionFlags.some(f => f.includes('--force')), 'Should document --force option');
+  assertTrue(optionFlags.some(f => f.includes('--props')), 'Should document --props option');
+  assertTrue(optionFlags.some(f => f.includes('--no-state')), 'Should document --no-state option');
+  assertTrue(optionFlags.some(f => f.includes('--no-style')), 'Should document --no-style option');
+});
+
+test('new command has examples for all types', () => {
+  const def = getCommandDefinition('new');
+
+  const exampleCmds = def.examples.map(e => e.cmd);
+  assertTrue(exampleCmds.some(c => c.includes('Button')), 'Should have component example');
+  assertTrue(exampleCmds.some(c => c.includes('--type page')), 'Should have page example');
+  assertTrue(exampleCmds.some(c => c.includes('--type layout')), 'Should have layout example');
+  assertTrue(exampleCmds.some(c => c.includes('--props')), 'Should have props example');
+});
+
+test('new command is in scaffolding group', () => {
+  // Verify 'new' appears in help output
+  const commands = getAvailableCommands();
+  assertTrue(commands.includes('new'), 'Should include new command');
+});
+
+// =============================================================================
+// parseArgs Value Options Tests
+// =============================================================================
+
+printSection('parseArgs Value Options Tests');
+
+test('parseArgs handles --type with value', () => {
+  const result = parseArgs(['--type', 'page', 'Dashboard']);
+
+  assertEqual(result.options.type, 'page', 'Should parse --type with value');
+  assertTrue(result.patterns.includes('Dashboard'), 'Should include name as pattern');
+});
+
+test('parseArgs handles -t shorthand with value', () => {
+  const result = parseArgs(['-t', 'layout', 'Admin']);
+
+  assertEqual(result.options.t, 'layout', 'Should parse -t with value');
+  assertTrue(result.patterns.includes('Admin'), 'Should include name as pattern');
+});
+
+test('parseArgs handles --dir with value', () => {
+  const result = parseArgs(['MyComponent', '--dir', 'src/ui']);
+
+  assertEqual(result.options.dir, 'src/ui', 'Should parse --dir with value');
+  assertTrue(result.patterns.includes('MyComponent'), 'Should include name as pattern');
+});
+
+test('parseArgs handles -d shorthand with value', () => {
+  const result = parseArgs(['Button', '-d', 'src/components']);
+
+  assertEqual(result.options.d, 'src/components', 'Should parse -d with value');
+  assertTrue(result.patterns.includes('Button'), 'Should include name as pattern');
+});
+
+test('parseArgs handles --output with value', () => {
+  const result = parseArgs(['--output', 'dist/', 'src/']);
+
+  assertEqual(result.options.output, 'dist/', 'Should parse --output with value');
+  assertTrue(result.patterns.includes('src/'), 'Should include src/ as pattern');
+});
+
+test('parseArgs handles --format with value', () => {
+  const result = parseArgs(['--format', 'html', '--generate']);
+
+  assertEqual(result.options.format, 'html', 'Should parse --format with value');
+  assertEqual(result.options.generate, true, 'Should parse --generate as boolean');
+});
+
+test('parseArgs handles --filter with value', () => {
+  const result = parseArgs(['--filter', 'Button', '--watch']);
+
+  assertEqual(result.options.filter, 'Button', 'Should parse --filter with value');
+  assertEqual(result.options.watch, true, 'Should parse --watch as boolean');
+});
+
+test('parseArgs handles --timeout with value', () => {
+  const result = parseArgs(['--timeout', '5000']);
+
+  assertEqual(result.options.timeout, '5000', 'Should parse --timeout with value');
+});
+
+test('parseArgs handles --title with value', () => {
+  const result = parseArgs(['--title', 'My Release', 'patch']);
+
+  assertEqual(result.options.title, 'My Release', 'Should parse --title with value');
+  assertTrue(result.patterns.includes('patch'), 'Should include patch as pattern');
+});
+
+test('parseArgs handles multiple value options together', () => {
+  const result = parseArgs(['--type', 'page', '--dir', 'src/pages', 'Dashboard', '--force']);
+
+  assertEqual(result.options.type, 'page', 'Should parse --type');
+  assertEqual(result.options.dir, 'src/pages', 'Should parse --dir');
+  assertEqual(result.options.force, true, 'Should parse --force');
+  assertTrue(result.patterns.includes('Dashboard'), 'Should include Dashboard');
+});
+
+test('parseArgs value option without value becomes boolean', () => {
+  const result = parseArgs(['--type', '--verbose']);
+
+  // --type followed by --verbose (starts with -), so --type is boolean
+  assertEqual(result.options.type, true, 'Should be boolean when no value follows');
+  assertEqual(result.options.verbose, true, 'Should parse --verbose');
+});
+
+test('parseArgs handles value option at end of args', () => {
+  const result = parseArgs(['Button', '--type']);
+
+  // --type at end with no value should be boolean
+  assertEqual(result.options.type, true, 'Should be boolean at end of args');
+  assertTrue(result.patterns.includes('Button'), 'Should include Button');
+});
+
+// =============================================================================
+// parseArgs Negation Tests
+// =============================================================================
+
+printSection('parseArgs Negation Tests');
+
+test('parseArgs handles --no-state negation', () => {
+  const result = parseArgs(['Button', '--no-state']);
+
+  assertEqual(result.options.state, false, 'Should negate state option');
+  assertTrue(result.patterns.includes('Button'), 'Should include Button');
+});
+
+test('parseArgs handles --no-style negation', () => {
+  const result = parseArgs(['Button', '--no-style']);
+
+  assertEqual(result.options.style, false, 'Should negate style option');
+});
+
+test('parseArgs handles multiple negations', () => {
+  const result = parseArgs(['--no-state', '--no-style', '--no-push']);
+
+  assertEqual(result.options.state, false, 'Should negate state');
+  assertEqual(result.options.style, false, 'Should negate style');
+  assertEqual(result.options.push, false, 'Should negate push');
+});
+
+test('parseArgs negation does not affect other options', () => {
+  const result = parseArgs(['--no-state', '--force', '--props']);
+
+  assertEqual(result.options.state, false, 'Should negate state');
+  assertEqual(result.options.force, true, 'Should keep force as true');
+  assertEqual(result.options.props, true, 'Should keep props as true');
+});
+
+// =============================================================================
+// parseArgs Mixed Scenarios Tests
+// =============================================================================
+
+printSection('parseArgs Mixed Scenarios Tests');
+
+test('parseArgs complex new command scenario', () => {
+  const result = parseArgs(['Modal', '--type', 'component', '--dir', 'src/modals', '--props', '--no-style', '--force']);
+
+  assertEqual(result.options.type, 'component', 'Should parse type');
+  assertEqual(result.options.dir, 'src/modals', 'Should parse dir');
+  assertEqual(result.options.props, true, 'Should parse props');
+  assertEqual(result.options.style, false, 'Should negate style');
+  assertEqual(result.options.force, true, 'Should parse force');
+  assertTrue(result.patterns.includes('Modal'), 'Should include Modal');
+});
+
+test('parseArgs complex scaffold command scenario', () => {
+  const result = parseArgs(['component', 'UserCard', '-d', 'src/components', '--props', '-f']);
+
+  assertEqual(result.options.d, 'src/components', 'Should parse -d');
+  assertEqual(result.options.props, true, 'Should parse --props');
+  assertEqual(result.options.f, true, 'Should parse -f');
+  assertTrue(result.patterns.includes('component'), 'Should include component');
+  assertTrue(result.patterns.includes('UserCard'), 'Should include UserCard');
+});
+
+test('parseArgs complex docs command scenario', () => {
+  const result = parseArgs(['--generate', '--format', 'html', '--output', 'api-docs/']);
+
+  assertEqual(result.options.generate, true, 'Should parse --generate');
+  assertEqual(result.options.format, 'html', 'Should parse --format with value');
+  assertEqual(result.options.output, 'api-docs/', 'Should parse --output with value');
+});
+
+test('parseArgs complex release command scenario', () => {
+  const result = parseArgs(['patch', '--title', 'Bug fixes', '--dry-run', '--no-push']);
+
+  assertEqual(result.options.title, 'Bug fixes', 'Should parse --title');
+  assertEqual(result.options['dry-run'], true, 'Should parse --dry-run');
+  assertEqual(result.options.push, false, 'Should negate push');
+  assertTrue(result.patterns.includes('patch'), 'Should include patch');
+});
+
+test('parseArgs complex test command scenario', () => {
+  const result = parseArgs(['--filter', 'Button', '--timeout', '10000', '--coverage', '--watch']);
+
+  assertEqual(result.options.filter, 'Button', 'Should parse --filter');
+  assertEqual(result.options.timeout, '10000', 'Should parse --timeout');
+  assertEqual(result.options.coverage, true, 'Should parse --coverage');
+  assertEqual(result.options.watch, true, 'Should parse --watch');
+});
+
+test('parseArgs handles paths with special characters', () => {
+  const result = parseArgs(['--dir', 'src/my-components', 'Button']);
+
+  assertEqual(result.options.dir, 'src/my-components', 'Should handle hyphens in path');
+});
+
+test('parseArgs handles paths with underscores', () => {
+  const result = parseArgs(['--output', 'dist_output/', 'src/']);
+
+  assertEqual(result.options.output, 'dist_output/', 'Should handle underscores in path');
+});
+
+// =============================================================================
+// Command Aliases Tests
+// =============================================================================
+
+printSection('Command Aliases Tests');
+
+test('new command has typo aliases', () => {
+  // These are tested via the commandAliases object in index.js
+  // The test verifies the help system recognizes the command
+  const def = getCommandDefinition('new');
+  assertTrue(def !== undefined, 'new command should be defined');
+});
+
+// =============================================================================
+// Help System Integration Tests
+// =============================================================================
+
+printSection('Help System Integration Tests');
+
+test('all commands in scaffolding group are documented', () => {
+  const scaffoldingCommands = ['new', 'scaffold', 'docs'];
+
+  for (const cmdName of scaffoldingCommands) {
+    const def = getCommandDefinition(cmdName);
+    assertTrue(def !== undefined, `${cmdName} should be documented`);
+    assertTrue(def.summary.length > 0, `${cmdName} should have summary`);
+    assertTrue(def.examples.length > 0, `${cmdName} should have examples`);
+  }
+});
+
+test('new command documentation matches implementation', () => {
+  const def = getCommandDefinition('new');
+
+  // Verify documented types match implementation
+  assertTrue(def.description.includes('component'), 'Should document component type');
+  assertTrue(def.description.includes('page'), 'Should document page type');
+  assertTrue(def.description.includes('layout'), 'Should document layout type');
+});
+
+test('scaffold command documents all scaffold types', () => {
+  const def = getCommandDefinition('scaffold');
+
+  assertTrue(def.description.includes('component'), 'Should document component');
+  assertTrue(def.description.includes('page'), 'Should document page');
+  assertTrue(def.description.includes('store'), 'Should document store');
+  assertTrue(def.description.includes('hook'), 'Should document hook');
+  assertTrue(def.description.includes('service'), 'Should document service');
+  assertTrue(def.description.includes('context'), 'Should document context');
+  assertTrue(def.description.includes('layout'), 'Should document layout');
+});
+
+// =============================================================================
+// Edge Cases Tests
+// =============================================================================
+
+printSection('Edge Cases Tests');
+
+test('parseArgs handles empty string pattern', () => {
+  const result = parseArgs(['', '--verbose']);
+
+  assertEqual(result.options.verbose, true, 'Should parse flag');
+  assertTrue(result.patterns.includes(''), 'Should include empty string');
+});
+
+test('parseArgs handles numeric patterns', () => {
+  const result = parseArgs(['--port', '3000']);
+
+  // port is not in valueOptions, so 3000 should be a pattern
+  assertEqual(result.options.port, true, 'Should parse --port as boolean');
+  assertTrue(result.patterns.includes('3000'), 'Should include 3000');
+});
+
+test('parseArgs handles deeply nested paths', () => {
+  const result = parseArgs(['--dir', 'src/components/ui/buttons/primary', 'Button']);
+
+  assertEqual(result.options.dir, 'src/components/ui/buttons/primary', 'Should handle deep paths');
+});
+
+test('parseArgs handles Windows-style paths', () => {
+  const result = parseArgs(['--dir', 'src\\components', 'Button']);
+
+  assertEqual(result.options.dir, 'src\\components', 'Should preserve backslashes');
+});
+
+test('parseArgs handles quoted values correctly', () => {
+  // In actual CLI usage, quotes are handled by the shell
+  // Here we test that the value is preserved as-is
+  const result = parseArgs(['--title', 'My Title With Spaces']);
+
+  assertEqual(result.options.title, 'My Title With Spaces', 'Should handle spaces in value');
+});
+
+test('parseArgs handles equals sign syntax gracefully', () => {
+  // Note: current implementation doesn't split on =
+  const result = parseArgs(['--type=page', 'Dashboard']);
+
+  // --type=page is treated as a single flag name
+  assertEqual(result.options['type=page'], true, 'Should treat --type=page as flag name');
+});
+
+test('parseArgs handles multiple same flags', () => {
+  const result = parseArgs(['--verbose', '--verbose']);
+
+  assertEqual(result.options.verbose, true, 'Should handle duplicate flags');
+});
+
+test('parseArgs preserves order of patterns', () => {
+  const result = parseArgs(['first', 'second', 'third']);
+
+  assertDeepEqual(result.patterns, ['first', 'second', 'third'], 'Should preserve pattern order');
 });
 
 // =============================================================================

@@ -47,7 +47,14 @@ pulse test --create <name>  # Generate test file
 pulse doctor            # Run project diagnostics
 pulse doctor --verbose  # Detailed diagnostics
 
-# Scaffolding
+# Creating .pulse Files (Quick)
+pulse new <name>                 # Create component (src/components/<Name>.pulse)
+pulse new <name> --type page     # Create page (src/pages/<Name>.pulse)
+pulse new <name> --type layout   # Create layout (src/layouts/<Name>.pulse)
+pulse new <name> --props         # Include props section
+pulse new <name> -d src/ui       # Custom output directory
+
+# Scaffolding (Full)
 pulse scaffold component <name>  # Generate component
 pulse scaffold page <name>       # Generate page
 pulse scaffold store <name>      # Generate store module

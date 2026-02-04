@@ -24,6 +24,7 @@ const commands = {
   version: showVersion,
   create: createProject,
   init: initProject,
+  new: newPulseFile,
   dev: runDev,
   build: runBuild,
   preview: runPreview,
@@ -73,7 +74,9 @@ const commandAliases = {
   'scaffod': 'scaffold',
   'scafflod': 'scaffold',
   'doc': 'docs',
-  'dcos': 'docs'
+  'dcos': 'docs',
+  'nwe': 'new',
+  'enw': 'new'
 };
 
 /**
@@ -681,6 +684,80 @@ async function runDoctorCmd(args) {
 async function runScaffoldCmd(args) {
   const { runScaffold } = await import('./scaffold.js');
   await runScaffold(args);
+}
+
+/**
+ * Create a new .pulse file
+ * Usage: pulse new <name> [options]
+ * Options:
+ *   --type, -t <type>  Type: component, page, layout (default: component)
+ *   --dir, -d <path>   Output directory (default: src/components or based on type)
+ *   --force, -f        Overwrite existing files
+ *   --props            Include props section
+ *   --no-state         Skip state section
+ *   --no-style         Skip style section
+ */
+async function newPulseFile(args) {
+  const { options, patterns } = parseArgs(args);
+  const name = patterns[0];
+
+  if (!name) {
+    log.error('Please provide a name for the .pulse file.');
+    log.info(`
+Usage: pulse new <name> [options]
+
+Options:
+  --type, -t <type>  Type: component, page, layout (default: component)
+  --dir, -d <path>   Output directory
+  --force, -f        Overwrite existing files
+  --props            Include props section
+  --no-state         Skip state section
+  --no-style         Skip style section
+
+Examples:
+  pulse new Button                   Create src/components/Button.pulse
+  pulse new Dashboard --type page    Create src/pages/Dashboard.pulse
+  pulse new Admin --type layout      Create src/layouts/Admin.pulse
+  pulse new Modal --props            Create component with props section
+  pulse new Card -d src/ui           Create in custom directory
+`);
+    process.exit(1);
+  }
+
+  // Determine type
+  const type = options.type || options.t || 'component';
+  const validTypes = ['component', 'page', 'layout'];
+
+  if (!validTypes.includes(type)) {
+    log.error(`Invalid type: ${type}`);
+    log.info(`Valid types: ${validTypes.join(', ')}`);
+    process.exit(1);
+  }
+
+  // Map type to scaffold type and delegate
+  const { runScaffold } = await import('./scaffold.js');
+
+  // Build args for scaffold command
+  const scaffoldArgs = [type, name];
+
+  // Pass through options
+  if (options.dir || options.d) {
+    scaffoldArgs.push('--dir', options.dir || options.d);
+  }
+  if (options.force || options.f) {
+    scaffoldArgs.push('--force');
+  }
+  if (options.props) {
+    scaffoldArgs.push('--props');
+  }
+  if (options.state === false) {
+    scaffoldArgs.push('--no-state');
+  }
+  if (options.style === false) {
+    scaffoldArgs.push('--no-style');
+  }
+
+  await runScaffold(scaffoldArgs);
 }
 
 /**

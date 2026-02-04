@@ -66,6 +66,40 @@ Merges with existing package.json if present.`,
     ]
   },
 
+  new: {
+    name: 'new',
+    summary: 'Create a new .pulse file',
+    usage: 'pulse new <name> [options]',
+    description: `
+Creates a new .pulse file with a component template. This is a shorthand for
+"pulse scaffold component/page/layout" that makes it quick to create new
+Pulse components from the command line.
+
+File types:
+- component: Reusable UI component (default)
+- page: Page component with routing support
+- layout: Layout component with slots`,
+    arguments: [
+      { name: '<name>', description: 'Name of the component (PascalCase recommended)' }
+    ],
+    options: [
+      { flag: '--type, -t <type>', description: 'Type: component, page, layout (default: component)' },
+      { flag: '--dir, -d <path>', description: 'Output directory (default: based on type)' },
+      { flag: '--force, -f', description: 'Overwrite existing files' },
+      { flag: '--props', description: 'Include props section' },
+      { flag: '--no-state', description: 'Skip state section' },
+      { flag: '--no-style', description: 'Skip style section' }
+    ],
+    examples: [
+      { cmd: 'pulse new Button', desc: 'Create src/components/Button.pulse' },
+      { cmd: 'pulse new Dashboard --type page', desc: 'Create src/pages/Dashboard.pulse' },
+      { cmd: 'pulse new Admin --type layout', desc: 'Create src/layouts/Admin.pulse' },
+      { cmd: 'pulse new Modal --props', desc: 'Create component with props section' },
+      { cmd: 'pulse new Card -d src/ui', desc: 'Create in custom directory' },
+      { cmd: 'pulse new Header --no-style', desc: 'Create without style block' }
+    ]
+  },
+
   dev: {
     name: 'dev',
     summary: 'Start development server',
@@ -505,7 +539,7 @@ function showGeneralHelp() {
     'Development': ['dev', 'build', 'preview'],
     'Code Quality': ['compile', 'lint', 'format', 'analyze'],
     'Testing': ['test', 'doctor'],
-    'Scaffolding': ['scaffold', 'docs'],
+    'Scaffolding': ['new', 'scaffold', 'docs'],
     'Release': ['release'],
     'Mobile': ['mobile'],
     'Information': ['version', 'help']
