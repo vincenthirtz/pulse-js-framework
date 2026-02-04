@@ -379,7 +379,7 @@ Creates a new release with:
       { flag: '--no-push', description: 'Create commit and tag but do not push' },
       { flag: '--title <text>', description: 'Release title for changelog' },
       { flag: '--skip-prompt', description: 'Use empty changelog (for automation)' },
-      { flag: '--from-commits', description: 'Auto-extract changelog from git commits' }
+      { flag: '--from-commits, --fc', description: 'Auto-extract changelog from git commits' }
     ],
     examples: [
       { cmd: 'pulse release patch', desc: 'Create patch release (1.0.0 -> 1.0.1)' },

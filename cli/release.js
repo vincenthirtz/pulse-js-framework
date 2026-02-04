@@ -568,7 +568,7 @@ Options:
   --title <text>    Release title (e.g., "Performance Improvements")
   --skip-prompt     Use empty changelog (for automated releases)
   --skip-docs-test  Skip documentation validation before release
-  --from-commits    Auto-extract changelog from git commits since last tag
+  --from-commits, --fc  Auto-extract changelog from git commits since last tag
   --yes, -y         Auto-confirm all prompts
   --changes <json> Pass changelog as JSON (e.g., '{"added":["Feature 1"],"fixed":["Bug 1"]}')
   --added <items>  Comma-separated list of added features
@@ -602,7 +602,7 @@ export async function runRelease(args) {
   const dryRun = args.includes('--dry-run');
   const noPush = args.includes('--no-push');
   const skipPrompt = args.includes('--skip-prompt');
-  const fromCommits = args.includes('--from-commits');
+  const fromCommits = args.includes('--from-commits') || args.includes('--fc');
   const autoConfirm = args.includes('--yes') || args.includes('-y');
   const skipDocsTest = args.includes('--skip-docs-test');
 
