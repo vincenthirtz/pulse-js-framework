@@ -109,13 +109,14 @@
     "LICENSE"
   ],
   "scripts": {
-    "test": "npm run test:compiler && npm run test:sourcemap && npm run test:pulse && npm run test:dom && npm run test:dom-element && npm run test:dom-adapter && npm run test:router && npm run test:store && npm run test:context && npm run test:hmr && npm run test:lint && npm run test:format && npm run test:analyze && npm run test:cli && npm run test:cli-ui && npm run test:lru-cache && npm run test:utils && npm run test:docs && npm run test:docs-nav && npm run test:async && npm run test:form && npm run test:http && npm run test:devtools && npm run test:native && npm run test:a11y && npm run test:logger && npm run test:errors && npm run test:security && npm run test:websocket && npm run test:graphql && npm run test:doctor && npm run test:scaffold && npm run test:test-runner && npm run test:build && npm run test:integration && npm run test:context-stress && npm run test:form-edge-cases && npm run test:graphql-subscriptions && npm run test:http-edge-cases && npm run test:integration-advanced && npm run test:websocket-stress",
+    "test": "npm run test:compiler && npm run test:sourcemap && npm run test:pulse && npm run test:dom && npm run test:dom-element && npm run test:dom-adapter && npm run test:enhanced-mock-adapter && npm run test:router && npm run test:store && npm run test:context && npm run test:hmr && npm run test:lint && npm run test:format && npm run test:analyze && npm run test:cli && npm run test:cli-ui && npm run test:lru-cache && npm run test:utils && npm run test:docs && npm run test:docs-nav && npm run test:async && npm run test:form && npm run test:http && npm run test:devtools && npm run test:native && npm run test:a11y && npm run test:a11y-enhanced && npm run test:logger && npm run test:errors && npm run test:security && npm run test:websocket && npm run test:graphql && npm run test:doctor && npm run test:scaffold && npm run test:test-runner && npm run test:build && npm run test:integration && npm run test:context-stress && npm run test:form-edge-cases && npm run test:graphql-subscriptions && npm run test:http-edge-cases && npm run test:integration-advanced && npm run test:websocket-stress",
     "test:compiler": "node test/compiler.test.js",
     "test:sourcemap": "node test/sourcemap.test.js",
     "test:pulse": "node test/pulse.test.js",
     "test:dom": "node test/dom.test.js",
     "test:dom-element": "node test/dom-element.test.js",
     "test:dom-adapter": "node test/dom-adapter.test.js",
+    "test:enhanced-mock-adapter": "node test/enhanced-mock-adapter.test.js",
     "test:router": "node test/router.test.js",
     "test:store": "node test/store.test.js",
     "test:context": "node test/context.test.js",
@@ -135,6 +136,7 @@
     "test:devtools": "node test/devtools.test.js",
     "test:native": "node test/native.test.js",
     "test:a11y": "node test/a11y.test.js",
+    "test:a11y-enhanced": "node test/a11y-enhanced.test.js",
     "test:logger": "node test/logger.test.js",
     "test:errors": "node test/errors.test.js",
     "test:security": "node test/security.test.js",

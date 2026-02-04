@@ -902,17 +902,680 @@ export function withAdapter(adapter, fn) {
 }
 
 // ============================================================================
+// Enhanced Mock Classes for Testing
+// ============================================================================
+
+/**
+ * Mock Canvas 2D rendering context for color parsing in a11y tests.
+ */
+export class MockCanvasContext {
+  constructor() {
+    this.fillStyle = '#000000';
+    this._imageData = new Uint8ClampedArray([0, 0, 0, 255]);
+  }
+
+  fillRect(x, y, width, height) {
+    // Parse fillStyle to RGB and store in imageData
+    const color = this._parseColor(this.fillStyle);
+    this._imageData[0] = color.r;
+    this._imageData[1] = color.g;
+    this._imageData[2] = color.b;
+    this._imageData[3] = 255;
+  }
+
+  getImageData(x, y, width, height) {
+    return { data: this._imageData };
+  }
+
+  /**
+   * Parse CSS color to RGB values.
+   * Supports: hex (#fff, #ffffff), rgb(), rgba(), named colors
+   */
+  _parseColor(color) {
+    if (!color || color === 'transparent') {
+      return { r: 0, g: 0, b: 0 };
+    }
+
+    // Hex colors
+    if (color.startsWith('#')) {
+      let hex = color.slice(1);
+      if (hex.length === 3) {
+        hex = hex.split('').map(c => c + c).join('');
+      }
+      return {
+        r: parseInt(hex.slice(0, 2), 16),
+        g: parseInt(hex.slice(2, 4), 16),
+        b: parseInt(hex.slice(4, 6), 16)
+      };
+    }
+
+    // rgb() and rgba()
+    const rgbMatch = color.match(/rgba?\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
+    if (rgbMatch) {
+      return {
+        r: parseInt(rgbMatch[1], 10),
+        g: parseInt(rgbMatch[2], 10),
+        b: parseInt(rgbMatch[3], 10)
+      };
+    }
+
+    // Named colors (common subset)
+    const namedColors = {
+      white: { r: 255, g: 255, b: 255 },
+      black: { r: 0, g: 0, b: 0 },
+      red: { r: 255, g: 0, b: 0 },
+      green: { r: 0, g: 128, b: 0 },
+      blue: { r: 0, g: 0, b: 255 },
+      yellow: { r: 255, g: 255, b: 0 },
+      orange: { r: 255, g: 165, b: 0 },
+      gray: { r: 128, g: 128, b: 128 },
+      grey: { r: 128, g: 128, b: 128 }
+    };
+
+    return namedColors[color.toLowerCase()] || { r: 0, g: 0, b: 0 };
+  }
+}
+
+/**
+ * Mock MediaQueryList for matchMedia() testing.
+ */
+export class MockMediaQueryList {
+  constructor(query, matches = false) {
+    this.media = query;
+    this.matches = matches;
+    this._listeners = [];
+  }
+
+  addEventListener(event, listener) {
+    if (event === 'change') {
+      this._listeners.push(listener);
+    }
+  }
+
+  removeEventListener(event, listener) {
+    if (event === 'change') {
+      const index = this._listeners.indexOf(listener);
+      if (index !== -1) {
+        this._listeners.splice(index, 1);
+      }
+    }
+  }
+
+  /**
+   * Simulate a media query change (for testing).
+   */
+  _setMatches(matches) {
+    if (this.matches !== matches) {
+      this.matches = matches;
+      const event = { matches, media: this.media };
+      this._listeners.forEach(listener => listener(event));
+    }
+  }
+
+  // Deprecated but still used in some code
+  addListener(listener) {
+    this.addEventListener('change', listener);
+  }
+
+  removeListener(listener) {
+    this.removeEventListener('change', listener);
+  }
+}
+
+/**
+ * Mock MutationObserver for DOM change tracking.
+ */
+export class MockMutationObserver {
+  constructor(callback) {
+    this._callback = callback;
+    this._observing = false;
+    this._target = null;
+    this._options = null;
+    this._mutations = [];
+  }
+
+  observe(target, options) {
+    this._observing = true;
+    this._target = target;
+    this._options = options;
+  }
+
+  disconnect() {
+    this._observing = false;
+    this._target = null;
+    this._options = null;
+  }
+
+  takeRecords() {
+    const records = [...this._mutations];
+    this._mutations = [];
+    return records;
+  }
+
+  /**
+   * Simulate a mutation (for testing).
+   */
+  _trigger(mutations) {
+    if (this._observing && this._callback) {
+      this._mutations.push(...mutations);
+      this._callback(mutations, this);
+    }
+  }
+}
+
+/**
+ * Mock Performance API.
+ */
+export class MockPerformance {
+  constructor() {
+    this._startTime = Date.now();
+    this._marks = new Map();
+    this._measures = new Map();
+  }
+
+  now() {
+    return Date.now() - this._startTime;
+  }
+
+  mark(name) {
+    this._marks.set(name, this.now());
+  }
+
+  measure(name, startMark, endMark) {
+    const start = this._marks.get(startMark) || 0;
+    const end = this._marks.get(endMark) || this.now();
+    this._measures.set(name, { name, duration: end - start, startTime: start });
+  }
+
+  getEntriesByName(name) {
+    const measure = this._measures.get(name);
+    return measure ? [measure] : [];
+  }
+
+  clearMarks(name) {
+    if (name) {
+      this._marks.delete(name);
+    } else {
+      this._marks.clear();
+    }
+  }
+
+  clearMeasures(name) {
+    if (name) {
+      this._measures.delete(name);
+    } else {
+      this._measures.clear();
+    }
+  }
+}
+
+/**
+ * Mock computed style object.
+ */
+export class MockCSSStyleDeclaration {
+  constructor(styles = {}) {
+    // Default visible styles
+    this.display = styles.display || 'block';
+    this.visibility = styles.visibility || 'visible';
+    this.color = styles.color || 'rgb(0, 0, 0)';
+    this.backgroundColor = styles.backgroundColor || 'rgba(0, 0, 0, 0)';
+    this.fontSize = styles.fontSize || '16px';
+    this.fontWeight = styles.fontWeight || '400';
+    this.position = styles.position || 'static';
+    this.width = styles.width || 'auto';
+    this.height = styles.height || 'auto';
+
+    // Allow custom styles
+    Object.assign(this, styles);
+  }
+}
+
+/**
+ * Mock Window object for global browser APIs.
+ */
+export class MockWindow {
+  constructor(options = {}) {
+    this._mediaQueryResults = options.mediaQueryResults || {};
+    this._mediaQueryLists = new Map();
+
+    this.innerWidth = options.innerWidth || 1024;
+    this.innerHeight = options.innerHeight || 768;
+    this.location = {
+      href: options.locationHref || 'http://localhost:3000/',
+      pathname: options.locationPathname || '/',
+      search: '',
+      hash: ''
+    };
+
+    this.performance = new MockPerformance();
+    this._eventListeners = new Map();
+    this._animationFrameCallbacks = [];
+    this._animationFrameId = 0;
+  }
+
+  matchMedia(query) {
+    if (!this._mediaQueryLists.has(query)) {
+      const matches = this._evaluateMediaQuery(query);
+      this._mediaQueryLists.set(query, new MockMediaQueryList(query, matches));
+    }
+    return this._mediaQueryLists.get(query);
+  }
+
+  _evaluateMediaQuery(query) {
+    // Check custom results first
+    if (this._mediaQueryResults[query] !== undefined) {
+      return this._mediaQueryResults[query];
+    }
+
+    // Evaluate common media queries
+    if (query.includes('prefers-reduced-motion: reduce')) return false;
+    if (query.includes('prefers-color-scheme: dark')) return false;
+    if (query.includes('prefers-color-scheme: light')) return true;
+    if (query.includes('prefers-contrast: more')) return false;
+    if (query.includes('prefers-reduced-transparency: reduce')) return false;
+    if (query.includes('forced-colors: active')) return false;
+
+    // Width queries
+    const minWidthMatch = query.match(/min-width:\s*(\d+)px/);
+    if (minWidthMatch) {
+      return this.innerWidth >= parseInt(minWidthMatch[1], 10);
+    }
+
+    const maxWidthMatch = query.match(/max-width:\s*(\d+)px/);
+    if (maxWidthMatch) {
+      return this.innerWidth <= parseInt(maxWidthMatch[1], 10);
+    }
+
+    return false;
+  }
+
+  /**
+   * Set media query result (for testing).
+   */
+  setMediaQueryResult(query, matches) {
+    this._mediaQueryResults[query] = matches;
+    if (this._mediaQueryLists.has(query)) {
+      this._mediaQueryLists.get(query)._setMatches(matches);
+    }
+  }
+
+  requestAnimationFrame(callback) {
+    const id = ++this._animationFrameId;
+    this._animationFrameCallbacks.push({ id, callback });
+    return id;
+  }
+
+  cancelAnimationFrame(id) {
+    this._animationFrameCallbacks = this._animationFrameCallbacks.filter(c => c.id !== id);
+  }
+
+  /**
+   * Run all pending animation frame callbacks (for testing).
+   */
+  flushAnimationFrames() {
+    const callbacks = [...this._animationFrameCallbacks];
+    this._animationFrameCallbacks = [];
+    callbacks.forEach(({ callback }) => callback(this.performance.now()));
+  }
+
+  addEventListener(event, handler, options) {
+    if (!this._eventListeners.has(event)) {
+      this._eventListeners.set(event, []);
+    }
+    this._eventListeners.get(event).push({ handler, options });
+  }
+
+  removeEventListener(event, handler, options) {
+    const listeners = this._eventListeners.get(event);
+    if (listeners) {
+      const index = listeners.findIndex(l => l.handler === handler);
+      if (index !== -1) {
+        listeners.splice(index, 1);
+      }
+    }
+  }
+
+  dispatchEvent(event) {
+    const listeners = this._eventListeners.get(event.type);
+    if (listeners) {
+      listeners.forEach(({ handler }) => handler(event));
+    }
+  }
+
+  getComputedStyle(element) {
+    // Return element's stored computed styles or defaults
+    return element._computedStyle || new MockCSSStyleDeclaration();
+  }
+}
+
+/**
+ * Enhanced MockElement with additional browser APIs.
+ */
+export class EnhancedMockElement extends MockElement {
+  constructor(tagName) {
+    super(tagName);
+    this._boundingRect = { top: 0, left: 0, width: 100, height: 50, right: 100, bottom: 50 };
+    this._computedStyle = new MockCSSStyleDeclaration();
+    this._canvas = null;
+    this.hidden = false;
+    this.inert = false;
+    this.labels = [];
+    this.offsetParent = {};
+  }
+
+  getBoundingClientRect() {
+    return { ...this._boundingRect };
+  }
+
+  /**
+   * Set bounding rect (for testing).
+   */
+  setBoundingRect(rect) {
+    this._boundingRect = { ...this._boundingRect, ...rect };
+  }
+
+  /**
+   * Set computed style (for testing).
+   */
+  setComputedStyle(styles) {
+    this._computedStyle = new MockCSSStyleDeclaration(styles);
+  }
+
+  getContext(contextType) {
+    if (contextType === '2d') {
+      if (!this._canvas) {
+        this._canvas = new MockCanvasContext();
+      }
+      return this._canvas;
+    }
+    return null;
+  }
+
+  focus() {
+    // Simulate focus by updating document.activeElement
+    if (this._document) {
+      this._document.activeElement = this;
+    }
+  }
+
+  blur() {
+    if (this._document && this._document.activeElement === this) {
+      this._document.activeElement = null;
+    }
+  }
+
+  contains(other) {
+    if (!other) return false;
+    if (other === this) return true;
+    for (const child of this.childNodes) {
+      if (child === other) return true;
+      if (child.contains && child.contains(other)) return true;
+    }
+    return false;
+  }
+
+  closest(selector) {
+    // Simple implementation - check self and parents
+    let current = this;
+    while (current) {
+      if (this._matchesSelector(current, selector)) {
+        return current;
+      }
+      current = current.parentNode;
+    }
+    return null;
+  }
+
+  _matchesSelector(element, selector) {
+    if (!element.tagName) return false;
+
+    // Tag selector
+    if (selector === element.tagName.toLowerCase()) return true;
+
+    // ID selector
+    if (selector.startsWith('#') && element.id === selector.slice(1)) return true;
+
+    // Class selector
+    if (selector.startsWith('.') && element.classList?.contains(selector.slice(1))) return true;
+
+    return false;
+  }
+
+  querySelectorAll(selector) {
+    const results = [];
+    this._findAll(this, selector, results);
+    return results;
+  }
+
+  querySelector(selector) {
+    const all = this.querySelectorAll(selector);
+    return all[0] || null;
+  }
+
+  _findAll(node, selector, results) {
+    for (const child of node.childNodes || []) {
+      if (this._matchesSelector(child, selector)) {
+        results.push(child);
+      }
+      if (child._findAll) {
+        child._findAll(child, selector, results);
+      } else {
+        this._findAll(child, selector, results);
+      }
+    }
+  }
+}
+
+/**
+ * Enhanced Mock DOM Adapter with full browser API simulation.
+ * Provides comprehensive testing support for a11y, devtools, and other
+ * browser-dependent modules.
+ *
+ * @implements {DOMAdapter}
+ */
+export class EnhancedMockAdapter extends MockDOMAdapter {
+  constructor(options = {}) {
+    super();
+
+    // Replace body with enhanced element
+    this._body = new EnhancedMockElement('body');
+    this._document.appendChild(this._body);
+
+    // Mock window with configurable options
+    this._window = new MockWindow(options);
+
+    // Link document to window
+    this._body._document = this;
+    this.activeElement = null;
+
+    // Expose MutationObserver constructor
+    this.MutationObserver = MockMutationObserver;
+  }
+
+  createElement(tagName) {
+    const el = new EnhancedMockElement(tagName);
+    el._document = this;
+    return el;
+  }
+
+  /**
+   * Get computed style for an element.
+   */
+  getComputedStyle(element) {
+    return this._window.getComputedStyle(element);
+  }
+
+  /**
+   * Get the mock window object.
+   */
+  getWindow() {
+    return this._window;
+  }
+
+  /**
+   * Request animation frame.
+   */
+  requestAnimationFrame(callback) {
+    return this._window.requestAnimationFrame(callback);
+  }
+
+  /**
+   * Cancel animation frame.
+   */
+  cancelAnimationFrame(id) {
+    this._window.cancelAnimationFrame(id);
+  }
+
+  /**
+   * Get performance API.
+   */
+  getPerformance() {
+    return this._window.performance;
+  }
+
+  /**
+   * Match media query.
+   */
+  matchMedia(query) {
+    return this._window.matchMedia(query);
+  }
+
+  /**
+   * Create a MutationObserver.
+   */
+  createMutationObserver(callback) {
+    return new MockMutationObserver(callback);
+  }
+
+  /**
+   * Get document element (html).
+   */
+  getDocumentElement() {
+    return this._document;
+  }
+
+  /**
+   * Get active element.
+   */
+  getActiveElement() {
+    return this.activeElement;
+  }
+
+  /**
+   * Set active element (for testing).
+   */
+  setActiveElement(element) {
+    this.activeElement = element;
+  }
+
+  /**
+   * Get element by ID.
+   */
+  getElementById(id) {
+    return this._findById(this._body, id);
+  }
+
+  // Test helpers
+
+  /**
+   * Set media query result (for testing user preferences).
+   * @param {string} query - Media query string
+   * @param {boolean} matches - Whether the query matches
+   */
+  setMediaQueryResult(query, matches) {
+    this._window.setMediaQueryResult(query, matches);
+  }
+
+  /**
+   * Run all pending animation frames (for testing).
+   */
+  flushAnimationFrames() {
+    this._window.flushAnimationFrames();
+  }
+
+  /**
+   * Reset the mock DOM state.
+   */
+  reset() {
+    super.reset();
+    this._body = new EnhancedMockElement('body');
+    this._body._document = this;
+    this._document.childNodes = [];
+    this._document.appendChild(this._body);
+    this.activeElement = null;
+  }
+
+  /**
+   * Install global mocks for browser testing.
+   * Installs mocks on globalThis for modules that directly access browser APIs.
+   * @returns {Function} Cleanup function to restore original globals
+   */
+  installGlobalMocks() {
+    const originals = {
+      document: globalThis.document,
+      window: globalThis.window,
+      getComputedStyle: globalThis.getComputedStyle,
+      requestAnimationFrame: globalThis.requestAnimationFrame,
+      cancelAnimationFrame: globalThis.cancelAnimationFrame,
+      MutationObserver: globalThis.MutationObserver,
+      performance: globalThis.performance
+    };
+
+    // Create mock document
+    globalThis.document = {
+      body: this._body,
+      documentElement: this._document,
+      activeElement: null,
+      createElement: (tag) => this.createElement(tag),
+      createTextNode: (text) => this.createTextNode(text),
+      createComment: (data) => this.createComment(data),
+      createDocumentFragment: () => this.createDocumentFragment(),
+      querySelector: (sel) => this.querySelector(sel),
+      querySelectorAll: (sel) => this._body.querySelectorAll(sel),
+      getElementById: (id) => this.getElementById(id),
+      addEventListener: (e, h, o) => this._window.addEventListener(e, h, o),
+      removeEventListener: (e, h, o) => this._window.removeEventListener(e, h, o)
+    };
+
+    globalThis.window = this._window;
+    globalThis.getComputedStyle = (el) => this.getComputedStyle(el);
+    globalThis.requestAnimationFrame = (cb) => this.requestAnimationFrame(cb);
+    globalThis.cancelAnimationFrame = (id) => this.cancelAnimationFrame(id);
+    globalThis.MutationObserver = MockMutationObserver;
+    globalThis.performance = this._window.performance;
+
+    return () => {
+      globalThis.document = originals.document;
+      globalThis.window = originals.window;
+      globalThis.getComputedStyle = originals.getComputedStyle;
+      globalThis.requestAnimationFrame = originals.requestAnimationFrame;
+      globalThis.cancelAnimationFrame = originals.cancelAnimationFrame;
+      globalThis.MutationObserver = originals.MutationObserver;
+      globalThis.performance = originals.performance;
+    };
+  }
+}
+
+// ============================================================================
 // Exports
 // ============================================================================
 
 export default {
   BrowserDOMAdapter,
   MockDOMAdapter,
+  EnhancedMockAdapter,
   MockNode,
   MockElement,
+  EnhancedMockElement,
   MockTextNode,
   MockCommentNode,
   MockDocumentFragment,
+  MockCanvasContext,
+  MockMediaQueryList,
+  MockMutationObserver,
+  MockPerformance,
+  MockCSSStyleDeclaration,
+  MockWindow,
   getAdapter,
   setAdapter,
   resetAdapter,
