@@ -11,6 +11,7 @@ import { existsSync, mkdirSync, writeFileSync, rmSync, readFileSync } from 'fs';
 import { join, resolve } from 'path';
 import { findPulseFiles, parseArgs, formatBytes, relativePath, resolveImportPath } from '../cli/utils/file-utils.js';
 import { compile } from '../compiler/index.js';
+import { runHelp, getAvailableCommands, getCommandDefinition } from '../cli/help.js';
 import {
   test,
   testAsync,
@@ -1335,6 +1336,276 @@ view {
     assertTrue(true, 'May recover from unclosed block');
   } catch (error) {
     assertTrue(error !== undefined, 'Should report unclosed block');
+  }
+});
+
+// =============================================================================
+// Help Module Tests
+// =============================================================================
+
+printSection('Help Module Tests');
+
+test('getAvailableCommands returns array of command names', () => {
+  const commands = getAvailableCommands();
+
+  assertTrue(Array.isArray(commands), 'Should return an array');
+  assertTrue(commands.length > 0, 'Should have commands');
+  assertTrue(commands.includes('create'), 'Should include create command');
+  assertTrue(commands.includes('help'), 'Should include help command');
+  assertTrue(commands.includes('version'), 'Should include version command');
+});
+
+test('getAvailableCommands includes all main CLI commands', () => {
+  const commands = getAvailableCommands();
+  const expectedCommands = [
+    'create', 'init', 'dev', 'build', 'preview', 'compile',
+    'lint', 'format', 'analyze', 'test', 'doctor', 'scaffold',
+    'docs', 'release', 'mobile', 'version', 'help'
+  ];
+
+  for (const cmd of expectedCommands) {
+    assertTrue(commands.includes(cmd), `Should include ${cmd} command`);
+  }
+});
+
+test('getCommandDefinition returns definition for valid command', () => {
+  const createDef = getCommandDefinition('create');
+
+  assertTrue(createDef !== undefined, 'Should return definition for create');
+  assertEqual(createDef.name, 'create', 'Should have correct name');
+  assertTrue(typeof createDef.summary === 'string', 'Should have summary');
+  assertTrue(typeof createDef.usage === 'string', 'Should have usage');
+  assertTrue(typeof createDef.description === 'string', 'Should have description');
+});
+
+test('getCommandDefinition returns undefined for invalid command', () => {
+  const invalidDef = getCommandDefinition('nonexistent');
+
+  assertEqual(invalidDef, undefined, 'Should return undefined for invalid command');
+});
+
+test('command definition has required properties', () => {
+  const commands = getAvailableCommands();
+
+  for (const cmdName of commands) {
+    const def = getCommandDefinition(cmdName);
+    assertTrue(def !== undefined, `${cmdName} should have definition`);
+    assertTrue(typeof def.name === 'string', `${cmdName} should have name`);
+    assertTrue(typeof def.summary === 'string', `${cmdName} should have summary`);
+    assertTrue(typeof def.usage === 'string', `${cmdName} should have usage`);
+    assertTrue(typeof def.description === 'string', `${cmdName} should have description`);
+  }
+});
+
+test('command definition examples are properly structured', () => {
+  const createDef = getCommandDefinition('create');
+
+  assertTrue(Array.isArray(createDef.examples), 'Should have examples array');
+  assertTrue(createDef.examples.length > 0, 'Should have at least one example');
+
+  for (const example of createDef.examples) {
+    assertTrue(typeof example.cmd === 'string', 'Example should have cmd');
+    assertTrue(typeof example.desc === 'string', 'Example should have desc');
+    assertTrue(example.cmd.startsWith('pulse'), 'Example cmd should start with pulse');
+  }
+});
+
+test('command definition options are properly structured', () => {
+  const createDef = getCommandDefinition('create');
+
+  if (createDef.options) {
+    assertTrue(Array.isArray(createDef.options), 'Options should be array');
+
+    for (const opt of createDef.options) {
+      assertTrue(typeof opt.flag === 'string', 'Option should have flag');
+      assertTrue(typeof opt.description === 'string', 'Option should have description');
+    }
+  }
+});
+
+test('command definition arguments are properly structured', () => {
+  const createDef = getCommandDefinition('create');
+
+  if (createDef.arguments) {
+    assertTrue(Array.isArray(createDef.arguments), 'Arguments should be array');
+
+    for (const arg of createDef.arguments) {
+      assertTrue(typeof arg.name === 'string', 'Argument should have name');
+      assertTrue(typeof arg.description === 'string', 'Argument should have description');
+    }
+  }
+});
+
+test('scaffold command has all scaffold types documented', () => {
+  const scaffoldDef = getCommandDefinition('scaffold');
+  const description = scaffoldDef.description;
+
+  const expectedTypes = ['component', 'page', 'store', 'hook', 'service', 'context', 'layout'];
+
+  for (const type of expectedTypes) {
+    assertTrue(description.includes(type), `Scaffold should document ${type} type`);
+  }
+});
+
+test('create command documents typescript option', () => {
+  const createDef = getCommandDefinition('create');
+  const hasTypescriptOption = createDef.options.some(opt =>
+    opt.flag.includes('typescript') || opt.flag.includes('--ts')
+  );
+
+  assertTrue(hasTypescriptOption, 'Create should have typescript option');
+});
+
+test('dev command documents port argument', () => {
+  const devDef = getCommandDefinition('dev');
+  const hasPortArg = devDef.arguments && devDef.arguments.some(arg =>
+    arg.name.includes('port')
+  );
+
+  assertTrue(hasPortArg, 'Dev should have port argument');
+});
+
+test('test command documents coverage option', () => {
+  const testDef = getCommandDefinition('test');
+  const hasCoverageOption = testDef.options.some(opt =>
+    opt.flag.includes('coverage') || opt.flag.includes('-c')
+  );
+
+  assertTrue(hasCoverageOption, 'Test should have coverage option');
+});
+
+test('lint command documents fix option', () => {
+  const lintDef = getCommandDefinition('lint');
+  const hasFixOption = lintDef.options.some(opt =>
+    opt.flag.includes('fix')
+  );
+
+  assertTrue(hasFixOption, 'Lint should have fix option');
+});
+
+test('format command documents check option', () => {
+  const formatDef = getCommandDefinition('format');
+  const hasCheckOption = formatDef.options.some(opt =>
+    opt.flag.includes('check')
+  );
+
+  assertTrue(hasCheckOption, 'Format should have check option');
+});
+
+test('analyze command documents json option', () => {
+  const analyzeDef = getCommandDefinition('analyze');
+  const hasJsonOption = analyzeDef.options.some(opt =>
+    opt.flag.includes('json')
+  );
+
+  assertTrue(hasJsonOption, 'Analyze should have json option');
+});
+
+test('release command documents release types', () => {
+  const releaseDef = getCommandDefinition('release');
+  const description = releaseDef.description;
+
+  assertTrue(description.includes('patch'), 'Release should document patch');
+  assertTrue(description.includes('minor'), 'Release should document minor');
+  assertTrue(description.includes('major'), 'Release should document major');
+});
+
+test('help command usage is self-documenting', () => {
+  const helpDef = getCommandDefinition('help');
+
+  assertEqual(helpDef.name, 'help', 'Help command name should be help');
+  assertTrue(helpDef.usage.includes('pulse help'), 'Usage should show pulse help');
+  assertTrue(helpDef.usage.includes('[command]'), 'Usage should show optional command');
+});
+
+test('all commands have consistent example format', () => {
+  const commands = getAvailableCommands();
+
+  for (const cmdName of commands) {
+    const def = getCommandDefinition(cmdName);
+    if (def.examples && def.examples.length > 0) {
+      for (const example of def.examples) {
+        assertTrue(
+          example.cmd.startsWith('pulse ') || example.cmd === 'pulse help',
+          `${cmdName} example should start with 'pulse ': ${example.cmd}`
+        );
+      }
+    }
+  }
+});
+
+test('runHelp executes without error for general help', () => {
+  // Capture console output
+  const originalLog = console.log;
+  let output = '';
+  console.log = (...args) => { output += args.join(' ') + '\n'; };
+
+  try {
+    runHelp([]);
+    assertTrue(output.length > 0, 'Should produce output');
+    assertTrue(output.includes('Pulse Framework CLI'), 'Should include CLI title');
+    assertTrue(output.includes('Usage:'), 'Should include usage');
+  } finally {
+    console.log = originalLog;
+  }
+});
+
+test('runHelp executes without error for command help', () => {
+  const originalLog = console.log;
+  let output = '';
+  console.log = (...args) => { output += args.join(' ') + '\n'; };
+
+  try {
+    runHelp(['create']);
+    assertTrue(output.length > 0, 'Should produce output');
+    assertTrue(output.includes('create'), 'Should include command name');
+    assertTrue(output.includes('Usage:'), 'Should include usage');
+  } finally {
+    console.log = originalLog;
+  }
+});
+
+test('runHelp shows error for unknown command', () => {
+  const originalLog = console.log;
+  const originalError = console.error;
+  let infoOutput = '';
+  let errorOutput = '';
+  console.log = (...args) => { infoOutput += args.join(' ') + '\n'; };
+  console.error = (...args) => { errorOutput += args.join(' ') + '\n'; };
+
+  try {
+    runHelp(['unknowncommand']);
+    assertTrue(
+      infoOutput.includes('Available commands') || errorOutput.includes('Unknown'),
+      'Should show error or available commands'
+    );
+  } finally {
+    console.log = originalLog;
+    console.error = originalError;
+  }
+});
+
+test('command summaries are concise', () => {
+  const commands = getAvailableCommands();
+
+  for (const cmdName of commands) {
+    const def = getCommandDefinition(cmdName);
+    assertTrue(
+      def.summary.length <= 60,
+      `${cmdName} summary should be concise (<=60 chars): "${def.summary}"`
+    );
+  }
+});
+
+test('command descriptions provide helpful details', () => {
+  const commands = getAvailableCommands();
+
+  for (const cmdName of commands) {
+    const def = getCommandDefinition(cmdName);
+    assertTrue(
+      def.description.length > 20,
+      `${cmdName} description should be detailed (>20 chars)`
+    );
   }
 });
 

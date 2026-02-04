@@ -9,6 +9,7 @@ import { dirname, join, resolve, relative } from 'path';
 import { existsSync, mkdirSync, writeFileSync, readFileSync, readdirSync, watch } from 'fs';
 import { log } from './logger.js';
 import { findPulseFiles, parseArgs } from './utils/file-utils.js';
+import { runHelp } from './help.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -136,10 +137,28 @@ function suggestCommand(input) {
  */
 async function main() {
   const args = process.argv.slice(2);
-  const command = args[0] || 'help';
+  let command = args[0] || 'help';
+
+  // Handle global --help and -h flags
+  if (command === '--help' || command === '-h') {
+    command = 'help';
+  }
+
+  // Handle --version and -v flags
+  if (command === '--version' || command === '-v') {
+    command = 'version';
+  }
+
+  // Handle command-specific help: pulse <cmd> --help or pulse <cmd> -h
+  const cmdArgs = args.slice(1);
+  if (cmdArgs.includes('--help') || cmdArgs.includes('-h')) {
+    // Show help for the specific command
+    await commands.help([command]);
+    return;
+  }
 
   if (command in commands) {
-    await commands[command](args.slice(1));
+    await commands[command](cmdArgs);
   } else {
     log.error(`Unknown command: ${command}`);
 
@@ -156,110 +175,10 @@ async function main() {
 
 /**
  * Show help message
+ * Supports: pulse help, pulse help <command>
  */
-function showHelp() {
-  log.info(`
-Pulse Framework CLI v${VERSION}
-
-Usage: pulse <command> [options]
-
-Commands:
-  create <name>      Create a new Pulse project
-  init [options]     Initialize project in current directory
-  dev [port]         Start development server (default: 3000)
-  build              Build for production (minified)
-  preview [port]     Preview production build (default: 4173)
-  compile <file>     Compile a .pulse file to JavaScript
-  mobile <cmd>       Mobile app commands (init, build, run)
-  lint [files]       Validate .pulse files for errors and style
-  format [files]     Format .pulse files consistently
-  analyze            Analyze bundle size and dependencies
-  test [files]       Run tests with coverage support
-  doctor             Run project diagnostics
-  scaffold <type>    Generate components, pages, stores
-  docs               Generate API documentation from JSDoc
-  release <type>     Create a new release (patch, minor, major)
-  docs-test          Test documentation (syntax, imports, HTTP)
-  version            Show version number
-  help               Show this help message
-
-Create/Init Options:
-  --typescript       Create TypeScript project
-  --minimal          Create minimal project structure
-
-Compile Options:
-  --watch, -w        Watch files and recompile on changes
-  --dry-run          Show what would be compiled without writing
-  --output, -o       Output directory (default: same as input)
-
-Lint Options:
-  --fix              Auto-fix fixable issues
-  --watch, -w        Watch files and re-lint on changes
-  --dry-run          Show fixes without applying (use with --fix)
-
-Format Options:
-  --check            Check formatting without writing (dry-run)
-  --watch, -w        Watch files and re-format on changes
-  --write            Write formatted output (default)
-
-Analyze Options:
-  --json             Output analysis as JSON
-  --verbose          Show detailed metrics
-
-Test Options:
-  --coverage, -c     Collect code coverage
-  --watch, -w        Watch files and re-run tests
-  --filter, -f       Filter tests by name pattern
-  --timeout, -t      Test timeout in ms (default: 30000)
-  --bail, -b         Stop on first failure
-  --create <name>    Generate a new test file
-
-Doctor Options:
-  --verbose, -v      Show detailed diagnostics
-  --json             Output as JSON
-
-Scaffold Options:
-  --dir, -d <path>   Output directory
-  --force, -f        Overwrite existing files
-  --props            Include props section (components)
-
-Docs Options:
-  --generate, -g     Generate documentation
-  --format, -f       Output format: markdown, json, html
-  --output, -o       Output directory (default: docs/api)
-
-Release Options:
-  --dry-run          Show what would be done without making changes
-  --no-push          Create commit and tag but don't push
-  --title <text>     Release title for changelog
-  --skip-prompt      Use empty changelog (for automation)
-  --skip-docs-test   Skip documentation tests before release
-  --from-commits     Auto-extract changelog from git commits since last tag
-
-Examples:
-  pulse create my-app
-  pulse create my-app --typescript
-  pulse init --typescript
-  pulse dev
-  pulse build
-  pulse test
-  pulse test --coverage --watch
-  pulse test --create MyComponent
-  pulse doctor
-  pulse doctor --verbose
-  pulse scaffold component Button
-  pulse scaffold page Dashboard
-  pulse scaffold store user
-  pulse docs --generate
-  pulse docs --generate --format html
-  pulse compile src/App.pulse
-  pulse lint src/ --fix
-  pulse format --check
-  pulse analyze --json
-  pulse release patch
-
-Documentation: https://github.com/vincenthirtz/pulse-js-framework
-  `);
+function showHelp(args = []) {
+  runHelp(args);
 }
 
 /**
