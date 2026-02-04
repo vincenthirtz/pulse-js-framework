@@ -61,6 +61,7 @@ export const TokenType = {
   COMMA: 'COMMA',     // ,
   DOT: 'DOT',         // .
   HASH: 'HASH',       // #
+  AMPERSAND: 'AMPERSAND', // & (CSS parent selector)
   SEMICOLON: 'SEMICOLON', // ;
 
   // Operators
@@ -656,6 +657,9 @@ export class Lexer {
           if (this.current() === '&') {
             this.advance();
             this.tokens.push(new Token(TokenType.AND, '&&', startLine, startColumn));
+          } else {
+            // Single & is the CSS parent selector
+            this.tokens.push(new Token(TokenType.AMPERSAND, '&', startLine, startColumn));
           }
           continue;
         case '|':

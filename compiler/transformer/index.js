@@ -27,7 +27,7 @@ import { transformRouter } from './router.js';
 import { transformStore } from './store.js';
 import { transformExpression, transformExpressionString, transformFunctionBody } from './expressions.js';
 import { transformView, transformViewNode, VIEW_NODE_HANDLERS, addScopeToSelector } from './view.js';
-import { transformStyle, transformStyleRule, scopeStyleSelector } from './style.js';
+import { transformStyle, flattenStyleRule, scopeStyleSelector } from './style.js';
 import { generateExport } from './export.js';
 
 /**
@@ -331,8 +331,8 @@ export class Transformer {
     return transformStyle(this, styleBlock);
   }
 
-  transformStyleRule(rule, indent) {
-    return transformStyleRule(this, rule, indent);
+  flattenStyleRule(rule, parentSelector, output) {
+    return flattenStyleRule(this, rule, parentSelector, output);
   }
 
   scopeStyleSelector(selector) {

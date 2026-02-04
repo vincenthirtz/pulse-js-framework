@@ -19,8 +19,15 @@ export function transformStyle(transformer, styleBlock) {
 
   lines.push('const styles = `');
 
+  // Collect all flattened rules (handles nesting)
+  const flattenedRules = [];
   for (const rule of styleBlock.rules) {
-    lines.push(transformStyleRule(transformer, rule, 0));
+    flattenStyleRule(transformer, rule, '', flattenedRules);
+  }
+
+  // Output all flattened rules
+  for (const cssRule of flattenedRules) {
+    lines.push(cssRule);
   }
 
   lines.push('`;');
@@ -39,36 +46,51 @@ export function transformStyle(transformer, styleBlock) {
 }
 
 /**
- * Transform style rule with optional scoping
+ * Flatten nested CSS rules by combining selectors
+ * Handles CSS nesting by prepending parent selector to nested rules
  * @param {Object} transformer - Transformer instance
  * @param {Object} rule - CSS rule from AST
- * @param {number} indent - Indentation level
- * @returns {string} CSS code
+ * @param {string} parentSelector - Parent selector to prepend (empty for top-level)
+ * @param {Array<string>} output - Array to collect flattened CSS rules
  */
-export function transformStyleRule(transformer, rule, indent) {
-  const pad = '  '.repeat(indent);
-  const lines = [];
+export function flattenStyleRule(transformer, rule, parentSelector, output) {
+  // Build the full selector by combining parent and current
+  let fullSelector = rule.selector;
+
+  if (parentSelector) {
+    // Handle & (parent reference) in nested selectors
+    if (rule.selector.includes('&')) {
+      // Replace & with parent selector
+      fullSelector = rule.selector.replace(/&/g, parentSelector);
+    } else {
+      // Combine parent and child with space (descendant combinator)
+      fullSelector = `${parentSelector} ${rule.selector}`;
+    }
+  }
 
   // Apply scope to selector if enabled
-  let selector = rule.selector;
+  let scopedSelector = fullSelector;
   if (transformer.scopeId) {
-    selector = scopeStyleSelector(transformer, selector);
+    scopedSelector = scopeStyleSelector(transformer, fullSelector);
   }
 
-  lines.push(`${pad}${selector} {`);
+  // Only output rule if it has properties
+  if (rule.properties.length > 0) {
+    const lines = [];
+    lines.push(`  ${scopedSelector} {`);
 
-  for (const prop of rule.properties) {
-    lines.push(`${pad}  ${prop.name}: ${prop.value};`);
+    for (const prop of rule.properties) {
+      lines.push(`    ${prop.name}: ${prop.value};`);
+    }
+
+    lines.push('  }');
+    output.push(lines.join('\n'));
   }
 
+  // Recursively flatten nested rules with combined selector
   for (const nested of rule.nestedRules) {
-    // For nested rules, combine selectors (simplified nesting)
-    const nestedLines = transformStyleRule(transformer, nested, indent + 1);
-    lines.push(nestedLines);
+    flattenStyleRule(transformer, nested, fullSelector, output);
   }
-
-  lines.push(`${pad}}`);
-  return lines.join('\n');
 }
 
 /**

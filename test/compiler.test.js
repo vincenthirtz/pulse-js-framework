@@ -376,6 +376,111 @@ style {
   assert(!result.code.includes('SCOPE_ID'), 'Should not have SCOPE_ID');
 });
 
+test('compiles nested CSS with combined selectors', () => {
+  const source = `
+@page NestedCSS
+
+view {
+  div.counter "Test"
+}
+
+style {
+  .counter {
+    padding: 20px
+
+    p {
+      margin: 0
+    }
+
+    .buttons {
+      display: flex
+
+      button {
+        padding: 10px
+      }
+    }
+  }
+}`;
+
+  const result = compile(source, { scopeStyles: false });
+  assert(result.success, 'Expected successful compilation');
+
+  // Check that nested selectors are combined with parent
+  assert(result.code.includes('.counter p'), 'Expected .counter p combined selector');
+  assert(result.code.includes('.counter .buttons'), 'Expected .counter .buttons combined selector');
+  assert(result.code.includes('.counter .buttons button'), 'Expected .counter .buttons button combined selector');
+
+  // Ensure properties are in correct rules
+  assert(result.code.includes('padding: 20px'), 'Expected padding in .counter');
+  assert(result.code.includes('margin: 0'), 'Expected margin in .counter p');
+  assert(result.code.includes('display: flex'), 'Expected display in .counter .buttons');
+});
+
+test('compiles nested CSS with & parent selector', () => {
+  const source = `
+@page ParentSelector
+
+view {
+  button.btn "Click"
+}
+
+style {
+  .btn {
+    color: blue
+
+    &:hover {
+      color: red
+    }
+
+    &.active {
+      font-weight: bold
+    }
+  }
+}`;
+
+  const result = compile(source, { scopeStyles: false });
+  assert(result.success, 'Expected successful compilation');
+
+  // Check that & is replaced with parent selector
+  assert(result.code.includes('.btn:hover'), 'Expected .btn:hover (& replaced)');
+  assert(result.code.includes('.btn.active'), 'Expected .btn.active (& replaced)');
+});
+
+test('compiles deeply nested CSS', () => {
+  const source = `
+@page DeepNesting
+
+view {
+  div.app "Test"
+}
+
+style {
+  .app {
+    padding: 10px
+
+    .header {
+      height: 60px
+
+      .nav {
+        display: flex
+
+        .link {
+          color: blue
+        }
+      }
+    }
+  }
+}`;
+
+  const result = compile(source, { scopeStyles: false });
+  assert(result.success, 'Expected successful compilation');
+
+  // Check deeply nested selectors are combined correctly
+  assert(result.code.includes('.app .header'), 'Expected .app .header');
+  assert(result.code.includes('.app .header .nav'), 'Expected .app .header .nav');
+  assert(result.code.includes('.app .header .nav .link'), 'Expected .app .header .nav .link');
+});
+
 test('error messages include line numbers', () => {
   const source = `
 @page Test

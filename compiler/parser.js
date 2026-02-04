@@ -1587,15 +1587,51 @@ export class Parser {
 
   /**
    * Check if current position is a nested rule
+   * A nested rule starts with a selector followed by { on the same logical line
    */
   isNestedRule() {
-    // Look ahead to see if there's a { before a : or newline
+    const currentToken = this.peek(0);
+    if (!currentToken) return false;
+
+    // & is always a CSS parent selector, never a property name
+    // So &:hover, &.class, etc. are always nested rules
+    if (currentToken.type === TokenType.AMPERSAND) {
+      return true;
+    }
+
+    const startLine = currentToken.line;
     let i = 0;
+
     while (this.peek(i) && this.peek(i).type !== TokenType.EOF) {
       const token = this.peek(i);
+
+      // Found { before : - this is a nested rule
       if (token.type === TokenType.LBRACE) return true;
+
+      // Found : - this is a property, not a nested rule
       if (token.type === TokenType.COLON) return false;
+
+      // Found } - end of current rule
       if (token.type === TokenType.RBRACE) return false;
+
+      // If we've moved to a different line and the selector isn't continuing,
+      // check if this new line starts with a selector pattern
+      if (token.line > startLine && i > 0) {
+        // We're on a new line - only continue if we haven't found anything significant
+        // A selector on a new line followed by { is a nested rule
+        // Check next few tokens on this new line
+        const nextLine = token.line;
+        let j = i;
+        while (this.peek(j) && this.peek(j).line === nextLine) {
+          const t = this.peek(j);
+          if (t.type === TokenType.LBRACE) return true;
+          if (t.type === TokenType.COLON) return false;
+          if (t.type === TokenType.RBRACE) return false;
+          j++;
+        }
+        return false;
+      }
+
       i++;
     }
     return false;
@@ -1620,11 +1656,19 @@ export class Parser {
 
     let value = '';
     let lastTokenValue = '';
+    let lastTokenLine = this.current()?.line || 0;
     let afterHash = false;  // Track if we're collecting a hex color
     let inCssVar = false;   // Track if we're inside var(--...)
 
-    while (!this.is(TokenType.SEMICOLON) && !this.is(TokenType.RBRACE) &&
-           !this.is(TokenType.EOF) && !this.isPropertyStart()) {
+    while (!this.is(TokenType.SEMICOLON) && !this.is(TokenType.RBRACE) && !this.is(TokenType.EOF)) {
+      const currentToken = this.current();
+
+      // Check if we're on a new line - if so, check for property start or nested rule
+      if (currentToken && currentToken.line > lastTokenLine) {
+        if (this.isPropertyStart() || this.isNestedRule()) {
+          break;
+        }
+      }
       const token = this.advance();
       // Use raw value if available to preserve original representation
       // This is important for numbers that might be parsed as scientific notation
