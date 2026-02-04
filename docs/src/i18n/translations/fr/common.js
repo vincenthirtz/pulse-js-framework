@@ -296,7 +296,9 @@ export default {
   toc: {
     title: 'Sur cette page',
     showContents: 'Afficher le sommaire',
-    hideContents: 'Masquer le sommaire'
+    hideContents: 'Masquer le sommaire',
+    expand: 'Afficher le sommaire',
+    collapse: 'Masquer le sommaire'
   },
 
   // Breadcrumbs

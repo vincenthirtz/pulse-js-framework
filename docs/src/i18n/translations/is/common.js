@@ -296,7 +296,9 @@ export default {
   toc: {
     title: 'Á þessari síðu',
     showContents: 'Sýna efnisyfirlit',
-    hideContents: 'Fela efnisyfirlit'
+    hideContents: 'Fela efnisyfirlit',
+    expand: 'Sýna efnisyfirlit',
+    collapse: 'Fela efnisyfirlit'
   },
 
   // Breadcrumbs

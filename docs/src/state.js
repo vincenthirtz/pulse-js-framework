@@ -76,6 +76,18 @@ export const tocItems = pulse([]);        // Array of {id, text, level}
 export const currentSection = pulse('');  // Currently visible section ID
 export const tocExpanded = pulse(false);  // Mobile TOC accordion state
 
+// Desktop TOC sidebar collapsed state (persisted)
+const savedTocCollapsed = typeof localStorage !== 'undefined' ? localStorage.getItem('pulse-docs-toc-collapsed') : null;
+export const tocSidebarCollapsed = pulse(savedTocCollapsed === 'true');
+
+// Persist TOC collapsed state
+effect(() => {
+  const isCollapsed = tocSidebarCollapsed.get();
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('pulse-docs-toc-collapsed', String(isCollapsed));
+  }
+});
+
 // =============================================================================
 // Navigation Data (with translation keys for reactivity)
 // =============================================================================

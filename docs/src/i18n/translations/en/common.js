@@ -296,7 +296,9 @@ export default {
   toc: {
     title: 'On This Page',
     showContents: 'Show contents',
-    hideContents: 'Hide contents'
+    hideContents: 'Hide contents',
+    expand: 'Show table of contents',
+    collapse: 'Hide table of contents'
   },
 
   // Breadcrumbs

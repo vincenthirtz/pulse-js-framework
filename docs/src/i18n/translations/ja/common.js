@@ -296,7 +296,9 @@ export default {
   toc: {
     title: 'このページの内容',
     showContents: '目次を表示',
-    hideContents: '目次を非表示'
+    hideContents: '目次を非表示',
+    expand: '目次を表示',
+    collapse: '目次を非表示'
   },
 
   // Breadcrumbs

@@ -296,7 +296,9 @@ export default {
   toc: {
     title: 'Sur ĉi tiu paĝo',
     showContents: 'Montri enhavon',
-    hideContents: 'Kaŝi enhavon'
+    hideContents: 'Kaŝi enhavon',
+    expand: 'Montri enhavtabelon',
+    collapse: 'Kaŝi enhavtabelon'
   },
 
   // Breadcrumbs

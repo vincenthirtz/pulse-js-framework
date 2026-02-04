@@ -124,9 +124,13 @@ setTimeout(() => {
   // Add breadcrumbs and mobile TOC to initial page
   const page = document.querySelector('.docs-page');
   if (page) {
-    page.insertBefore(Breadcrumbs(), page.firstChild);
+    // Check if breadcrumbs already exist
+    if (!page.querySelector('.breadcrumbs')) {
+      page.insertBefore(Breadcrumbs(), page.firstChild);
+    }
+    // Check if mobile TOC already exists
     const breadcrumbs = page.querySelector('.breadcrumbs');
-    if (breadcrumbs) {
+    if (breadcrumbs && !page.querySelector('.toc-mobile')) {
       breadcrumbs.insertAdjacentElement('afterend', TocMobile());
     }
   }

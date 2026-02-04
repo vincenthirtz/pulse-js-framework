@@ -296,7 +296,9 @@ export default {
   toc: {
     title: 'Auf dieser Seite',
     showContents: 'Inhalt anzeigen',
-    hideContents: 'Inhalt ausblenden'
+    hideContents: 'Inhalt ausblenden',
+    expand: 'Inhaltsverzeichnis anzeigen',
+    collapse: 'Inhaltsverzeichnis ausblenden'
   },
 
   // Breadcrumbs

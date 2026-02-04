@@ -2487,19 +2487,65 @@ body {
    Table of Contents Component
    ============================================================================= */
 
+/* Desktop TOC Sidebar Container */
+.toc-sidebar-container {
+  position: fixed;
+  right: 0;
+  top: 100px;
+  display: flex;
+  align-items: flex-start;
+  z-index: 10;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.toc-sidebar-container.collapsed {
+  transform: translateX(calc(100% - 28px));
+}
+
+/* TOC Toggle Button */
+.toc-toggle-btn {
+  flex-shrink: 0;
+  width: 28px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-light);
+  border: 1px solid var(--border);
+  border-right: none;
+  border-radius: var(--radius) 0 0 var(--radius);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 16px;
+}
+
+.toc-toggle-btn:hover {
+  background: var(--bg);
+  color: var(--primary);
+}
+
+.toc-toggle-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
 /* Desktop TOC Sidebar */
 .toc-sidebar {
-  position: fixed;
-  right: 24px;
-  top: 100px;
   width: 220px;
   max-height: calc(100vh - 140px);
   overflow-y: auto;
   padding: 16px;
   background: var(--bg-light);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  z-index: 10;
+  border-right: none;
+  border-radius: 0 0 0 var(--radius);
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+.toc-sidebar-container.collapsed .toc-sidebar {
+  opacity: 0;
+  visibility: hidden;
 }
 
 .toc-sidebar::-webkit-scrollbar {
@@ -2561,8 +2607,8 @@ body {
 
 /* Hide desktop TOC on smaller screens */
 @media (max-width: 1200px) {
-  .toc-sidebar {
-    display: none;
+  .toc-sidebar-container {
+    display: none !important;
   }
 }
 

@@ -4,7 +4,7 @@
  */
 
 import { el, effect, pulse } from '/runtime/index.js';
-import { router, tocItems, currentSection, tocExpanded, t, locale } from '../state.js';
+import { router, tocItems, currentSection, tocExpanded, tocSidebarCollapsed, t, locale } from '../state.js';
 import { getPathWithoutLocale } from '../i18n/index.js';
 
 // Pages where TOC should not be shown
@@ -13,6 +13,8 @@ const EXCLUDED_PATHS = ['/', '/examples', '/playground', '/benchmarks', '/change
 // SVG icons
 const ListIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/></svg>`;
 const ChevronIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>`;
+const ChevronRightIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>`;
+const ChevronLeftIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>`;
 
 /**
  * Convert text to URL-friendly slug
@@ -173,23 +175,39 @@ function shouldShowToc() {
  * @returns {HTMLElement}
  */
 export function TocSidebar() {
+  const container = el('div.toc-sidebar-container');
   const sidebar = el('aside.toc-sidebar');
   sidebar.setAttribute('aria-label', 'Table of contents');
+
+  // Toggle button (always visible)
+  const toggleBtn = el('button.toc-toggle-btn');
+  toggleBtn.setAttribute('aria-label', 'Toggle table of contents');
+  toggleBtn.addEventListener('click', () => {
+    tocSidebarCollapsed.update(v => !v);
+  });
 
   let cleanupScrollSpy = () => {};
 
   function render() {
     const items = tocItems.get();
     const activeId = currentSection.get();
+    const isCollapsed = tocSidebarCollapsed.get();
 
     sidebar.innerHTML = '';
 
+    // Update container collapsed state
+    container.className = `toc-sidebar-container ${isCollapsed ? 'collapsed' : ''}`;
+
+    // Update toggle button icon and tooltip
+    toggleBtn.innerHTML = isCollapsed ? ChevronLeftIcon : ChevronRightIcon;
+    toggleBtn.title = isCollapsed ? t('toc.expand') : t('toc.collapse');
+
     if (!shouldShowToc() || items.length === 0) {
-      sidebar.style.display = 'none';
+      container.style.display = 'none';
       return;
     }
 
-    sidebar.style.display = 'block';
+    container.style.display = 'flex';
 
     const title = el('div.toc-title');
     title.textContent = t('toc.title');
@@ -202,6 +220,7 @@ export function TocSidebar() {
   effect(() => {
     tocItems.get();
     currentSection.get();
+    tocSidebarCollapsed.get();
     locale.get();
     render();
   });
@@ -213,7 +232,10 @@ export function TocSidebar() {
     cleanupScrollSpy = setupScrollSpy(items);
   });
 
-  return sidebar;
+  container.appendChild(toggleBtn);
+  container.appendChild(sidebar);
+
+  return container;
 }
 
 /**

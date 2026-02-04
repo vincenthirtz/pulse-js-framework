@@ -3,7 +3,7 @@
  */
 
 import { el, effect } from '/runtime/index.js';
-import { t, locale } from '../state.js';
+import { t, locale, navigateLocale } from '../state.js';
 
 export function SSRPage() {
   const page = el('.page.docs-page');
@@ -441,11 +441,18 @@ const { html } = await renderToString(() => App(), {
       </div>
     </section>
 
-    <nav class="page-nav">
-      <a href="/http" class="prev" data-i18n="ssr.prevHttp"></a>
-      <a href="/graphql" class="next" data-i18n="ssr.nextGraphQL"></a>
-    </nav>
+    <div class="next-section"></div>
   `;
+
+  // Attach click handlers programmatically for navigation buttons
+  const nextSection = page.querySelector('.next-section');
+  const prevBtn = el('button.btn.btn-secondary');
+  prevBtn.dataset.i18n = 'ssr.prevHttp';
+  prevBtn.onclick = () => navigateLocale('/http');
+  const nextBtn = el('button.btn.btn-primary');
+  nextBtn.dataset.i18n = 'ssr.nextGraphQL';
+  nextBtn.onclick = () => navigateLocale('/graphql');
+  nextSection.append(prevBtn, nextBtn);
 
   // Apply i18n translations
   effect(() => {
