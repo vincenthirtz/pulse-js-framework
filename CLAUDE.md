@@ -1410,6 +1410,150 @@ const html = exportA11yReport('html'); // Standalone HTML report
 disableA11yAudit();
 ```
 
+### SSR (runtime/ssr.js)
+
+Server-Side Rendering and hydration for Pulse applications.
+
+```javascript
+import {
+  renderToString, renderToStringSync, hydrate,
+  serializeState, deserializeState, restoreState, getSSRState,
+  isSSR, isHydratingMode
+} from 'pulse-js-framework/runtime/ssr';
+
+// === Server-Side Rendering ===
+
+// Render component to HTML string (async, waits for data)
+const { html, state } = await renderToString(() => App(), {
+  waitForAsync: true,   // Wait for useAsync/useResource to resolve
+  timeout: 5000,        // Timeout for async operations (ms)
+  serializeState: true  // Include state in result
+});
+
+// Render synchronously (no async waiting)
+const html = renderToStringSync(() => StaticPage());
+
+// === Complete SSR Server Example ===
+
+// server.js (Node.js/Express)
+import express from 'express';
+import { renderToString, serializeState } from 'pulse-js-framework/runtime/ssr';
+import App from './App.js';
+
+const app = express();
+
+app.get('*', async (req, res) => {
+  const { html, state } = await renderToString(() => App(), {
+    waitForAsync: true
+  });
+
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+      <head><title>My Pulse App</title></head>
+      <body>
+        <div id="app">${html}</div>
+        <script>window.__PULSE_STATE__ = ${serializeState(state)};</script>
+        <script type="module" src="/client.js"></script>
+      </body>
+    </html>
+  `);
+});
+
+// === Client-Side Hydration ===
+
+// client.js
+import { hydrate } from 'pulse-js-framework/runtime/ssr';
+import App from './App.js';
+
+// Hydrate server-rendered HTML (attaches event listeners)
+const dispose = hydrate('#app', () => App(), {
+  state: window.__PULSE_STATE__  // Restore server state
+});
+
+// Later, if needed:
+dispose();  // Clean up hydration
+
+// === State Serialization ===
+
+// Serialize state (handles Date, undefined, escapes XSS)
+const json = serializeState({
+  user: { name: 'John', createdAt: new Date() },
+  settings: { theme: 'dark' }
+});
+
+// Deserialize state (restores Date objects)
+const state = deserializeState(json);
+
+// Restore state into global (for component access)
+restoreState(window.__PULSE_STATE__);
+
+// Get SSR state in components
+const userData = getSSRState('user');
+
+// === SSR Mode Detection ===
+
+// Check if running in SSR mode
+if (isSSR()) {
+  // Skip browser-only code
+}
+
+// Check if currently hydrating
+if (isHydratingMode()) {
+  // Hydration-specific logic
+}
+
+// === SSR-Safe Effects ===
+
+// Effects automatically run once without subscriptions in SSR mode
+effect(() => {
+  if (isSSR()) return;  // Skip browser APIs on server
+
+  window.addEventListener('resize', handleResize);
+  return () => window.removeEventListener('resize', handleResize);
+});
+
+// === Async Data with SSR ===
+
+// useAsync automatically integrates with SSR
+function UserProfile({ userId }) {
+  const { data, loading } = useAsync(
+    () => fetch(`/api/users/${userId}`).then(r => r.json()),
+    { immediate: true }
+  );
+
+  // During SSR:
+  // 1. First render: registers async operation, returns loading state
+  // 2. Async operations complete
+  // 3. Second render: uses cached data
+
+  return el('div',
+    loading.get()
+      ? el('.spinner', 'Loading...')
+      : el('.user', data.get()?.name)
+  );
+}
+```
+
+**SSR Architecture:**
+
+| Module | Purpose |
+|--------|---------|
+| `ssr.js` | Main entry point (renderToString, hydrate) |
+| `ssr-serializer.js` | HTML serialization for MockNode trees |
+| `ssr-hydrator.js` | Client-side hydration utilities |
+| `ssr-async.js` | Async data collection during SSR |
+
+**How SSR Works:**
+
+1. **Server Render**: `renderToString()` creates isolated context, uses `MockDOMAdapter`
+2. **Async Collection**: First render collects `useAsync` operations
+3. **Data Fetching**: Waits for all async operations (with timeout)
+4. **Re-render**: Second render with resolved data
+5. **Serialization**: MockNode tree → HTML string
+6. **State Transfer**: Serialize state for client
+7. **Hydration**: Client attaches listeners to existing DOM
+
 ### A11y (runtime/a11y.js)
 
 ```javascript
@@ -2209,6 +2353,10 @@ view {
 | `runtime/devtools.js` | Dev tools (trackedPulse, time-travel, dependency graph, profiling, a11y audit) |
 | `runtime/native.js` | Native mobile bridge (storage, device, UI, lifecycle) |
 | `runtime/hmr.js` | Hot module replacement (createHMRContext) |
+| `runtime/ssr.js` | Server-side rendering (renderToString, hydrate, serializeState) |
+| `runtime/ssr-serializer.js` | HTML serialization for MockNode trees |
+| `runtime/ssr-hydrator.js` | Client-side hydration utilities |
+| `runtime/ssr-async.js` | Async data collection during SSR |
 | `runtime/lite.js` | Minimal bundle (~5KB) with core reactivity and DOM only |
 | `runtime/logger.js` | Centralized logging with namespaces and levels |
 | `runtime/lru-cache.js` | LRU cache for HTTP/GraphQL response caching |
@@ -2284,6 +2432,9 @@ import { createHMRContext } from 'pulse-js-framework/runtime/hmr';
 
 // DevTools (development only)
 import { enableDevTools, trackedPulse, trackedEffect, getDependencyGraph } from 'pulse-js-framework/runtime/devtools';
+
+// SSR (Server-Side Rendering)
+import { renderToString, renderToStringSync, hydrate, serializeState, deserializeState, isSSR } from 'pulse-js-framework/runtime/ssr';
 
 // Lite build (minimal bundle ~5KB)
 import { pulse, effect, computed, el, mount, list, when } from 'pulse-js-framework/runtime/lite';

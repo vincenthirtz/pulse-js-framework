@@ -7,6 +7,7 @@
  */
 
 import { pulse, effect, batch, onCleanup } from './pulse.js';
+import { getSSRAsyncContext, registerAsync, getCachedAsync, hasCachedAsync } from './ssr-async.js';
 
 // ============================================================================
 // Versioned Async - Centralized Race Condition Handling
@@ -327,6 +328,44 @@ export function useAsync(asyncFn, options = {}) {
     retries = 0,
     retryDelay = 1000
   } = options;
+
+  // SSR MODE: Check for cached data or register async operation
+  const ssrCtx = getSSRAsyncContext();
+  if (ssrCtx) {
+    // Check if we already have cached data (second render pass)
+    if (hasCachedAsync(asyncFn)) {
+      const cachedData = getCachedAsync(asyncFn);
+      return {
+        data: pulse(cachedData),
+        error: pulse(null),
+        loading: pulse(false),
+        status: pulse('success'),
+        execute: () => Promise.resolve(cachedData),
+        reset: () => {},
+        abort: () => {}
+      };
+    }
+
+    // First render pass: register async operation for collection
+    if (immediate) {
+      const promise = asyncFn().catch(err => {
+        // Store error for SSR error handling
+        return null;
+      });
+      registerAsync(asyncFn, promise);
+    }
+
+    // Return loading state for first pass
+    return {
+      data: pulse(initialData),
+      error: pulse(null),
+      loading: pulse(true),
+      status: pulse('loading'),
+      execute: () => Promise.resolve(initialData),
+      reset: () => {},
+      abort: () => {}
+    };
+  }
 
   const data = pulse(initialData);
   const error = pulse(null);

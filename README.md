@@ -16,6 +16,7 @@ No build. No dependencies. Just JavaScript.
 - **Router & Store** - Built-in SPA routing and state management
 - **Form Handling** - Validation, async validators, field arrays
 - **Async Primitives** - useAsync, useResource, usePolling with SWR caching
+- **Server-Side Rendering** - Full SSR with hydration and async data fetching
 - **Hot Module Replacement** - Full HMR with state preservation
 - **Mobile Apps** - Build native Android & iOS apps (zero dependencies)
 - **TypeScript Support** - Full type definitions for IDE autocomplete
@@ -326,6 +327,41 @@ const count: Pulse<number> = pulse(0);
 | [Store Demo](examples/store) | State with undo/redo |
 | [Electron App](examples/electron) | Desktop notes app |
 
+## Server-Side Rendering
+
+Pulse supports full SSR with hydration and async data fetching:
+
+```javascript
+// server.js
+import { renderToString, serializeState } from 'pulse-js-framework/runtime/ssr';
+import App from './App.js';
+
+app.get('*', async (req, res) => {
+  const { html, state } = await renderToString(() => App(), {
+    waitForAsync: true  // Wait for useAsync to resolve
+  });
+
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+      <body>
+        <div id="app">${html}</div>
+        <script>window.__PULSE_STATE__ = ${serializeState(state)};</script>
+        <script type="module" src="/client.js"></script>
+      </body>
+    </html>
+  `);
+});
+
+// client.js
+import { hydrate } from 'pulse-js-framework/runtime/ssr';
+import App from './App.js';
+
+hydrate('#app', () => App(), {
+  state: window.__PULSE_STATE__
+});
+```
+
 ## Documentation
 
 - [API Reference](docs/api.md) - Complete API documentation
@@ -338,6 +374,7 @@ const count: Pulse<number> = pulse(0);
 - [Context API](docs/context.md) - Dependency injection
 - [DevTools](docs/devtools.md) - Debugging and profiling
 - [Mobile Apps](docs/mobile.md) - Native Android & iOS
+- [SSR](docs/ssr.md) - Server-side rendering and hydration
 
 ## License
 

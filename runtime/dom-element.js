@@ -10,6 +10,16 @@ import { loggers } from './logger.js';
 import { safeSetAttribute } from './utils.js';
 import { getAdapter } from './dom-adapter.js';
 import { parseSelector } from './dom-selector.js';
+import {
+  isHydratingMode,
+  getHydrationContext,
+  getCurrentNode,
+  advanceCursor,
+  enterChild,
+  exitChild,
+  registerListener,
+  warnMismatch
+} from './ssr-hydrator.js';
 
 const log = loggers.dom;
 
@@ -214,6 +224,62 @@ function applyRoleRequirements(element, role, attrs, dom) {
 export function el(selector, ...children) {
   const dom = getAdapter();
   const config = parseSelector(selector);
+
+  // HYDRATION MODE: Reuse existing DOM element
+  if (isHydratingMode()) {
+    const ctx = getHydrationContext();
+    const existing = getCurrentNode(ctx);
+
+    // Verify element matches
+    if (existing && existing.nodeType === 1) {
+      const tag = existing.tagName?.toLowerCase();
+      if (tag !== config.tag) {
+        warnMismatch(ctx, `<${config.tag}>`, existing);
+      }
+
+      // Process children to attach event handlers from attributes
+      const [attrs, childContent] = separateAttrsAndChildren(children);
+
+      if (attrs) {
+        // Attach event handlers to existing element
+        for (const [key, value] of Object.entries(attrs)) {
+          if (key.startsWith('on') && typeof value === 'function') {
+            const event = key.slice(2).toLowerCase();
+            registerListener(ctx, existing, event, value);
+          }
+          // Handle reactive attributes
+          else if (typeof value === 'function' && !key.startsWith('on')) {
+            effect(() => {
+              const result = value();
+              if (key === 'class' || key === 'className') {
+                existing.className = result || '';
+              } else if (key === 'style' && typeof result === 'string') {
+                existing.style.cssText = result;
+              } else if (result != null) {
+                existing.setAttribute(key, result);
+              } else {
+                existing.removeAttribute(key);
+              }
+            });
+          }
+        }
+      }
+
+      // Enter child scope and process children
+      enterChild(ctx, existing);
+      for (const child of childContent) {
+        hydrateChild(existing, child, ctx);
+      }
+      exitChild(ctx, existing);
+
+      return existing;
+    }
+
+    // No matching element found, warn and fall through to create
+    warnMismatch(ctx, `<${config.tag}>`, existing);
+  }
+
+  // NORMAL MODE: Create new element
   const element = dom.createElement(config.tag);
 
   if (config.id) {
@@ -238,6 +304,47 @@ export function el(selector, ...children) {
   }
 
   return element;
+}
+
+/**
+ * Separate attributes object from children in el() arguments
+ * @private
+ */
+function separateAttrsAndChildren(children) {
+  if (children.length === 0) {
+    return [null, []];
+  }
+
+  const first = children[0];
+  if (first && typeof first === 'object' && !Array.isArray(first) &&
+      !(first instanceof Node) && !(first.nodeType)) {
+    return [first, children.slice(1)];
+  }
+
+  return [null, children];
+}
+
+/**
+ * Hydrate a child element (attach listeners without creating DOM)
+ * @private
+ */
+function hydrateChild(parent, child, ctx) {
+  if (child == null || child === false) return;
+
+  if (typeof child === 'string' || typeof child === 'number') {
+    // Text content - just advance cursor
+    advanceCursor(ctx);
+  } else if (typeof child === 'function') {
+    // Reactive child - set up effect but skip initial DOM creation
+    effect(() => {
+      child(); // Execute to track dependencies, but don't modify DOM on first run in hydration
+    });
+  } else if (Array.isArray(child)) {
+    for (const c of child) {
+      hydrateChild(parent, c, ctx);
+    }
+  }
+  // Node children are handled by recursive el() calls
 }
 
 /**

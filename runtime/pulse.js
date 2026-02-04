@@ -24,6 +24,35 @@ import { Errors } from './errors.js';
 const log = loggers.pulse;
 
 // =============================================================================
+// SSR MODE FLAG
+// =============================================================================
+
+/**
+ * SSR mode flag - when true, effects run once without setting up subscriptions.
+ * This is set by the SSR module during server-side rendering.
+ * @type {boolean}
+ */
+let ssrModeEnabled = false;
+
+/**
+ * Check if SSR mode is enabled.
+ * In SSR mode, effects run once but don't subscribe to changes.
+ * @returns {boolean}
+ */
+export function isSSRMode() {
+  return ssrModeEnabled;
+}
+
+/**
+ * Set SSR mode (used internally by ssr.js).
+ * @param {boolean} enabled - Whether to enable SSR mode
+ * @internal
+ */
+export function setSSRMode(enabled) {
+  ssrModeEnabled = enabled;
+}
+
+// =============================================================================
 // REACTIVE DEPENDENCY TRACKING ALGORITHM
 // =============================================================================
 //
@@ -884,6 +913,17 @@ export function computed(fn, options = {}) {
 export function effect(fn, options = {}) {
   const { id: customId, onError } = options;
   const effectId = customId || `effect_${++effectIdCounter}`;
+
+  // SSR MODE: Run effect once without subscriptions
+  if (ssrModeEnabled) {
+    try {
+      fn();
+    } catch (e) {
+      log.warn(`SSR effect error (${effectId}):`, e.message);
+    }
+    // Return noop cleanup function
+    return () => {};
+  }
 
   // Capture module ID at creation time for HMR tracking
   const moduleId = activeContext.currentModuleId;

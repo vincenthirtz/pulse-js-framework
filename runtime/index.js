@@ -12,6 +12,7 @@ export * from './a11y.js';
 export * from './context.js';
 export * from './websocket.js';
 export * from './graphql.js';
+export * from './ssr.js';
 
 export { default as PulseCore } from './pulse.js';
 export { default as PulseDOM } from './dom.js';
@@ -23,3 +24,4 @@ export { default as PulseA11y } from './a11y.js';
 export { default as PulseContext } from './context.js';
 export { default as PulseWebSocket } from './websocket.js';
 export { default as PulseGraphQL } from './graphql.js';
+export { default as PulseSSR } from './ssr.js';
