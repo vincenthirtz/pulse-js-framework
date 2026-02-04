@@ -109,7 +109,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "test": "npm run test:compiler && npm run test:sourcemap && npm run test:pulse && npm run test:dom && npm run test:dom-element && npm run test:dom-adapter && npm run test:enhanced-mock-adapter && npm run test:router && npm run test:store && npm run test:context && npm run test:hmr && npm run test:lint && npm run test:format && npm run test:analyze && npm run test:cli && npm run test:cli-ui && npm run test:lru-cache && npm run test:utils && npm run test:docs && npm run test:docs-nav && npm run test:async && npm run test:form && npm run test:http && npm run test:devtools && npm run test:native && npm run test:a11y && npm run test:a11y-enhanced && npm run test:logger && npm run test:errors && npm run test:security && npm run test:websocket && npm run test:graphql && npm run test:doctor && npm run test:scaffold && npm run test:test-runner && npm run test:build && npm run test:integration && npm run test:context-stress && npm run test:form-edge-cases && npm run test:graphql-subscriptions && npm run test:http-edge-cases && npm run test:integration-advanced && npm run test:websocket-stress",
+    "test": "npm run test:compiler && npm run test:sourcemap && npm run test:pulse && npm run test:dom && npm run test:dom-element && npm run test:dom-adapter && npm run test:enhanced-mock-adapter && npm run test:router && npm run test:store && npm run test:context && npm run test:hmr && npm run test:lint && npm run test:format && npm run test:analyze && npm run test:cli && npm run test:cli-ui && npm run test:lru-cache && npm run test:utils && npm run test:docs && npm run test:docs-nav && npm run test:async && npm run test:form && npm run test:http && npm run test:devtools && npm run test:native && npm run test:a11y && npm run test:a11y-enhanced && npm run test:logger && npm run test:errors && npm run test:security && npm run test:websocket && npm run test:graphql && npm run test:doctor && npm run test:scaffold && npm run test:test-runner && npm run test:build && npm run test:integration && npm run test:context-stress && npm run test:form-edge-cases && npm run test:graphql-subscriptions && npm run test:http-edge-cases && npm run test:integration-advanced && npm run test:websocket-stress && npm run test:ssr",
     "test:compiler": "node test/compiler.test.js",
     "test:sourcemap": "node test/sourcemap.test.js",
     "test:pulse": "node test/pulse.test.js",
@@ -153,6 +153,7 @@
     "test:http-edge-cases": "node test/http-edge-cases.test.js",
     "test:integration-advanced": "node test/integration-advanced.test.js",
     "test:websocket-stress": "node test/websocket-stress.test.js",
+    "test:ssr": "node test/ssr.test.js",
     "build:netlify": "node scripts/build-netlify.js",
     "version": "node scripts/sync-version.js",
     "docs": "node cli/index.js dev docs"
