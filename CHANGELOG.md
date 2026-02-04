@@ -5,6 +5,20 @@ All notable changes to Pulse Framework will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.20] - 2026-02-04
+
+### Bug Fixes
+
+### Added
+
+- add --fc alias for --from-commits in release command
+- add CSS nesting support with parent selector
+
+### Fixed
+
+- improve CSS parsing for selectors and properties
+
+
 ## [1.7.18] - 2026-02-04
 
 ### SEO & Active Links Fix
