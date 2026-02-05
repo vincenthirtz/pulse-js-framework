@@ -9,6 +9,7 @@ import { createWebSocket, WebSocketError } from './websocket.js';
 import { createVersionedAsync } from './async.js';
 import { RuntimeError, createErrorMessage, getDocsUrl } from './errors.js';
 import { LRUCache } from './lru-cache.js';
+import { InterceptorManager } from './interceptor-manager.js';
 
 // ============================================================================
 // Constants
@@ -230,60 +231,6 @@ function generateCacheKey(query, variables) {
   const variablesHash = variables ? hashString(stableStringify(variables)) : '';
   const queryHash = operationName || hashString(query.replace(/\s+/g, ' ').trim());
   return `gql:${queryHash}${variablesHash ? ':' + variablesHash : ''}`;
-}
-
-// ============================================================================
-// Interceptor Manager
-// ============================================================================
-
-/**
- * Manages request/response interceptors
- */
-class InterceptorManager {
-  #handlers = new Map();
-  #nextId = 0;
-
-  /**
-   * Add an interceptor
-   * @param {Function} fulfilled - Success handler
-   * @param {Function} [rejected] - Error handler
-   * @returns {number} Interceptor ID
-   */
-  use(fulfilled, rejected) {
-    const id = this.#nextId++;
-    this.#handlers.set(id, { fulfilled, rejected });
-    return id;
-  }
-
-  /**
-   * Remove an interceptor
-   * @param {number} id - Interceptor ID
-   */
-  eject(id) {
-    this.#handlers.delete(id);
-  }
-
-  /**
-   * Clear all interceptors
-   */
-  clear() {
-    this.#handlers.clear();
-  }
-
-  /**
-   * Get handler count
-   * @returns {number}
-   */
-  get size() {
-    return this.#handlers.size;
-  }
-
-  /**
-   * Iterate over handlers
-   */
-  [Symbol.iterator]() {
-    return this.#handlers.values();
-  }
 }
 
 // ============================================================================

@@ -28,6 +28,7 @@ import { pulse, computed, batch, onCleanup } from './pulse.js';
 import { createVersionedAsync } from './async.js';
 import { RuntimeError, createErrorMessage, getDocsUrl } from './errors.js';
 import { loggers } from './logger.js';
+import { MessageInterceptorManager } from './interceptor-manager.js';
 
 // ============================================================================
 // WebSocket Error Class
@@ -134,60 +135,8 @@ export class WebSocketError extends RuntimeError {
 }
 
 // ============================================================================
-// Message Interceptor Manager
+// Message Interceptor Factory
 // ============================================================================
-
-/**
- * Manages message interceptors for incoming/outgoing messages
- */
-class MessageInterceptorManager {
-  #handlers = new Map();
-  #idCounter = 0;
-
-  /**
-   * Add a message interceptor
-   * @param {Function} onMessage - Transform message data
-   * @param {Function} [onError] - Handle interceptor errors
-   * @returns {number} Interceptor ID
-   */
-  use(onMessage, onError) {
-    const id = this.#idCounter++;
-    this.#handlers.set(id, { onMessage, onError });
-    return id;
-  }
-
-  /**
-   * Remove an interceptor by ID
-   * @param {number} id - The interceptor ID
-   */
-  eject(id) {
-    this.#handlers.delete(id);
-  }
-
-  /**
-   * Remove all interceptors
-   */
-  clear() {
-    this.#handlers.clear();
-  }
-
-  /**
-   * Get the number of interceptors
-   * @returns {number}
-   */
-  get size() {
-    return this.#handlers.size;
-  }
-
-  /**
-   * Iterate through handlers
-   */
-  *[Symbol.iterator]() {
-    for (const handler of this.#handlers.values()) {
-      yield handler;
-    }
-  }
-}
 
 // ============================================================================
 // Internal Helpers
@@ -914,6 +863,7 @@ export function useWebSocket(url, options = {}) {
 // Exports
 // ============================================================================
 
+// Re-export MessageInterceptorManager from shared module
 export { MessageInterceptorManager };
 
 export default {

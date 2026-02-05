@@ -6,6 +6,7 @@
 import { pulse, computed, batch } from './pulse.js';
 import { useAsync, useResource } from './async.js';
 import { RuntimeError, createErrorMessage, getDocsUrl } from './errors.js';
+import { InterceptorManager } from './interceptor-manager.js';
 
 // ============================================================================
 // HTTP Error Class
@@ -85,63 +86,6 @@ export class HttpError extends RuntimeError {
    */
   isAborted() {
     return this.code === 'ABORT';
-  }
-}
-
-// ============================================================================
-// Interceptor Manager
-// ============================================================================
-
-/**
- * Manages request or response interceptors
- */
-class InterceptorManager {
-  #handlers = new Map();
-  #idCounter = 0;
-
-  /**
-   * Add an interceptor
-   * @param {Function} fulfilled - Function to run on success
-   * @param {Function} [rejected] - Function to run on error
-   * @returns {number} Interceptor ID (for removal)
-   */
-  use(fulfilled, rejected) {
-    const id = this.#idCounter++;
-    this.#handlers.set(id, { fulfilled, rejected });
-    return id;
-  }
-
-  /**
-   * Remove an interceptor by ID
-   * @param {number} id - The interceptor ID
-   */
-  eject(id) {
-    this.#handlers.delete(id);
-  }
-
-  /**
-   * Remove all interceptors
-   */
-  clear() {
-    this.#handlers.clear();
-  }
-
-  /**
-   * Iterate through handlers
-   * @yields {Object} Handler with fulfilled and rejected functions
-   */
-  *[Symbol.iterator]() {
-    for (const handler of this.#handlers.values()) {
-      yield handler;
-    }
-  }
-
-  /**
-   * Get the number of interceptors
-   * @returns {number}
-   */
-  get size() {
-    return this.#handlers.size;
   }
 }
 
