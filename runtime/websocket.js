@@ -46,7 +46,7 @@ const WEBSOCKET_SUGGESTIONS = {
 };
 
 /**
- * WebSocket Error with connection context
+ * WebSocket Error with connection and reconnection context
  */
 export class WebSocketError extends RuntimeError {
   /**
@@ -57,6 +57,9 @@ export class WebSocketError extends RuntimeError {
    * @param {number} [options.closeCode] - WebSocket close code
    * @param {string} [options.closeReason] - WebSocket close reason
    * @param {Event} [options.event] - Original event
+   * @param {number} [options.reconnectAttempt] - Current reconnection attempt number
+   * @param {number} [options.maxRetries] - Maximum reconnection retries configured
+   * @param {number} [options.nextRetryDelay] - Delay until next retry in ms
    */
   constructor(message, options = {}) {
     const code = options.code || 'WEBSOCKET_ERROR';
@@ -76,6 +79,11 @@ export class WebSocketError extends RuntimeError {
     this.closeReason = options.closeReason || null;
     this.event = options.event || null;
     this.isWebSocketError = true;
+
+    // Reconnection context
+    this.reconnectAttempt = typeof options.reconnectAttempt === 'number' ? options.reconnectAttempt : null;
+    this.maxRetries = typeof options.maxRetries === 'number' ? options.maxRetries : null;
+    this.nextRetryDelay = typeof options.nextRetryDelay === 'number' ? options.nextRetryDelay : null;
   }
 
   /**
@@ -92,6 +100,37 @@ export class WebSocketError extends RuntimeError {
   isTimeout() { return this.code === 'TIMEOUT'; }
   isParseError() { return this.code === 'PARSE_ERROR'; }
   isSendFailed() { return this.code === 'SEND_FAILED'; }
+  isReconnectExhausted() { return this.code === 'RECONNECT_EXHAUSTED'; }
+
+  /**
+   * Check if this error occurred during reconnection
+   * @returns {boolean}
+   */
+  isReconnecting() {
+    return this.reconnectAttempt !== null && this.reconnectAttempt > 0;
+  }
+
+  /**
+   * Check if more reconnection attempts are available
+   * @returns {boolean}
+   */
+  canRetry() {
+    if (this.maxRetries === null || this.reconnectAttempt === null) {
+      return false;
+    }
+    return this.reconnectAttempt < this.maxRetries;
+  }
+
+  /**
+   * Get remaining reconnection attempts
+   * @returns {number|null}
+   */
+  getRemainingRetries() {
+    if (this.maxRetries === null || this.reconnectAttempt === null) {
+      return null;
+    }
+    return Math.max(0, this.maxRetries - this.reconnectAttempt);
+  }
 }
 
 // ============================================================================
@@ -487,10 +526,13 @@ export function createWebSocket(url, options = {}) {
 
   function handleSocketError(event, ctx) {
     ctx.ifCurrent(() => {
+      const attempt = reconnectAttempt.get();
       const wsError = new WebSocketError('WebSocket error', {
         code: 'CONNECT_FAILED',
         url,
-        event
+        event,
+        reconnectAttempt: attempt > 0 ? attempt : null,
+        maxRetries: opts.reconnect ? opts.maxRetries : null
       });
       error.set(wsError);
       eventEmitter.emit('error', wsError);
@@ -501,6 +543,12 @@ export function createWebSocket(url, options = {}) {
 
   function handleError(wsError, ctx) {
     ctx.ifCurrent(() => {
+      // Add reconnection context to error if not already present
+      if (wsError.reconnectAttempt === null && opts.reconnect) {
+        wsError.reconnectAttempt = reconnectAttempt.get();
+        wsError.maxRetries = opts.maxRetries;
+      }
+
       error.set(wsError);
       state.set('closed');
       eventEmitter.emit('error', wsError);
@@ -560,7 +608,9 @@ export function createWebSocket(url, options = {}) {
     if (opts.maxRetries > 0 && attempt >= opts.maxRetries) {
       error.set(new WebSocketError('Max reconnection attempts reached', {
         code: 'RECONNECT_EXHAUSTED',
-        url
+        url,
+        reconnectAttempt: attempt,
+        maxRetries: opts.maxRetries
       }));
       reconnecting.set(false);
       return;

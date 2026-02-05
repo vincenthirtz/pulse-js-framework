@@ -722,25 +722,47 @@ export function createRouter(options = {}) {
    */
   function handleScroll(to, from, savedPosition) {
     if (scrollBehavior) {
-      const position = scrollBehavior(to, from, savedPosition);
-      if (position) {
-        if (position.selector) {
+      let position;
+      try {
+        position = scrollBehavior(to, from, savedPosition);
+      } catch (err) {
+        loggers.router.warn(`scrollBehavior threw an error: ${err.message}`);
+        // Fall back to default behavior
+        window.scrollTo(0, 0);
+        return;
+      }
+
+      // Validate position is a valid object
+      if (position && typeof position === 'object') {
+        if (typeof position.selector === 'string' && position.selector) {
           // Scroll to element
-          const el = document.querySelector(position.selector);
-          if (el) {
-            el.scrollIntoView({ behavior: position.behavior || 'auto' });
+          try {
+            const el = document.querySelector(position.selector);
+            if (el) {
+              const behavior = position.behavior === 'smooth' || position.behavior === 'auto'
+                ? position.behavior
+                : 'auto';
+              el.scrollIntoView({ behavior });
+            }
+          } catch (err) {
+            loggers.router.warn(`Invalid selector in scrollBehavior: ${position.selector}`);
           }
         } else if (typeof position.x === 'number' || typeof position.y === 'number') {
-          window.scrollTo({
-            left: position.x || 0,
-            top: position.y || 0,
-            behavior: position.behavior || 'auto'
-          });
+          const x = typeof position.x === 'number' && isFinite(position.x) ? position.x : 0;
+          const y = typeof position.y === 'number' && isFinite(position.y) ? position.y : 0;
+          const behavior = position.behavior === 'smooth' || position.behavior === 'auto'
+            ? position.behavior
+            : 'auto';
+          window.scrollTo({ left: x, top: y, behavior });
         }
+        // If position is object but no valid selector/x/y, do nothing (intentional no-scroll)
       }
+      // If position is falsy (null/undefined/false), do nothing (intentional no-scroll)
     } else if (savedPosition) {
       // Default: restore saved position
-      window.scrollTo(savedPosition.x, savedPosition.y);
+      const x = typeof savedPosition.x === 'number' && isFinite(savedPosition.x) ? savedPosition.x : 0;
+      const y = typeof savedPosition.y === 'number' && isFinite(savedPosition.y) ? savedPosition.y : 0;
+      window.scrollTo(x, y);
     } else {
       // Default: scroll to top
       window.scrollTo(0, 0);

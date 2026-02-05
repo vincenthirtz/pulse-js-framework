@@ -15,8 +15,14 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // Version - read dynamically from package.json
-const pkg = JSON.parse(readFileSync(join(__dirname, '..', 'package.json'), 'utf-8'));
-const VERSION = pkg.version;
+let VERSION = '0.0.0';
+try {
+  const pkgContent = readFileSync(join(__dirname, '..', 'package.json'), 'utf-8');
+  const pkg = JSON.parse(pkgContent);
+  VERSION = pkg.version || VERSION;
+} catch (err) {
+  log.warn(`Could not read package.json: ${err.message}`);
+}
 
 // Available example templates
 const TEMPLATES = {
@@ -683,10 +689,19 @@ async function initProject(args) {
 
   if (existsSync(pkgPath)) {
     try {
-      pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
-      log.info('Found existing package.json, merging...');
+      const pkgContent = readFileSync(pkgPath, 'utf-8');
+      if (!pkgContent.trim()) {
+        log.warn('Existing package.json is empty, creating new one.');
+      } else {
+        pkg = JSON.parse(pkgContent);
+        log.info('Found existing package.json, merging...');
+      }
     } catch (e) {
-      log.warn('Could not parse existing package.json, creating new one.');
+      if (e instanceof SyntaxError) {
+        log.warn(`Invalid JSON in package.json: ${e.message}. Creating new one.`);
+      } else {
+        log.warn(`Could not read package.json: ${e.message}. Creating new one.`);
+      }
     }
   }
 
