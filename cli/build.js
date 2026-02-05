@@ -7,8 +7,12 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, statSync, copyFileSync } from 'fs';
 import { join, extname, relative, dirname } from 'path';
 import { compile } from '../compiler/index.js';
+import { preprocessStylesSync, isSassAvailable, getSassVersion } from '../compiler/preprocessor.js';
 import { log } from './logger.js';
 import { createTimer, createProgressBar, formatDuration, createSpinner } from './utils/cli-ui.js';
+
+// SASS availability (checked once at build start)
+let sassAvailable = false;
 
 /**
  * Build project for production
@@ -33,6 +37,13 @@ export async function buildProject(args) {
   }
 
   log.info('Building with Pulse compiler...\n');
+
+  // Check for SASS availability
+  sassAvailable = isSassAvailable();
+  if (sassAvailable) {
+    const version = getSassVersion();
+    log.info(`  SASS support enabled (sass ${version || 'unknown'})`);
+  }
 
   // Create output directory
   if (!existsSync(outDir)) {
@@ -140,8 +151,30 @@ function processDirectory(srcDir, outDir, progress = null) {
       });
 
       if (result.success) {
+        let code = result.code;
+
+        // Preprocess SASS/SCSS in style blocks if sass is available
+        if (sassAvailable) {
+          const stylesMatch = code.match(/const styles = `([\s\S]*?)`;/);
+          if (stylesMatch) {
+            try {
+              const preprocessed = preprocessStylesSync(stylesMatch[1], {
+                filename: srcPath,
+                loadPaths: [dirname(srcPath)],
+                compressed: true
+              });
+
+              if (preprocessed.wasSass) {
+                code = code.replace(stylesMatch[0], `const styles = \`${preprocessed.css}\`;`);
+              }
+            } catch (sassError) {
+              log.warn(`  SASS warning in ${file}: ${sassError.message}`);
+            }
+          }
+        }
+
         const outPath = join(outDir, file.replace('.pulse', '.js'));
-        writeFileSync(outPath, result.code);
+        writeFileSync(outPath, code);
       } else {
         log.error(`  Error compiling ${file}:`);
         for (const error of result.errors) {

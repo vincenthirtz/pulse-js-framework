@@ -6,9 +6,13 @@
 
 import { createServer } from 'http';
 import { readFileSync, existsSync, statSync, watch } from 'fs';
-import { join, extname, resolve } from 'path';
+import { join, extname, resolve, dirname } from 'path';
 import { compile } from '../compiler/index.js';
+import { preprocessStylesSync, isSassAvailable, getSassVersion } from '../compiler/preprocessor.js';
 import { log } from './logger.js';
+
+// SASS availability (checked once at server start)
+let sassAvailable = false;
 
 const MIME_TYPES = {
   '.html': 'text/html',
@@ -87,6 +91,13 @@ export async function startDevServer(args) {
     // Vite not available, use built-in server
   }
 
+  // Check for SASS availability
+  sassAvailable = isSassAvailable();
+  if (sassAvailable) {
+    const version = getSassVersion();
+    log.info(`SASS support enabled (sass ${version || 'unknown'})`);
+  }
+
   // Built-in development server
   const server = createServer(async (req, res) => {
     const url = new URL(req.url, `http://localhost:${port}`);
@@ -128,11 +139,31 @@ export async function startDevServer(args) {
           });
 
           if (result.success) {
+            let code = result.code;
+
+            // Preprocess SASS/SCSS if available
+            if (sassAvailable) {
+              const stylesMatch = code.match(/const styles = `([\s\S]*?)`;/);
+              if (stylesMatch) {
+                try {
+                  const preprocessed = preprocessStylesSync(stylesMatch[1], {
+                    filename: filePath,
+                    loadPaths: [dirname(filePath)]
+                  });
+                  if (preprocessed.wasSass) {
+                    code = code.replace(stylesMatch[0], `const styles = \`${preprocessed.css}\`;`);
+                  }
+                } catch (sassError) {
+                  console.warn(`[Pulse] SASS warning: ${sassError.message}`);
+                }
+              }
+            }
+
             res.writeHead(200, {
               'Content-Type': 'application/javascript',
               'Cache-Control': 'no-cache, no-store, must-revalidate'
             });
-            res.end(result.code);
+            res.end(code);
           } else {
             const errorDetails = result.errors.map(e => `${e.message} at line ${e.line || '?'}:${e.column || '?'}`).join('\n');
             console.error(`[Pulse] Compilation error in ${filePath}:`, result.errors);
@@ -173,11 +204,31 @@ export async function startDevServer(args) {
           });
 
           if (result.success) {
+            let code = result.code;
+
+            // Preprocess SASS/SCSS if available
+            if (sassAvailable) {
+              const stylesMatch = code.match(/const styles = `([\s\S]*?)`;/);
+              if (stylesMatch) {
+                try {
+                  const preprocessed = preprocessStylesSync(stylesMatch[1], {
+                    filename: pulseFilePath,
+                    loadPaths: [dirname(pulseFilePath)]
+                  });
+                  if (preprocessed.wasSass) {
+                    code = code.replace(stylesMatch[0], `const styles = \`${preprocessed.css}\`;`);
+                  }
+                } catch (sassError) {
+                  console.warn(`[Pulse] SASS warning: ${sassError.message}`);
+                }
+              }
+            }
+
             res.writeHead(200, {
               'Content-Type': 'application/javascript',
               'Cache-Control': 'no-cache, no-store, must-revalidate'
             });
-            res.end(result.code);
+            res.end(code);
           } else {
             res.writeHead(500, { 'Content-Type': 'text/plain' });
             res.end(`Compilation error: ${result.errors.map(e => e.message).join('\n')}`);

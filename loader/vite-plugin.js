@@ -4,11 +4,17 @@
  * Enables .pulse file support in Vite projects
  * Extracts CSS to virtual .css modules so Vite's CSS pipeline handles them
  * (prevents JS minifier from corrupting CSS in template literals)
+ *
+ * SASS/SCSS Support:
+ * - If `sass` is installed in the user's project, SCSS syntax in style blocks
+ *   is automatically compiled before being passed to Vite's CSS pipeline
+ * - No configuration needed - just install sass: `npm install -D sass`
  */
 
 import { compile } from '../compiler/index.js';
 import { existsSync } from 'fs';
 import { resolve, dirname } from 'path';
+import { preprocessStylesSync, isSassAvailable, getSassVersion } from '../compiler/preprocessor.js';
 
 // Virtual module ID for extracted CSS (uses .css extension so Vite treats it as CSS)
 const VIRTUAL_CSS_SUFFIX = '.pulse.css';
@@ -19,15 +25,36 @@ const VIRTUAL_CSS_SUFFIX = '.pulse.css';
 export default function pulsePlugin(options = {}) {
   const {
     exclude = /node_modules/,
-    sourceMap = true
+    sourceMap = true,
+    // SASS options
+    sass: sassOptions = {}
   } = options;
 
   // Store extracted CSS for each .pulse module
   const cssMap = new Map();
 
+  // Check for sass availability once at startup
+  let sassAvailable = false;
+  let sassVersion = null;
+
   return {
     name: 'vite-plugin-pulse',
     enforce: 'pre',
+
+    /**
+     * Log sass availability on build start
+     */
+    buildStart() {
+      // Clear CSS map on new build
+      cssMap.clear();
+
+      // Check sass availability
+      sassAvailable = isSassAvailable();
+      if (sassAvailable) {
+        sassVersion = getSassVersion();
+        console.log(`[Pulse] SASS support enabled (sass ${sassVersion || 'unknown'})`);
+      }
+    },
 
     /**
      * Resolve .pulse files and virtual CSS modules
@@ -107,8 +134,26 @@ export default function pulsePlugin(options = {}) {
         // Extract CSS from compiled output and move to virtual CSS module
         const stylesMatch = outputCode.match(/const styles = `([\s\S]*?)`;/);
         if (stylesMatch) {
-          const css = stylesMatch[1];
+          let css = stylesMatch[1];
           const virtualCssId = id + '.css';
+
+          // Preprocess SASS/SCSS if detected and sass is available
+          if (sassAvailable) {
+            try {
+              const preprocessed = preprocessStylesSync(css, {
+                filename: id,
+                loadPaths: [dirname(id), ...(sassOptions.loadPaths || [])],
+                compressed: sassOptions.compressed || false
+              });
+
+              if (preprocessed.wasSass) {
+                css = preprocessed.css;
+              }
+            } catch (sassError) {
+              this.warn(`SASS compilation warning in ${id}: ${sassError.message}`);
+              // Continue with original CSS if SASS fails
+            }
+          }
 
           // Store CSS for the virtual module loader
           cssMap.set(id, css);
@@ -168,21 +213,21 @@ export default function pulsePlugin(options = {}) {
     },
 
     /**
-     * Configure dev server
+     * Configure dev server - log sass status on start
      */
     configureServer(server) {
+      // Check sass on server start if not already checked
+      if (!sassAvailable) {
+        sassAvailable = isSassAvailable();
+        if (sassAvailable) {
+          sassVersion = getSassVersion();
+          console.log(`[Pulse] SASS support enabled (sass ${sassVersion || 'unknown'})`);
+        }
+      }
+
       server.middlewares.use((_req, _res, next) => {
-        // Add any custom middleware here
         next();
       });
-    },
-
-    /**
-     * Build hooks
-     */
-    buildStart() {
-      // Clear CSS map on new build
-      cssMap.clear();
     }
   };
 }

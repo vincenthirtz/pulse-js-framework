@@ -9,6 +9,7 @@ Pulse is a lightweight, declarative JavaScript framework for building reactive S
 - **Custom DSL** (.pulse files) that compile to JavaScript
 - **Zero dependencies** - completely self-contained
 - **Accessibility-first** - built-in a11y helpers, auto-ARIA, and audit tools
+- **Optional SASS support** - automatic SCSS compilation if `sass` is installed
 
 **Version:** See package.json | **License:** MIT | **Node.js:** >= 18.0.0
 
@@ -2308,6 +2309,13 @@ view {
 style {
   // Styles are automatically scoped
   .counter { padding: 20px }
+
+  // SASS/SCSS syntax works if sass is installed
+  $primary: #646cff;
+  .btn {
+    background: $primary;
+    &:hover { opacity: 0.8; }
+  }
 }
 ```
 
@@ -2320,6 +2328,7 @@ style {
 - Accessibility directives (`@a11y`, `@live`, `@focusTrap`, `@srOnly`)
 - Dynamic attributes (`[value={expr}]`) for reactive form bindings
 - Event handlers have access to `event` object (`@input(value = event.target.value)`)
+- **SASS/SCSS support** - automatically compiled if `sass` package is installed
 
 ### Accessibility Directives
 
@@ -2508,6 +2517,93 @@ npm test
 node --test test/*.js
 ```
 
+## SASS/SCSS Support
+
+Pulse supports SASS/SCSS syntax in style blocks **without adding sass as a dependency**. If the user has `sass` installed in their project, it's automatically detected and used.
+
+### Quick Start
+
+```bash
+# Install sass in your project (optional)
+npm install -D sass
+```
+
+```pulse
+style {
+  // SASS variables
+  $primary: #646cff;
+  $spacing: 20px;
+
+  // Nesting with parent reference
+  .button {
+    background: $primary;
+    padding: $spacing;
+
+    &:hover {
+      opacity: 0.8;
+    }
+
+    &.disabled {
+      opacity: 0.5;
+    }
+  }
+
+  // Mixins
+  @mixin flex-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .container {
+    @include flex-center;
+    height: 100vh;
+  }
+}
+```
+
+### How It Works
+
+| Environment | SASS Processing |
+|-------------|-----------------|
+| **Vite projects** | Vite plugin detects sass, compiles SCSS before CSS pipeline |
+| **CLI dev server** | Compiles on-the-fly when serving .pulse files |
+| **CLI build** | Compiles during production build |
+| **Without sass** | Falls through - CSS nesting already supported natively |
+
+### Supported SASS Features
+
+- Variables (`$color: red;`)
+- Nesting with `&` parent reference
+- Mixins (`@mixin`, `@include`)
+- Extend (`@extend`)
+- Functions (`@function`)
+- Control directives (`@if`, `@else`, `@for`, `@each`, `@while`)
+- Modules (`@use`, `@forward`)
+- Interpolation (`#{$var}`)
+- Placeholder selectors (`%placeholder`)
+
+### API (Advanced)
+
+```javascript
+import {
+  hasSassSyntax,         // Check if CSS contains SASS syntax
+  preprocessStylesSync,  // Compile SCSS to CSS (sync)
+  preprocessStyles,      // Compile SCSS to CSS (async)
+  isSassAvailable,       // Check if sass is installed
+  getSassVersion         // Get sass version string
+} from 'pulse-js-framework/compiler/preprocessor';
+
+// Check and compile
+if (hasSassSyntax(css) && isSassAvailable()) {
+  const { css: compiled, wasSass } = preprocessStylesSync(css, {
+    filename: 'component.pulse',
+    loadPaths: ['./src/styles'],
+    compressed: false
+  });
+}
+```
+
 ## Development Notes
 
 - Vite integration is optional but recommended for projects
@@ -2519,6 +2615,7 @@ node --test test/*.js
 - Use `configureA11y({ enabled: false })` to disable auto-ARIA if needed
 - Run `pulse lint` to catch a11y issues at build time (10 rules)
 - Use DevTools `enableA11yAudit()` for runtime a11y checking
+- **SASS is optional**: Install `sass` in your project to enable SCSS in style blocks
 
 ## Error Codes
 
