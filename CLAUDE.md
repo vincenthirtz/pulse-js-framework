@@ -524,6 +524,9 @@ const router = createRouter({
   mode: 'history',  // 'history' (default) or 'hash' for #/path URLs
   base: '',         // Base path prefix for all routes
   scrollBehavior: (to, from, saved) => saved || { x: 0, y: 0 },
+  // Scroll persistence (persist positions across sessions)
+  persistScroll: true,              // Save scroll positions to sessionStorage
+  persistScrollKey: 'my-app-scroll', // Custom storage key (default: 'pulse-router-scroll')
   // Middleware (Koa-style)
   middleware: [
     async (ctx, next) => {
@@ -1215,9 +1218,18 @@ const { data: liveData, status, unsubscribe } = useSubscription(
     onData: (message) => {
       notifications.update(n => [...n, message]);
     },
-    shouldResubscribe: true  // Auto-resubscribe on error
+    shouldResubscribe: true,  // Auto-resubscribe on error
+    // Exponential backoff for reconnection
+    retryBaseDelay: 1000,     // Base delay (ms) - default: 1000
+    retryMaxDelay: 30000,     // Max delay cap (ms) - default: 30000
+    maxRetries: Infinity      // Max retry attempts - default: Infinity
   }
 );
+
+// Subscription state includes retry tracking
+const { data, status, retryCount, unsubscribe } = useSubscription(...);
+status.get();      // 'connecting' | 'connected' | 'reconnecting' | 'error' | 'failed' | 'closed'
+retryCount.get();  // Current retry attempt (resets to 0 on success)
 
 // Reactive subscription with dynamic variables
 const channelId = pulse('123');
@@ -1348,6 +1360,8 @@ import {
   getDependencyGraph, exportGraphAsDot,
   takeSnapshot, getHistory, travelTo, back, forward,
   profile, mark,
+  // Auto-timeline
+  enableAutoTimeline, disableAutoTimeline, isAutoTimelineEnabled,
   // A11y Audit
   runA11yAudit, enableA11yAudit, disableA11yAudit,
   getA11yIssues, getA11yStats, exportA11yReport,
@@ -1356,6 +1370,17 @@ import {
 
 // Enable dev tools (exposes window.__PULSE_DEVTOOLS__)
 enableDevTools({ logUpdates: true, warnOnSlowEffects: true });
+
+// Enable auto-timeline (records all pulse changes automatically)
+enableDevTools({
+  autoTimeline: true,        // Enable automatic timeline recording
+  timelineDebounce: 100      // Debounce interval in ms (default: 100)
+});
+
+// Or enable/disable auto-timeline separately
+enableAutoTimeline({ debounce: 50 });  // Enable with custom debounce
+disableAutoTimeline();                  // Disable auto-recording
+isAutoTimelineEnabled();                // Check if enabled
 
 // Tracked pulses (auto-snapshot on change)
 const count = trackedPulse(0, 'count');

@@ -703,6 +703,75 @@ test('exportA11yReport unknown format defaults to JSON', () => {
 });
 
 // =============================================================================
+// Auto-Timeline Tests
+// =============================================================================
+
+printSection('Auto-Timeline Tests');
+
+import {
+  enableAutoTimeline,
+  disableAutoTimeline,
+  isAutoTimelineEnabled
+} from '../runtime/devtools.js';
+
+test('enableAutoTimeline and disableAutoTimeline work', () => {
+  resetDevTools();
+  enableDevTools();
+
+  assertEqual(isAutoTimelineEnabled(), false, 'Should be disabled initially');
+
+  enableAutoTimeline();
+  assertEqual(isAutoTimelineEnabled(), true, 'Should be enabled after enableAutoTimeline');
+
+  disableAutoTimeline();
+  assertEqual(isAutoTimelineEnabled(), false, 'Should be disabled after disableAutoTimeline');
+});
+
+test('enableAutoTimeline with custom debounce', () => {
+  resetDevTools();
+  enableDevTools();
+
+  enableAutoTimeline({ debounce: 50 });
+  assertEqual(isAutoTimelineEnabled(), true, 'Should be enabled');
+
+  disableAutoTimeline();
+});
+
+test('auto-timeline records changes automatically (debounced)', async () => {
+  resetDevTools();
+  enableDevTools({ autoTimeline: true, timelineDebounce: 50 });
+  clearHistory();
+
+  const p = trackedPulse(0, 'auto-tracked');
+
+  // Make multiple rapid changes
+  p.set(1);
+  p.set(2);
+  p.set(3);
+
+  // Wait for debounce
+  await new Promise(r => setTimeout(r, 100));
+
+  const history = getHistory();
+  // Should have at least one snapshot (debounced)
+  assert(history.length >= 1, 'Should have at least 1 snapshot after debounce');
+
+  disableAutoTimeline();
+});
+
+test('enableDevTools with autoTimeline option', () => {
+  resetDevTools();
+  clearHistory();
+
+  enableDevTools({ autoTimeline: true, timelineDebounce: 100 });
+
+  assertEqual(isAutoTimelineEnabled(), true, 'Should enable autoTimeline via enableDevTools');
+
+  disableAutoTimeline();
+  disableDevTools();
+});
+
+// =============================================================================
 // Results
 // =============================================================================
 

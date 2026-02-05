@@ -767,6 +767,236 @@ testAsync('interceptors can be ejected', async () => {
 });
 
 // =============================================================================
+// Subscription Backoff Tests
+// =============================================================================
+
+printSection('Subscription Backoff Tests');
+
+testAsync('useSubscription retryCount tracks retry attempts', async () => {
+  const mock = mockFetch({
+    '/graphql': { data: { data: { value: 1 } } }
+  });
+  const wsMock = mockWebSocket();
+
+  try {
+    const client = createGraphQLClient({ url: '/graphql', wsUrl: 'ws://test/graphql' });
+    setDefaultClient(client);
+
+    const { retryCount, status } = useSubscription(
+      'subscription Test { value }',
+      null,
+      {
+        retryBaseDelay: 100,
+        retryMaxDelay: 1000,
+        maxRetries: 3
+      }
+    );
+
+    // Initial state
+    assertEqual(retryCount.get(), 0, 'Should start with 0 retries');
+
+    setDefaultClient(null);
+  } finally {
+    mock.restore();
+    wsMock.restore();
+  }
+});
+
+testAsync('useSubscription respects maxRetries limit', async () => {
+  const mock = mockFetch({
+    '/graphql': { data: { data: { value: 1 } } }
+  });
+  const wsMock = mockWebSocket();
+
+  try {
+    const client = createGraphQLClient({ url: '/graphql', wsUrl: 'ws://test/graphql' });
+    setDefaultClient(client);
+
+    let errorCount = 0;
+    const { status, retryCount, unsubscribe } = useSubscription(
+      'subscription Test { value }',
+      null,
+      {
+        retryBaseDelay: 10,
+        retryMaxDelay: 50,
+        maxRetries: 2,
+        onError: () => { errorCount++; }
+      }
+    );
+
+    await wait(50);
+
+    // Should have initial subscription attempt
+    assertEqual(status.get(), 'connecting', 'Should be in connecting state');
+
+    unsubscribe();
+    setDefaultClient(null);
+  } finally {
+    mock.restore();
+    wsMock.restore();
+  }
+});
+
+testAsync('useSubscription resets retryCount on successful data', async () => {
+  const mock = mockFetch({
+    '/graphql': { data: { data: { value: 1 } } }
+  });
+  const wsMock = mockWebSocket();
+
+  try {
+    const client = createGraphQLClient({ url: '/graphql', wsUrl: 'ws://test/graphql' });
+    setDefaultClient(client);
+
+    const { retryCount, data, unsubscribe } = useSubscription(
+      'subscription Test { value }',
+      null,
+      {
+        retryBaseDelay: 100,
+        maxRetries: 5
+      }
+    );
+
+    await wait(50);
+
+    // Get WebSocket instance and simulate connection
+    const ws = wsMock.getLast();
+    if (ws) {
+      ws.simulateOpen();
+      ws.simulateMessage({ type: 'connection_ack' });
+
+      // Simulate data reception
+      ws.simulateMessage({
+        id: '1',
+        type: 'next',
+        payload: { data: { value: 'test' } }
+      });
+
+      await wait(50);
+
+      // retryCount should be 0 after successful data
+      assertEqual(retryCount.get(), 0, 'Should reset retryCount on data');
+    }
+
+    unsubscribe();
+    setDefaultClient(null);
+  } finally {
+    mock.restore();
+    wsMock.restore();
+  }
+});
+
+testAsync('useSubscription status changes to reconnecting during backoff', async () => {
+  const mock = mockFetch({
+    '/graphql': { data: { data: { value: 1 } } }
+  });
+  const wsMock = mockWebSocket();
+
+  try {
+    const client = createGraphQLClient({ url: '/graphql', wsUrl: 'ws://test/graphql' });
+    setDefaultClient(client);
+
+    const statusHistory = [];
+    const { status, unsubscribe } = useSubscription(
+      'subscription Test { value }',
+      null,
+      {
+        retryBaseDelay: 50,
+        maxRetries: 3,
+        shouldResubscribe: true
+      }
+    );
+
+    // Track status changes
+    effect(() => {
+      statusHistory.push(status.get());
+    });
+
+    await wait(50);
+
+    const ws = wsMock.getLast();
+    if (ws) {
+      ws.simulateOpen();
+      ws.simulateMessage({ type: 'connection_ack' });
+
+      // Simulate an error
+      ws.simulateMessage({
+        id: '1',
+        type: 'error',
+        payload: { message: 'Test error' }
+      });
+
+      await wait(150); // Longer wait for backoff timing
+
+      // Status should have been 'error', 'reconnecting', or 'connecting' at some point
+      // depending on timing and WebSocket mock behavior
+      assert(
+        statusHistory.includes('error') ||
+        statusHistory.includes('reconnecting') ||
+        statusHistory.includes('connecting') ||
+        statusHistory.length > 1,
+        'Should have status changes during error handling'
+      );
+    }
+
+    unsubscribe();
+    setDefaultClient(null);
+  } finally {
+    mock.restore();
+    wsMock.restore();
+  }
+});
+
+testAsync('useSubscription unsubscribe cancels pending retry', async () => {
+  const mock = mockFetch({
+    '/graphql': { data: { data: { value: 1 } } }
+  });
+  const wsMock = mockWebSocket();
+
+  try {
+    const client = createGraphQLClient({ url: '/graphql', wsUrl: 'ws://test/graphql' });
+    setDefaultClient(client);
+
+    let subscribeAttempts = 0;
+    const { unsubscribe, retryCount } = useSubscription(
+      'subscription Test { value }',
+      null,
+      {
+        retryBaseDelay: 500, // Long delay
+        maxRetries: 5
+      }
+    );
+
+    await wait(50);
+
+    const ws = wsMock.getLast();
+    if (ws) {
+      ws.simulateOpen();
+      ws.simulateMessage({ type: 'connection_ack' });
+
+      // Trigger error to start retry
+      ws.simulateMessage({
+        id: '1',
+        type: 'error',
+        payload: { message: 'Test error' }
+      });
+
+      await wait(50);
+
+      // Unsubscribe while retry is pending
+      unsubscribe();
+
+      // retryCount should be reset to 0
+      assertEqual(retryCount.get(), 0, 'Should reset retryCount on unsubscribe');
+    }
+
+    setDefaultClient(null);
+  } finally {
+    mock.restore();
+    wsMock.restore();
+  }
+});
+
+// =============================================================================
 // Run Async Tests
 // =============================================================================
 

@@ -1228,6 +1228,9 @@ export function useMutation(mutation, options = {}) {
  * @param {Function} [options.onError] - Error callback
  * @param {Function} [options.onComplete] - Called when subscription ends
  * @param {boolean} [options.shouldResubscribe=true] - Resubscribe on error
+ * @param {number} [options.retryBaseDelay=1000] - Base delay for exponential backoff (ms)
+ * @param {number} [options.retryMaxDelay=30000] - Maximum delay between retries (ms)
+ * @param {number} [options.maxRetries=Infinity] - Maximum number of retry attempts
  * @returns {Object} Subscription result with reactive state
  */
 export function useSubscription(subscription, variables, options = {}) {
@@ -1236,8 +1239,30 @@ export function useSubscription(subscription, variables, options = {}) {
   const data = pulse(null);
   const error = pulse(null);
   const status = pulse('connecting');
+  const retryCount = pulse(0);
 
   let unsubscribeFn = null;
+  let retryTimeoutId = null;
+
+  // Backoff configuration
+  const retryBaseDelay = options.retryBaseDelay ?? 1000;
+  const retryMaxDelay = options.retryMaxDelay ?? 30000;
+  const maxRetries = options.maxRetries ?? Infinity;
+
+  /**
+   * Calculate delay with exponential backoff and jitter
+   * @param {number} attempt - Current retry attempt (0-indexed)
+   * @returns {number} Delay in milliseconds
+   */
+  function calculateBackoffDelay(attempt) {
+    // Exponential backoff: baseDelay * 2^attempt
+    const exponentialDelay = retryBaseDelay * Math.pow(2, attempt);
+    // Cap at max delay
+    const cappedDelay = Math.min(exponentialDelay, retryMaxDelay);
+    // Add jitter (±25%) to prevent thundering herd
+    const jitter = cappedDelay * 0.25 * (Math.random() * 2 - 1);
+    return Math.max(0, cappedDelay + jitter);
+  }
 
   // Resolve variables
   const resolveVariables = () => {
@@ -1267,6 +1292,8 @@ export function useSubscription(subscription, variables, options = {}) {
       onData: (payload) => {
         status.set('connected');
         data.set(payload);
+        // Reset retry count on successful data
+        retryCount.set(0);
         options.onData?.(payload);
       },
       onError: (err) => {
@@ -1274,10 +1301,21 @@ export function useSubscription(subscription, variables, options = {}) {
         status.set('error');
         options.onError?.(err);
 
-        // Resubscribe on error if enabled
+        // Resubscribe on error if enabled and under max retries
         if (options.shouldResubscribe !== false) {
-          unsubscribeFn = null;
-          setTimeout(() => subscribe(), 1000);
+          const currentRetry = retryCount.peek();
+          if (currentRetry < maxRetries) {
+            unsubscribeFn = null;
+            const delay = calculateBackoffDelay(currentRetry);
+            retryCount.set(currentRetry + 1);
+            status.set('reconnecting');
+            retryTimeoutId = setTimeout(() => {
+              retryTimeoutId = null;
+              subscribe();
+            }, delay);
+          } else {
+            status.set('failed');
+          }
         }
       },
       onComplete: () => {
@@ -1292,11 +1330,17 @@ export function useSubscription(subscription, variables, options = {}) {
    * Unsubscribe
    */
   function unsubscribe() {
+    // Cancel pending retry
+    if (retryTimeoutId) {
+      clearTimeout(retryTimeoutId);
+      retryTimeoutId = null;
+    }
     if (unsubscribeFn) {
       unsubscribeFn();
       unsubscribeFn = null;
       status.set('closed');
     }
+    retryCount.set(0);
   }
 
   /**
@@ -1332,6 +1376,7 @@ export function useSubscription(subscription, variables, options = {}) {
     data,
     error,
     status,
+    retryCount,
     unsubscribe,
     resubscribe
   };

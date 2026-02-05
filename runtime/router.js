@@ -517,7 +517,9 @@ export function createRouter(options = {}) {
     mode = 'history', // 'history' or 'hash'
     base = '',
     scrollBehavior = null, // Function to control scroll restoration
-    middleware: initialMiddleware = [] // Middleware functions
+    middleware: initialMiddleware = [], // Middleware functions
+    persistScroll = false, // Persist scroll positions to sessionStorage
+    persistScrollKey = 'pulse-router-scroll' // Storage key for scroll persistence
   } = options;
 
   // Middleware array (mutable for dynamic registration)
@@ -538,6 +540,44 @@ export function createRouter(options = {}) {
   // Scroll positions for history (LRU cache to prevent memory leaks)
   // Keeps last 100 scroll positions - enough for typical navigation patterns
   const scrollPositions = new LRUCache(100);
+
+  // Restore scroll positions from sessionStorage if persistence is enabled
+  if (persistScroll && typeof sessionStorage !== 'undefined') {
+    try {
+      const stored = sessionStorage.getItem(persistScrollKey);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        // Restore up to 100 most recent positions
+        const entries = Object.entries(parsed).slice(-100);
+        for (const [path, pos] of entries) {
+          if (pos && typeof pos.x === 'number' && typeof pos.y === 'number') {
+            scrollPositions.set(path, pos);
+          }
+        }
+        log.debug(`Restored ${entries.length} scroll positions from sessionStorage`);
+      }
+    } catch (err) {
+      log.warn('Failed to restore scroll positions from sessionStorage:', err.message);
+    }
+  }
+
+  /**
+   * Persist scroll positions to sessionStorage
+   */
+  function persistScrollPositions() {
+    if (!persistScroll || typeof sessionStorage === 'undefined') return;
+
+    try {
+      const data = {};
+      for (const [path, pos] of scrollPositions.entries()) {
+        data[path] = pos;
+      }
+      sessionStorage.setItem(persistScrollKey, JSON.stringify(data));
+    } catch (err) {
+      // SessionStorage may be full or disabled
+      log.warn('Failed to persist scroll positions:', err.message);
+    }
+  }
 
   // Route trie for O(path length) lookups
   const routeTrie = new RouteTrie();
@@ -696,6 +736,7 @@ export function createRouter(options = {}) {
         x: window.scrollX,
         y: window.scrollY
       });
+      persistScrollPositions();
     }
 
     // Update URL

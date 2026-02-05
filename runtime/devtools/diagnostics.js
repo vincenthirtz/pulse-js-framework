@@ -29,7 +29,9 @@ export const config = {
   logUpdates: false,
   logEffects: false,
   warnOnSlowEffects: true,
-  slowEffectThreshold: 16 // ms (one frame at 60fps)
+  slowEffectThreshold: 16, // ms (one frame at 60fps)
+  autoTimeline: false, // Automatically record all pulse changes to timeline
+  timelineDebounce: 100 // Debounce interval for timeline recording (ms)
 };
 
 // =============================================================================
@@ -50,6 +52,46 @@ export const effectRegistry = new Map();
 
 let pulseIdCounter = 0;
 let trackedEffectIdCounter = 0;
+
+// Timeline auto-recording state
+let timelineDebounceTimer = null;
+let pendingTimelineActions = [];
+let takeSnapshotFn = null;
+
+/**
+ * Set the snapshot function for auto-timeline
+ * Called by devtools.js to wire up time-travel
+ * @param {Function} fn - takeSnapshot function
+ */
+export function _setTakeSnapshotFn(fn) {
+  takeSnapshotFn = fn;
+}
+
+/**
+ * Schedule a timeline snapshot (debounced)
+ * @param {string} action - Description of the action
+ */
+function scheduleTimelineSnapshot(action) {
+  if (!config.autoTimeline || !takeSnapshotFn) return;
+
+  pendingTimelineActions.push(action);
+
+  if (timelineDebounceTimer) {
+    clearTimeout(timelineDebounceTimer);
+  }
+
+  timelineDebounceTimer = setTimeout(() => {
+    timelineDebounceTimer = null;
+    if (pendingTimelineActions.length > 0) {
+      // Combine multiple actions into one snapshot
+      const combinedAction = pendingTimelineActions.length === 1
+        ? pendingTimelineActions[0]
+        : `${pendingTimelineActions.length} changes: ${pendingTimelineActions.slice(0, 3).join(', ')}${pendingTimelineActions.length > 3 ? '...' : ''}`;
+      pendingTimelineActions = [];
+      takeSnapshotFn(combinedAction);
+    }
+  }, config.timelineDebounce);
+}
 
 // =============================================================================
 // DIAGNOSTICS API
@@ -267,8 +309,13 @@ export function trackedPulse(initialValue, name, options = {}) {
     if (config.enabled && config.logUpdates) {
       log.info(`${name || id} updated:`, value);
     }
-    if (config.enabled && options.onSnapshot) {
+    // Manual snapshot callback (for non-auto mode)
+    if (config.enabled && options.onSnapshot && !config.autoTimeline) {
       options.onSnapshot(`${name || id} = ${JSON.stringify(value)}`);
+    }
+    // Auto-timeline recording (debounced)
+    if (config.enabled && config.autoTimeline) {
+      scheduleTimelineSnapshot(`${name || id} = ${JSON.stringify(value)}`);
     }
     return result;
   };
@@ -399,5 +446,6 @@ export default {
   mark,
   resetDiagnostics,
   pulseRegistry,
-  effectRegistry
+  effectRegistry,
+  _setTakeSnapshotFn
 };

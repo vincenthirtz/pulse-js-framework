@@ -31,7 +31,8 @@ import {
   profile,
   mark,
   resetDiagnostics,
-  _setSnapshotCountFn
+  _setSnapshotCountFn,
+  _setTakeSnapshotFn
 } from './devtools/diagnostics.js';
 
 import {
@@ -49,6 +50,9 @@ import {
 
 // Wire up snapshot count for diagnostics
 _setSnapshotCountFn(getSnapshotCount);
+
+// Wire up takeSnapshot for auto-timeline
+_setTakeSnapshotFn(takeSnapshot);
 
 import {
   a11yAuditConfig,
@@ -89,14 +93,54 @@ export function trackedPulse(initialValue, name) {
 // =============================================================================
 
 /**
+ * Enable automatic timeline recording
+ * Records all pulse changes to the timeline automatically (debounced)
+ * @param {Object} [options] - Configuration options
+ * @param {number} [options.debounce=100] - Debounce interval in ms
+ */
+export function enableAutoTimeline(options = {}) {
+  config.autoTimeline = true;
+  if (options.debounce !== undefined) {
+    config.timelineDebounce = options.debounce;
+  }
+  log.info(`Auto-timeline enabled (debounce: ${config.timelineDebounce}ms)`);
+}
+
+/**
+ * Disable automatic timeline recording
+ */
+export function disableAutoTimeline() {
+  config.autoTimeline = false;
+  log.info('Auto-timeline disabled');
+}
+
+/**
+ * Check if auto-timeline is enabled
+ * @returns {boolean}
+ */
+export function isAutoTimelineEnabled() {
+  return config.autoTimeline;
+}
+
+/**
  * Enable dev tools
  * @param {Object} [options] - Configuration options
+ * @param {boolean} [options.autoTimeline] - Enable automatic timeline recording
+ * @param {number} [options.timelineDebounce] - Debounce interval for timeline (ms)
  */
 export function enableDevTools(options = {}) {
   Object.assign(config, options, { enabled: true });
 
   if (options.maxSnapshots) {
     timeTravelConfig.maxSnapshots = options.maxSnapshots;
+  }
+
+  // Enable auto-timeline if specified
+  if (options.autoTimeline) {
+    config.autoTimeline = true;
+    if (options.timelineDebounce !== undefined) {
+      config.timelineDebounce = options.timelineDebounce;
+    }
   }
 
   if (typeof window !== 'undefined') {
@@ -118,6 +162,11 @@ export function enableDevTools(options = {}) {
       back,
       forward,
       clearHistory,
+
+      // Auto-timeline
+      enableAutoTimeline,
+      disableAutoTimeline,
+      isAutoTimelineEnabled,
 
       // A11y Audit
       runA11yAudit,
@@ -216,6 +265,9 @@ export {
   resetA11yAudit
 };
 
+// Note: enableAutoTimeline, disableAutoTimeline, isAutoTimelineEnabled
+// are already exported via their function declarations above
+
 // =============================================================================
 // DEFAULT EXPORT
 // =============================================================================
@@ -240,6 +292,11 @@ export default {
   back,
   forward,
   clearHistory,
+
+  // Auto-timeline
+  enableAutoTimeline,
+  disableAutoTimeline,
+  isAutoTimelineEnabled,
 
   // Configuration
   enableDevTools,

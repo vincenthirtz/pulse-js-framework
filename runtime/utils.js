@@ -6,6 +6,7 @@
  */
 
 import { createLogger } from './logger.js';
+import { sanitizeHtml } from './security.js';
 
 const log = createLogger('Security');
 
@@ -98,10 +99,7 @@ export function dangerouslySetInnerHTML(element, html, options = {}) {
   const { sanitize = false, ...sanitizeOptions } = options;
 
   if (sanitize) {
-    // Import sanitizeHtml from security module
-    import('./security.js').then(({ sanitizeHtml }) => {
-      element.innerHTML = sanitizeHtml(html, sanitizeOptions);
-    });
+    element.innerHTML = sanitizeHtml(html, sanitizeOptions);
   } else {
     element.innerHTML = html;
   }

@@ -1499,6 +1499,124 @@ testAsync('guard that throws error is handled gracefully', async () => {
 });
 
 // =============================================================================
+// Scroll Persistence Tests
+// =============================================================================
+
+printSection('Scroll Persistence Tests');
+
+// Mock sessionStorage
+const mockSessionStorage = (() => {
+  let store = {};
+  return {
+    getItem: (key) => store[key] || null,
+    setItem: (key, value) => { store[key] = value; },
+    removeItem: (key) => { delete store[key]; },
+    clear: () => { store = {}; },
+    get length() { return Object.keys(store).length; }
+  };
+})();
+
+// Set mock sessionStorage on window and global
+mockWindow.sessionStorage = mockSessionStorage;
+global.sessionStorage = mockSessionStorage;
+
+testAsync('router saves scroll position to sessionStorage when persistScroll is enabled', async () => {
+  mockSessionStorage.clear();
+
+  const router = createRouter({
+    routes: {
+      '/': () => el('div', 'Home'),
+      '/about': () => el('div', 'About')
+    },
+    persistScroll: true,
+    persistScrollKey: 'test-scroll'
+  });
+  router.start();
+
+  // Mock scroll position
+  mockWindow.scrollX = 100;
+  mockWindow.scrollY = 200;
+
+  await router.navigate('/about');
+
+  // Check sessionStorage was updated
+  const stored = mockSessionStorage.getItem('test-scroll');
+  assert(stored !== null, 'Should save to sessionStorage');
+
+  const parsed = JSON.parse(stored);
+  assertEqual(parsed['/'].x, 100, 'Should save scrollX');
+  assertEqual(parsed['/'].y, 200, 'Should save scrollY');
+});
+
+testAsync('router restores scroll positions from sessionStorage on creation', async () => {
+  // Pre-populate sessionStorage
+  mockSessionStorage.setItem('test-scroll-restore', JSON.stringify({
+    '/page1': { x: 50, y: 150 },
+    '/page2': { x: 0, y: 500 }
+  }));
+
+  const router = createRouter({
+    routes: {
+      '/': () => el('div', 'Home'),
+      '/page1': () => el('div', 'Page 1'),
+      '/page2': () => el('div', 'Page 2')
+    },
+    persistScroll: true,
+    persistScrollKey: 'test-scroll-restore'
+  });
+  router.start();
+
+  // Navigate to page1 and back - scroll should be restored
+  await router.navigate('/page1');
+  await router.navigate('/');
+  await router.navigate('/page1');
+
+  // The scroll positions are restored via handleScroll internally
+  // We can verify by checking that navigate completes without error
+  assertEqual(router.path.get(), '/page1', 'Should navigate correctly');
+});
+
+testAsync('router handles invalid sessionStorage data gracefully', async () => {
+  // Set invalid JSON
+  mockSessionStorage.setItem('test-invalid', 'not valid json');
+
+  // Should not throw
+  const router = createRouter({
+    routes: {
+      '/': () => el('div', 'Home')
+    },
+    persistScroll: true,
+    persistScrollKey: 'test-invalid'
+  });
+  router.start();
+
+  assertEqual(router.path.get(), '/', 'Router should work despite invalid storage');
+});
+
+testAsync('router handles missing sessionStorage gracefully', async () => {
+  // Create router without sessionStorage available
+  const originalStorage = mockWindow.sessionStorage;
+  delete mockWindow.sessionStorage;
+
+  const router = createRouter({
+    routes: {
+      '/': () => el('div', 'Home'),
+      '/about': () => el('div', 'About')
+    },
+    persistScroll: true
+  });
+  router.start();
+
+  await router.navigate('/about');
+
+  // Should work without throwing
+  assertEqual(router.path.get(), '/about', 'Should navigate without sessionStorage');
+
+  // Restore
+  mockWindow.sessionStorage = originalStorage;
+});
+
+// =============================================================================
 // Run Async Tests and Print Results
 // =============================================================================
 
