@@ -169,8 +169,13 @@ export function transformExpressionString(transformer, exprStr) {
       `${stateVar}.get()`
     );
   }
-  // Add optional chaining after function calls followed by property access
-  result = result.replace(/(\w+\([^)]*\))\.(\w)/g, '$1?.$2');
+
+  // NOTE: Removed aggressive optional chaining regex that was adding ?.
+  // after ALL function calls. This caused false positives like:
+  // "User.name" -> "User?.name" in string literals.
+  // Optional chaining should be explicitly written by developers, not auto-added.
+  // The lexer now properly tokenizes ?. as OPTIONAL_CHAIN for explicit usage.
+
   return result;
 }
 

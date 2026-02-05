@@ -2164,6 +2164,531 @@ view {
 });
 
 // =============================================================================
+// Modern JavaScript Operators Tests
+// =============================================================================
+
+printSection('Modern JavaScript Operators Tests');
+
+test('tokenizes nullish coalescing operator (??)', () => {
+  const tokens = tokenize('a ?? b');
+  assertEqual(tokens[0].type, 'IDENT', 'Expected IDENT for a');
+  assertEqual(tokens[1].type, 'NULLISH', 'Expected NULLISH for ??');
+  assertEqual(tokens[2].type, 'IDENT', 'Expected IDENT for b');
+});
+
+test('tokenizes optional chaining operator (?.)', () => {
+  const tokens = tokenize('obj?.prop');
+  assertEqual(tokens[0].type, 'IDENT', 'Expected IDENT for obj');
+  assertEqual(tokens[1].type, 'OPTIONAL_CHAIN', 'Expected OPTIONAL_CHAIN for ?.');
+  assertEqual(tokens[2].type, 'IDENT', 'Expected IDENT for prop');
+});
+
+test('tokenizes nullish assignment operator (??=)', () => {
+  const tokens = tokenize('a ??= b');
+  assertEqual(tokens[0].type, 'IDENT', 'Expected IDENT for a');
+  assertEqual(tokens[1].type, 'NULLISH_ASSIGN', 'Expected NULLISH_ASSIGN for ??=');
+  assertEqual(tokens[2].type, 'IDENT', 'Expected IDENT for b');
+});
+
+test('tokenizes logical OR assignment (||=)', () => {
+  const tokens = tokenize('a ||= b');
+  assertEqual(tokens[0].type, 'IDENT', 'Expected IDENT for a');
+  assertEqual(tokens[1].type, 'OR_ASSIGN', 'Expected OR_ASSIGN for ||=');
+  assertEqual(tokens[2].type, 'IDENT', 'Expected IDENT for b');
+});
+
+test('tokenizes logical AND assignment (&&=)', () => {
+  const tokens = tokenize('a &&= b');
+  assertEqual(tokens[0].type, 'IDENT', 'Expected IDENT for a');
+  assertEqual(tokens[1].type, 'AND_ASSIGN', 'Expected AND_ASSIGN for &&=');
+  assertEqual(tokens[2].type, 'IDENT', 'Expected IDENT for b');
+});
+
+test('tokenizes compound assignment operators (+=, -=, *=, /=)', () => {
+  const tokens = tokenize('a += 1 b -= 2 c *= 3 d /= 4');
+  assertEqual(tokens[1].type, 'PLUS_ASSIGN', 'Expected PLUS_ASSIGN for +=');
+  assertEqual(tokens[4].type, 'MINUS_ASSIGN', 'Expected MINUS_ASSIGN for -=');
+  assertEqual(tokens[7].type, 'STAR_ASSIGN', 'Expected STAR_ASSIGN for *=');
+  assertEqual(tokens[10].type, 'SLASH_ASSIGN', 'Expected SLASH_ASSIGN for /=');
+});
+
+test('tokenizes BigInt literals', () => {
+  const tokens = tokenize('123n 456n 0n');
+  assertEqual(tokens[0].type, 'BIGINT', 'Expected BIGINT for 123n');
+  assertEqual(tokens[0].value, '123n', 'Expected value 123n');
+  assertEqual(tokens[1].type, 'BIGINT', 'Expected BIGINT for 456n');
+  assertEqual(tokens[2].type, 'BIGINT', 'Expected BIGINT for 0n');
+});
+
+test('tokenizes numeric separators', () => {
+  const tokens = tokenize('1_000_000 3.14_159 0xFF_FF');
+  assertEqual(tokens[0].type, 'NUMBER', 'Expected NUMBER');
+  assertEqual(tokens[0].value, 1000000, 'Expected 1000000 (underscores removed)');
+  assertEqual(tokens[1].type, 'NUMBER', 'Expected NUMBER');
+  assertEqual(tokens[1].value, 3.14159, 'Expected 3.14159');
+  assertEqual(tokens[2].type, 'NUMBER', 'Expected NUMBER');
+  assertEqual(tokens[2].value, 0xFFFF, 'Expected 65535 (hex FFFF)');
+});
+
+test('tokenizes hex, binary, and octal literals', () => {
+  const tokens = tokenize('0xFF 0b1010 0o777');
+  assertEqual(tokens[0].type, 'NUMBER', 'Expected NUMBER for hex');
+  assertEqual(tokens[0].value, 255, 'Expected 255 for 0xFF');
+  assertEqual(tokens[1].type, 'NUMBER', 'Expected NUMBER for binary');
+  assertEqual(tokens[1].value, 10, 'Expected 10 for 0b1010');
+  assertEqual(tokens[2].type, 'NUMBER', 'Expected NUMBER for octal');
+  assertEqual(tokens[2].value, 511, 'Expected 511 for 0o777');
+});
+
+test('tokenizes BigInt with hex/binary/octal', () => {
+  const tokens = tokenize('0xFFn 0b1010n 0o777n');
+  assertEqual(tokens[0].type, 'BIGINT', 'Expected BIGINT for hex BigInt');
+  assertEqual(tokens[1].type, 'BIGINT', 'Expected BIGINT for binary BigInt');
+  assertEqual(tokens[2].type, 'BIGINT', 'Expected BIGINT for octal BigInt');
+});
+
+test('distinguishes ?. from ternary + decimal', () => {
+  // ?. should be optional chaining when followed by identifier
+  const tokens = tokenize('x?.prop');
+  assertEqual(tokens[1].type, 'OPTIONAL_CHAIN', 'Expected OPTIONAL_CHAIN');
+  assertEqual(tokens[2].type, 'IDENT', 'Expected IDENT prop');
+
+  // ?.5 should NOT be optional chaining (it's ternary ? followed by . and 5)
+  // This tests that we don't incorrectly treat ?.5 as optional chaining
+  const tokens2 = tokenize('x?.5:y');
+  assertEqual(tokens2[1].type, 'QUESTION', 'Expected QUESTION for ternary');
+  // Note: .5 is tokenized as DOT + NUMBER (not as decimal 0.5)
+  assertEqual(tokens2[2].type, 'DOT', 'Expected DOT after ?');
+  assertEqual(tokens2[3].type, 'NUMBER', 'Expected NUMBER 5');
+});
+
+test('compiles code with nullish coalescing', () => {
+  const source = `
+@page App
+
+state {
+  name: null
+}
+
+view {
+  span "{name ?? 'Anonymous'}"
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  assert(result.code.includes('??'), 'Expected ?? operator to be preserved');
+});
+
+test('compiles code with optional chaining', () => {
+  const source = `
+@page App
+
+state {
+  user: null
+}
+
+view {
+  span "{user?.name}"
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  assert(result.code.includes('?.'), 'Expected ?. operator to be preserved');
+});
+
+// =============================================================================
+// Modern CSS Features Tests
+// =============================================================================
+
+printSection('Modern CSS Features Tests');
+
+test('compiles @supports feature queries', () => {
+  const source = `
+@page App
+
+view {
+  div.container "Hello"
+}
+
+style {
+  .container {
+    display: flex
+  }
+
+  @supports (display: grid) {
+    .container {
+      display: grid
+    }
+  }
+}`;
+
+  const result = compile(source, { scopeStyles: false });
+  assert(result.success, 'Expected successful compilation');
+  // Note: The CSS parser may normalize spacing (e.g., 'display:grid' without space)
+  assert(result.code.includes('@supports'), 'Expected @supports rule');
+  assert(result.code.includes('display') && result.code.includes('grid'), 'Expected display: grid inside @supports');
+});
+
+test('compiles @container queries', () => {
+  const source = `
+@page App
+
+view {
+  div.card "Content"
+}
+
+style {
+  .card {
+    container-type: inline-size
+  }
+
+  @container (min-width: 400px) {
+    .card {
+      padding: 2rem
+    }
+  }
+}`;
+
+  const result = compile(source, { scopeStyles: false });
+  assert(result.success, 'Expected successful compilation');
+  // Note: The CSS parser may normalize spacing
+  assert(result.code.includes('@container'), 'Expected @container rule');
+  assert(result.code.includes('padding'), 'Expected padding inside @container');
+});
+
+test('compiles @layer cascade layers', () => {
+  const source = `
+@page App
+
+view {
+  div.button "Click"
+}
+
+style {
+  @layer base {
+    .button {
+      padding: 10px
+    }
+  }
+
+  @layer components {
+    .button {
+      background: blue
+    }
+  }
+}`;
+
+  const result = compile(source, { scopeStyles: false });
+  assert(result.success, 'Expected successful compilation');
+  assert(result.code.includes('@layer base'), 'Expected @layer base');
+  assert(result.code.includes('@layer components'), 'Expected @layer components');
+});
+
+test('compiles nested @media with @supports', () => {
+  const source = `
+@page App
+
+view {
+  div.responsive "Content"
+}
+
+style {
+  .responsive {
+    width: 100%
+  }
+
+  @media (min-width: 768px) {
+    .responsive {
+      width: 50%
+    }
+  }
+
+  @supports (display: flex) {
+    .responsive {
+      display: flex
+    }
+  }
+}`;
+
+  const result = compile(source, { scopeStyles: false });
+  assert(result.success, 'Expected successful compilation');
+  assert(result.code.includes('@media'), 'Expected @media rule');
+  assert(result.code.includes('@supports'), 'Expected @supports rule');
+});
+
+test('compiles CSS with > child combinator', () => {
+  const source = `
+@page App
+
+view {
+  div.parent "Parent"
+}
+
+style {
+  .parent > .child {
+    color: red
+  }
+}`;
+
+  const result = compile(source, { scopeStyles: false });
+  assert(result.success, 'Expected successful compilation');
+  // The combinator may have different spacing but should be present
+  assert(result.code.includes('>'), 'Expected child combinator preserved');
+  assert(result.code.includes('.parent'), 'Expected .parent selector');
+  assert(result.code.includes('.child'), 'Expected .child selector');
+});
+
+test('compiles CSS with + adjacent sibling combinator', () => {
+  const source = `
+@page App
+
+view {
+  h2 "Heading"
+}
+
+style {
+  h2 + p {
+    margin-top: 0
+  }
+}`;
+
+  const result = compile(source, { scopeStyles: false });
+  assert(result.success, 'Expected successful compilation');
+  assert(result.code.includes('h2 + p') || result.code.includes('h2+ p') || result.code.includes('h2 +p'), 'Expected adjacent sibling combinator');
+});
+
+test('compiles CSS with ~ general sibling combinator', () => {
+  const source = `
+@page App
+
+view {
+  div "Content"
+}
+
+style {
+  h1 ~ p {
+    color: gray
+  }
+}`;
+
+  const result = compile(source, { scopeStyles: false });
+  assert(result.success, 'Expected successful compilation');
+  assert(result.code.includes('~'), 'Expected general sibling combinator');
+});
+
+test('CSS scoping preserves combinators', () => {
+  const source = `
+@page App
+
+view {
+  div.parent {
+    div.child "Child"
+  }
+}
+
+style {
+  .parent > .child {
+    padding: 10px
+  }
+  .item + .item {
+    margin-left: 5px
+  }
+  .active ~ .inactive {
+    opacity: 0.5
+  }
+}`;
+
+  const result = compile(source); // With scoping enabled
+  assert(result.success, 'Expected successful compilation');
+  // Verify combinators are preserved in scoped output
+  assert(result.code.includes('>'), 'Expected > combinator preserved with scoping');
+  assert(result.code.includes('+'), 'Expected + combinator preserved with scoping');
+  assert(result.code.includes('~'), 'Expected ~ combinator preserved with scoping');
+});
+
+test('compiles CSS :has() selector', () => {
+  const source = `
+@page App
+
+view {
+  div.card "Card"
+}
+
+style {
+  .card:has(img) {
+    padding: 0
+  }
+}`;
+
+  const result = compile(source, { scopeStyles: false });
+  assert(result.success, 'Expected successful compilation');
+  // Note: parser may add space before parentheses
+  assert(result.code.includes(':has'), 'Expected :has selector');
+});
+
+test('compiles CSS :is() selector', () => {
+  const source = `
+@page App
+
+view {
+  div "Content"
+}
+
+style {
+  :is(h1, h2, h3) {
+    font-weight: bold
+  }
+}`;
+
+  const result = compile(source, { scopeStyles: false });
+  assert(result.success, 'Expected successful compilation');
+  // Note: parser may add space before parentheses
+  assert(result.code.includes(':is'), 'Expected :is selector');
+});
+
+test('compiles CSS :where() selector', () => {
+  const source = `
+@page App
+
+view {
+  div "Content"
+}
+
+style {
+  :where(article, section) p {
+    line-height: 1.6
+  }
+}`;
+
+  const result = compile(source, { scopeStyles: false });
+  assert(result.success, 'Expected successful compilation');
+  // Note: parser may add space before parentheses
+  assert(result.code.includes(':where'), 'Expected :where selector');
+});
+
+test('compiles modern CSS custom properties', () => {
+  const source = `
+@page App
+
+view {
+  div.themed "Themed"
+}
+
+style {
+  .themed {
+    --primary-color: #007bff
+    color: var(--primary-color)
+  }
+}`;
+
+  const result = compile(source, { scopeStyles: false });
+  assert(result.success, 'Expected successful compilation');
+  assert(result.code.includes('--primary-color'), 'Expected custom property');
+  assert(result.code.includes('var(--primary-color)'), 'Expected var() function');
+});
+
+test('compiles clamp(), min(), max() CSS functions', () => {
+  const source = `
+@page App
+
+view {
+  h1 "Title"
+}
+
+style {
+  h1 {
+    font-size: clamp(1rem, 5vw, 3rem)
+    width: min(100%, 800px)
+    height: max(50vh, 400px)
+  }
+}`;
+
+  const result = compile(source, { scopeStyles: false });
+  assert(result.success, 'Expected successful compilation');
+  assert(result.code.includes('clamp('), 'Expected clamp() function');
+  assert(result.code.includes('min('), 'Expected min() function');
+  assert(result.code.includes('max('), 'Expected max() function');
+});
+
+// =============================================================================
+// Edge Cases and Error Recovery Tests
+// =============================================================================
+
+printSection('Edge Cases Tests');
+
+test('handles complex nested expressions with modern operators', () => {
+  const source = `
+@page App
+
+state {
+  user: null
+  settings: { theme: "light" }
+}
+
+view {
+  span "{user?.profile?.name ?? settings?.theme ?? 'default'}"
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  assert(result.code.includes('?.'), 'Expected optional chaining');
+  assert(result.code.includes('??'), 'Expected nullish coalescing');
+});
+
+test('handles deeply nested CSS rules', () => {
+  const source = `
+@page App
+
+view {
+  div.app "App"
+}
+
+style {
+  .app {
+    padding: 1rem
+
+    .header {
+      height: 60px
+
+      .nav {
+        display: flex
+
+        .link {
+          color: blue
+
+          &:hover {
+            color: red
+          }
+        }
+      }
+    }
+  }
+}`;
+
+  const result = compile(source, { scopeStyles: false });
+  assert(result.success, 'Expected successful compilation');
+  assert(result.code.includes('.app .header'), 'Expected nested selector .app .header');
+  assert(result.code.includes('.app .header .nav'), 'Expected nested selector .app .header .nav');
+  assert(result.code.includes('.app .header .nav .link'), 'Expected deeply nested selector');
+  assert(result.code.includes('.app .header .nav .link:hover'), 'Expected & replaced with parent');
+});
+
+test('preserves string literals without adding optional chaining', () => {
+  const source = `
+@page App
+
+view {
+  span "User.name is a valid property path"
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  // The string should NOT have ?. inserted
+  assert(result.code.includes('User.name'), 'Expected User.name preserved');
+  assert(!result.code.includes('User?.name'), 'Should NOT add ?. inside string literals');
+});
+
+// =============================================================================
 // Results
 // =============================================================================
 

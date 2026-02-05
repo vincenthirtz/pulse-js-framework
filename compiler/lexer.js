@@ -85,13 +85,24 @@ export const TokenType = {
   PLUSPLUS: 'PLUSPLUS', // ++
   MINUSMINUS: 'MINUSMINUS', // --
   QUESTION: 'QUESTION', // ?
+  NULLISH: 'NULLISH', // ??
+  OPTIONAL_CHAIN: 'OPTIONAL_CHAIN', // ?.
   ARROW: 'ARROW',     // =>
   SPREAD: 'SPREAD',   // ...
+  // Logical/Nullish Assignment Operators (ES2021)
+  OR_ASSIGN: 'OR_ASSIGN',       // ||=
+  AND_ASSIGN: 'AND_ASSIGN',     // &&=
+  NULLISH_ASSIGN: 'NULLISH_ASSIGN', // ??=
+  PLUS_ASSIGN: 'PLUS_ASSIGN',   // +=
+  MINUS_ASSIGN: 'MINUS_ASSIGN', // -=
+  STAR_ASSIGN: 'STAR_ASSIGN',   // *=
+  SLASH_ASSIGN: 'SLASH_ASSIGN', // /=
 
   // Literals
   STRING: 'STRING',
   TEMPLATE: 'TEMPLATE', // Template literal `...`
   NUMBER: 'NUMBER',
+  BIGINT: 'BIGINT',     // BigInt literal 123n
   TRUE: 'TRUE',
   FALSE: 'FALSE',
   NULL: 'NULL',
@@ -365,22 +376,96 @@ export class Lexer {
 
   /**
    * Read a number literal
+   * Supports:
+   * - Integers: 42
+   * - Decimals: 3.14
+   * - Scientific notation: 1e10, 1.5e-3
+   * - Numeric separators (ES2021): 1_000_000, 0xFF_FF_FF
+   * - BigInt literals (ES2020): 123n
+   * - Hex: 0xFF, Binary: 0b101, Octal: 0o777
    */
   readNumber() {
     const startLine = this.line;
     const startColumn = this.column;
     let value = '';
+    let rawValue = '';
+    let isBigInt = false;
 
-    // Integer part
-    while (!this.isEOF() && /[0-9]/.test(this.current())) {
-      value += this.advance();
+    // Check for hex, binary, or octal prefixes
+    if (this.current() === '0') {
+      rawValue += this.advance();
+      value += '0';
+
+      if (this.current() === 'x' || this.current() === 'X') {
+        // Hexadecimal
+        rawValue += this.advance();
+        value += 'x';
+        while (!this.isEOF() && /[0-9a-fA-F_]/.test(this.current())) {
+          const char = this.advance();
+          rawValue += char;
+          if (char !== '_') value += char; // Skip separators in actual value
+        }
+        // Check for BigInt suffix
+        if (this.current() === 'n') {
+          rawValue += this.advance();
+          isBigInt = true;
+        }
+        if (isBigInt) {
+          return new Token(TokenType.BIGINT, value + 'n', startLine, startColumn, rawValue);
+        }
+        return new Token(TokenType.NUMBER, parseInt(value, 16), startLine, startColumn, rawValue);
+      } else if (this.current() === 'b' || this.current() === 'B') {
+        // Binary
+        rawValue += this.advance();
+        value += 'b';
+        while (!this.isEOF() && /[01_]/.test(this.current())) {
+          const char = this.advance();
+          rawValue += char;
+          if (char !== '_') value += char;
+        }
+        if (this.current() === 'n') {
+          rawValue += this.advance();
+          isBigInt = true;
+        }
+        if (isBigInt) {
+          return new Token(TokenType.BIGINT, value + 'n', startLine, startColumn, rawValue);
+        }
+        return new Token(TokenType.NUMBER, parseInt(value.slice(2), 2), startLine, startColumn, rawValue);
+      } else if (this.current() === 'o' || this.current() === 'O') {
+        // Octal
+        rawValue += this.advance();
+        value += 'o';
+        while (!this.isEOF() && /[0-7_]/.test(this.current())) {
+          const char = this.advance();
+          rawValue += char;
+          if (char !== '_') value += char;
+        }
+        if (this.current() === 'n') {
+          rawValue += this.advance();
+          isBigInt = true;
+        }
+        if (isBigInt) {
+          return new Token(TokenType.BIGINT, value + 'n', startLine, startColumn, rawValue);
+        }
+        return new Token(TokenType.NUMBER, parseInt(value.slice(2), 8), startLine, startColumn, rawValue);
+      }
+    }
+
+    // Regular decimal number (or continuation of '0')
+    while (!this.isEOF() && /[0-9_]/.test(this.current())) {
+      const char = this.advance();
+      rawValue += char;
+      if (char !== '_') value += char;
     }
 
     // Decimal part
     if (this.current() === '.' && /[0-9]/.test(this.peek())) {
-      value += this.advance(); // .
-      while (!this.isEOF() && /[0-9]/.test(this.current())) {
-        value += this.advance();
+      rawValue += this.advance();
+      value += '.';
+      while (!this.isEOF() && /[0-9_]/.test(this.current())) {
+        const char = this.advance();
+        rawValue += char;
+        if (char !== '_') value += char;
       }
     }
 
@@ -394,18 +479,32 @@ export class Lexer {
                           ((nextChar === '+' || nextChar === '-') && /[0-9]/.test(nextNextChar));
 
       if (isScientific) {
-        value += this.advance(); // consume 'e' or 'E'
+        rawValue += this.advance();
+        value += 'e';
         if (this.current() === '+' || this.current() === '-') {
-          value += this.advance();
+          const sign = this.advance();
+          rawValue += sign;
+          value += sign;
         }
-        while (!this.isEOF() && /[0-9]/.test(this.current())) {
-          value += this.advance();
+        while (!this.isEOF() && /[0-9_]/.test(this.current())) {
+          const char = this.advance();
+          rawValue += char;
+          if (char !== '_') value += char;
         }
       }
       // If not scientific notation, leave 'e' for the next token (e.g., 'em' unit)
     }
 
-    return new Token(TokenType.NUMBER, parseFloat(value), startLine, startColumn, value);
+    // Check for BigInt suffix 'n'
+    if (this.current() === 'n') {
+      rawValue += this.advance();
+      isBigInt = true;
+    }
+
+    if (isBigInt) {
+      return new Token(TokenType.BIGINT, value + 'n', startLine, startColumn, rawValue);
+    }
+    return new Token(TokenType.NUMBER, parseFloat(value), startLine, startColumn, rawValue);
   }
 
   /**
@@ -586,6 +685,9 @@ export class Lexer {
           if (this.current() === '+') {
             this.advance();
             this.tokens.push(new Token(TokenType.PLUSPLUS, '++', startLine, startColumn));
+          } else if (this.current() === '=') {
+            this.advance();
+            this.tokens.push(new Token(TokenType.PLUS_ASSIGN, '+=', startLine, startColumn));
           } else {
             this.tokens.push(new Token(TokenType.PLUS, '+', startLine, startColumn));
           }
@@ -595,17 +697,30 @@ export class Lexer {
           if (this.current() === '-') {
             this.advance();
             this.tokens.push(new Token(TokenType.MINUSMINUS, '--', startLine, startColumn));
+          } else if (this.current() === '=') {
+            this.advance();
+            this.tokens.push(new Token(TokenType.MINUS_ASSIGN, '-=', startLine, startColumn));
           } else {
             this.tokens.push(new Token(TokenType.MINUS, '-', startLine, startColumn));
           }
           continue;
         case '*':
           this.advance();
-          this.tokens.push(new Token(TokenType.STAR, '*', startLine, startColumn));
+          if (this.current() === '=') {
+            this.advance();
+            this.tokens.push(new Token(TokenType.STAR_ASSIGN, '*=', startLine, startColumn));
+          } else {
+            this.tokens.push(new Token(TokenType.STAR, '*', startLine, startColumn));
+          }
           continue;
         case '/':
           this.advance();
-          this.tokens.push(new Token(TokenType.SLASH, '/', startLine, startColumn));
+          if (this.current() === '=') {
+            this.advance();
+            this.tokens.push(new Token(TokenType.SLASH_ASSIGN, '/=', startLine, startColumn));
+          } else {
+            this.tokens.push(new Token(TokenType.SLASH, '/', startLine, startColumn));
+          }
           continue;
         case '=':
           this.advance();
@@ -626,7 +741,25 @@ export class Lexer {
           continue;
         case '?':
           this.advance();
-          this.tokens.push(new Token(TokenType.QUESTION, '?', startLine, startColumn));
+          if (this.current() === '?') {
+            this.advance();
+            if (this.current() === '=') {
+              this.advance();
+              this.tokens.push(new Token(TokenType.NULLISH_ASSIGN, '??=', startLine, startColumn));
+            } else {
+              this.tokens.push(new Token(TokenType.NULLISH, '??', startLine, startColumn));
+            }
+          } else if (this.current() === '.') {
+            // Optional chaining ?. but only if not followed by a digit (to avoid ?.5)
+            if (!/[0-9]/.test(this.peek())) {
+              this.advance();
+              this.tokens.push(new Token(TokenType.OPTIONAL_CHAIN, '?.', startLine, startColumn));
+            } else {
+              this.tokens.push(new Token(TokenType.QUESTION, '?', startLine, startColumn));
+            }
+          } else {
+            this.tokens.push(new Token(TokenType.QUESTION, '?', startLine, startColumn));
+          }
           continue;
         case '%':
           this.advance();
@@ -668,7 +801,12 @@ export class Lexer {
           this.advance();
           if (this.current() === '&') {
             this.advance();
-            this.tokens.push(new Token(TokenType.AND, '&&', startLine, startColumn));
+            if (this.current() === '=') {
+              this.advance();
+              this.tokens.push(new Token(TokenType.AND_ASSIGN, '&&=', startLine, startColumn));
+            } else {
+              this.tokens.push(new Token(TokenType.AND, '&&', startLine, startColumn));
+            }
           } else {
             // Single & is the CSS parent selector
             this.tokens.push(new Token(TokenType.AMPERSAND, '&', startLine, startColumn));
@@ -678,7 +816,12 @@ export class Lexer {
           this.advance();
           if (this.current() === '|') {
             this.advance();
-            this.tokens.push(new Token(TokenType.OR, '||', startLine, startColumn));
+            if (this.current() === '=') {
+              this.advance();
+              this.tokens.push(new Token(TokenType.OR_ASSIGN, '||=', startLine, startColumn));
+            } else {
+              this.tokens.push(new Token(TokenType.OR, '||', startLine, startColumn));
+            }
           }
           continue;
       }
