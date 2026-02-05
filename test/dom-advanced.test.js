@@ -92,15 +92,16 @@ describe('portal', () => {
       return null;
     }, target);
 
-    // Wait for effect
-    await new Promise(r => setTimeout(r, 10));
+    // Flush microtasks to process effect
+    adapter.flushMicrotasks();
 
     assert.strictEqual(target.childNodes.length, 1);
     assert.strictEqual(target.childNodes[0].textContent, 'Visible');
 
     // Change condition
     show.set(false);
-    await new Promise(r => setTimeout(r, 10));
+    // Flush microtasks to process reactive update
+    adapter.flushMicrotasks();
 
     assert.strictEqual(target.childNodes.length, 0);
   });
@@ -172,7 +173,8 @@ describe('errorBoundary', () => {
     const root = adapter.createElement('div');
     adapter.appendChild(root, container);
 
-    await new Promise(r => setTimeout(r, 10));
+    // Flush microtasks to process effects
+    adapter.flushMicrotasks();
 
     // Should contain marker and child
     const elements = root.childNodes.filter(n => n.nodeType === 1);
@@ -202,14 +204,17 @@ describe('errorBoundary', () => {
     const root = adapter.createElement('div');
     adapter.appendChild(root, container);
 
-    await new Promise(r => setTimeout(r, 50));
+    // Flush microtasks - first render throws, then re-render with fallback
+    adapter.flushMicrotasks();
+    // Flush again for the re-render after error
+    adapter.flushMicrotasks();
 
     console.error = originalError;
 
     // Should show fallback
     const elements = root.childNodes.filter(n => n.nodeType === 1);
     assert.ok(elements.length >= 1);
-    // Fallback may have rendered
+    // Fallback should have rendered
   });
 
   test('errorBoundary handles reactive children', async () => {
@@ -227,13 +232,15 @@ describe('errorBoundary', () => {
     const root = adapter.createElement('div');
     adapter.appendChild(root, container);
 
-    await new Promise(r => setTimeout(r, 10));
+    // Flush microtasks to render initial content
+    adapter.flushMicrotasks();
 
     let spans = root.childNodes.filter(n => n.nodeType === 1 && n.tagName === 'SPAN');
     assert.ok(spans.length >= 1);
 
     count.set(5);
-    await new Promise(r => setTimeout(r, 10));
+    // Flush microtasks to process reactive update
+    adapter.flushMicrotasks();
 
     spans = root.childNodes.filter(n => n.nodeType === 1 && n.tagName === 'SPAN');
     // Content should update
@@ -280,13 +287,14 @@ describe('transition', () => {
       duration: 50
     });
 
-    await new Promise(r => setTimeout(r, 10));
+    // Flush microtasks to apply enter class (queueMicrotask is used)
+    adapter.flushMicrotasks();
 
     // Enter class should be applied
     assert.ok(element.classList.contains('fade-in'));
 
-    // Wait for duration to pass
-    await new Promise(r => setTimeout(r, 60));
+    // Run timers to simulate duration passing
+    adapter.runAllTimers();
 
     // Enter class should be removed
     assert.ok(!element.classList.contains('fade-in'));
@@ -307,7 +315,8 @@ describe('transition', () => {
       }
     });
 
-    await new Promise(r => setTimeout(r, 10));
+    // Flush microtasks to trigger onEnter
+    adapter.flushMicrotasks();
     assert.strictEqual(enterCalled, true);
   });
 
@@ -336,11 +345,16 @@ describe('transition', () => {
       duration: 50
     });
 
+    // Start exit
     const exitPromise = element._pulseTransitionExit();
 
-    // Exit class should be applied
+    // Exit class should be applied immediately
     assert.ok(element.classList.contains('fade-out'));
 
+    // Run timers to complete the exit animation
+    adapter.runAllTimers();
+
+    // Now the promise should resolve
     await exitPromise;
 
     // Exit class should be removed after duration
@@ -362,8 +376,13 @@ describe('transition', () => {
       }
     });
 
-    await element._pulseTransitionExit();
+    // Start exit - onExit is called synchronously when exit starts
+    const exitPromise = element._pulseTransitionExit();
     assert.strictEqual(exitCalled, true);
+
+    // Run timers to complete exit
+    adapter.runAllTimers();
+    await exitPromise;
   });
 
   test('transition returns the element', async () => {
@@ -414,7 +433,9 @@ describe('whenTransition', () => {
     const root = adapter.createElement('div');
     adapter.appendChild(root, container);
 
-    await new Promise(r => setTimeout(r, 100));
+    // Flush microtasks to process effect and timers for transitions
+    adapter.flushMicrotasks();
+    adapter.runAllTimers();
 
     let spans = root.childNodes.filter(n => n.nodeType === 1);
     assert.ok(spans.length >= 1);
@@ -439,7 +460,8 @@ describe('whenTransition', () => {
     const root = adapter.createElement('div');
     adapter.appendChild(root, container);
 
-    await new Promise(r => setTimeout(r, 10));
+    // Flush microtasks to process effect
+    adapter.flushMicrotasks();
 
     // Initially no content
     let spans = root.childNodes.filter(n => n.nodeType === 1 && n.tagName === 'SPAN');
@@ -447,7 +469,8 @@ describe('whenTransition', () => {
 
     // Show content
     show.set(true);
-    await new Promise(r => setTimeout(r, 20));
+    // Flush microtasks to process reactive update
+    adapter.flushMicrotasks();
 
     spans = root.childNodes.filter(n => n.nodeType === 1 && n.tagName === 'SPAN');
     // Content should appear with enter class
