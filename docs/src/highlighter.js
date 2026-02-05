@@ -173,6 +173,7 @@ function addCopyButtonsToAllCodeBlocks() {
 export function highlightAllCode() {
   document.querySelectorAll('pre code').forEach(block => {
     const parent = block.closest('.code-block');
+    const pre = block.closest('pre');
     const header = parent?.querySelector('.code-header');
     let lang = 'js';
 
@@ -194,6 +195,13 @@ export function highlightAllCode() {
     }
 
     block.innerHTML = highlightCode(block.textContent, lang);
+
+    // WCAG 2.1: Make scrollable regions keyboard accessible
+    if (pre && pre.scrollWidth > pre.clientWidth) {
+      pre.setAttribute('tabindex', '0');
+      pre.setAttribute('role', 'region');
+      pre.setAttribute('aria-label', t('aria.codeBlock') || 'Code example');
+    }
   });
 
   // Add copy buttons to all code blocks

@@ -259,7 +259,8 @@ export default {
     toggleTheme: 'Changer de thème',
     selectLanguage: 'Sélectionner la langue',
     expandSection: 'Développer la section',
-    collapseSection: 'Réduire la section'
+    collapseSection: 'Réduire la section',
+    codeBlock: 'Exemple de code défilant'
   },
 
   // Error messages

@@ -259,7 +259,8 @@ export default {
     toggleTheme: 'Ŝanĝi temon',
     selectLanguage: 'Elekti lingvon',
     expandSection: 'Ekspandi sekcion',
-    collapseSection: 'Kolapsigi sekcion'
+    collapseSection: 'Kolapsigi sekcion',
+    codeBlock: 'Rulebla kodekzemplo'
   },
 
   // Error messages

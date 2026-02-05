@@ -259,7 +259,8 @@ export default {
     toggleTheme: 'Skipta um þema',
     selectLanguage: 'Velja tungumál',
     expandSection: 'Stækka hluta',
-    collapseSection: 'Fella saman hluta'
+    collapseSection: 'Fella saman hluta',
+    codeBlock: 'Skrunanlegt kóðadæmi'
   },
 
   // Error messages

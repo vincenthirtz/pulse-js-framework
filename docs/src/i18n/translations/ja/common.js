@@ -259,7 +259,8 @@ export default {
     toggleTheme: 'テーマを切り替え',
     selectLanguage: '言語を選択',
     expandSection: 'セクションを展開',
-    collapseSection: 'セクションを折りたたむ'
+    collapseSection: 'セクションを折りたたむ',
+    codeBlock: 'スクロール可能なコード例'
   },
 
   // Error messages

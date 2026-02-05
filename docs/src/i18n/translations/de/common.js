@@ -259,7 +259,8 @@ export default {
     toggleTheme: 'Design wechseln',
     selectLanguage: 'Sprache auswählen',
     expandSection: 'Abschnitt erweitern',
-    collapseSection: 'Abschnitt einklappen'
+    collapseSection: 'Abschnitt einklappen',
+    codeBlock: 'Scrollbares Codebeispiel'
   },
 
   // Error messages
