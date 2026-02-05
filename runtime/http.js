@@ -5,7 +5,7 @@
 
 import { pulse, computed, batch } from './pulse.js';
 import { useAsync, useResource } from './async.js';
-import { RuntimeError, createErrorMessage, getDocsUrl } from './errors.js';
+import { ClientError } from './errors.js';
 import { InterceptorManager } from './interceptor-manager.js';
 
 // ============================================================================
@@ -13,20 +13,22 @@ import { InterceptorManager } from './interceptor-manager.js';
 // ============================================================================
 
 /**
- * HTTP-specific error suggestions
+ * HTTP Error with request/response context.
+ * Extends ClientError for consistent error handling patterns.
  */
-const HTTP_SUGGESTIONS = {
-  TIMEOUT: 'Consider increasing the timeout or checking network conditions.',
-  NETWORK: 'Check internet connectivity and ensure the server is reachable.',
-  ABORT: 'Request was cancelled. This is usually intentional.',
-  HTTP_ERROR: 'Check the response status and server logs for details.',
-  PARSE_ERROR: 'The response could not be parsed. Check the Content-Type header.'
-};
+export class HttpError extends ClientError {
+  static suggestions = {
+    TIMEOUT: 'Consider increasing the timeout or checking network conditions.',
+    NETWORK: 'Check internet connectivity and ensure the server is reachable.',
+    ABORT: 'Request was cancelled. This is usually intentional.',
+    HTTP_ERROR: 'Check the response status and server logs for details.',
+    PARSE_ERROR: 'The response could not be parsed. Check the Content-Type header.'
+  };
 
-/**
- * HTTP Error with request/response context
- */
-export class HttpError extends RuntimeError {
+  static errorName = 'HttpError';
+  static defaultCode = 'HTTP_ERROR';
+  static markerProperty = 'isHttpError';
+
   /**
    * @param {string} message - Error message
    * @param {Object} [options={}] - Error options
@@ -36,48 +38,20 @@ export class HttpError extends RuntimeError {
    * @param {Object} [options.response] - The HttpResponse object
    */
   constructor(message, options = {}) {
-    const code = options.code || 'HTTP_ERROR';
-    const formattedMessage = createErrorMessage({
-      code,
-      message,
-      context: options.context,
-      suggestion: options.suggestion || HTTP_SUGGESTIONS[code]
-    });
-
-    super(formattedMessage, { code });
-
-    this.name = 'HttpError';
+    super(message, options);
     this.config = options.config || null;
-    this.code = code;
     this.request = options.request || null;
     this.response = options.response || null;
     this.status = options.response?.status || null;
-    this.isHttpError = true;
   }
 
   /**
    * Check if an error is an HttpError
    * @param {any} error - The error to check
-   * @returns {boolean} True if the error is an HttpError
+   * @returns {boolean}
    */
   static isHttpError(error) {
     return error?.isHttpError === true;
-  }
-
-  /**
-   * Check if this is a timeout error
-   * @returns {boolean}
-   */
-  isTimeout() {
-    return this.code === 'TIMEOUT';
-  }
-
-  /**
-   * Check if this is a network error
-   * @returns {boolean}
-   */
-  isNetworkError() {
-    return this.code === 'NETWORK';
   }
 
   /**

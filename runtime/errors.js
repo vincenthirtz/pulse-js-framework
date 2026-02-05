@@ -218,6 +218,163 @@ export class RouterError extends RuntimeError {
 }
 
 // ============================================================================
+// Client Errors (HTTP, WebSocket, GraphQL)
+// ============================================================================
+
+/**
+ * Base class for client errors (HTTP, WebSocket, GraphQL).
+ * Provides common patterns for error creation with suggestions.
+ *
+ * @example
+ * class HttpError extends ClientError {
+ *   static suggestions = { TIMEOUT: 'Increase timeout...' };
+ *   static errorName = 'HttpError';
+ *   static defaultCode = 'HTTP_ERROR';
+ *   static markerProperty = 'isHttpError';
+ * }
+ */
+export class ClientError extends RuntimeError {
+  /** @type {Object<string, string>} Error code to suggestion mapping */
+  static suggestions = {};
+
+  /** @type {string} The error class name */
+  static errorName = 'ClientError';
+
+  /** @type {string} Default error code when none provided */
+  static defaultCode = 'CLIENT_ERROR';
+
+  /** @type {string} Property name for instance type checking (e.g., 'isHttpError') */
+  static markerProperty = 'isClientError';
+
+  /**
+   * @param {string} message - Error message
+   * @param {Object} [options={}] - Error options
+   * @param {string} [options.code] - Error code
+   * @param {string} [options.context] - Error context
+   * @param {string} [options.suggestion] - Custom suggestion (overrides default)
+   */
+  constructor(message, options = {}) {
+    const code = options.code || new.target.defaultCode;
+    const suggestion = options.suggestion || new.target.suggestions[code];
+
+    const formattedMessage = createErrorMessage({
+      code,
+      message,
+      context: options.context,
+      suggestion
+    });
+
+    super(formattedMessage, { code });
+
+    this.name = new.target.errorName;
+    this.code = code;
+    this[new.target.markerProperty] = true;
+  }
+
+  /**
+   * Check if an error is an instance of this error type
+   * @param {any} error - The error to check
+   * @returns {boolean}
+   */
+  static isError(error) {
+    return error?.[this.markerProperty] === true;
+  }
+
+  /**
+   * Check if this is a timeout error
+   * @returns {boolean}
+   */
+  isTimeout() {
+    return this.code === 'TIMEOUT';
+  }
+
+  /**
+   * Check if this is a network error
+   * @returns {boolean}
+   */
+  isNetworkError() {
+    return this.code === 'NETWORK' || this.code === 'NETWORK_ERROR';
+  }
+}
+
+/**
+ * Factory to create a client error class with specific suggestions and properties.
+ *
+ * @param {Object} config - Error class configuration
+ * @param {string} config.name - Error class name (e.g., 'HttpError')
+ * @param {string} config.defaultCode - Default error code
+ * @param {string} config.markerProperty - Instance marker property (e.g., 'isHttpError')
+ * @param {Object<string, string>} config.suggestions - Error code to suggestion mapping
+ * @param {string[]} [config.codeMethods] - Error codes to create isXxx() methods for
+ * @param {string[]} [config.additionalProperties] - Extra properties to copy from options
+ * @returns {typeof ClientError} The created error class
+ *
+ * @example
+ * const HttpError = createClientErrorClass({
+ *   name: 'HttpError',
+ *   defaultCode: 'HTTP_ERROR',
+ *   markerProperty: 'isHttpError',
+ *   suggestions: {
+ *     TIMEOUT: 'Consider increasing the timeout.',
+ *     NETWORK: 'Check internet connectivity.'
+ *   },
+ *   codeMethods: ['TIMEOUT', 'NETWORK', 'ABORT'],
+ *   additionalProperties: ['config', 'request', 'response', 'status']
+ * });
+ */
+export function createClientErrorClass(config) {
+  const {
+    name,
+    defaultCode,
+    markerProperty,
+    suggestions = {},
+    codeMethods = [],
+    additionalProperties = []
+  } = config;
+
+  class CustomClientError extends ClientError {
+    static suggestions = suggestions;
+    static errorName = name;
+    static defaultCode = defaultCode;
+    static markerProperty = markerProperty;
+
+    constructor(message, options = {}) {
+      super(message, options);
+
+      // Copy additional properties from options
+      for (const prop of additionalProperties) {
+        this[prop] = options[prop] ?? null;
+      }
+    }
+
+    /**
+     * Static type check method (e.g., HttpError.isHttpError(err))
+     */
+    static [`is${name}`](error) {
+      return error?.[markerProperty] === true;
+    }
+  }
+
+  // Add isXxx() methods for each code
+  for (const code of codeMethods) {
+    const methodName = 'is' + code.split('_').map(
+      (part, i) => i === 0
+        ? part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
+        : part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
+    ).join('');
+
+    CustomClientError.prototype[methodName] = function () {
+      return this.code === code;
+    };
+  }
+
+  // Set the class name for better debugging
+  Object.defineProperty(CustomClientError, 'name', { value: name });
+
+  return CustomClientError;
+}
+
+// ============================================================================
 // CLI Errors
 // ============================================================================
 
@@ -564,6 +721,8 @@ export default {
   DOMError,
   StoreError,
   RouterError,
+  ClientError,
+  createClientErrorClass,
   CLIError,
   ConfigError,
   SUGGESTIONS,

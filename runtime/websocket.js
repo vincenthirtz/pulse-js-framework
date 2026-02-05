@@ -26,7 +26,7 @@
 
 import { pulse, computed, batch, onCleanup } from './pulse.js';
 import { createVersionedAsync } from './async.js';
-import { RuntimeError, createErrorMessage, getDocsUrl } from './errors.js';
+import { ClientError } from './errors.js';
 import { loggers } from './logger.js';
 import { MessageInterceptorManager } from './interceptor-manager.js';
 
@@ -35,21 +35,23 @@ import { MessageInterceptorManager } from './interceptor-manager.js';
 // ============================================================================
 
 /**
- * WebSocket-specific error suggestions
+ * WebSocket Error with connection and reconnection context.
+ * Extends ClientError for consistent error handling patterns.
  */
-const WEBSOCKET_SUGGESTIONS = {
-  CONNECT_FAILED: 'Check the WebSocket URL and ensure the server is running. Verify CORS settings if connecting cross-origin.',
-  CLOSE: 'The connection was closed. Check close code for reason. Common codes: 1000 (normal), 1001 (going away), 1006 (abnormal).',
-  TIMEOUT: 'Connection timed out. Check network conditions or increase the timeout value.',
-  PARSE_ERROR: 'Failed to parse incoming message. Check message format matches expected type (JSON/binary).',
-  SEND_FAILED: 'Failed to send message. Connection may be closed or message exceeds size limit.',
-  RECONNECT_EXHAUSTED: 'Maximum reconnection attempts reached. Consider increasing maxRetries or checking server availability.'
-};
+export class WebSocketError extends ClientError {
+  static suggestions = {
+    CONNECT_FAILED: 'Check the WebSocket URL and ensure the server is running. Verify CORS settings if connecting cross-origin.',
+    CLOSE: 'The connection was closed. Check close code for reason. Common codes: 1000 (normal), 1001 (going away), 1006 (abnormal).',
+    TIMEOUT: 'Connection timed out. Check network conditions or increase the timeout value.',
+    PARSE_ERROR: 'Failed to parse incoming message. Check message format matches expected type (JSON/binary).',
+    SEND_FAILED: 'Failed to send message. Connection may be closed or message exceeds size limit.',
+    RECONNECT_EXHAUSTED: 'Maximum reconnection attempts reached. Consider increasing maxRetries or checking server availability.'
+  };
 
-/**
- * WebSocket Error with connection and reconnection context
- */
-export class WebSocketError extends RuntimeError {
+  static errorName = 'WebSocketError';
+  static defaultCode = 'WEBSOCKET_ERROR';
+  static markerProperty = 'isWebSocketError';
+
   /**
    * @param {string} message - Error message
    * @param {Object} [options={}] - Error options
@@ -63,23 +65,11 @@ export class WebSocketError extends RuntimeError {
    * @param {number} [options.nextRetryDelay] - Delay until next retry in ms
    */
   constructor(message, options = {}) {
-    const code = options.code || 'WEBSOCKET_ERROR';
-    const formattedMessage = createErrorMessage({
-      code,
-      message,
-      context: options.context,
-      suggestion: options.suggestion || WEBSOCKET_SUGGESTIONS[code]
-    });
-
-    super(formattedMessage, { code });
-
-    this.name = 'WebSocketError';
-    this.code = code;
+    super(message, options);
     this.url = options.url || null;
     this.closeCode = options.closeCode || null;
     this.closeReason = options.closeReason || null;
     this.event = options.event || null;
-    this.isWebSocketError = true;
 
     // Reconnection context
     this.reconnectAttempt = typeof options.reconnectAttempt === 'number' ? options.reconnectAttempt : null;
@@ -98,7 +88,6 @@ export class WebSocketError extends RuntimeError {
 
   isConnectFailed() { return this.code === 'CONNECT_FAILED'; }
   isClose() { return this.code === 'CLOSE'; }
-  isTimeout() { return this.code === 'TIMEOUT'; }
   isParseError() { return this.code === 'PARSE_ERROR'; }
   isSendFailed() { return this.code === 'SEND_FAILED'; }
   isReconnectExhausted() { return this.code === 'RECONNECT_EXHAUSTED'; }

@@ -7,24 +7,13 @@ import { pulse, computed, batch, effect, onCleanup } from './pulse.js';
 import { createHttp, HttpError } from './http.js';
 import { createWebSocket, WebSocketError } from './websocket.js';
 import { createVersionedAsync } from './async.js';
-import { RuntimeError, createErrorMessage, getDocsUrl } from './errors.js';
+import { ClientError } from './errors.js';
 import { LRUCache } from './lru-cache.js';
 import { InterceptorManager } from './interceptor-manager.js';
 
 // ============================================================================
 // Constants
 // ============================================================================
-
-const GRAPHQL_SUGGESTIONS = {
-  GRAPHQL_ERROR: 'Check the GraphQL errors array for specific field errors.',
-  NETWORK_ERROR: 'Verify network connectivity and GraphQL endpoint URL.',
-  PARSE_ERROR: 'The response was not valid GraphQL JSON. Check server configuration.',
-  TIMEOUT: 'Request timed out. Consider increasing timeout or optimizing query.',
-  AUTHENTICATION_ERROR: 'Authentication required. Check your credentials or token.',
-  AUTHORIZATION_ERROR: 'Insufficient permissions for this operation.',
-  VALIDATION_ERROR: 'Invalid input provided. Check variables match schema types.',
-  SUBSCRIPTION_ERROR: 'WebSocket subscription failed. Check connection status.'
-};
 
 /**
  * graphql-ws protocol message types
@@ -50,10 +39,25 @@ const MessageType = {
 // ============================================================================
 
 /**
- * Error class for GraphQL operations
- * @extends RuntimeError
+ * Error class for GraphQL operations.
+ * Extends ClientError for consistent error handling patterns.
  */
-export class GraphQLError extends RuntimeError {
+export class GraphQLError extends ClientError {
+  static suggestions = {
+    GRAPHQL_ERROR: 'Check the GraphQL errors array for specific field errors.',
+    NETWORK_ERROR: 'Verify network connectivity and GraphQL endpoint URL.',
+    PARSE_ERROR: 'The response was not valid GraphQL JSON. Check server configuration.',
+    TIMEOUT: 'Request timed out. Consider increasing timeout or optimizing query.',
+    AUTHENTICATION_ERROR: 'Authentication required. Check your credentials or token.',
+    AUTHORIZATION_ERROR: 'Insufficient permissions for this operation.',
+    VALIDATION_ERROR: 'Invalid input provided. Check variables match schema types.',
+    SUBSCRIPTION_ERROR: 'WebSocket subscription failed. Check connection status.'
+  };
+
+  static errorName = 'GraphQLError';
+  static defaultCode = 'GRAPHQL_ERROR';
+  static markerProperty = 'isGraphQLError';
+
   /**
    * @param {string} message - Error message
    * @param {Object} [options={}] - Error options
@@ -65,17 +69,7 @@ export class GraphQLError extends RuntimeError {
    * @param {Object} [options.request] - Request configuration
    */
   constructor(message, options = {}) {
-    const suggestion = GRAPHQL_SUGGESTIONS[options.code] || GRAPHQL_SUGGESTIONS.GRAPHQL_ERROR;
-    super(
-      createErrorMessage({
-        code: options.code || 'GRAPHQL_ERROR',
-        message,
-        suggestion
-      }),
-      { code: options.code || 'GRAPHQL_ERROR', suggestion }
-    );
-
-    this.name = 'GraphQLError';
+    super(message, options);
     this.errors = options.errors || [];
     this.data = options.data ?? null;
     this.extensions = options.extensions || {};
@@ -89,7 +83,7 @@ export class GraphQLError extends RuntimeError {
    * @returns {boolean}
    */
   static isGraphQLError(error) {
-    return error instanceof GraphQLError;
+    return error?.isGraphQLError === true || error instanceof GraphQLError;
   }
 
   /**
@@ -125,22 +119,6 @@ export class GraphQLError extends RuntimeError {
   isValidationError() {
     return this.code === 'VALIDATION_ERROR' ||
       this.errors.some(e => e.extensions?.code === 'BAD_USER_INPUT');
-  }
-
-  /**
-   * Check if this is a network error
-   * @returns {boolean}
-   */
-  isNetworkError() {
-    return this.code === 'NETWORK_ERROR';
-  }
-
-  /**
-   * Check if this is a timeout error
-   * @returns {boolean}
-   */
-  isTimeout() {
-    return this.code === 'TIMEOUT';
   }
 
   /**
