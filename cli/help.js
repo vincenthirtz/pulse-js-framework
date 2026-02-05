@@ -29,18 +29,29 @@ Creates a new Pulse project with a complete starter template including:
 - Project structure (src/, public/)
 - Vite configuration for development and building
 - Sample App.pulse component with counter example
-- Package.json with all necessary scripts`,
+- Package.json with all necessary scripts
+
+You can also create projects from built-in example templates using
+the template flags (--ecommerce, --todo, --blog, --chat, --dashboard).`,
     arguments: [
       { name: '<name>', description: 'Name of the project directory to create' }
     ],
     options: [
       { flag: '--typescript, --ts', description: 'Create a TypeScript project with tsconfig.json' },
-      { flag: '--minimal', description: 'Create minimal project structure without extras' }
+      { flag: '--minimal', description: 'Create minimal project structure without extras' },
+      { flag: '--ecommerce', description: 'Use E-Commerce template (products, cart, checkout)' },
+      { flag: '--todo', description: 'Use Todo App template (filtering, local storage)' },
+      { flag: '--blog', description: 'Use Blog template (posts, sidebar, navigation)' },
+      { flag: '--chat', description: 'Use Chat template (messages, users, emoji picker)' },
+      { flag: '--dashboard', description: 'Use Dashboard template (data visualization)' }
     ],
     examples: [
       { cmd: 'pulse create my-app', desc: 'Create a new JavaScript project' },
       { cmd: 'pulse create my-app --typescript', desc: 'Create a new TypeScript project' },
-      { cmd: 'pulse create my-app --minimal', desc: 'Create a minimal project' }
+      { cmd: 'pulse create my-app --minimal', desc: 'Create a minimal project' },
+      { cmd: 'pulse create my-shop --ecommerce', desc: 'Create from E-Commerce template' },
+      { cmd: 'pulse create my-todos --todo', desc: 'Create from Todo App template' },
+      { cmd: 'pulse create my-blog --blog', desc: 'Create from Blog template' }
     ]
   },
 

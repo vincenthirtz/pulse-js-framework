@@ -21,6 +21,11 @@ npm test                # Run all tests (compiler, lint, format, analyze)
 # CLI commands (via pulse binary)
 pulse create <name>     # Create new Pulse project
 pulse create <name> --typescript  # Create TypeScript project
+pulse create <name> --ecommerce   # Create from E-Commerce template
+pulse create <name> --todo        # Create from Todo App template
+pulse create <name> --blog        # Create from Blog template
+pulse create <name> --chat        # Create from Chat template
+pulse create <name> --dashboard   # Create from Dashboard template
 pulse init              # Initialize in current directory
 pulse init --typescript # Initialize TypeScript project
 pulse dev [port]        # Start dev server (default: 3000)

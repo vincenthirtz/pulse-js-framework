@@ -48,6 +48,27 @@ npm install
 npm run dev
 ```
 
+### Or from a template
+
+Create projects from built-in example apps:
+
+```bash
+# E-commerce app (products, cart, checkout)
+npx pulse-js-framework create my-shop --ecommerce
+
+# Todo app (filtering, local storage)
+npx pulse-js-framework create my-todos --todo
+
+# Blog (posts, sidebar, navigation)
+npx pulse-js-framework create my-blog --blog
+
+# Chat app (messages, users, emoji picker)
+npx pulse-js-framework create my-chat --chat
+
+# Dashboard (data visualization)
+npx pulse-js-framework create my-dashboard --dashboard
+```
+
 ### Or use directly
 
 ```javascript
@@ -139,6 +160,11 @@ See [Pulse DSL documentation](docs/pulse-dsl.md) for full syntax reference.
 # Project Creation
 pulse create <name>              # Create new project
 pulse create <name> --typescript # Create TypeScript project
+pulse create <name> --ecommerce  # Create from E-Commerce template
+pulse create <name> --todo       # Create from Todo App template
+pulse create <name> --blog       # Create from Blog template
+pulse create <name> --chat       # Create from Chat template
+pulse create <name> --dashboard  # Create from Dashboard template
 pulse init --typescript          # Initialize in current directory
 
 # Development

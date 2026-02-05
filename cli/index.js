@@ -6,7 +6,7 @@
 
 import { fileURLToPath } from 'url';
 import { dirname, join, resolve, relative } from 'path';
-import { existsSync, mkdirSync, writeFileSync, readFileSync, readdirSync, watch } from 'fs';
+import { existsSync, mkdirSync, writeFileSync, readFileSync, readdirSync, watch, cpSync, statSync } from 'fs';
 import { log } from './logger.js';
 import { findPulseFiles, parseArgs } from './utils/file-utils.js';
 import { runHelp } from './help.js';
@@ -17,6 +17,15 @@ const __dirname = dirname(__filename);
 // Version - read dynamically from package.json
 const pkg = JSON.parse(readFileSync(join(__dirname, '..', 'package.json'), 'utf-8'));
 const VERSION = pkg.version;
+
+// Available example templates
+const TEMPLATES = {
+  ecommerce: { name: 'E-Commerce', description: 'Shopping cart with products, checkout, and cart management' },
+  todo: { name: 'Todo App', description: 'Classic todo list with filtering and local storage' },
+  blog: { name: 'Blog', description: 'Blogging platform with posts, sidebar, and navigation' },
+  chat: { name: 'Chat', description: 'Real-time chat with messages, users, and emoji picker' },
+  dashboard: { name: 'Dashboard', description: 'Analytics dashboard with data visualization' }
+};
 
 // Command handlers
 const commands = {
@@ -192,6 +201,87 @@ function showVersion() {
 }
 
 /**
+ * Copy example template to project directory
+ * Transforms imports from /runtime/index.js to pulse-js-framework/runtime
+ * @param {string} templateName - Name of the template (ecommerce, todo, blog, chat, dashboard)
+ * @param {string} projectPath - Destination project path
+ * @param {string} projectName - Name of the project
+ */
+function copyExampleTemplate(templateName, projectPath, projectName) {
+  const examplesDir = join(__dirname, '..', 'examples');
+  const templateDir = join(examplesDir, templateName);
+
+  if (!existsSync(templateDir)) {
+    throw new Error(`Template "${templateName}" not found at ${templateDir}`);
+  }
+
+  /**
+   * Recursively copy directory, transforming JS files
+   */
+  function copyDir(src, dest) {
+    if (!existsSync(dest)) {
+      mkdirSync(dest, { recursive: true });
+    }
+
+    const entries = readdirSync(src, { withFileTypes: true });
+
+    for (const entry of entries) {
+      const srcPath = join(src, entry.name);
+      const destPath = join(dest, entry.name);
+
+      // Skip node_modules and dist directories
+      if (entry.name === 'node_modules' || entry.name === 'dist') {
+        continue;
+      }
+
+      if (entry.isDirectory()) {
+        copyDir(srcPath, destPath);
+      } else {
+        // Read file content
+        let content = readFileSync(srcPath, 'utf-8');
+
+        // Transform imports in JS files
+        if (entry.name.endsWith('.js') || entry.name.endsWith('.ts')) {
+          // Transform /runtime/index.js imports to pulse-js-framework/runtime
+          content = content.replace(
+            /from\s+['"]\/runtime\/index\.js['"]/g,
+            "from 'pulse-js-framework/runtime'"
+          );
+          content = content.replace(
+            /from\s+['"]\/runtime['"]/g,
+            "from 'pulse-js-framework/runtime'"
+          );
+          // Transform other runtime submodule imports
+          content = content.replace(
+            /from\s+['"]\/runtime\/([^'"]+)['"]/g,
+            "from 'pulse-js-framework/runtime/$1'"
+          );
+        }
+
+        writeFileSync(destPath, content);
+      }
+    }
+  }
+
+  // Copy src directory
+  const srcDir = join(templateDir, 'src');
+  if (existsSync(srcDir)) {
+    copyDir(srcDir, join(projectPath, 'src'));
+  }
+
+  // Copy index.html if exists
+  const indexHtml = join(templateDir, 'index.html');
+  if (existsSync(indexHtml)) {
+    let content = readFileSync(indexHtml, 'utf-8');
+    // Update title to project name
+    content = content.replace(/<title>[^<]*<\/title>/, `<title>${projectName}</title>`);
+    writeFileSync(join(projectPath, 'index.html'), content);
+  }
+
+  return true;
+}
+
+/**
  * Create a new project
  */
 async function createProject(args) {
@@ -200,7 +290,16 @@ async function createProject(args) {
 
   if (!projectName) {
     log.error('Please provide a project name.');
-    log.info('Usage: pulse create <project-name>');
+    log.info('Usage: pulse create <project-name> [options]');
+    log.info('');
+    log.info('Options:');
+    log.info('  --typescript, --ts    Create TypeScript project');
+    log.info('  --minimal             Create minimal project');
+    log.info('');
+    log.info('Templates (use existing example apps):');
+    for (const [key, info] of Object.entries(TEMPLATES)) {
+      log.info(`  --${key.padEnd(12)} ${info.description}`);
+    }
     process.exit(1);
   }
 
@@ -214,6 +313,93 @@ async function createProject(args) {
   const useTypescript = options.typescript || options.ts || false;
   const minimal = options.minimal || false;
 
+  // Check for template options
+  let selectedTemplate = null;
+  for (const templateName of Object.keys(TEMPLATES)) {
+    if (options[templateName]) {
+      selectedTemplate = templateName;
+      break;
+    }
+  }
+
+  // If a template is selected, use the template-based creation
+  if (selectedTemplate) {
+    const templateInfo = TEMPLATES[selectedTemplate];
+    log.info(`Creating new Pulse project: ${projectName} (${templateInfo.name} template)`);
+
+    // Create project directory
+    mkdirSync(projectPath);
+    mkdirSync(join(projectPath, 'public'));
+
+    // Copy template files
+    try {
+      copyExampleTemplate(selectedTemplate, projectPath, projectName);
+      log.info(`  ✓ Copied ${templateInfo.name} template files`);
+    } catch (err) {
+      log.error(`Failed to copy template: ${err.message}`);
+      process.exit(1);
+    }
+
+    // Create package.json for template project
+    const packageJson = {
+      name: projectName,
+      version: '0.1.0',
+      type: 'module',
+      scripts: {
+        dev: 'pulse dev',
+        build: 'pulse build',
+        preview: 'vite preview',
+        test: 'pulse test',
+        lint: 'pulse lint'
+      },
+      dependencies: {
+        'pulse-js-framework': '^1.0.0'
+      },
+      devDependencies: {
+        vite: '^5.0.0'
+      }
+    };
+
+    writeFileSync(
+      join(projectPath, 'package.json'),
+      JSON.stringify(packageJson, null, 2)
+    );
+
+    // Create vite.config.js
+    const viteConfig = `import { defineConfig } from 'vite';
+import pulse from 'pulse-js-framework/vite';
+
+export default defineConfig({
+  plugins: [pulse()]
+});
+`;
+    writeFileSync(join(projectPath, 'vite.config.js'), viteConfig);
+
+    // Create .gitignore
+    const gitignore = `node_modules
+dist
+.DS_Store
+*.local
+`;
+    writeFileSync(join(projectPath, '.gitignore'), gitignore);
+
+    log.info(`
+Project created successfully!
+
+Next steps:
+  cd ${projectName}
+  npm install
+  npm run dev
+
+Template: ${templateInfo.name}
+  ${templateInfo.description}
+
+Happy coding with Pulse!
+    `);
+    return;
+  }
+
+  // Standard project creation (no template)
   log.info(`Creating new Pulse project: ${projectName}${useTypescript ? ' (TypeScript)' : ''}`);
 
   // Create project structure
