@@ -14,7 +14,7 @@ import { compile } from '../compiler/index.js';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..');
 
-const EXAMPLES = ['hmr', 'blog', 'todo', 'chat', 'ecommerce', 'meteo', 'router', 'store', 'dashboard', 'sports'];
+const EXAMPLES = ['hmr', 'blog', 'todo', 'chat', 'ecommerce', 'meteo', 'router', 'store', 'dashboard', 'sports', 'less-example', 'stylus-example'];
 
 console.log('🚀 Building Pulse for Netlify...\n');
 
@@ -58,22 +58,37 @@ for (const example of EXAMPLES) {
   // Copy index.html and update paths
   let indexHtml = readFileSync(join(exampleDir, 'index.html'), 'utf-8');
 
-  // Update script path to be relative
+  // Update script paths to be relative
   indexHtml = indexHtml.replace(
     'src="/src/main.js"',
     'src="./src/main.js"'
   );
+  // For examples with root-level main.js (like less-example, stylus-example)
+  indexHtml = indexHtml.replace(
+    'src="/main.js"',
+    'src="./main.js"'
+  );
 
   writeFileSync(join(exampleDist, 'index.html'), indexHtml);
 
-  // Copy src folder
+  // Copy src folder (if exists)
   const srcDir = join(exampleDir, 'src');
   if (existsSync(srcDir)) {
     cpSync(srcDir, join(exampleDist, 'src'), { recursive: true });
+    // Process and minify JS files in src/
+    processJSFiles(join(exampleDist, 'src'));
+  } else {
+    // For examples without src/ folder (like less-example, stylus-example)
+    // Copy .js and .pulse files directly to dist
+    const files = readdirSync(exampleDir);
+    for (const file of files) {
+      if (file.endsWith('.js') || file.endsWith('.pulse')) {
+        cpSync(join(exampleDir, file), join(exampleDist, file));
+      }
+    }
+    // Process and minify JS files in root
+    processJSFiles(exampleDist);
   }
-
-  // Process and minify JS files
-  processJSFiles(join(exampleDist, 'src'));
 
   console.log(`   ✓ ${example} built & minified`);
 }
@@ -272,6 +287,18 @@ const examplesIndexHtml = `<!DOCTYPE html>
         <span class="arrow">→</span>
         <h2>⚽ Sports News</h2>
         <p>News app with HTTP client, categories, search, favorites, and dark mode.</p>
+      </a>
+
+      <a href="/examples/less-example/" class="example">
+        <span class="arrow">→</span>
+        <h2>🎨 LESS Demo</h2>
+        <p>Demonstrates LESS CSS preprocessor with variables, mixins, and nesting.</p>
+      </a>
+
+      <a href="/examples/stylus-example/" class="example">
+        <span class="arrow">→</span>
+        <h2>💅 Stylus Demo</h2>
+        <p>Shows Stylus CSS preprocessor with flexible syntax and powerful features.</p>
       </a>
     </div>
 

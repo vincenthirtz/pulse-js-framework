@@ -1118,15 +1118,31 @@ export class Parser {
   }
 
   /**
-   * Parse assignment expression (a = b)
+   * Parse assignment expression (a = b, a += b, a -= b, etc.)
    */
   parseAssignmentExpression() {
     const left = this.parseConditionalExpression();
 
-    if (this.is(TokenType.EQ)) {
-      this.advance();
+    // Check for assignment operators
+    const assignmentOps = [
+      TokenType.EQ,           // =
+      TokenType.PLUS_ASSIGN,  // +=
+      TokenType.MINUS_ASSIGN, // -=
+      TokenType.STAR_ASSIGN,  // *=
+      TokenType.SLASH_ASSIGN, // /=
+      TokenType.AND_ASSIGN,   // &&=
+      TokenType.OR_ASSIGN,    // ||=
+      TokenType.NULLISH_ASSIGN // ??=
+    ];
+
+    if (this.isAny(...assignmentOps)) {
+      const operator = this.advance().value;
       const right = this.parseAssignmentExpression();
-      return new ASTNode(NodeType.AssignmentExpression, { left, right });
+      return new ASTNode(NodeType.AssignmentExpression, {
+        left,
+        right,
+        operator
+      });
     }
 
     return left;
@@ -1545,15 +1561,83 @@ export class Parser {
    */
   parseStyleBlock() {
     this.expect(TokenType.STYLE);
-    this.expect(TokenType.LBRACE);
+    const startBrace = this.expect(TokenType.LBRACE);
 
-    const rules = [];
-    while (!this.is(TokenType.RBRACE) && !this.is(TokenType.EOF)) {
-      rules.push(this.parseStyleRule());
+    // Extract raw CSS content for preprocessor support
+    // Instead of parsing token by token, collect all tokens until matching }
+    const rawTokens = [];
+    let braceDepth = 1; // We've already consumed the opening {
+    const startPos = this.pos;
+
+    while (braceDepth > 0 && !this.is(TokenType.EOF)) {
+      const token = this.current();
+      if (token.type === TokenType.LBRACE) braceDepth++;
+      if (token.type === TokenType.RBRACE) braceDepth--;
+
+      if (braceDepth > 0) {
+        rawTokens.push(token);
+        this.advance();
+      }
     }
 
     this.expect(TokenType.RBRACE);
-    return new ASTNode(NodeType.StyleBlock, { rules });
+
+    // Reconstruct raw CSS from tokens for preprocessor
+    const rawCSS = this.reconstructCSS(rawTokens);
+
+    // Try to parse as structured CSS (will work for plain CSS)
+    // If parsing fails, fall back to raw mode for preprocessors
+    let rules = [];
+    let parseError = null;
+
+    // Reset to try parsing
+    const savedPos = this.pos;
+    this.pos = startPos;
+
+    try {
+      while (!this.is(TokenType.RBRACE) && !this.is(TokenType.EOF)) {
+        rules.push(this.parseStyleRule());
+      }
+    } catch (error) {
+      // Parsing failed - likely preprocessor syntax (LESS/SASS/Stylus)
+      parseError = error;
+      rules = []; // Clear any partial parse
+    }
+
+    // Restore position to after the closing }
+    this.pos = savedPos;
+
+    return new ASTNode(NodeType.StyleBlock, {
+      rules,
+      raw: rawCSS,
+      parseError: parseError ? parseError.message : null
+    });
+  }
+
+  /**
+   * Reconstruct CSS from tokens, preserving formatting
+   */
+  reconstructCSS(tokens) {
+    if (!tokens.length) return '';
+
+    const lines = [];
+    let currentLine = [];
+    let lastLine = tokens[0].line;
+
+    for (const token of tokens) {
+      if (token.line !== lastLine) {
+        lines.push(currentLine.join(''));
+        currentLine = [];
+        lastLine = token.line;
+      }
+      currentLine.push(token.raw || token.value);
+    }
+
+    if (currentLine.length > 0) {
+      lines.push(currentLine.join(''));
+    }
+
+    return lines.join('\n').trim();
   }
 
   /**

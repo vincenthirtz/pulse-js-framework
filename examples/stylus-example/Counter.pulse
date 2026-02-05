@@ -1,4 +1,4 @@
-@component Counter
+@page Counter
 
 state {
   count: 0

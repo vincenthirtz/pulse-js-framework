@@ -82,12 +82,12 @@ export function transformExpression(transformer, node) {
 
     case NodeType.UpdateExpression: {
       const argument = transformExpression(transformer, node.argument);
-      // For state variables, convert x++ to x.set(x.get() + 1)
+      // For state variables, convert x++ to x.update(x => x + 1)
       if (node.argument.type === NodeType.Identifier &&
           transformer.stateVars.has(node.argument.name)) {
         const name = node.argument.name;
-        const delta = node.operator === '++' ? 1 : -1;
-        return `${name}.set(${name}.get() + ${delta})`;
+        const op = node.operator === '++' ? '+' : '-';
+        return `${name}.update(_${name} => _${name} ${op} 1)`;
       }
       return node.prefix
         ? `${node.operator}${argument}`
@@ -117,12 +117,32 @@ export function transformExpression(transformer, node) {
     case NodeType.AssignmentExpression: {
       const left = transformExpression(transformer, node.left);
       const right = transformExpression(transformer, node.right);
-      // For state variables, convert to .set()
+      const operator = node.operator || '=';
+
+      // For state variables, convert to .set() or .update()
       if (node.left.type === NodeType.Identifier &&
           transformer.stateVars.has(node.left.name)) {
-        return `${node.left.name}.set(${right})`;
+        const varName = node.left.name;
+
+        // Compound assignment operators (+=, -=, *=, /=, &&=, ||=, ??=)
+        if (operator !== '=') {
+          // Convert compound assignment to update
+          // a += b  =>  a.update(_a => _a + b)
+          // a -= b  =>  a.update(_a => _a - b)
+          const baseOp = operator.slice(0, -1); // Remove trailing '='
+          return `${varName}.update(_${varName} => _${varName} ${baseOp} ${right})`;
+        }
+
+        // Simple assignment: a = b  =>  a.set(b)
+        return `${varName}.set(${right})`;
       }
-      return `(${left} = ${right})`;
+
+      // Regular assignment (non-state vars)
+      if (operator === '=') {
+        return `(${left} = ${right})`;
+      }
+      // Compound assignment for non-state vars
+      return `(${left} ${operator} ${right})`;
     }
 
     case NodeType.ArrayLiteral: {
