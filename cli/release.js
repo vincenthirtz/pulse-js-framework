@@ -509,6 +509,46 @@ function buildCommitMessage(newVersion, title, changes) {
 }
 
 /**
+ * Verify that a git tag exists locally
+ */
+function verifyTagExists(version) {
+  try {
+    const tags = execSync('git tag -l', { cwd: root, encoding: 'utf-8' });
+    return tags.split('\n').includes(`v${version}`);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Verify that a git tag exists on remote
+ */
+function verifyTagOnRemote(version) {
+  try {
+    const remoteTags = execSync('git ls-remote --tags origin', { cwd: root, encoding: 'utf-8' });
+    return remoteTags.includes(`refs/tags/v${version}`);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Execute a git command with error handling
+ */
+function execGitCommand(command, description) {
+  log.info(`  Running: ${description}...`);
+  try {
+    execSync(command, { cwd: root, stdio: 'inherit' });
+    return { success: true };
+  } catch (error) {
+    log.error(`  Failed: ${description}`);
+    log.error(`  Command: ${command}`);
+    log.error(`  Error: ${error.message}`);
+    return { success: false, error };
+  }
+}
+
+/**
  * Execute git commands
  */
 function gitCommitTagPush(newVersion, title, changes, dryRun = false) {
@@ -521,33 +561,142 @@ function gitCommitTagPush(newVersion, title, changes, dryRun = false) {
     log.info(`  [dry-run] git tag -a v${newVersion} -m "Release v${newVersion}"`);
     log.info('  [dry-run] git push');
     log.info('  [dry-run] git push --tags');
-    return;
+    return { success: true };
   }
 
   // git add
-  log.info('  Running: git add -A...');
-  execSync('git add -A', { cwd: root, stdio: 'inherit' });
+  let result = execGitCommand('git add -A', 'git add -A');
+  if (!result.success) {
+    return { success: false, stage: 'add', error: result.error };
+  }
 
   // git commit using temp file for cross-platform compatibility
-  log.info('  Running: git commit...');
   const tempFile = join(tmpdir(), `pulse-release-${Date.now()}.txt`);
   writeFileSync(tempFile, commitMessage, 'utf-8');
   try {
-    execSync(`git commit -F "${tempFile}"`, { cwd: root, stdio: 'inherit' });
+    result = execGitCommand(`git commit -F "${tempFile}"`, 'git commit');
+    if (!result.success) {
+      return { success: false, stage: 'commit', error: result.error };
+    }
   } finally {
-    unlinkSync(tempFile);
+    try {
+      unlinkSync(tempFile);
+    } catch {
+      // Ignore cleanup errors
+    }
   }
 
   // git tag
-  log.info(`  Running: git tag v${newVersion}...`);
-  execSync(`git tag -a v${newVersion} -m "Release v${newVersion}"`, { cwd: root, stdio: 'inherit' });
+  result = execGitCommand(
+    `git tag -a v${newVersion} -m "Release v${newVersion}"`,
+    `git tag v${newVersion}`
+  );
+  if (!result.success) {
+    log.error('');
+    log.error('Tag creation failed. The commit was created but not tagged.');
+    log.error('You can manually create the tag with:');
+    log.error(`  git tag -a v${newVersion} -m "Release v${newVersion}"`);
+    return { success: false, stage: 'tag', error: result.error };
+  }
+
+  // Verify tag was created
+  if (!verifyTagExists(newVersion)) {
+    log.error('');
+    log.error('Tag creation appeared to succeed but tag not found locally.');
+    log.error('You can manually create the tag with:');
+    log.error(`  git tag -a v${newVersion} -m "Release v${newVersion}"`);
+    return { success: false, stage: 'tag-verify', error: new Error('Tag not found after creation') };
+  }
+  log.info(`  Verified: tag v${newVersion} exists locally`);
 
   // git push
-  log.info('  Running: git push...');
-  execSync('git push', { cwd: root, stdio: 'inherit' });
+  result = execGitCommand('git push', 'git push');
+  if (!result.success) {
+    log.error('');
+    log.error('Push failed. Commit and tag were created locally.');
+    log.error('You can manually push with:');
+    log.error('  git push && git push --tags');
+    return { success: false, stage: 'push', error: result.error };
+  }
 
-  log.info('  Running: git push --tags...');
-  execSync('git push --tags', { cwd: root, stdio: 'inherit' });
+  // git push --tags
+  result = execGitCommand('git push --tags', 'git push --tags');
+  if (!result.success) {
+    log.error('');
+    log.error('Tag push failed. The tag exists locally but not on remote.');
+    log.error('You can manually push tags with:');
+    log.error('  git push --tags');
+    return { success: false, stage: 'push-tags', error: result.error };
+  }
+
+  // Verify tag was pushed to remote
+  if (!verifyTagOnRemote(newVersion)) {
+    log.warn('');
+    log.warn('Tag push appeared to succeed but tag not found on remote.');
+    log.warn('You may need to manually verify or push with:');
+    log.warn('  git push --tags');
+  } else {
+    log.info(`  Verified: tag v${newVersion} exists on remote`);
+  }
+
+  return { success: true };
+}
+
+/**
+ * Execute git commands without pushing (--no-push mode)
+ */
+function gitCommitTagNoPush(newVersion, title, changes) {
+  const commitMessage = buildCommitMessage(newVersion, title, changes);
+
+  // git add
+  let result = execGitCommand('git add -A', 'git add -A');
+  if (!result.success) {
+    return { success: false, stage: 'add', error: result.error };
+  }
+
+  // git commit using temp file for cross-platform compatibility
+  const tempFile = join(tmpdir(), `pulse-release-${Date.now()}.txt`);
+  writeFileSync(tempFile, commitMessage, 'utf-8');
+  try {
+    result = execGitCommand(`git commit -F "${tempFile}"`, 'git commit');
+    if (!result.success) {
+      return { success: false, stage: 'commit', error: result.error };
+    }
+  } finally {
+    try {
+      unlinkSync(tempFile);
+    } catch {
+      // Ignore cleanup errors
+    }
+  }
+
+  // git tag
+  result = execGitCommand(
+    `git tag -a v${newVersion} -m "Release v${newVersion}"`,
+    `git tag v${newVersion}`
+  );
+  if (!result.success) {
+    log.error('');
+    log.error('Tag creation failed. The commit was created but not tagged.');
+    log.error('You can manually create the tag with:');
+    log.error(`  git tag -a v${newVersion} -m "Release v${newVersion}"`);
+    return { success: false, stage: 'tag', error: result.error };
+  }
+
+  // Verify tag was created
+  if (!verifyTagExists(newVersion)) {
+    log.error('');
+    log.error('Tag creation appeared to succeed but tag not found locally.');
+    log.error('You can manually create the tag with:');
+    log.error(`  git tag -a v${newVersion} -m "Release v${newVersion}"`);
+    return { success: false, stage: 'tag-verify', error: new Error('Tag not found after creation') };
+  }
+
+  log.info(`  Verified: tag v${newVersion} exists locally`);
+  log.info('  Created commit and tag (--no-push specified)');
+  log.info('  To push later, run: git push && git push --tags');
+
+  return { success: true };
 }
 
 /**
@@ -811,25 +960,24 @@ export async function runRelease(args) {
   log.info('');
   log.info('Git operations...');
 
+  let gitResult = { success: true };
+
   if (!dryRun) {
     if (noPush) {
       // Only commit and tag, no push
-      const commitMessage = buildCommitMessage(newVersion, title, changes);
-      execSync('git add -A', { cwd: root, stdio: 'inherit' });
-      const tempFile = join(tmpdir(), `pulse-release-${Date.now()}.txt`);
-      writeFileSync(tempFile, commitMessage, 'utf-8');
-      try {
-        execSync(`git commit -F "${tempFile}"`, { cwd: root, stdio: 'inherit' });
-      } finally {
-        unlinkSync(tempFile);
-      }
-      execSync(`git tag -a v${newVersion} -m "Release v${newVersion}"`, { cwd: root, stdio: 'inherit' });
-      log.info('  Created commit and tag (--no-push specified)');
+      gitResult = gitCommitTagNoPush(newVersion, title, changes);
     } else {
-      gitCommitTagPush(newVersion, title, changes, false);
+      gitResult = gitCommitTagPush(newVersion, title, changes, false);
     }
   } else {
-    gitCommitTagPush(newVersion, title, changes, true);
+    gitResult = gitCommitTagPush(newVersion, title, changes, true);
+  }
+
+  if (!gitResult.success) {
+    log.error('');
+    log.error(`Release failed at stage: ${gitResult.stage}`);
+    log.error('Please fix the issue and retry, or complete the release manually.');
+    process.exit(1);
   }
 
   log.info('');
