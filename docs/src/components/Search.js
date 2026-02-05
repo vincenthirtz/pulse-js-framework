@@ -91,11 +91,16 @@ export function SearchModal() {
   header.innerHTML = SearchIcon;
 
   const input = el('input.search-input');
-  input.type = 'text';
-  input.setAttribute('aria-label', 'Search');
+  input.type = 'search';
+  input.id = 'search-input';
+  input.setAttribute('aria-label', 'Search documentation');
+  input.setAttribute('aria-describedby', 'search-modal-title');
+  input.setAttribute('autocomplete', 'off');
+  input.setAttribute('spellcheck', 'false');
 
   const closeBtn = el('button.search-close', 'Esc');
   closeBtn.type = 'button';
+  closeBtn.setAttribute('aria-label', 'Close search');
   closeBtn.addEventListener('click', () => searchOpen.set(false));
 
   header.appendChild(input);

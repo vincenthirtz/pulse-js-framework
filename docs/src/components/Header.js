@@ -185,12 +185,15 @@ export function Header() {
   const langSelector = el('.lang-selector');
 
   const langBtn = el('button.lang-btn');
+  langBtn.type = 'button';
   langBtn.setAttribute('aria-haspopup', 'listbox');
   langBtn.setAttribute('aria-expanded', 'false');
   effect(() => {
     const currentLocale = locale.get();
     langBtn.innerHTML = locales[currentLocale]?.flag || '🌐';
-    langBtn.setAttribute('aria-label', `${t('actions.selectLanguage')}: ${locales[currentLocale]?.name || 'Language'}`);
+    const label = `${t('actions.selectLanguage')}: ${locales[currentLocale]?.name || 'Language'}`;
+    langBtn.setAttribute('aria-label', label);
+    langBtn.setAttribute('title', t('actions.selectLanguage'));
   });
   langSelector.appendChild(langBtn);
 
@@ -236,11 +239,14 @@ export function Header() {
 
   // Theme toggle button
   const themeBtn = el('button.theme-btn');
+  themeBtn.type = 'button';
   effect(() => {
     locale.get(); // Track locale for translations
     const isDark = theme.get() === 'dark';
     themeBtn.textContent = isDark ? '☀️' : '🌙';
-    themeBtn.setAttribute('aria-label', isDark ? t('theme.switchToLight') : t('theme.switchToDark'));
+    const label = isDark ? t('theme.switchToLight') : t('theme.switchToDark');
+    themeBtn.setAttribute('aria-label', label);
+    themeBtn.setAttribute('title', label);
   });
   themeBtn.addEventListener('click', toggleTheme);
   headerActions.appendChild(themeBtn);
@@ -249,7 +255,9 @@ export function Header() {
 
   // Mobile menu button
   const menuBtn = el('button.menu-btn', '☰');
+  menuBtn.type = 'button';
   menuBtn.setAttribute('aria-label', 'Toggle navigation menu');
+  menuBtn.setAttribute('title', 'Menu');
   menuBtn.setAttribute('aria-expanded', 'false');
   menuBtn.setAttribute('aria-controls', 'mobile-nav');
   menuBtn.addEventListener('click', () => {

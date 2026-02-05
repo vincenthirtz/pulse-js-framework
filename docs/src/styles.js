@@ -142,13 +142,16 @@ body {
 
 .version-badge {
   font-size: 0.75em;
-  padding: 4px 10px;
+  padding: 6px 12px;
+  min-height: 24px;
   background: rgba(99, 102, 241, 0.15);
   color: var(--primary);
   border-radius: 20px;
   text-decoration: none;
   font-weight: 500;
   transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
 }
 
 .version-badge:hover {
@@ -157,11 +160,12 @@ body {
 }
 
 .stars-badge {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 4px;
   font-size: 0.75em;
-  padding: 4px 10px;
+  padding: 6px 12px;
+  min-height: 24px;
   background: rgba(250, 204, 21, 0.15);
   color: #fbbf24;
   border-radius: 20px;
@@ -328,6 +332,9 @@ body {
   color: var(--text);
   font-size: 1.5em;
   cursor: pointer;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 8px;
 }
 
 .menu-btn:focus-visible {
@@ -496,14 +503,15 @@ body {
 @media (max-width: 768px) {
   .header { padding: 14px 16px; }
   .nav { display: none; }
-  .menu-btn { display: block; }
+  .menu-btn { display: flex; align-items: center; justify-content: center; }
   .header-actions { gap: 4px; }
-  .theme-btn { padding: 6px 10px; font-size: 1em; }
-  .lang-btn { padding: 6px 10px; font-size: 1em; }
+  .theme-btn { padding: 10px 12px; font-size: 1em; min-width: 44px; min-height: 44px; }
+  .lang-btn { padding: 10px 12px; font-size: 1em; min-width: 44px; min-height: 44px; }
   .lang-menu { min-width: 140px; right: 0; }
   .version-badge, .stars-badge {
-    padding: 3px 8px;
+    padding: 4px 10px;
     font-size: 0.7em;
+    min-height: 24px;
   }
 }
 
@@ -2389,12 +2397,14 @@ body {
 }
 
 .search-close {
-  padding: 4px 8px;
+  padding: 8px 12px;
+  min-width: 44px;
+  min-height: 44px;
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 4px;
   color: var(--text-muted);
-  font-size: 0.8em;
+  font-size: 0.9em;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -2557,8 +2567,8 @@ body {
 /* TOC Toggle Button */
 .toc-toggle-btn {
   flex-shrink: 0;
-  width: 28px;
-  height: 36px;
+  width: 32px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2703,7 +2713,7 @@ body {
 
 .toc-mobile-header:focus-visible {
   outline: 3px solid var(--primary);
-  outline-offset: -3px;
+  outline-offset: 2px;
 }
 
 .toc-mobile-title {
