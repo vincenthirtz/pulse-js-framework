@@ -184,8 +184,8 @@ export function ExamplesPage() {
           <li>✓ ${t('examples.lessDemo.features.3')}</li>
           <li>✓ ${t('examples.lessDemo.features.4')}</li>
         </ul>
-        <a href="https://github.com/anthropics/pulse-js-framework/tree/main/examples/less-example" class="btn btn-primary" target="_blank">
-          View on GitHub
+        <a href="/examples/less-example/" class="btn btn-primary">
+          ${t('examples.viewDemo')}
         </a>
       </div>
 
@@ -200,8 +200,8 @@ export function ExamplesPage() {
           <li>✓ ${t('examples.stylusDemo.features.3')}</li>
           <li>✓ ${t('examples.stylusDemo.features.4')}</li>
         </ul>
-        <a href="https://github.com/anthropics/pulse-js-framework/tree/main/examples/stylus-example" class="btn btn-primary" target="_blank">
-          View on GitHub
+        <a href="/examples/stylus-example/" class="btn btn-primary">
+          ${t('examples.viewDemo')}
         </a>
       </div>
     </div>
