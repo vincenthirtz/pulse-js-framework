@@ -10,6 +10,7 @@ import { createVersionedAsync } from './async.js';
 import { ClientError } from './errors.js';
 import { LRUCache } from './lru-cache.js';
 import { InterceptorManager } from './interceptor-manager.js';
+import { onWindowFocus, onWindowOnline } from './utils.js';
 
 // ============================================================================
 // Constants
@@ -979,21 +980,13 @@ export function useQuery(query, variables, options = {}) {
   }
 
   // Setup window focus listener
-  if (options.refetchOnFocus && typeof window !== 'undefined') {
-    const handleFocus = () => {
-      if (isEnabled()) executeQuery();
-    };
-    window.addEventListener('focus', handleFocus);
-    onCleanup(() => window.removeEventListener('focus', handleFocus));
+  if (options.refetchOnFocus) {
+    onWindowFocus(() => { if (isEnabled()) executeQuery(); }, onCleanup);
   }
 
   // Setup online listener
-  if (options.refetchOnReconnect && typeof window !== 'undefined') {
-    const handleOnline = () => {
-      if (isEnabled()) executeQuery();
-    };
-    window.addEventListener('online', handleOnline);
-    onCleanup(() => window.removeEventListener('online', handleOnline));
+  if (options.refetchOnReconnect) {
+    onWindowOnline(() => { if (isEnabled()) executeQuery(); }, onCleanup);
   }
 
   return {

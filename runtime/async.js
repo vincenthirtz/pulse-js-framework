@@ -8,6 +8,7 @@
 
 import { pulse, effect, batch, onCleanup } from './pulse.js';
 import { getSSRAsyncContext, registerAsync, getCachedAsync, hasCachedAsync } from './ssr-async.js';
+import { onWindowFocus, onWindowOnline, onNetworkChange } from './utils.js';
 
 // ============================================================================
 // Versioned Async - Centralized Race Condition Handling
@@ -694,26 +695,18 @@ export function useResource(key, fetcher, options = {}) {
   }
 
   // Setup window focus listener
-  if (refreshOnFocus && typeof window !== 'undefined') {
-    const handleFocus = () => {
+  if (refreshOnFocus) {
+    onWindowFocus(() => {
       const cached = getCachedData();
       if (!cached || cached.isStale) {
         fetch();
       }
-    };
-
-    window.addEventListener('focus', handleFocus);
-    onCleanup(() => window.removeEventListener('focus', handleFocus));
+    }, onCleanup);
   }
 
   // Setup online listener
-  if (refreshOnReconnect && typeof window !== 'undefined') {
-    const handleOnline = () => {
-      fetch();
-    };
-
-    window.addEventListener('online', handleOnline);
-    onCleanup(() => window.removeEventListener('online', handleOnline));
+  if (refreshOnReconnect) {
+    onWindowOnline(() => fetch(), onCleanup);
   }
 
   // Track current key for change detection
@@ -868,19 +861,14 @@ export function usePolling(asyncFn, options) {
   }
 
   // Online/offline handling
-  if (pauseOnOffline && typeof window !== 'undefined') {
-    const handleOffline = () => pause();
-    const handleOnline = () => {
-      resume();
-      if (isPolling.get()) poll();
-    };
-
-    window.addEventListener('offline', handleOffline);
-    window.addEventListener('online', handleOnline);
-    onCleanup(() => {
-      window.removeEventListener('offline', handleOffline);
-      window.removeEventListener('online', handleOnline);
-    });
+  if (pauseOnOffline) {
+    onNetworkChange({
+      onOffline: () => pause(),
+      onOnline: () => {
+        resume();
+        if (isPolling.get()) poll();
+      }
+    }, onCleanup);
   }
 
   // Cleanup on unmount

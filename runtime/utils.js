@@ -608,6 +608,117 @@ export function throttle(fn, interval) {
   return throttled;
 }
 
+// ============================================================================
+// Window Event Helpers
+// ============================================================================
+
+/**
+ * Check if running in a browser environment with window object
+ * @returns {boolean}
+ */
+export function isBrowser() {
+  return typeof window !== 'undefined';
+}
+
+/**
+ * Add a window event listener with automatic cleanup via onCleanup.
+ * Safe to call in SSR - does nothing if window is not available.
+ *
+ * @param {string} event - Event name ('focus', 'online', 'offline', etc.)
+ * @param {Function} handler - Event handler function
+ * @param {Function} onCleanup - Cleanup registration function from pulse.js
+ * @param {Object} [options] - addEventListener options
+ * @returns {Function|null} Cleanup function, or null if not in browser
+ *
+ * @example
+ * // In an effect or hook
+ * import { onCleanup } from './pulse.js';
+ * import { onWindowEvent } from './utils.js';
+ *
+ * effect(() => {
+ *   onWindowEvent('focus', () => refetch(), onCleanup);
+ *   onWindowEvent('online', () => reconnect(), onCleanup);
+ * });
+ */
+export function onWindowEvent(event, handler, onCleanup, options) {
+  if (!isBrowser()) return null;
+
+  window.addEventListener(event, handler, options);
+  const cleanup = () => window.removeEventListener(event, handler, options);
+
+  if (typeof onCleanup === 'function') {
+    onCleanup(cleanup);
+  }
+
+  return cleanup;
+}
+
+/**
+ * Add focus event listener for refetch-on-focus patterns.
+ * Common pattern in data fetching hooks.
+ *
+ * @param {Function} handler - Handler to call on window focus
+ * @param {Function} onCleanup - Cleanup registration function
+ * @returns {Function|null} Cleanup function
+ */
+export function onWindowFocus(handler, onCleanup) {
+  return onWindowEvent('focus', handler, onCleanup);
+}
+
+/**
+ * Add online event listener for refetch-on-reconnect patterns.
+ * Common pattern in data fetching hooks.
+ *
+ * @param {Function} handler - Handler to call when going online
+ * @param {Function} onCleanup - Cleanup registration function
+ * @returns {Function|null} Cleanup function
+ */
+export function onWindowOnline(handler, onCleanup) {
+  return onWindowEvent('online', handler, onCleanup);
+}
+
+/**
+ * Add offline event listener.
+ *
+ * @param {Function} handler - Handler to call when going offline
+ * @param {Function} onCleanup - Cleanup registration function
+ * @returns {Function|null} Cleanup function
+ */
+export function onWindowOffline(handler, onCleanup) {
+  return onWindowEvent('offline', handler, onCleanup);
+}
+
+/**
+ * Setup both online and offline listeners at once.
+ * Useful for connection-aware features.
+ *
+ * @param {Object} handlers - Event handlers
+ * @param {Function} [handlers.onOnline] - Called when going online
+ * @param {Function} [handlers.onOffline] - Called when going offline
+ * @param {Function} onCleanup - Cleanup registration function
+ * @returns {Function|null} Combined cleanup function
+ */
+export function onNetworkChange(handlers, onCleanup) {
+  if (!isBrowser()) return null;
+
+  const cleanups = [];
+
+  if (handlers.onOnline) {
+    cleanups.push(onWindowEvent('online', handlers.onOnline, null));
+  }
+  if (handlers.onOffline) {
+    cleanups.push(onWindowEvent('offline', handlers.onOffline, null));
+  }
+
+  const cleanup = () => cleanups.forEach(fn => fn?.());
+
+  if (typeof onCleanup === 'function') {
+    onCleanup(cleanup);
+  }
+
+  return cleanup;
+}
+
 export default {
   // XSS Prevention
   escapeHtml,
@@ -624,5 +735,12 @@ export default {
   // Utilities
   deepClone,
   debounce,
-  throttle
+  throttle,
+  // Window Event Helpers
+  isBrowser,
+  onWindowEvent,
+  onWindowFocus,
+  onWindowOnline,
+  onWindowOffline,
+  onNetworkChange
 };
