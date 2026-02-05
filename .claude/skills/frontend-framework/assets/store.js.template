@@ -1,0 +1,280 @@
+/**
+ * {{NAME}} Store
+ * Global state management for {{name}} feature
+ */
+
+import {
+  createStore,
+  createActions,
+  createGetters,
+  usePlugin,
+  loggerPlugin,
+  historyPlugin
+} from 'pulse-js-framework/runtime/store';
+
+// ============================================================================
+// Initial State
+// ============================================================================
+
+const initialState = {
+  // Data
+  items: [],
+  selectedId: null,
+
+  // UI State
+  loading: false,
+  error: null,
+
+  // Filters/Search
+  searchQuery: '',
+  sortBy: 'createdAt',
+  sortOrder: 'desc',
+
+  // Pagination
+  page: 1,
+  pageSize: 20,
+  totalCount: 0
+};
+
+// ============================================================================
+// Store Instance
+// ============================================================================
+
+export const {{name}}Store = createStore(initialState, {
+  persist: true,
+  storageKey: '{{name}}-store'
+});
+
+// ============================================================================
+// Actions
+// ============================================================================
+
+export const {{name}}Actions = createActions({{name}}Store, {
+  // Data operations
+  setItems: (store, items) => {
+    store.items.set(items);
+    store.error.set(null);
+  },
+
+  addItem: (store, item) => {
+    store.items.update(items => [...items, item]);
+  },
+
+  updateItem: (store, id, updates) => {
+    store.items.update(items =>
+      items.map(item => item.id === id ? { ...item, ...updates } : item)
+    );
+  },
+
+  removeItem: (store, id) => {
+    store.items.update(items => items.filter(item => item.id !== id));
+    // Clear selection if deleted item was selected
+    if (store.selectedId.get() === id) {
+      store.selectedId.set(null);
+    }
+  },
+
+  // Selection
+  selectItem: (store, id) => {
+    store.selectedId.set(id);
+  },
+
+  clearSelection: (store) => {
+    store.selectedId.set(null);
+  },
+
+  // Loading state
+  setLoading: (store, loading) => {
+    store.loading.set(loading);
+    if (loading) {
+      store.error.set(null);
+    }
+  },
+
+  setError: (store, error) => {
+    store.error.set(error);
+    store.loading.set(false);
+  },
+
+  // Search/Filter
+  setSearchQuery: (store, query) => {
+    store.searchQuery.set(query);
+    store.page.set(1); // Reset to first page on search
+  },
+
+  setSorting: (store, sortBy, sortOrder = 'asc') => {
+    store.sortBy.set(sortBy);
+    store.sortOrder.set(sortOrder);
+  },
+
+  // Pagination
+  setPage: (store, page) => {
+    store.page.set(page);
+  },
+
+  setPageSize: (store, size) => {
+    store.pageSize.set(size);
+    store.page.set(1);
+  },
+
+  // Reset
+  reset: (store) => {
+    store.$reset();
+  }
+});
+
+// ============================================================================
+// Getters (Computed Values)
+// ============================================================================
+
+export const {{name}}Getters = createGetters({{name}}Store, {
+  // Get selected item
+  selectedItem: (store) => {
+    const id = store.selectedId.get();
+    return store.items.get().find(item => item.id === id) || null;
+  },
+
+  // Filtered items
+  filteredItems: (store) => {
+    const items = store.items.get();
+    const query = store.searchQuery.get().toLowerCase();
+
+    if (!query) return items;
+
+    return items.filter(item =>
+      item.name?.toLowerCase().includes(query) ||
+      item.title?.toLowerCase().includes(query) ||
+      item.description?.toLowerCase().includes(query)
+    );
+  },
+
+  // Sorted items
+  sortedItems: (store) => {
+    const items = {{name}}Getters.filteredItems.get();
+    const sortBy = store.sortBy.get();
+    const sortOrder = store.sortOrder.get();
+
+    return [...items].sort((a, b) => {
+      const aVal = a[sortBy];
+      const bVal = b[sortBy];
+
+      if (aVal < bVal) return sortOrder === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+  },
+
+  // Paginated items
+  paginatedItems: (store) => {
+    const items = {{name}}Getters.sortedItems.get();
+    const page = store.page.get();
+    const pageSize = store.pageSize.get();
+
+    const start = (page - 1) * pageSize;
+    return items.slice(start, start + pageSize);
+  },
+
+  // Pagination info
+  totalPages: (store) => {
+    const total = {{name}}Getters.filteredItems.get().length;
+    const pageSize = store.pageSize.get();
+    return Math.ceil(total / pageSize);
+  },
+
+  hasNextPage: (store) => {
+    return store.page.get() < {{name}}Getters.totalPages.get();
+  },
+
+  hasPrevPage: (store) => {
+    return store.page.get() > 1;
+  },
+
+  // Stats
+  itemCount: (store) => store.items.get().length,
+
+  isEmpty: (store) => store.items.get().length === 0,
+
+  isLoading: (store) => store.loading.get(),
+
+  hasError: (store) => store.error.get() !== null
+});
+
+// ============================================================================
+// Plugins (Development)
+// ============================================================================
+
+if (process.env.NODE_ENV === 'development') {
+  // Log all state changes
+  usePlugin({{name}}Store, loggerPlugin);
+
+  // Enable undo/redo (100 history states)
+  usePlugin({{name}}Store, (s) => historyPlugin(s, 100));
+}
+
+// ============================================================================
+// Async Actions (API Integration)
+// ============================================================================
+
+export const {{name}}Api = {
+  async fetchAll() {
+    {{name}}Actions.setLoading(true);
+    try {
+      const response = await fetch('/api/{{name}}');
+      if (!response.ok) throw new Error('Failed to fetch');
+      const data = await response.json();
+      {{name}}Actions.setItems(data);
+      return data;
+    } catch (error) {
+      {{name}}Actions.setError(error.message);
+      throw error;
+    }
+  },
+
+  async create(item) {
+    {{name}}Actions.setLoading(true);
+    try {
+      const response = await fetch('/api/{{name}}', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(item)
+      });
+      if (!response.ok) throw new Error('Failed to create');
+      const created = await response.json();
+      {{name}}Actions.addItem(created);
+      return created;
+    } catch (error) {
+      {{name}}Actions.setError(error.message);
+      throw error;
+    }
+  },
+
+  async update(id, updates) {
+    try {
+      const response = await fetch(`/api/{{name}}/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates)
+      });
+      if (!response.ok) throw new Error('Failed to update');
+      const updated = await response.json();
+      {{name}}Actions.updateItem(id, updated);
+      return updated;
+    } catch (error) {
+      {{name}}Actions.setError(error.message);
+      throw error;
+    }
+  },
+
+  async delete(id) {
+    try {
+      const response = await fetch(`/api/{{name}}/${id}`, {
+        method: 'DELETE'
+      });
+      if (!response.ok) throw new Error('Failed to delete');
+      {{name}}Actions.removeItem(id);
+    } catch (error) {
+      {{name}}Actions.setError(error.message);
+      throw error;
+    }
+  }
+};

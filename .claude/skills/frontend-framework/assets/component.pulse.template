@@ -1,0 +1,31 @@
+@component {{NAME}}
+
+// Optional: import other components
+// import Button from './Button.pulse'
+
+props {
+  // Define component props with types
+  // title: string
+  // count: number = 0
+  // items: array = []
+  // onClick: function
+}
+
+state {
+  // Local reactive state
+  // isOpen: false
+  // inputValue: ''
+}
+
+view {
+  .{{name}} {
+    // Component markup here
+    slot  // Default content slot
+  }
+}
+
+style {
+  .{{name}} {
+    /* Component styles (auto-scoped) */
+  }
+}

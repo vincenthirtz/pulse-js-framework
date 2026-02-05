@@ -5,7 +5,9 @@ dist/
 .npmrc
 *.log
 .history
-.claude
+# Claude Code - exclude personal config, include skills
+.claude/settings.local.json
+.claude/memory/
 .test-doctor-project
 test-fixtures-analyze
 coverage

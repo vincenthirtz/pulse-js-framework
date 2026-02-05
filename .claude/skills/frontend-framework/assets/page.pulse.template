@@ -1,0 +1,78 @@
+@page {{NAME}}
+
+import { useAsync } from 'pulse-js-framework/runtime/async'
+// import Header from '../components/Header.pulse'
+// import Footer from '../components/Footer.pulse'
+
+state {
+  loading: true
+  error: null
+  data: null
+}
+
+computed {
+  // Derived state
+  // itemCount: data?.items?.length ?? 0
+}
+
+actions {
+  // Action handlers
+  async fetchData() {
+    loading = true
+    error = null
+    try {
+      const response = await fetch('/api/{{name}}')
+      data = await response.json()
+    } catch (e) {
+      error = e.message
+    } finally {
+      loading = false
+    }
+  }
+}
+
+mounted {
+  fetchData()
+}
+
+view {
+  .{{name}}-page {
+    @if(loading) {
+      .loading-spinner { "Loading..." }
+    }
+
+    @if(error) {
+      .error-message {
+        p "{error}"
+        button @click(fetchData()) { "Retry" }
+      }
+    }
+
+    @if(!loading && !error && data) {
+      .content {
+        // Page content here
+        slot
+      }
+    }
+  }
+}
+
+style {
+  .{{name}}-page {
+    min-height: 100vh;
+    padding: 2rem;
+  }
+
+  .loading-spinner {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 200px;
+  }
+
+  .error-message {
+    color: var(--color-error, #dc3545);
+    text-align: center;
+    padding: 2rem;
+  }
+}
