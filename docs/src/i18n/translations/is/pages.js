@@ -336,6 +336,28 @@ export default {
         'Dökkur hamur'
       ]
     },
+    lessDemo: {
+      title: 'LESS CSS Demo',
+      desc: 'Sýnir LESS forvinnslustu með breytum, blöndun, vöktum og litaaðgerðum.',
+      features: [
+        'LESS breytur og aðgerðir',
+        'Parametric blöndun með vöktum',
+        'Litaaðgerðir (ljósari, dekkri)',
+        'Hreiðrun og foreldri valinn',
+        'Kraftmikil þemaskipti'
+      ]
+    },
+    stylusDemo: {
+      title: 'Stylus CSS Demo',
+      desc: 'Sýnir Stylus forvinnslustu með sveigjanlegri málskipan, blöndun án slaufusviga og lágmarks greinarmerki.',
+      features: [
+        'Breytur án $ eða @',
+        'Sveigjanlegt málskipan (engin slaufusviga nauðsynleg)',
+        'Blöndun og hreiðrun',
+        'Stærðfræðilegar aðgerðir',
+        'Stigli og hreyfimyndir'
+      ]
+    },
     runLocally: 'Keyra Dæmi Staðbundið',
     runLocallyDesc: 'Til að keyra sýnishornaverkefni á vélinni þinni:',
     createYourOwn: 'Búðu Til Þitt Eigið',

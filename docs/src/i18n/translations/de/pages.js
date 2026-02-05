@@ -336,6 +336,28 @@ export default {
         'Dunkelmodus'
       ]
     },
+    lessDemo: {
+      title: 'LESS CSS Demo',
+      desc: 'Zeigt LESS-Präprozessor-Unterstützung mit Variablen, Mixins, Guards und Farbfunktionen.',
+      features: [
+        'LESS-Variablen und Operationen',
+        'Parametrische Mixins mit Guards',
+        'Farbfunktionen (lighten, darken)',
+        'Verschachtelung und Elternselektor',
+        'Dynamischer Themenwechsel'
+      ]
+    },
+    stylusDemo: {
+      title: 'Stylus CSS Demo',
+      desc: 'Präsentiert Stylus-Präprozessor mit flexibler Syntax, Mixins ohne Klammern und minimaler Interpunktion.',
+      features: [
+        'Variablen ohne $ oder @',
+        'Flexible Syntax (keine Klammern nötig)',
+        'Mixins und Verschachtelung',
+        'Mathematische Operationen',
+        'Verläufe und Animationen'
+      ]
+    },
     runLocally: 'Beispiele lokal ausführen',
     runLocallyDesc: 'Klonen Sie das Repository und führen Sie ein Beispiel mit dem Dev-Server aus:',
     createYourOwn: 'Eigenes erstellen',

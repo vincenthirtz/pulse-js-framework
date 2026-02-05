@@ -336,6 +336,28 @@ export default {
         'Modo escuro'
       ]
     },
+    lessDemo: {
+      title: 'Demo LESS CSS',
+      desc: 'Demonstra suporte ao pré-processador LESS com variáveis, mixins, guards e funções de cor.',
+      features: [
+        'Variáveis e operações LESS',
+        'Mixins paramétricos com guards',
+        'Funções de cor (lighten, darken)',
+        'Aninhamento e seletor pai',
+        'Mudança de tema dinâmica'
+      ]
+    },
+    stylusDemo: {
+      title: 'Demo Stylus CSS',
+      desc: 'Apresenta o pré-processador Stylus com sintaxe flexível, mixins sem chaves e pontuação mínima.',
+      features: [
+        'Variáveis sem $ ou @',
+        'Sintaxe flexível (sem chaves)',
+        'Mixins e aninhamento',
+        'Operações matemáticas',
+        'Gradientes e animações'
+      ]
+    },
     runLocally: 'Executar Exemplos Localmente',
     runLocallyDesc: 'Para executar os projetos de exemplo na sua máquina:',
     createYourOwn: 'Crie o Seu',

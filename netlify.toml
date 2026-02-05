@@ -227,6 +227,16 @@
   to = "/examples/sports/index.html"
   status = 200
 
+[[redirects]]
+  from = "/examples/less-example/*"
+  to = "/examples/less-example/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/examples/stylus-example/*"
+  to = "/examples/stylus-example/index.html"
+  status = 200
+
 # Main SPA fallback (must be last - only applies if file doesn't exist)
 [[redirects]]
   from = "/*"

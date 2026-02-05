@@ -336,6 +336,28 @@ export default {
         'Malhela reĝimo'
       ]
     },
+    lessDemo: {
+      title: 'LESS CSS Demo',
+      desc: 'Montras LESS antaŭprocesoron subtenon kun variabloj, miksaĵoj, gardistoj kaj kolorfunkcioj.',
+      features: [
+        'LESS variabloj kaj operacioj',
+        'Parametraj miksaĵoj kun gardistoj',
+        'Kolorfunkcioj (heligi, mallumigi)',
+        'Nestado kaj patr-elektilo',
+        'Dinamika tema ŝanĝo'
+      ]
+    },
+    stylusDemo: {
+      title: 'Stylus CSS Demo',
+      desc: 'Montras Stylus antaŭprocesoron kun fleksebla sintakso, miksaĵoj sen krampoj kaj minimuma interpunkcio.',
+      features: [
+        'Variabloj sen $ aŭ @',
+        'Fleksebla sintakso (neniuj krampoj bezonataj)',
+        'Miksaĵoj kaj nestado',
+        'Matematikaj operacioj',
+        'Gradianto kaj animacioj'
+      ]
+    },
     runLocally: 'Ruli Ekzemplojn Loke',
     runLocallyDesc: 'Por ruli la ekzemplajn projektojn sur via maŝino:',
     createYourOwn: 'Kreu Vian Propran',
