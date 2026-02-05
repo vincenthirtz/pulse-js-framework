@@ -118,6 +118,23 @@ test('Search.js has i18n support', () => {
   assert(content.includes("t(") || content.includes('t(\''), 'Should use translation function');
 });
 
+test('Search.js syncs aria-label with visible text (WCAG 2.5.3)', () => {
+  const content = readFileSync(join(componentsDir, 'Search.js'), 'utf-8');
+  // Check that aria-label is set dynamically from the same source as visible text
+  assert(content.includes('setAttribute') && content.includes('aria-label'), 'Should set aria-label');
+  assert(content.includes('searchText'), 'Should use same text variable for aria-label');
+});
+
+test('Search.js has focus trap for modal (WCAG 2.4.3)', () => {
+  const content = readFileSync(join(componentsDir, 'Search.js'), 'utf-8');
+  assert(content.includes('Tab') && content.includes('focusable'), 'Should have focus trap implementation');
+});
+
+test('Search.js restores focus on close (WCAG 2.4.3)', () => {
+  const content = readFileSync(join(componentsDir, 'Search.js'), 'utf-8');
+  assert(content.includes('previouslyFocused'), 'Should track previously focused element');
+});
+
 // ============================================================================
 // TableOfContents Component Tests
 // ============================================================================
@@ -325,6 +342,44 @@ test('styles.js has responsive TOC breakpoints', () => {
 });
 
 // ============================================================================
+// WCAG Accessibility CSS Tests
+// ============================================================================
+
+console.log('\nWCAG Accessibility (CSS):');
+
+test('styles.js has WCAG AA compliant --text-muted', () => {
+  const content = readFileSync(join(docsDir, 'src/styles.js'), 'utf-8');
+  // Check for the improved color #94a3b8 which has 4.68:1 contrast
+  assert(content.includes('#94a3b8'), '--text-muted should be #94a3b8 for WCAG AA');
+});
+
+test('styles.js has WCAG AA compliant hljs-comment', () => {
+  const content = readFileSync(join(docsDir, 'src/styles.js'), 'utf-8');
+  // Check for improved comment colors
+  assert(content.includes('#8b9dc3'), 'Dark theme hljs-comment should be #8b9dc3');
+  assert(content.includes('#57606a'), 'Light theme hljs-comment should be #57606a');
+});
+
+test('styles.js uses --text for code-header contrast', () => {
+  const content = readFileSync(join(docsDir, 'src/styles.js'), 'utf-8');
+  // Find .code-header and verify it uses var(--text)
+  const codeHeaderMatch = content.match(/\.code-header\s*\{[^}]*color:\s*var\(--text\)/);
+  assert(codeHeaderMatch, '.code-header should use var(--text) for better contrast');
+});
+
+test('styles.js uses --text for .other-fw contrast', () => {
+  const content = readFileSync(join(docsDir, 'src/styles.js'), 'utf-8');
+  const otherFwMatch = content.match(/\.other-fw\s*\{[^}]*color:\s*var\(--text\)/);
+  assert(otherFwMatch, '.other-fw should use var(--text) for better contrast');
+});
+
+test('styles.js uses --text for .a11y-third contrast', () => {
+  const content = readFileSync(join(docsDir, 'src/styles.js'), 'utf-8');
+  const a11yThirdMatch = content.match(/\.a11y-third\s*\{[^}]*color:\s*var\(--text\)/);
+  assert(a11yThirdMatch, '.a11y-third should use var(--text) for better contrast');
+});
+
+// ============================================================================
 // i18n Translation Tests
 // ============================================================================
 
@@ -378,6 +433,21 @@ test('Header.js imports SearchButton', () => {
 test('Header.js adds SearchButton to header', () => {
   const content = readFileSync(join(componentsDir, 'Header.js'), 'utf-8');
   assert(content.includes('SearchButton()'), 'Should use SearchButton component');
+});
+
+test('Header.js skips hidden nav items', () => {
+  const content = readFileSync(join(componentsDir, 'Header.js'), 'utf-8');
+  assert(content.includes('item.hidden') && content.includes('continue'), 'Should skip hidden items in nav loop');
+});
+
+test('Header.js has aria-label on main navigation', () => {
+  const content = readFileSync(join(componentsDir, 'Header.js'), 'utf-8');
+  assert(content.includes("aria-label', 'Main navigation'") || content.includes('aria-label", "Main navigation"'), 'Should have aria-label on nav');
+});
+
+test('Header.js has aria-label on mobile navigation', () => {
+  const content = readFileSync(join(componentsDir, 'Header.js'), 'utf-8');
+  assert(content.includes("'aria-label', 'Mobile navigation'") || content.includes('"aria-label", "Mobile navigation"'), 'Should have aria-label on mobile nav');
 });
 
 // ============================================================================
