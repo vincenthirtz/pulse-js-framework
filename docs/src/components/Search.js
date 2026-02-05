@@ -42,7 +42,7 @@ function getSearchResults(query) {
 export function SearchButton() {
   const btn = el('button.search-btn');
   btn.type = 'button';
-  btn.setAttribute('aria-label', 'Open search');
+  // Note: aria-label is set dynamically to match visible text (WCAG 2.5.3)
 
   btn.innerHTML = `
     ${SearchIcon}
@@ -54,11 +54,13 @@ export function SearchButton() {
     searchOpen.set(true);
   });
 
-  // Update text reactively
+  // Update text and aria-label reactively (WCAG 2.5.3: aria-label must match visible text)
   effect(() => {
     locale.get();
     const span = btn.querySelector('span:not(.search-shortcut)');
-    if (span) span.textContent = t('actions.search');
+    const searchText = t('actions.search');
+    if (span) span.textContent = searchText;
+    btn.setAttribute('aria-label', searchText);
   });
 
   return btn;

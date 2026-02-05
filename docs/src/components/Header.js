@@ -71,6 +71,7 @@ export function Header() {
 
       const trigger = el('button.nav-link.nav-dropdown-trigger');
       const triggerText = el('span');
+      triggerText.textContent = t(item.labelKey); // Set initial text immediately
       trigger.appendChild(triggerText);
       trigger.appendChild(document.createTextNode(' '));
       const arrow = el('span.dropdown-arrow', '▾');
@@ -91,6 +92,9 @@ export function Header() {
 
         const labelSpan = el('span.dropdown-item-label');
         const descSpan = el('span.dropdown-item-desc');
+        // Set initial text immediately
+        labelSpan.textContent = t(child.labelKey);
+        descSpan.textContent = t(child.descKey);
         menuItem.appendChild(labelSpan);
         menuItem.appendChild(descSpan);
 
@@ -142,6 +146,7 @@ export function Header() {
       // Simple link with locale-aware navigation
       const link = el('a.nav-link');
       link.href = item.path;
+      link.textContent = t(item.labelKey); // Set initial text immediately
 
       // Update label when locale changes
       effect(() => {
@@ -281,6 +286,7 @@ export function Header() {
   for (const item of navStructureFlat) {
     const link = el('a.nav-link');
     link.href = item.path;
+    link.textContent = t(item.labelKey); // Set initial text immediately
 
     // Update label when locale changes
     effect(() => {
