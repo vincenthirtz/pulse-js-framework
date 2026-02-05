@@ -963,11 +963,11 @@ const div = el('div.container');
       <h2>${t('migrationVue.needHelp')}</h2>
       <p>${t('migrationVue.needHelpDesc')}</p>
       <div class="help-links">
-        <a href="https://github.com/vincenthirtz/pulse-js-framework/discussions" target="_blank" class="help-link">
+        <a href="https://github.com/vincenthirtz/pulse-js-framework/discussions" target="_blank" rel="noopener noreferrer" class="help-link">
           <span class="help-icon">💬</span>
           <span>${t('migrationVue.discussions')}</span>
         </a>
-        <a href="https://github.com/vincenthirtz/pulse-js-framework/issues" target="_blank" class="help-link">
+        <a href="https://github.com/vincenthirtz/pulse-js-framework/issues" target="_blank" rel="noopener noreferrer" class="help-link">
           <span class="help-icon">🐛</span>
           <span>${t('migrationVue.issues')}</span>
         </a>

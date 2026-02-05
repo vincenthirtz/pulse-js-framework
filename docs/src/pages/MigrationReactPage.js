@@ -718,11 +718,11 @@ items.update(arr => [...arr, newItem]);</code></pre>
       <h2>${t('migrationReact.needHelp')}</h2>
       <p>${t('migrationReact.needHelpDesc')}</p>
       <div class="help-links">
-        <a href="https://github.com/vincenthirtz/pulse-js-framework/discussions" target="_blank" class="help-link">
+        <a href="https://github.com/vincenthirtz/pulse-js-framework/discussions" target="_blank" rel="noopener noreferrer" class="help-link">
           <span class="help-icon">💬</span>
           <span>${t('migrationReact.discussions')}</span>
         </a>
-        <a href="https://github.com/vincenthirtz/pulse-js-framework/issues" target="_blank" class="help-link">
+        <a href="https://github.com/vincenthirtz/pulse-js-framework/issues" target="_blank" rel="noopener noreferrer" class="help-link">
           <span class="help-icon">🐛</span>
           <span>${t('migrationReact.issues')}</span>
         </a>

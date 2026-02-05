@@ -91,7 +91,9 @@ body {
 .logo span {
   background: linear-gradient(135deg, var(--primary), #a855f7);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
+  color: transparent;
 }
 
 /* Logo pulse animation on hover */
@@ -494,13 +496,17 @@ body {
   margin-bottom: 16px;
   background: linear-gradient(135deg, #fff, var(--primary));
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
+  color: transparent;
 }
 
 [data-theme="light"] .hero h1 {
   background: linear-gradient(135deg, var(--primary), #7c3aed);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
+  color: transparent;
 }
 
 .tagline {
@@ -1122,8 +1128,9 @@ body {
 .example-card.featured .example-icon {
   background: linear-gradient(135deg, var(--primary), #a855f7);
   -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
   background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
 }
 
 .example-icon {
@@ -1695,13 +1702,17 @@ body {
   margin: 0;
   background: linear-gradient(135deg, #fff, var(--primary));
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
+  color: transparent;
 }
 
 [data-theme="light"] .hero-title {
   background: linear-gradient(135deg, var(--primary), #7c3aed);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
+  color: transparent;
 }
 
 /* Typing Effect */
