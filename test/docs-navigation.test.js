@@ -349,8 +349,8 @@ console.log('\nWCAG Accessibility (CSS):');
 
 test('styles.js has WCAG AA compliant --text-muted', () => {
   const content = readFileSync(join(docsDir, 'src/styles.js'), 'utf-8');
-  // Check for the improved color #94a3b8 which has 4.68:1 contrast
-  assert(content.includes('#94a3b8'), '--text-muted should be #94a3b8 for WCAG AA');
+  // Check for the improved color #a1a1aa which has 5.3:1 contrast on dark bg
+  assert(content.includes('#a1a1aa'), '--text-muted should be #a1a1aa for WCAG AA');
 });
 
 test('styles.js has WCAG AA compliant hljs-comment', () => {
