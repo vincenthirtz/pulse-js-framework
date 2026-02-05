@@ -1317,7 +1317,7 @@ testAsync('useSubscription handles errors and resubscribes', async () => {
 
     let errorReceived = null;
 
-    const { error, status } = useSubscription(
+    const { error, status, unsubscribe } = useSubscription(
       'subscription { messages }',
       {},
       {
@@ -1331,10 +1331,17 @@ testAsync('useSubscription handles errors and resubscribes', async () => {
       subscribeCallback.onError(new Error('Connection lost'));
     }
 
-    assertEqual(status.get(), 'error', 'Status should be error');
+    // With shouldResubscribe: true, status transitions to 'reconnecting' after error
+    // (due to exponential backoff retry logic)
+    assert(
+      status.get() === 'error' || status.get() === 'reconnecting',
+      'Status should be error or reconnecting'
+    );
     assert(error.get() !== null, 'Should have error');
     assert(errorReceived !== null, 'onError callback should be called');
 
+    // Clean up - cancel any pending retry
+    unsubscribe();
     setDefaultClient(null);
   } finally {
     mock.restore();
