@@ -10,7 +10,7 @@ export const styles = `
   --bg-light: #1e293b;
   --card: #1e293b;
   --text: #e2e8f0;
-  --text-muted: #94a3b8;
+  --text-muted: #a8b5c4; /* WCAG AA compliant: ~4.5:1 on dark bg */
   --border: #334155;
   --code-bg: #0d1117;
   --success: #10b981;
@@ -25,7 +25,7 @@ export const styles = `
   --bg-light: #ffffff;
   --card: #ffffff;
   --text: #1e293b;
-  --text-muted: #64748b;
+  --text-muted: #475569; /* WCAG AA compliant: ~7:1 on white bg */
   --border: #e2e8f0;
   --code-bg: #f1f5f9;
 }
@@ -50,6 +50,27 @@ body {
   background: var(--bg);
   color: var(--text);
   line-height: 1.6;
+}
+
+/* Skip link for keyboard navigation (WCAG 2.4.1) */
+.skip-link {
+  position: absolute;
+  top: -100px;
+  left: 16px;
+  background: var(--primary);
+  color: white;
+  padding: 12px 24px;
+  text-decoration: none;
+  border-radius: 0 0 8px 8px;
+  z-index: 1001;
+  font-weight: 500;
+  transition: top 0.2s ease;
+}
+
+.skip-link:focus {
+  top: 0;
+  outline: 3px solid var(--text);
+  outline-offset: 2px;
 }
 
 .app {
@@ -190,6 +211,11 @@ body {
   background: rgba(99, 102, 241, 0.1);
 }
 
+.nav-link:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+}
+
 /* Dropdown Menu */
 .nav-dropdown {
   position: relative;
@@ -304,6 +330,11 @@ body {
   cursor: pointer;
 }
 
+.menu-btn:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+}
+
 /* Header Actions (language + theme) */
 .header-actions {
   display: flex;
@@ -327,6 +358,11 @@ body {
 .theme-btn:hover {
   background: var(--border);
   transform: scale(1.05);
+}
+
+.theme-btn:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
 }
 
 /* Language Selector */
@@ -356,6 +392,11 @@ body {
 .lang-btn:hover {
   background: var(--border);
   transform: scale(1.05);
+}
+
+.lang-btn:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
 }
 
 .lang-menu {
@@ -2658,6 +2699,11 @@ body {
 
 .toc-mobile-header:hover {
   background: var(--bg);
+}
+
+.toc-mobile-header:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: -3px;
 }
 
 .toc-mobile-title {

@@ -260,10 +260,12 @@ export function TocMobile() {
 
     container.style.display = 'block';
 
-    // Header (toggle)
+    // Header (toggle) - with keyboard support (WCAG 2.1.1)
     const header = el('div.toc-mobile-header');
     header.setAttribute('role', 'button');
+    header.setAttribute('tabindex', '0');
     header.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
+    header.setAttribute('aria-controls', 'toc-mobile-content');
 
     const titleDiv = el('div.toc-mobile-title');
     titleDiv.innerHTML = `${ListIcon}<span>${t('toc.title')}</span>`;
@@ -274,12 +276,18 @@ export function TocMobile() {
     header.appendChild(titleDiv);
     header.appendChild(arrow);
 
-    header.addEventListener('click', () => {
-      tocExpanded.update(v => !v);
+    const toggleToc = () => tocExpanded.update(v => !v);
+    header.addEventListener('click', toggleToc);
+    header.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        toggleToc();
+      }
     });
 
     // Content
     const content = el('div.toc-mobile-content');
+    content.id = 'toc-mobile-content';
     content.appendChild(createTocList(items, activeId));
 
     container.appendChild(header);

@@ -56,8 +56,9 @@ function App() {
   // Main content wrapper with TOC
   const contentWrapper = el('.content-wrapper');
 
-  // Router outlet - this is where pages will be rendered
-  const main = el('main.main#router-outlet');
+  // Router outlet - this is where pages will be rendered (WCAG landmark)
+  const main = el('main.main#main-content');
+  main.setAttribute('aria-label', 'Main content');
   contentWrapper.appendChild(main);
 
   // Desktop TOC sidebar
@@ -84,7 +85,7 @@ const appRouter = initRouter(routes);
 mount('#app', App());
 
 // Setup router outlet
-appRouter.outlet('#router-outlet');
+appRouter.outlet('#main-content');
 
 // Start router (listen to URL changes)
 appRouter.start();

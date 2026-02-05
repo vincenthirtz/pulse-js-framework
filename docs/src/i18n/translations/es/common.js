@@ -105,7 +105,9 @@ export default {
     viewSource: 'Ver código',
     tryIt: 'Probar',
     install: 'Instalar',
-    update: 'Actualizar'
+    update: 'Actualizar',
+    skipToContent: 'Ir al contenido',
+    selectLanguage: 'Seleccionar idioma'
   },
 
   // Footer

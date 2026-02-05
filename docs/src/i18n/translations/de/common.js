@@ -105,7 +105,9 @@ export default {
     viewSource: 'Quellcode ansehen',
     tryIt: 'Ausprobieren',
     install: 'Installieren',
-    update: 'Aktualisieren'
+    update: 'Aktualisieren',
+    skipToContent: 'Zum Inhalt springen',
+    selectLanguage: 'Sprache auswählen'
   },
 
   // Footer

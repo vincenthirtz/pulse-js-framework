@@ -73,9 +73,18 @@ export function SearchModal() {
   overlay.style.display = 'none';
   overlay.setAttribute('role', 'dialog');
   overlay.setAttribute('aria-modal', 'true');
-  overlay.setAttribute('aria-label', 'Search documentation');
+  overlay.setAttribute('aria-labelledby', 'search-modal-title');
 
   const modal = el('div.search-modal');
+
+  // Hidden title for screen readers (WCAG 4.1.2)
+  const modalTitle = el('h2#search-modal-title');
+  modalTitle.textContent = 'Search documentation';
+  modalTitle.style.cssText = 'position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0;';
+  modal.appendChild(modalTitle);
+
+  // Track previously focused element for focus restoration
+  let previouslyFocused = null;
 
   // Header with input
   const header = el('div.search-header');
@@ -95,6 +104,7 @@ export function SearchModal() {
   // Results container
   const results = el('div.search-results');
   results.setAttribute('role', 'listbox');
+  results.setAttribute('aria-label', 'Search results');
 
   // Keyboard hints
   const hints = el('div.search-hint');
@@ -202,18 +212,43 @@ export function SearchModal() {
     });
   }
 
+  // Focus trap for modal (WCAG 2.4.3)
+  modal.addEventListener('keydown', (e) => {
+    if (e.key !== 'Tab') return;
+
+    const focusable = modal.querySelectorAll('input, button, [tabindex]:not([tabindex="-1"])');
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  });
+
   // React to state changes
   effect(() => {
     const isOpen = searchOpen.get();
     overlay.style.display = isOpen ? 'flex' : 'none';
 
     if (isOpen) {
+      // Save currently focused element
+      previouslyFocused = document.activeElement;
       searchQuery.set('');
       selectedIndex.set(0);
       // Focus input after render
       requestAnimationFrame(() => {
         input.focus();
         input.placeholder = t('actions.searchPlaceholder');
+      });
+    } else if (previouslyFocused) {
+      // Restore focus when closing (WCAG 2.4.3)
+      requestAnimationFrame(() => {
+        previouslyFocused.focus();
+        previouslyFocused = null;
       });
     }
   });

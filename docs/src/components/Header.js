@@ -9,6 +9,15 @@ import { SearchButton } from './Search.js';
 export function Header() {
   const header = el('header.header');
 
+  // Skip link for keyboard navigation (WCAG 2.4.1)
+  const skipLink = el('a.skip-link');
+  skipLink.href = '#main-content';
+  effect(() => {
+    locale.get();
+    skipLink.textContent = t('actions.skipToContent');
+  });
+  header.appendChild(skipLink);
+
   const logoContainer = el('.logo-container');
 
   const logo = el('.logo');
@@ -30,11 +39,11 @@ export function Header() {
 
   // GitHub stars badge
   const starsBadge = el('a.stars-badge');
-  starsBadge.innerHTML = '<span class="star-icon">★</span><span class="star-count">-</span>';
+  starsBadge.innerHTML = '<span class="star-icon" aria-hidden="true">★</span><span class="star-count" aria-live="polite">-</span>';
   starsBadge.href = 'https://github.com/vincenthirtz/pulse-js-framework';
   starsBadge.target = '_blank';
   starsBadge.rel = 'noopener noreferrer';
-  starsBadge.title = 'Star on GitHub';
+  starsBadge.setAttribute('aria-label', 'Star on GitHub');
   logoContainer.appendChild(starsBadge);
 
   // Fetch GitHub stars count
@@ -103,9 +112,11 @@ export function Header() {
           const path = currentPath.get();
           if (path === child.path) {
             menuItem.classList.add('active');
+            menuItem.setAttribute('aria-current', 'page');
             trigger.classList.add('has-active');
           } else {
             menuItem.classList.remove('active');
+            menuItem.removeAttribute('aria-current');
             // Check if any child is active
             const pathWithoutLocale = currentPath.get();
             const anyActive = item.children.some(c => pathWithoutLocale === c.path);
@@ -147,8 +158,10 @@ export function Header() {
         const path = currentPath.get();
         if (path === item.path) {
           link.classList.add('active');
+          link.setAttribute('aria-current', 'page');
         } else {
           link.classList.remove('active');
+          link.removeAttribute('aria-current');
         }
       });
       nav.appendChild(link);
@@ -172,10 +185,12 @@ export function Header() {
   const langSelector = el('.lang-selector');
 
   const langBtn = el('button.lang-btn');
+  langBtn.setAttribute('aria-haspopup', 'listbox');
+  langBtn.setAttribute('aria-expanded', 'false');
   effect(() => {
     const currentLocale = locale.get();
     langBtn.innerHTML = locales[currentLocale]?.flag || '🌐';
-    langBtn.title = locales[currentLocale]?.name || 'Language';
+    langBtn.setAttribute('aria-label', `${t('actions.selectLanguage')}: ${locales[currentLocale]?.name || 'Language'}`);
   });
   langSelector.appendChild(langBtn);
 
@@ -207,12 +222,14 @@ export function Header() {
   // Toggle language menu
   langBtn.addEventListener('click', (e) => {
     e.stopPropagation();
-    langSelector.classList.toggle('open');
+    const isOpen = langSelector.classList.toggle('open');
+    langBtn.setAttribute('aria-expanded', String(isOpen));
   });
 
   // Close language menu when clicking outside
   document.addEventListener('click', () => {
     langSelector.classList.remove('open');
+    langBtn.setAttribute('aria-expanded', 'false');
   });
 
   headerActions.appendChild(langSelector);
@@ -221,8 +238,9 @@ export function Header() {
   const themeBtn = el('button.theme-btn');
   effect(() => {
     locale.get(); // Track locale for translations
-    themeBtn.textContent = theme.get() === 'dark' ? '☀️' : '🌙';
-    themeBtn.title = theme.get() === 'dark' ? t('theme.switchToLight') : t('theme.switchToDark');
+    const isDark = theme.get() === 'dark';
+    themeBtn.textContent = isDark ? '☀️' : '🌙';
+    themeBtn.setAttribute('aria-label', isDark ? t('theme.switchToLight') : t('theme.switchToDark'));
   });
   themeBtn.addEventListener('click', toggleTheme);
   headerActions.appendChild(themeBtn);
@@ -231,13 +249,24 @@ export function Header() {
 
   // Mobile menu button
   const menuBtn = el('button.menu-btn', '☰');
-  menuBtn.addEventListener('click', () => mobileMenuOpen.update(v => !v));
+  menuBtn.setAttribute('aria-label', 'Toggle navigation menu');
+  menuBtn.setAttribute('aria-expanded', 'false');
+  menuBtn.setAttribute('aria-controls', 'mobile-nav');
+  menuBtn.addEventListener('click', () => {
+    const newState = !mobileMenuOpen.get();
+    mobileMenuOpen.set(newState);
+    menuBtn.setAttribute('aria-expanded', String(newState));
+  });
   header.appendChild(menuBtn);
 
   // Mobile nav (flat structure)
   const mobileNav = el('nav.mobile-nav');
+  mobileNav.id = 'mobile-nav';
+  mobileNav.setAttribute('aria-label', 'Mobile navigation');
   effect(() => {
-    mobileNav.className = `mobile-nav ${mobileMenuOpen.get() ? 'open' : ''}`;
+    const isOpen = mobileMenuOpen.get();
+    mobileNav.className = `mobile-nav ${isOpen ? 'open' : ''}`;
+    mobileNav.setAttribute('aria-hidden', String(!isOpen));
   });
 
   // Mobile navigation (uses shared navStructureFlat from state.js)
@@ -260,8 +289,10 @@ export function Header() {
       const path = currentPath.get();
       if (path === item.path) {
         link.classList.add('active');
+        link.setAttribute('aria-current', 'page');
       } else {
         link.classList.remove('active');
+        link.removeAttribute('aria-current');
       }
     });
     mobileNav.appendChild(link);
