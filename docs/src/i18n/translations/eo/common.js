@@ -29,6 +29,8 @@ export default {
     ssrDesc: 'Servila flanka renderado kaj hidratado',
     devtools: '🛠️ DevTools',
     devtoolsDesc: 'Sencimigado kaj efikeco-profilado',
+    internals: '⚙️ Internaj',
+    internalsDesc: 'Algoritmoj kaj efektivigo',
     accessibility: '♿ Alirebleco',
     accessibilityDesc: 'A11y funkcioj kaj plej bonaj praktikoj',
     debugging: '🔍 Sencimigado',
@@ -54,7 +56,9 @@ export default {
     migrationVue: '💚 De Vue',
     migrationVueDesc: 'Migrada gvidilo por Vue programistoj',
     benchmarks: '📊 Komparnormoj',
-    benchmarksDesc: 'Interagaj efikeco-provoj'
+    benchmarksDesc: 'Interagaj efikeco-provoj',
+    testing: '🧪 Testado',
+    testingDesc: 'Testgvidilo kaj utilaĵoj'
   },
 
   // Theme

@@ -31,6 +31,8 @@ import { GraphQLPage } from './pages/GraphQLPage.js';
 import { ContextPage } from './pages/ContextPage.js';
 import { DevToolsPage } from './pages/DevToolsPage.js';
 import { SSRPage } from './pages/SSRPage.js';
+import { InternalsPage } from './pages/InternalsPage.js';
+import { TestingPage } from './pages/TestingPage.js';
 
 // Re-export i18n for convenience
 export { locale, localePath, t, setLocale, getPathWithoutLocale, translations } from './i18n/index.js';
@@ -123,6 +125,8 @@ export const navStructure = [
     labelKey: 'nav.tools',
     children: [
       { path: '/devtools', labelKey: 'nav.devtools', descKey: 'nav.devtoolsDesc', handler: DevToolsPage },
+      { path: '/internals', labelKey: 'nav.internals', descKey: 'nav.internalsDesc', handler: InternalsPage },
+      { path: '/testing', labelKey: 'nav.testing', descKey: 'nav.testingDesc', handler: TestingPage },
       { path: '/debugging', labelKey: 'nav.debugging', descKey: 'nav.debuggingDesc', handler: DebuggingPage },
       { path: '/benchmarks', labelKey: 'nav.benchmarks', descKey: 'nav.benchmarksDesc', handler: BenchmarksPage }
     ]

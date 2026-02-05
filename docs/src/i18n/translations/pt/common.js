@@ -29,6 +29,8 @@ export default {
     ssrDesc: 'Renderização do lado do servidor e hidratação',
     devtools: '🛠️ DevTools',
     devtoolsDesc: 'Depuração e profiling',
+    internals: '⚙️ Internos',
+    internalsDesc: 'Algoritmos e implementação',
     accessibility: '♿ Acessibilidade',
     accessibilityDesc: 'Recursos a11y e boas práticas',
     debugging: '🔍 Depuração',
@@ -54,7 +56,9 @@ export default {
     migrationVue: '💚 Do Vue',
     migrationVueDesc: 'Guia de migração para desenvolvedores Vue',
     benchmarks: '📊 Benchmarks',
-    benchmarksDesc: 'Testes de desempenho interativos'
+    benchmarksDesc: 'Testes de desempenho interativos',
+    testing: '🧪 Testes',
+    testingDesc: 'Guia de testes e utilitários'
   },
 
   // Theme

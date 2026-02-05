@@ -29,6 +29,8 @@ export default {
     ssrDesc: 'Netþjóns-hliðar teikning og hydrering',
     devtools: '🛠️ DevTools',
     devtoolsDesc: 'Villuleit og afkastamæling',
+    internals: '⚙️ Innri virkni',
+    internalsDesc: 'Reiknirit og útfærsla',
     accessibility: '♿ Aðgengi',
     accessibilityDesc: 'A11y eiginleikar og bestu venjur',
     debugging: '🔍 Villuleit',
@@ -54,7 +56,9 @@ export default {
     migrationVue: '💚 Frá Vue',
     migrationVueDesc: 'Flutningsleiðbeiningar fyrir Vue forritara',
     benchmarks: '📊 Viðmiðanir',
-    benchmarksDesc: 'Gagnvirkir afkastapróf'
+    benchmarksDesc: 'Gagnvirkir afkastapróf',
+    testing: '🧪 Prófanir',
+    testingDesc: 'Prófunarleiðbeiningar og tól'
   },
 
   // Theme

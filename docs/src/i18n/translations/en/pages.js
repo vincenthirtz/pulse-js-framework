@@ -440,6 +440,121 @@ export default {
     nextPerformance: 'Next: Performance Guide'
   },
 
+  // Internals page
+  internals: {
+    title: '⚙️ Framework Internals',
+    intro: 'Deep dive into the algorithms and implementation details that power Pulse. Intended for contributors, advanced users, and the curious.',
+
+    // LIS Algorithm section
+    lisAlgorithm: 'List Diffing (LIS Algorithm)',
+    lisDesc: 'When a reactive list updates, Pulse uses the Longest Increasing Subsequence (LIS) algorithm to minimize DOM operations.',
+    whyLis: 'Why LIS?',
+    whyLisDesc: 'The key insight is that some elements are already in correct relative order. If we identify which elements don\'t need to move, we only reposition the others.',
+    lisOverview: 'Algorithm Overview (O(n log n))',
+    lisOverviewDesc: 'The algorithm uses binary search to efficiently compute which items can stay in place:',
+
+    // Reconciliation phases
+    reconciliationPhases: 'Reconciliation Phases',
+    phasesCaption: 'List update phases and their complexity',
+    phase: 'Phase',
+    operation: 'Operation',
+    complexity: 'Complexity',
+    keyExtraction: 'Map items to unique keys',
+    diffPhase: 'Identify added/removed/moved',
+    removePhase: 'Delete DOM nodes',
+    createPhase: 'Batch-create via DocumentFragment',
+    lisPhase: 'Compute stable items',
+    reorderPhase: 'Move non-LIS items',
+
+    // Performance by case
+    performanceByCase: 'Performance by Scenario',
+    scenarioCaption: 'DOM operations by update type',
+    scenario: 'Scenario',
+    domOps: 'DOM Operations',
+    notes: 'Notes',
+    appendItems: 'Append items',
+    appendNote: 'Single DocumentFragment insert',
+    prependItems: 'Prepend items',
+    prependNote: 'Existing items in LIS',
+    removeItems: 'Remove items',
+    removeNote: 'No moves needed',
+    reverseList: 'Reverse list',
+    reverseNote: 'LIS length = 1, all move',
+    randomShuffle: 'Random shuffle',
+    shuffleNote: 'Typically 30-50% move',
+    moveSingle: 'Move single item',
+    moveNote: 'LIS covers n-1 items',
+
+    // Selector Cache section
+    selectorCache: 'Selector Cache (LRU)',
+    selectorCacheDesc: 'The parseSelector() function caches parsed results using an LRU (Least Recently Used) cache to optimize repeated selector parsing.',
+    whyLru: 'Why LRU Instead of Map?',
+    cacheComparisonCaption: 'Cache strategy comparison',
+    approach: 'Approach',
+    memory: 'Memory',
+    longRunning: 'Long-running Apps',
+    noCache: 'No cache',
+    minimal: 'Minimal',
+    unboundedMap: 'Unbounded Map',
+    growsForever: 'Grows forever',
+    memoryLeak: 'Memory leak risk',
+    bounded: 'Bounded',
+    hotCached: 'Hot selectors stay cached',
+    cacheConfig: 'Configuration',
+    cacheSafety: 'Cache Safety',
+    cacheSafetyDesc: 'The cache returns shallow copies to prevent mutation of cached values:',
+    lruEviction: 'LRU Eviction Behavior',
+
+    // Conditional Lifecycle section
+    conditionalLifecycle: 'Conditional Rendering Lifecycle',
+    conditionalLifecycleDesc: 'The when() and match() functions manage effect cleanup to prevent memory leaks and stale subscriptions.',
+    cleanupGuarantees: 'Cleanup Guarantees',
+    nodesRemoved: 'DOM nodes removed',
+    nodesRemovedDesc: 'Previous branch nodes are removed from DOM',
+    cleanupCalled: 'Cleanup functions called',
+    cleanupCalledDesc: 'Any cleanup returned by previous render runs',
+    stateReset: 'State reset',
+    stateResetDesc: 'Internal tracking arrays cleared',
+    lifecycleDiagram: 'Lifecycle Diagram',
+
+    // when vs show
+    whenVsShow: 'when() vs show() Comparison',
+    whenVsShowCaption: 'Choosing between conditional rendering methods',
+    feature: 'Feature',
+    domPresence: 'DOM presence',
+    addsRemoves: 'Adds/removes nodes',
+    alwaysInDom: 'Always in DOM (display: none)',
+    effects: 'Effects',
+    createdDisposed: 'Created/disposed per branch',
+    alwaysActive: 'Always active',
+    memoryUsage: 'Memory',
+    lowerWhenHidden: 'Lower when hidden',
+    constant: 'Constant',
+    transitions: 'Transitions',
+    harder: 'Harder (node recreation)',
+    easier: 'Easier (CSS)',
+    formState: 'Form state',
+    lostOnHide: 'Lost on hide',
+    preserved: 'Preserved',
+    useCase: 'Use case',
+    complexConditional: 'Complex conditional UI',
+    simpleToggle: 'Simple visibility toggle',
+    cleanupPattern: 'Cleanup Pattern',
+
+    // Effect Scheduling section
+    effectScheduling: 'Effect Scheduling',
+    effectSchedulingDesc: 'Effects in Pulse are scheduled synchronously but can be batched to avoid redundant executions.',
+    executionModel: 'Execution Model',
+    circularProtection: 'Circular Dependency Protection',
+    circularProtectionDesc: 'Effects that trigger themselves are detected and limited to 100 iterations:',
+    cleanupTiming: 'Effect Cleanup Timing',
+    nestedEffects: 'Nested Effects',
+    nestedEffectsDesc: 'Effects can be nested. Inner effects are automatically disposed when the outer effect re-runs.',
+
+    // Navigation
+    nextPerformance: 'Next: Performance Guide →'
+  },
+
   // Performance page
   performance: {
     title: '⚡ Performance',
@@ -759,6 +874,113 @@ export default {
     propsEventsTip: 'Pass callbacks directly as props. No emit() ceremony needed.',
     provideInjectTip: 'No provide/inject boilerplate. Just export a pulse and import it anywhere.',
     lifecycleTip: 'Return a cleanup function from effect() to handle unmount logic. Much simpler than multiple lifecycle hooks!'
+  },
+
+  // Testing page
+  testing: {
+    title: '🧪 Testing',
+    intro: 'Comprehensive guide to testing Pulse applications using Node.js built-in test runner and Pulse test utilities.',
+
+    // Quick Start
+    quickStart: 'Quick Start',
+    quickStartDesc: 'Pulse uses Node.js built-in test runner with zero additional dependencies. Run tests with the CLI or directly with Node.',
+    runningTests: 'Running Tests',
+
+    // Writing Tests
+    writingTests: 'Writing Tests',
+    writingTestsDesc: 'Tests can be written using Node.js built-in test module or Pulse\'s custom test utilities.',
+    basicStructure: 'Basic Test Structure',
+    pulseTestUtils: 'Pulse Test Utilities',
+    pulseTestUtilsDesc: 'Pulse provides a lightweight test runner with assertions, spies, and async support.',
+
+    // Isolated Contexts
+    isolatedContexts: 'Isolated Reactive Contexts',
+    isolatedContextsDesc: 'Use createContext() and withContext() to isolate reactive state between tests, preventing test pollution.',
+
+    // Testing Reactivity
+    testingReactivity: 'Testing Reactivity',
+    testingReactivityDesc: 'Patterns for testing pulses, computed values, and effects.',
+    testingPulses: 'Testing Pulses',
+    testingComputed: 'Testing Computed Values',
+    testingEffects: 'Testing Effects',
+
+    // Testing DOM
+    testingDom: 'Testing DOM Components',
+    testingDomDesc: 'Test DOM rendering without a browser using the mock DOM utilities.',
+    mockDomSetup: 'Mock DOM Setup',
+    testingElements: 'Testing Elements',
+    testingLists: 'Testing Lists',
+    testingConditionals: 'Testing Conditionals',
+
+    // MockDOMAdapter
+    mockDomAdapter: 'MockDOMAdapter for Testing',
+    mockDomAdapterDesc: 'The MockDOMAdapter provides a complete DOM abstraction for testing without a browser environment.',
+
+    // Testing Async
+    testingAsync: 'Testing Async Operations',
+    testingAsyncDesc: 'Patterns for testing async data fetching with useAsync and useResource.',
+
+    // Testing Forms
+    testingForms: 'Testing Forms',
+    testingFormsDesc: 'Test form validation, field state, and form submission.',
+
+    // Testing Store
+    testingStore: 'Testing Stores',
+    testingStoreDesc: 'Test global state management with createStore, actions, and getters.',
+
+    // Testing Router
+    testingRouter: 'Testing Router',
+    testingRouterDesc: 'Test route matching, navigation, and guards with mocked history API.',
+
+    // Testing HTTP
+    testingHttp: 'Testing HTTP Requests',
+    testingHttpDesc: 'Mock the fetch API to test HTTP client behavior.',
+
+    // Test Helpers
+    testHelpers: 'Test Helper Reference',
+    testHelpersDesc: 'Complete reference for all test utilities and assertions.',
+    assertions: 'Assertions',
+    assertionsCaption: 'Available assertion functions',
+    function: 'Function',
+    description: 'Description',
+    example: 'Example',
+    assertDesc: 'Assert condition is truthy',
+    assertEqualDesc: 'Assert strict equality (===)',
+    assertDeepEqualDesc: 'Assert deep equality (JSON comparison)',
+    assertThrowsDesc: 'Assert function throws',
+    assertThrowsAsyncDesc: 'Assert async function throws',
+    assertTruthyDesc: 'Assert value is truthy',
+    assertFalsyDesc: 'Assert value is falsy',
+    assertInstanceOfDesc: 'Assert instanceof check',
+    assertTypeDesc: 'Assert typeof check',
+    spiesAndMocks: 'Spies and Timing Utilities',
+
+    // Coverage
+    coverageReporting: 'Coverage Reporting',
+    coverageReportingDesc: 'Generate code coverage reports to identify untested code paths.',
+    coverageTips: 'Coverage Tips',
+    coverageTip1: 'Aim for high coverage on business logic and utilities',
+    coverageTip2: 'Don\'t chase 100% coverage - focus on meaningful tests',
+    coverageTip3: 'Test edge cases and error conditions',
+    coverageTip4: 'Use coverage to identify dead code',
+
+    // Best Practices
+    bestPractices: 'Best Practices',
+    practice1Title: '1. Isolate Test State',
+    practice1Desc: 'Use isolated reactive contexts to prevent state leaking between tests.',
+    practice2Title: '2. Test Behavior, Not Implementation',
+    practice2Desc: 'Focus on what your code does, not how it does it internally.',
+    practice3Title: '3. Use Descriptive Test Names',
+    practice3Desc: 'Test names should describe the expected behavior clearly.',
+    practice4Title: '4. Follow AAA Pattern',
+    practice4Desc: 'Structure tests with Arrange, Act, Assert sections for clarity.',
+
+    // CI Integration
+    ciIntegration: 'CI/CD Integration',
+    ciIntegrationDesc: 'Run tests automatically in your CI/CD pipeline.',
+
+    // Navigation
+    nextDebugging: 'Next: Debugging →'
   },
 
   // Changelog page
