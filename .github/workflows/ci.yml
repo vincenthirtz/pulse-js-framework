@@ -118,6 +118,11 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Download build artifact
         uses: actions/download-artifact@v4
         with:
@@ -125,6 +130,7 @@ jobs:
           path: dist
 
       - name: Deploy to Netlify
+        id: netlify
         uses: nwtgck/actions-netlify@v3
         with:
           publish-dir: './dist'
@@ -132,3 +138,38 @@ jobs:
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+
+      - name: Check if release is needed
+        id: check_release
+        if: success()
+        run: |
+          # Get the last commit message
+          LAST_COMMIT=$(git log -1 --pretty=%B)
+
+          # Check if it's NOT already a release commit
+          if echo "$LAST_COMMIT" | grep -qE "^v[0-9]+\.[0-9]+\.[0-9]+"; then
+            echo "SKIP_PROMPT=true" >> $GITHUB_OUTPUT
+            echo "Last commit is already a release, skipping prompt"
+          else
+            echo "SKIP_PROMPT=false" >> $GITHUB_OUTPUT
+            echo "Deploy successful, could create a release"
+          fi
+
+      - name: Create deployment summary with release option
+        if: success() && steps.check_release.outputs.SKIP_PROMPT == 'false'
+        run: |
+          echo "## ✅ Deployment Successful!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📦 **Netlify URL**: ${{ steps.netlify.outputs.deploy-url }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🚀 Ready to Create a Release?" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Click one of the links below to create a new release:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- [🐛 **Patch Release** (bug fixes)](https://github.com/${{ github.repository }}/actions/workflows/create-release.yml?version_type=patch)" >> $GITHUB_STEP_SUMMARY
+          echo "- [✨ **Minor Release** (new features)](https://github.com/${{ github.repository }}/actions/workflows/create-release.yml?version_type=minor)" >> $GITHUB_STEP_SUMMARY
+          echo "- [💥 **Major Release** (breaking changes)](https://github.com/${{ github.repository }}/actions/workflows/create-release.yml?version_type=major)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "> 💡 Or go to [Actions > Create Release](https://github.com/${{ github.repository }}/actions/workflows/create-release.yml) and click **Run workflow**" >> $GITHUB_STEP_SUMMARY

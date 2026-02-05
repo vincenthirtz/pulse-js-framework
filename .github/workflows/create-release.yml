@@ -1,0 +1,147 @@
+name: Create Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_type:
+        description: 'Version bump type'
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      title:
+        description: 'Release title (e.g., "Bug Fixes", "New Features")'
+        required: false
+        type: string
+      use_commits:
+        description: 'Auto-extract changelog from commits'
+        required: false
+        type: boolean
+        default: true
+      skip_docs_test:
+        description: 'Skip documentation tests'
+        required: false
+        type: boolean
+        default: false
+      discord_webhook:
+        description: 'Discord webhook URL (optional)'
+        required: false
+        type: string
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install gh CLI
+        run: |
+          type -p curl >/dev/null || (sudo apt update && sudo apt install curl -y)
+          curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
+          && sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
+          && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
+          && sudo apt update \
+          && sudo apt install gh -y
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Authenticate gh CLI
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
+
+      - name: Build release command
+        id: build_cmd
+        run: |
+          CMD="node cli/index.js release ${{ inputs.version_type }} --yes"
+
+          if [ -n "${{ inputs.title }}" ]; then
+            CMD="$CMD --title \"${{ inputs.title }}\""
+          fi
+
+          if [ "${{ inputs.use_commits }}" = "true" ]; then
+            CMD="$CMD --from-commits"
+          fi
+
+          if [ "${{ inputs.skip_docs_test }}" = "true" ]; then
+            CMD="$CMD --skip-docs-test"
+          fi
+
+          if [ -n "${{ inputs.discord_webhook }}" ]; then
+            CMD="$CMD --discord-webhook \"${{ inputs.discord_webhook }}\""
+          fi
+
+          echo "COMMAND=$CMD" >> $GITHUB_OUTPUT
+          echo "Running: $CMD"
+
+      - name: Run release command
+        run: ${{ steps.build_cmd.outputs.COMMAND }}
+
+      - name: Get new version
+        id: version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "Released version: v$VERSION"
+
+      - name: Comment on recent PRs
+        if: success()
+        run: |
+          VERSION="${{ steps.version.outputs.VERSION }}"
+
+          # Find recently merged PRs (last 10)
+          RECENT_PRS=$(gh pr list --state merged --limit 10 --json number,title,mergedAt --jq '.[] | .number')
+
+          for PR_NUM in $RECENT_PRS; do
+            # Check if this PR's commits are in the release
+            if git log v$VERSION --oneline | grep -q "#$PR_NUM"; then
+              gh pr comment $PR_NUM --body "🚀 This PR has been included in [v$VERSION](https://github.com/${{ github.repository }}/releases/tag/v$VERSION)"
+            fi
+          done
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+
+      - name: Create summary
+        if: success()
+        run: |
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          echo "## 🚀 Release v$VERSION Created Successfully!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📋 Details" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version**: v$VERSION" >> $GITHUB_STEP_SUMMARY
+          echo "- **Type**: ${{ inputs.version_type }}" >> $GITHUB_STEP_SUMMARY
+          if [ -n "${{ inputs.title }}" ]; then
+            echo "- **Title**: ${{ inputs.title }}" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔗 Links" >> $GITHUB_STEP_SUMMARY
+          echo "- [View Release](https://github.com/${{ github.repository }}/releases/tag/v$VERSION)" >> $GITHUB_STEP_SUMMARY
+          echo "- [View Changelog](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md)" >> $GITHUB_STEP_SUMMARY
+          echo "- [Documentation](https://pulse-js.fr)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📦 Installation" >> $GITHUB_STEP_SUMMARY
+          echo '```bash' >> $GITHUB_STEP_SUMMARY
+          echo "npm install pulse-js-framework@$VERSION" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
