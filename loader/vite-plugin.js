@@ -2,32 +2,42 @@
  * Pulse Vite Plugin
  *
  * Enables .pulse file support in Vite projects
+ * Extracts CSS to virtual .css modules so Vite's CSS pipeline handles them
+ * (prevents JS minifier from corrupting CSS in template literals)
  */
 
 import { compile } from '../compiler/index.js';
 import { existsSync } from 'fs';
 import { resolve, dirname } from 'path';
 
+// Virtual module ID for extracted CSS (uses .css extension so Vite treats it as CSS)
+const VIRTUAL_CSS_SUFFIX = '.pulse.css';
+
 /**
  * Create Pulse Vite plugin
  */
 export default function pulsePlugin(options = {}) {
   const {
-    include = /\.pulse$/,
     exclude = /node_modules/,
     sourceMap = true
   } = options;
+
+  // Store extracted CSS for each .pulse module
+  const cssMap = new Map();
 
   return {
     name: 'vite-plugin-pulse',
     enforce: 'pre',
 
     /**
-     * Resolve .pulse files and .js imports that map to .pulse files
-     * The compiler transforms .pulse imports to .js, so we need to
-     * resolve them back to .pulse for Vite to process them
+     * Resolve .pulse files and virtual CSS modules
      */
     resolveId(id, importer) {
+      // Handle virtual CSS module resolution
+      if (id.endsWith(VIRTUAL_CSS_SUFFIX)) {
+        return '\0' + id;
+      }
+
       // Direct .pulse imports - resolve to absolute path
       if (id.endsWith('.pulse') && importer) {
         const importerDir = dirname(importer);
@@ -38,7 +48,6 @@ export default function pulsePlugin(options = {}) {
       }
 
       // Check if a .js import has a corresponding .pulse file
-      // This handles the compiler's transformation of .pulse -> .js imports
       if (id.endsWith('.js') && importer) {
         const pulseId = id.replace(/\.js$/, '.pulse');
         const importerDir = dirname(importer);
@@ -53,7 +62,21 @@ export default function pulsePlugin(options = {}) {
     },
 
     /**
+     * Load virtual CSS modules
+     */
+    load(id) {
+      // Virtual modules start with \0
+      if (id.startsWith('\0') && id.endsWith(VIRTUAL_CSS_SUFFIX)) {
+        const pulseId = id.slice(1, -VIRTUAL_CSS_SUFFIX.length + '.pulse'.length);
+        const css = cssMap.get(pulseId);
+        return css || '';
+      }
+      return null;
+    },
+
+    /**
      * Transform .pulse files to JavaScript
+     * CSS is extracted to a virtual .css module that Vite processes separately
      */
     transform(code, id) {
       if (!id.endsWith('.pulse')) {
@@ -79,8 +102,27 @@ export default function pulsePlugin(options = {}) {
           return null;
         }
 
+        let outputCode = result.code;
+
+        // Extract CSS from compiled output and move to virtual CSS module
+        const stylesMatch = outputCode.match(/const styles = `([\s\S]*?)`;/);
+        if (stylesMatch) {
+          const css = stylesMatch[1];
+          const virtualCssId = id + '.css';
+
+          // Store CSS for the virtual module loader
+          cssMap.set(id, css);
+
+          // Replace inline style injection with CSS import
+          // Vite will process this through its CSS pipeline (not JS minifier)
+          outputCode = outputCode.replace(
+            /\/\/ Styles\nconst styles = `[\s\S]*?`;\n\/\/ Inject styles\nconst styleEl = document\.createElement\("style"\);\nstyleEl\.textContent = styles;\ndocument\.head\.appendChild\(styleEl\);/,
+            `// Styles extracted to virtual CSS module\nimport "${virtualCssId}";`
+          );
+        }
+
         return {
-          code: result.code,
+          code: outputCode,
           map: result.map || null
         };
       } catch (error) {
@@ -92,7 +134,7 @@ export default function pulsePlugin(options = {}) {
     /**
      * Handle hot module replacement
      */
-    handleHotUpdate({ file, server, modules }) {
+    handleHotUpdate({ file, server }) {
       if (file.endsWith('.pulse')) {
         console.log(`[Pulse] HMR update: ${file}`);
 
@@ -102,8 +144,14 @@ export default function pulsePlugin(options = {}) {
           server.moduleGraph.invalidateModule(module);
         }
 
+        // Also invalidate the associated virtual CSS module
+        const virtualCssId = '\0' + file + '.css';
+        const cssModule = server.moduleGraph.getModuleById(virtualCssId);
+        if (cssModule) {
+          server.moduleGraph.invalidateModule(cssModule);
+        }
+
         // Send HMR update instead of full reload
-        // The module will handle its own state preservation via hmrRuntime
         server.ws.send({
           type: 'update',
           updates: [{
@@ -123,7 +171,7 @@ export default function pulsePlugin(options = {}) {
      * Configure dev server
      */
     configureServer(server) {
-      server.middlewares.use((req, res, next) => {
+      server.middlewares.use((_req, _res, next) => {
         // Add any custom middleware here
         next();
       });
@@ -133,11 +181,8 @@ export default function pulsePlugin(options = {}) {
      * Build hooks
      */
     buildStart() {
-      console.log('[Pulse] Build started');
-    },
-
-    buildEnd() {
-      console.log('[Pulse] Build completed');
+      // Clear CSS map on new build
+      cssMap.clear();
     }
   };
 }
@@ -191,9 +236,9 @@ export const utils = {
   },
 
   /**
-   * Create a virtual module ID
+   * Get the virtual CSS module ID for a Pulse file
    */
-  createVirtualId(id) {
-    return `\0${id}`;
+  getVirtualCssId(id) {
+    return id + '.css';
   }
 };
