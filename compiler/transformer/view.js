@@ -299,31 +299,126 @@ export function transformFocusTrapDirective(transformer, node, indent) {
 }
 
 /**
+ * Parse a balanced expression starting from an opening brace
+ * Handles nested braces and string literals correctly
+ * @param {string} str - The string to parse
+ * @param {number} start - Index of the opening brace
+ * @returns {Object} { expr: string, end: number } or null if invalid
+ */
+function parseBalancedExpression(str, start) {
+  if (str[start] !== '{') return null;
+
+  let depth = 0;
+  let inString = false;
+  let stringChar = '';
+  let i = start;
+
+  while (i < str.length) {
+    const char = str[i];
+    const prevChar = i > 0 ? str[i - 1] : '';
+
+    // Handle string literals
+    if (!inString && (char === '"' || char === "'" || char === '`')) {
+      inString = true;
+      stringChar = char;
+    } else if (inString && char === stringChar && prevChar !== '\\') {
+      inString = false;
+      stringChar = '';
+    }
+
+    // Count braces only outside strings
+    if (!inString) {
+      if (char === '{') {
+        depth++;
+      } else if (char === '}') {
+        depth--;
+        if (depth === 0) {
+          // Found the matching closing brace
+          return {
+            expr: str.slice(start + 1, i),
+            end: i
+          };
+        }
+      }
+    }
+
+    i++;
+  }
+
+  return null; // Unbalanced braces
+}
+
+/**
  * Extract dynamic attributes from a selector
  * Returns { cleanSelector, dynamicAttrs } where dynamicAttrs is an array of { name, expr }
+ * Handles complex expressions including ternaries, nested braces, and string literals
  * @param {string} selector - CSS selector with potential dynamic attributes
  * @returns {Object} { cleanSelector, dynamicAttrs }
  */
 function extractDynamicAttributes(selector) {
   const dynamicAttrs = [];
-  // Match attributes with {expression} values: [name={expr}] or [name="{expr}"]
-  const attrPattern = /\[([a-zA-Z][a-zA-Z0-9-]*)\s*=\s*\{([^}]+)\}\]/g;
-  const attrPatternQuoted = /\[([a-zA-Z][a-zA-Z0-9-]*)\s*=\s*"\{([^}]+)\}"\]/g;
+  let cleanSelector = '';
+  let i = 0;
 
-  let cleanSelector = selector;
+  while (i < selector.length) {
+    // Look for attribute start: [
+    if (selector[i] === '[') {
+      i++; // Skip [
 
-  // Extract unquoted dynamic attributes: [value={expr}]
-  let match;
-  while ((match = attrPattern.exec(selector)) !== null) {
-    dynamicAttrs.push({ name: match[1], expr: match[2] });
+      // Parse attribute name
+      let attrName = '';
+      while (i < selector.length && /[a-zA-Z0-9-]/.test(selector[i])) {
+        attrName += selector[i];
+        i++;
+      }
+
+      // Skip whitespace
+      while (i < selector.length && /\s/.test(selector[i])) i++;
+
+      // Check for =
+      if (i < selector.length && selector[i] === '=') {
+        i++; // Skip =
+
+        // Skip whitespace
+        while (i < selector.length && /\s/.test(selector[i])) i++;
+
+        // Check for optional quote
+        const hasQuote = selector[i] === '"';
+        if (hasQuote) i++;
+
+        // Check for dynamic expression {
+        if (selector[i] === '{') {
+          const result = parseBalancedExpression(selector, i);
+          if (result) {
+            dynamicAttrs.push({ name: attrName, expr: result.expr });
+            i = result.end + 1; // Skip past closing }
+
+            // Skip optional closing quote
+            if (hasQuote && selector[i] === '"') i++;
+
+            // Skip closing ]
+            if (selector[i] === ']') i++;
+
+            // Don't add this attribute to cleanSelector
+            continue;
+          }
+        }
+      }
+
+      // Not a dynamic attribute, copy everything from [ to ]
+      let bracketDepth = 1;
+      cleanSelector += '[';
+      while (i < selector.length && bracketDepth > 0) {
+        if (selector[i] === '[') bracketDepth++;
+        else if (selector[i] === ']') bracketDepth--;
+        cleanSelector += selector[i];
+        i++;
+      }
+    } else {
+      cleanSelector += selector[i];
+      i++;
+    }
   }
-  cleanSelector = cleanSelector.replace(attrPattern, '');
-
-  // Extract quoted dynamic attributes: [value="{expr}"]
-  while ((match = attrPatternQuoted.exec(selector)) !== null) {
-    dynamicAttrs.push({ name: match[1], expr: match[2] });
-  }
-  cleanSelector = cleanSelector.replace(attrPatternQuoted, '');
 
   return { cleanSelector, dynamicAttrs };
 }

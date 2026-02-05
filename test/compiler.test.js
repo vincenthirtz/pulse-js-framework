@@ -1272,6 +1272,532 @@ view {
 });
 
 // =============================================================================
+// Dynamic Attributes Tests
+// =============================================================================
+
+printSection('Dynamic Attributes Tests');
+
+test('compiles simple dynamic attribute', () => {
+  const source = `
+@page App
+
+state {
+  searchQuery: ""
+}
+
+view {
+  input[value={searchQuery}]
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  assert(result.code.includes('bind'), 'Expected bind call for dynamic attribute');
+  assert(result.code.includes('searchQuery.get()'), 'Expected reactive getter');
+});
+
+test('compiles dynamic class with ternary expression', () => {
+  const source = `
+@page App
+
+state {
+  darkMode: false
+}
+
+view {
+  div[class={darkMode ? "cv dark-mode" : "cv"}] "Content"
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  assert(result.code.includes('bind'), 'Expected bind call for dynamic class');
+  assert(result.code.includes('darkMode.get()'), 'Expected reactive getter');
+  assert(result.code.includes('cv dark-mode'), 'Expected dark-mode class string');
+  assert(result.code.includes('"cv"'), 'Expected cv class string');
+});
+
+test('compiles dynamic class with complex ternary', () => {
+  const source = `
+@page App
+
+state {
+  selected: "test"
+}
+
+view {
+  button.category-btn[class={selected === "test" ? "active" : ""}] "Test"
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  assert(result.code.includes('bind'), 'Expected bind call');
+  assert(result.code.includes('selected.get()'), 'Expected reactive getter');
+  assert(result.code.includes('"active"'), 'Expected active class');
+});
+
+test('compiles multiple dynamic attributes', () => {
+  const source = `
+@page App
+
+state {
+  inputValue: ""
+  isDisabled: false
+}
+
+view {
+  input[value={inputValue}][disabled={isDisabled}]
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  // Should have two bind calls
+  const bindCount = (result.code.match(/bind\(/g) || []).length;
+  assert(bindCount >= 2, 'Expected at least 2 bind calls');
+});
+
+test('compiles dynamic attribute with nested object access', () => {
+  const source = `
+@page App
+
+state {
+  user: { name: "John" }
+}
+
+view {
+  span[data-name={user.name}] "Hello"
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  assert(result.code.includes('bind'), 'Expected bind call');
+});
+
+test('compiles dynamic class with static classes preserved', () => {
+  const source = `
+@page App
+
+state {
+  isActive: true
+}
+
+view {
+  div.static-class[class={isActive ? "active" : ""}] "Content"
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  assert(result.code.includes('static-class'), 'Expected static class preserved');
+  assert(result.code.includes('bind'), 'Expected bind for dynamic class');
+});
+
+test('compiles quoted dynamic attribute syntax', () => {
+  const source = `
+@page App
+
+state {
+  title: "Hello"
+}
+
+view {
+  div[title="{title}"] "Content"
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  assert(result.code.includes('bind'), 'Expected bind call');
+});
+
+test('compiles dynamic attribute with function call', () => {
+  const source = `
+@page App
+
+state {
+  items: [1, 2, 3]
+}
+
+view {
+  span[data-count={items.length}] "Items"
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  assert(result.code.includes('bind'), 'Expected bind call');
+});
+
+// =============================================================================
+// Complex Dynamic Attributes Tests
+// =============================================================================
+
+printSection('Complex Dynamic Attributes Tests');
+
+test('compiles nested ternary expressions', () => {
+  const source = `
+@page App
+
+state {
+  status: "loading"
+}
+
+view {
+  div[class={status === "loading" ? "spinner" : status === "error" ? "error-box" : "content"}] "Status"
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  assert(result.code.includes('bind'), 'Expected bind call');
+  assert(result.code.includes('status.get()'), 'Expected reactive getter');
+  assert(result.code.includes('"spinner"'), 'Expected spinner class');
+  assert(result.code.includes('"error-box"'), 'Expected error-box class');
+  assert(result.code.includes('"content"'), 'Expected content class');
+});
+
+test('compiles ternary with template literals in strings', () => {
+  const source = `
+@page App
+
+state {
+  count: 5
+  max: 10
+}
+
+view {
+  div[data-info={count > max ? "over-limit" : "within-limit"}] "Info"
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  assert(result.code.includes('count.get()'), 'Expected count getter');
+  assert(result.code.includes('max.get()'), 'Expected max getter');
+});
+
+test('compiles complex boolean expressions in attributes', () => {
+  const source = `
+@page App
+
+state {
+  isLoggedIn: true
+  isAdmin: false
+  hasPermission: true
+}
+
+view {
+  button[disabled={!isLoggedIn || (!isAdmin && !hasPermission)}] "Action"
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  assert(result.code.includes('bind'), 'Expected bind call');
+  assert(result.code.includes('isLoggedIn.get()'), 'Expected isLoggedIn getter');
+  assert(result.code.includes('isAdmin.get()'), 'Expected isAdmin getter');
+});
+
+test('compiles dynamic attributes with array methods', () => {
+  const source = `
+@page App
+
+state {
+  items: [{ id: 1, active: true }, { id: 2, active: false }]
+}
+
+view {
+  div[data-active-count={items.filter(i => i.active).length}] "Active items"
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  assert(result.code.includes('bind'), 'Expected bind call');
+  assert(result.code.includes('items.get()'), 'Expected items getter');
+});
+
+test('compiles multiple dynamic attributes with complex expressions', () => {
+  const source = `
+@page App
+
+state {
+  theme: "light"
+  size: "medium"
+  variant: "primary"
+}
+
+view {
+  button[class={theme === "dark" ? "btn-dark" : "btn-light"}][data-size={size}][aria-pressed={variant === "primary" ? "true" : "false"}] "Button"
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  const bindCount = (result.code.match(/bind\(/g) || []).length;
+  assert(bindCount >= 3, 'Expected at least 3 bind calls for 3 dynamic attributes');
+});
+
+test('compiles expressions with string concatenation', () => {
+  const source = `
+@page App
+
+state {
+  prefix: "item"
+  id: 42
+}
+
+view {
+  div[data-id={prefix + "-" + id}] "Item"
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  assert(result.code.includes('bind'), 'Expected bind call');
+  assert(result.code.includes('prefix.get()'), 'Expected prefix getter');
+  assert(result.code.includes('id.get()'), 'Expected id getter');
+});
+
+test('compiles ternary with object property access', () => {
+  const source = `
+@page App
+
+state {
+  user: { role: "admin", name: "John" }
+}
+
+view {
+  span[class={user.role === "admin" ? "badge-admin" : "badge-user"}] "{user.name}"
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  assert(result.code.includes('bind'), 'Expected bind call');
+  assert(result.code.includes('"badge-admin"'), 'Expected badge-admin class');
+});
+
+test('compiles complex dashboard component', () => {
+  const source = `
+@page Dashboard
+
+state {
+  isLoading: false
+  hasError: false
+  errorMessage: ""
+  data: []
+  selectedTab: "overview"
+  sidebarCollapsed: false
+  theme: "light"
+  notifications: []
+}
+
+view {
+  div[class={theme === "dark" ? "dashboard dark-theme" : "dashboard light-theme"}] {
+    aside[class={sidebarCollapsed ? "sidebar collapsed" : "sidebar expanded"}] {
+      nav {
+        button[class={selectedTab === "overview" ? "nav-item active" : "nav-item"}] @click(selectedTab = "overview") "Overview"
+        button[class={selectedTab === "analytics" ? "nav-item active" : "nav-item"}] @click(selectedTab = "analytics") "Analytics"
+        button[class={selectedTab === "settings" ? "nav-item active" : "nav-item"}] @click(selectedTab = "settings") "Settings"
+      }
+    }
+
+    main[class={sidebarCollapsed ? "content full-width" : "content"}] {
+      header {
+        h1 "Dashboard"
+        div[class={notifications.length > 0 ? "notifications has-new" : "notifications"}] {
+          span[data-count={notifications.length}] "🔔"
+        }
+      }
+
+      @if (isLoading) {
+        div.spinner "Loading..."
+      } @else @if (hasError) {
+        div[class={"error-banner"}][data-message={errorMessage}] "Error occurred"
+      } @else {
+        div.content-area {
+          @for (item of data) {
+            div[class={item.highlighted ? "card highlighted" : "card"}][data-id={item.id}] {
+              span "{item.title}"
+            }
+          }
+        }
+      }
+    }
+  }
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+
+  // Verify multiple dynamic attributes are compiled
+  const bindCount = (result.code.match(/bind\(/g) || []).length;
+  assert(bindCount >= 5, 'Expected multiple bind calls for dynamic attributes');
+
+  // Verify state variables
+  assert(result.code.includes('theme.get()'), 'Expected theme getter');
+  assert(result.code.includes('sidebarCollapsed.get()'), 'Expected sidebarCollapsed getter');
+  assert(result.code.includes('selectedTab.get()'), 'Expected selectedTab getter');
+});
+
+test('compiles form with dynamic validation classes', () => {
+  const source = `
+@page Form
+
+state {
+  email: ""
+  password: ""
+  emailTouched: false
+  passwordTouched: false
+  isSubmitting: false
+}
+
+view {
+  form {
+    div[class={emailTouched && email.length === 0 ? "field error" : emailTouched && email.includes("@") ? "field valid" : "field"}] {
+      input[type="email"][value={email}][disabled={isSubmitting}] @input(email = event.target.value) @blur(emailTouched = true)
+      span[class={emailTouched && email.length === 0 ? "error-msg visible" : "error-msg"}] "Email is required"
+    }
+
+    div[class={passwordTouched && password.length < 8 ? "field error" : passwordTouched ? "field valid" : "field"}] {
+      input[type="password"][value={password}][disabled={isSubmitting}] @input(password = event.target.value) @blur(passwordTouched = true)
+      span[class={passwordTouched && password.length < 8 ? "error-msg visible" : "error-msg"}] "Password must be 8+ chars"
+    }
+
+    button[type="submit"][disabled={isSubmitting || email.length === 0 || password.length < 8}][class={isSubmitting ? "btn loading" : "btn"}] {
+      @if (isSubmitting) {
+        span "Submitting..."
+      } @else {
+        span "Submit"
+      }
+    }
+  }
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  assert(result.code.includes('emailTouched.get()'), 'Expected emailTouched getter');
+  assert(result.code.includes('passwordTouched.get()'), 'Expected passwordTouched getter');
+  assert(result.code.includes('"field error"'), 'Expected field error class');
+  assert(result.code.includes('"field valid"'), 'Expected field valid class');
+});
+
+test('compiles expressions with special characters in strings', () => {
+  const source = `
+@page App
+
+state {
+  type: "info"
+}
+
+view {
+  div[class={type === "warning" ? "alert alert-warning ⚠️" : type === "error" ? "alert alert-error ❌" : "alert alert-info ℹ️"}] "Message"
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  assert(result.code.includes('type.get()'), 'Expected type getter');
+});
+
+test('compiles deeply nested object access in ternary', () => {
+  const source = `
+@page App
+
+state {
+  config: {
+    ui: {
+      theme: {
+        variant: "dark",
+        accent: "blue"
+      }
+    }
+  }
+}
+
+view {
+  div[class={config.ui.theme.variant === "dark" ? "container dark" : "container light"}][data-accent={config.ui.theme.accent}] "Content"
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  assert(result.code.includes('bind'), 'Expected bind calls');
+});
+
+test('compiles ternary with numeric comparisons', () => {
+  const source = `
+@page App
+
+state {
+  progress: 75
+  maxProgress: 100
+}
+
+view {
+  div[class={progress >= maxProgress ? "progress complete" : progress >= 50 ? "progress halfway" : "progress starting"}][style={"width: " + progress + "%"}] {
+    span "{progress}%"
+  }
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  assert(result.code.includes('progress.get()'), 'Expected progress getter');
+  assert(result.code.includes('maxProgress.get()'), 'Expected maxProgress getter');
+});
+
+test('compiles computed class with logical AND/OR', () => {
+  const source = `
+@page App
+
+state {
+  isVisible: true
+  isAnimating: false
+  isPaused: false
+}
+
+view {
+  div[class={(isVisible && !isPaused) ? (isAnimating ? "box visible animating" : "box visible") : "box hidden"}] "Box"
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  assert(result.code.includes('isVisible.get()'), 'Expected isVisible getter');
+  assert(result.code.includes('isAnimating.get()'), 'Expected isAnimating getter');
+  assert(result.code.includes('isPaused.get()'), 'Expected isPaused getter');
+});
+
+test('compiles data table with dynamic row classes', () => {
+  const source = `
+@page DataTable
+
+state {
+  rows: [
+    { id: 1, name: "Item 1", status: "active", selected: false },
+    { id: 2, name: "Item 2", status: "pending", selected: true },
+    { id: 3, name: "Item 3", status: "inactive", selected: false }
+  ]
+  sortColumn: "name"
+  sortDirection: "asc"
+  hoveredRow: null
+}
+
+view {
+  table {
+    thead {
+      tr {
+        th[class={sortColumn === "id" ? (sortDirection === "asc" ? "sortable sorted-asc" : "sortable sorted-desc") : "sortable"}] @click(sortColumn = "id") "ID"
+        th[class={sortColumn === "name" ? (sortDirection === "asc" ? "sortable sorted-asc" : "sortable sorted-desc") : "sortable"}] @click(sortColumn = "name") "Name"
+        th[class={sortColumn === "status" ? (sortDirection === "asc" ? "sortable sorted-asc" : "sortable sorted-desc") : "sortable"}] @click(sortColumn = "status") "Status"
+      }
+    }
+    tbody {
+      @for (row of rows) {
+        tr[class={row.selected ? (hoveredRow === row.id ? "row selected hovered" : "row selected") : (hoveredRow === row.id ? "row hovered" : "row")}][data-id={row.id}] {
+          td "{row.id}"
+          td "{row.name}"
+          td[class={row.status === "active" ? "status-active" : row.status === "pending" ? "status-pending" : "status-inactive"}] "{row.status}"
+        }
+      }
+    }
+  }
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  assert(result.code.includes('sortColumn.get()'), 'Expected sortColumn getter');
+  assert(result.code.includes('sortDirection.get()'), 'Expected sortDirection getter');
+  assert(result.code.includes('"sortable sorted-asc"'), 'Expected sorted-asc class');
+});
+
+// =============================================================================
 // Results
 // =============================================================================
 
