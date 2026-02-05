@@ -5,6 +5,22 @@ All notable changes to Pulse Framework will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.25] - 2026-02-05
+
+### Props & Text Interpolation Fixes
+
+### Fixed
+
+- fix text interpolation bug with extra quotes in template literals
+- fix props/state name collision - props now take precedence in render scope
+- support complex expressions in dynamic attributes (ternary, nested braces)
+
+### Tests
+
+- add 10 new props tests for component communication
+- add 22 new dynamic attribute tests for complex expressions
+
+
 ## [1.7.24] - 2026-02-05
 
 ### CSS Virtual Module Extraction
