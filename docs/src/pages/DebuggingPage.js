@@ -84,11 +84,12 @@ childLog.info('Validating'); // [MyComponent:Validation] Validating</code></pre>
 
       <h3>Log Levels</h3>
       <table class="doc-table">
+        <caption>Logger log levels and their numeric values</caption>
         <thead>
           <tr>
-            <th>Level</th>
-            <th>Value</th>
-            <th>Description</th>
+            <th scope="col">Level</th>
+            <th scope="col">Value</th>
+            <th scope="col">Description</th>
           </tr>
         </thead>
         <tbody>

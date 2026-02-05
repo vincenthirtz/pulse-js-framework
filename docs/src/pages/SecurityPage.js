@@ -238,11 +238,12 @@ function validateUserData(data) {
     <section class="doc-section">
       <h2>${t('security.checklist')}</h2>
       <table class="doc-table">
+        <caption>Security checklist for Pulse applications</caption>
         <thead>
           <tr>
-            <th>Check</th>
-            <th>Status</th>
-            <th>Notes</th>
+            <th scope="col">Check</th>
+            <th scope="col">Status</th>
+            <th scope="col">Notes</th>
           </tr>
         </thead>
         <tbody>

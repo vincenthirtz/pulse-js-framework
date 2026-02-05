@@ -16,12 +16,13 @@ export function AccessibilityPage() {
       <h2>Overview</h2>
       <p>Pulse is designed with accessibility as a core feature. The framework provides multiple layers of a11y support:</p>
 
-      <table class="doc-table">
+      <table class="doc-table" aria-describedby="a11y-layers-desc">
+        <caption id="a11y-layers-desc">Pulse Framework accessibility features organized by layer</caption>
         <thead>
           <tr>
-            <th>Layer</th>
-            <th>Feature</th>
-            <th>Description</th>
+            <th scope="col">Layer</th>
+            <th scope="col">Feature</th>
+            <th scope="col">Description</th>
           </tr>
         </thead>
         <tbody>
@@ -396,10 +397,11 @@ const jsonReport = exportA11yReport('json');</code></pre>
       </div>
 
       <table class="doc-table">
+        <caption>CLI lint rules for accessibility validation</caption>
         <thead>
           <tr>
-            <th>Rule</th>
-            <th>Description</th>
+            <th scope="col">Rule</th>
+            <th scope="col">Description</th>
           </tr>
         </thead>
         <tbody>
@@ -420,11 +422,12 @@ const jsonReport = exportA11yReport('json');</code></pre>
       <p>Additional rules checked by <code>validateA11y()</code>:</p>
 
       <table class="doc-table">
+        <caption>Runtime validation rules checked by validateA11y()</caption>
         <thead>
           <tr>
-            <th>Rule</th>
-            <th>Severity</th>
-            <th>Description</th>
+            <th scope="col">Rule</th>
+            <th scope="col">Severity</th>
+            <th scope="col">Description</th>
           </tr>
         </thead>
         <tbody>

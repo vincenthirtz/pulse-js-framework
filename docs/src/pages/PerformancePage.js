@@ -37,11 +37,12 @@ const lazyResult = computed(() => {
 
       <h3>When to Use Lazy</h3>
       <table class="doc-table">
+        <caption>When to use lazy evaluation for computed values</caption>
         <thead>
           <tr>
-            <th>Scenario</th>
-            <th>Use Lazy?</th>
-            <th>Reason</th>
+            <th scope="col">Scenario</th>
+            <th scope="col">Use Lazy?</th>
+            <th scope="col">Reason</th>
           </tr>
         </thead>
         <tbody>
@@ -406,11 +407,12 @@ console.table(slowEffects);</code></pre>
     <section class="doc-section">
       <h2>${t('performance.checklist')}</h2>
       <table class="doc-table">
+        <caption>Performance optimization checklist</caption>
         <thead>
           <tr>
-            <th>Optimization</th>
-            <th>Impact</th>
-            <th>When to Apply</th>
+            <th scope="col">Optimization</th>
+            <th scope="col">Impact</th>
+            <th scope="col">When to Apply</th>
           </tr>
         </thead>
         <tbody>

@@ -415,11 +415,12 @@ async function fetchWithRetry(url, maxRetries = 3) {
     <section class="doc-section">
       <h2>${t('errorHandling.summary')}</h2>
       <table class="doc-table">
+        <caption>Error handling patterns by context</caption>
         <thead>
           <tr>
-            <th>Context</th>
-            <th>Pattern</th>
-            <th>Example</th>
+            <th scope="col">Context</th>
+            <th scope="col">Pattern</th>
+            <th scope="col">Example</th>
           </tr>
         </thead>
         <tbody>
