@@ -18,6 +18,7 @@ import { el } from './dom.js';
 import { loggers } from './logger.js';
 import { createVersionedAsync } from './async.js';
 import { Errors } from './errors.js';
+import { LRUCache } from './lru-cache.js';
 
 const log = loggers.router;
 
@@ -534,8 +535,9 @@ export function createRouter(options = {}) {
   // Route error handler (configurable)
   let onRouteError = options.onRouteError || null;
 
-  // Scroll positions for history
-  const scrollPositions = new Map();
+  // Scroll positions for history (LRU cache to prevent memory leaks)
+  // Keeps last 100 scroll positions - enough for typical navigation patterns
+  const scrollPositions = new LRUCache(100);
 
   // Route trie for O(path length) lookups
   const routeTrie = new RouteTrie();

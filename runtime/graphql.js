@@ -8,6 +8,7 @@ import { createHttp, HttpError } from './http.js';
 import { createWebSocket, WebSocketError } from './websocket.js';
 import { createVersionedAsync } from './async.js';
 import { RuntimeError, createErrorMessage, getDocsUrl } from './errors.js';
+import { LRUCache } from './lru-cache.js';
 
 // ============================================================================
 // Constants
@@ -503,7 +504,8 @@ class GraphQLClient {
   #subscriptionManager = null;
   #options;
   #inflightQueries = new Map();
-  #cache = new Map();
+  // LRU cache to prevent unbounded memory growth (default 500 entries)
+  #cache;
 
   /**
    * Request interceptors
@@ -536,11 +538,15 @@ class GraphQLClient {
       wsMaxRetries: options.wsMaxRetries ?? 5,
       cache: options.cache ?? true,
       cacheTime: options.cacheTime ?? 300000,
+      cacheMaxSize: options.cacheMaxSize ?? 500,
       staleTime: options.staleTime ?? 0,
       dedupe: options.dedupe ?? true,
       throwOnError: options.throwOnError ?? true,
       onError: options.onError
     };
+
+    // Initialize LRU cache to prevent unbounded memory growth
+    this.#cache = new LRUCache(this.#options.cacheMaxSize);
 
     // Create HTTP client for queries/mutations
     this.#http = createHttp({
@@ -863,6 +869,7 @@ class GraphQLClient {
  * @param {number} [options.wsMaxRetries=5] - Max WebSocket reconnection attempts
  * @param {boolean} [options.cache=true] - Enable query caching
  * @param {number} [options.cacheTime=300000] - Cache TTL in ms
+ * @param {number} [options.cacheMaxSize=500] - Maximum cache entries (LRU eviction)
  * @param {number} [options.staleTime=0] - Stale threshold in ms
  * @param {boolean} [options.dedupe=true] - Deduplicate identical in-flight queries
  * @param {boolean} [options.throwOnError=true] - Throw on GraphQL errors
