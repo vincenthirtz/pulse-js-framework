@@ -217,11 +217,13 @@ export function transformFunctionBody(transformer, tokens) {
     if (!token || lastNonSpace?.value === 'new') return false;
     // Don't add semicolon after 'await' - it always needs its expression
     if (lastNonSpace?.value === 'await') return false;
-    // For 'return': bare return followed by statement keyword needs semicolon
+    // For 'return': bare return followed by statement keyword or state assignment needs semicolon
     if (lastNonSpace?.value === 'return') {
       // If followed by a statement keyword, it's a bare return - needs semicolon
       if (token.type === 'IDENT' && STATEMENT_KEYWORDS.has(token.value)) return true;
       if (STATEMENT_TOKEN_TYPES.has(token.type)) return true;
+      // If followed by a state variable assignment, it's a bare return - needs semicolon
+      if (token.type === 'IDENT' && stateVars.has(token.value) && nextToken?.type === 'EQ') return true;
       return false;  // return expression - no semicolon
     }
     // Don't add semicolon before catch/finally/else after }
@@ -230,6 +232,8 @@ export function transformFunctionBody(transformer, tokens) {
     if (token.type !== 'IDENT') return false;
     if (STATEMENT_KEYWORDS.has(token.value)) return true;
     if (stateVars.has(token.value) && nextToken?.type === 'EQ') return true;
+    // Any identifier followed by = after a statement end is an assignment statement
+    if (nextToken?.type === 'EQ' && lastNonSpace?.type === 'RPAREN') return true;
     if (nextToken?.type === 'LPAREN' &&
         (BUILTIN_FUNCTIONS.has(token.value) || actionNames.has(token.value))) return true;
     if (nextToken?.type === 'DOT' && BUILTIN_FUNCTIONS.has(token.value)) return true;
