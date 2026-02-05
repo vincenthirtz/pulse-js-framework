@@ -1,0 +1,166 @@
+name: Auto Label
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  label:
+    name: Auto Label PR
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Label PR based on changed files
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: files } = await github.rest.pulls.listFiles({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+            });
+
+            const labels = new Set();
+
+            for (const file of files) {
+              const path = file.filename;
+
+              // Documentation
+              if (path.startsWith('docs/') || path.endsWith('.md')) {
+                labels.add('documentation');
+              }
+
+              // Tests
+              if (path.startsWith('test/') || path.includes('.test.js')) {
+                labels.add('tests');
+              }
+
+              // Compiler
+              if (path.startsWith('compiler/')) {
+                labels.add('compiler');
+              }
+
+              // Runtime
+              if (path.startsWith('runtime/')) {
+                labels.add('runtime');
+              }
+
+              // CLI
+              if (path.startsWith('cli/')) {
+                labels.add('cli');
+              }
+
+              // Examples
+              if (path.startsWith('examples/')) {
+                labels.add('examples');
+              }
+
+              // GitHub Actions / CI
+              if (path.startsWith('.github/')) {
+                labels.add('ci/cd');
+              }
+
+              // Dependencies
+              if (path === 'package.json' || path === 'package-lock.json') {
+                labels.add('dependencies');
+              }
+
+              // Security
+              if (path.includes('security') || path.includes('auth')) {
+                labels.add('security');
+              }
+
+              // Performance
+              if (path.includes('performance') || path.includes('benchmark')) {
+                labels.add('performance');
+              }
+
+              // Accessibility
+              if (path.includes('a11y') || path.includes('accessibility')) {
+                labels.add('accessibility');
+              }
+            }
+
+            // Add size labels
+            const changedLines = files.reduce((sum, file) => sum + file.changes, 0);
+            if (changedLines < 10) {
+              labels.add('size/XS');
+            } else if (changedLines < 50) {
+              labels.add('size/S');
+            } else if (changedLines < 200) {
+              labels.add('size/M');
+            } else if (changedLines < 500) {
+              labels.add('size/L');
+            } else {
+              labels.add('size/XL');
+            }
+
+            // Apply labels
+            if (labels.size > 0) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                labels: Array.from(labels)
+              });
+            }
+
+            // Comment with analysis
+            const fileTypes = files.reduce((acc, file) => {
+              const ext = file.filename.split('.').pop();
+              acc[ext] = (acc[ext] || 0) + 1;
+              return acc;
+            }, {});
+
+            const summary = `
+            ## 📊 PR Analysis
+
+            | Metric | Value |
+            |--------|-------|
+            | Files Changed | ${files.length} |
+            | Lines Changed | ${changedLines} |
+            | Additions | ${files.reduce((s, f) => s + f.additions, 0)} |
+            | Deletions | ${files.reduce((s, f) => s + f.deletions, 0)} |
+
+            **File Types**: ${Object.entries(fileTypes).map(([ext, count]) => `${ext} (${count})`).join(', ')}
+
+            **Auto-assigned labels**: ${Array.from(labels).map(l => \`\`\`${l}\`\`\`\`).join(', ')}
+            `;
+
+            console.log(summary);
+
+      - name: Check for breaking changes
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prBody = context.payload.pull_request.body || '';
+            const prTitle = context.payload.pull_request.title || '';
+
+            const hasBreakingChange =
+              prBody.toLowerCase().includes('breaking change') ||
+              prTitle.toLowerCase().includes('breaking') ||
+              prTitle.startsWith('!') ||
+              prTitle.includes('!:');
+
+            if (hasBreakingChange) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                labels: ['breaking-change']
+              });
+
+              // Add warning comment
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: '⚠️ **Warning**: This PR contains breaking changes. Make sure to update the major version when releasing.'
+              });
+            }

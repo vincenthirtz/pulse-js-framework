@@ -8,18 +8,95 @@ This directory contains automated workflows for the Pulse Framework project.
 **File**: `ci.yml`
 **Trigger**: Push to `main` branch or Pull Requests
 
+**Features**:
+- ✅ Concurrency control (cancels old runs)
+- ✅ Security audit (npm audit)
+- ✅ Parallel test matrix (Node.js 18, 20, 22)
+- ✅ Coverage tracking with thresholds
+- ✅ Bundle size monitoring
+- ✅ Artifact compression
+- ✅ Smart retention (30 days for main, 7 days for PRs)
+
 **Jobs**:
-- **Test**: Run tests on Node.js 18, 20, 22
-- **Coverage**: Generate and upload code coverage to Codecov
-- **Lint**: Syntax check for JavaScript files
-- **Build**: Build documentation site for Netlify
-- **Deploy**: Deploy to Netlify (production) on `main` branch
+1. **Security**: npm audit check (runs first, fast-fail)
+2. **Test**: Run tests on Node.js 18, 20, 22 (parallel)
+3. **Coverage**: Generate coverage report and check threshold (70%)
+4. **Lint**: Syntax check for JavaScript files
+5. **Build**: Build documentation site with size analysis
+6. **Deploy**: Deploy to Netlify (production) on `main` branch
 
 **After successful deployment**, the workflow prompts you to create a release with helpful links.
 
 ---
 
-### 2. Create Release
+### 2. PR Preview
+**File**: `pr-preview.yml`
+**Trigger**: Pull Request opened/updated
+
+**Features**:
+- 🚀 Automatic preview deployment to Netlify
+- 💬 Comments on PR with preview URL
+- 🔄 Updates comment on new commits
+- ⚡ Fast with node_modules caching
+
+**What it does**:
+- Builds the documentation site
+- Deploys to unique Netlify preview URL
+- Comments on PR with preview link
+- Updates comment on each new push
+
+**Example PR Comment**:
+```
+🚀 Preview Deployment Ready!
+
+| Name    | Link                          |
+|---------|-------------------------------|
+| 🔍 Preview | Visit Preview               |
+| 📝 Commit  | a1b2c3d                      |
+
+Built with Netlify • Updated: Fri, 06 Feb 2026 12:34:56 GMT
+```
+
+---
+
+### 3. Auto Label
+**File**: `auto-label.yml`
+**Trigger**: Pull Request opened/updated
+
+**Features**:
+- 🏷️ Auto-labels based on changed files
+- 📊 PR analysis (files, lines, types)
+- ⚠️ Breaking change detection
+- 📏 Size labels (XS, S, M, L, XL)
+
+**Labels Added**:
+- **Area**: `documentation`, `tests`, `compiler`, `runtime`, `cli`, `examples`, `ci/cd`
+- **Size**: `size/XS` (<10 lines), `size/S` (10-50), `size/M` (50-200), `size/L` (200-500), `size/XL` (>500)
+- **Special**: `dependencies`, `security`, `performance`, `accessibility`, `breaking-change`
+
+---
+
+### 4. Setup Labels
+**File**: `setup-labels.yml`
+**Trigger**: Manual (workflow_dispatch)
+
+**Purpose**: Create or update all standard labels for the repository.
+
+**Usage**:
+1. Go to Actions > Setup Labels
+2. Click "Run workflow"
+3. All labels are created/updated automatically
+
+**Labels Created**:
+- Type: `bug`, `enhancement`, `documentation`, `breaking-change`
+- Area: `runtime`, `compiler`, `cli`, `tests`, `examples`, `ci/cd`
+- Priority: `priority: high`, `priority: medium`, `priority: low`
+- Size: `size/XS`, `size/S`, `size/M`, `size/L`, `size/XL`
+- Special: `dependencies`, `security`, `performance`, `accessibility`, `automated`, `good first issue`, `help wanted`
+
+---
+
+### 5. Create Release
 **File**: `create-release.yml`
 **Trigger**: Manual (workflow_dispatch)
 
@@ -58,7 +135,7 @@ This directory contains automated workflows for the Pulse Framework project.
 
 ---
 
-### 3. Release (Tag-based)
+### 6. Release (Tag-based)
 **File**: `release.yml`
 **Trigger**: Push of version tags (e.g., `v1.7.34`)
 
@@ -69,6 +146,23 @@ This directory contains automated workflows for the Pulse Framework project.
 - **Publish**: Publish to npm registry
 
 **Usage**: This workflow is automatically triggered when the `create-release.yml` workflow pushes a tag.
+
+---
+
+## Dependabot
+
+**File**: `.github/dependabot.yml`
+
+Automatically checks for dependency updates:
+- **npm dependencies**: Weekly (Monday 9am)
+- **GitHub Actions**: Monthly
+- Groups minor/patch updates
+- Auto-labels with `dependencies` and `automated`
+
+**Configuration**:
+- Max 5 npm PRs at once
+- Max 3 GitHub Actions PRs at once
+- Commits prefixed with `chore(deps)` or `chore(ci)`
 
 ---
 
