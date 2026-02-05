@@ -35,7 +35,30 @@ export function ChangelogPage() {
     
     
     
+    
     <section class="doc-section changelog-section">
+      <h2>v1.7.28 - Accessibility Improvements</h2>
+      <p class="release-date">February 2026</p>
+
+      <div class="changelog-group">
+        <ul class="feature-list">
+          <li><strong>Added:</strong> add table captions for WCAG 1.3.1 compliance</li>
+          <li><strong>Added:</strong> WCAG 2.1 AA accessibility compliance</li>
+          <li><strong>Added:</strong> add modern JS operators and CSS features support</li>
+          <li><strong>Changed:</strong> test(docs): add WCAG accessibility and Header tests</li>
+          <li><strong>Fixed:</strong> improve WCAG AA color contrast and keyboard accessibility</li>
+          <li><strong>Fixed:</strong> skip hidden nav items and add aria-label to nav elements</li>
+          <li><strong>Fixed:</strong> revert initial text setting to fix t() initialization error</li>
+          <li><strong>Fixed:</strong> improve WCAG accessibility - color contrast and ARIA fixes</li>
+          <li><strong>Fixed:</strong> add missing translation keys to is and eo locales</li>
+          <li><strong>Fixed:</strong> minor WCAG accessibility improvements</li>
+          <li><strong>Fixed:</strong> use standard rel=&quot;alternate&quot; for sitemap link</li>
+          <li><strong>Fixed:</strong> fully encode favicon data URI for W3C validation</li>
+          <li><strong>Fixed:</strong> W3C HTML and CSS validation compliance</li>
+        </ul>
+      </div>
+    </section>
+<section class="doc-section changelog-section">
       <h2>v1.7.24 - CSS Virtual Module Extraction</h2>
       <p class="release-date">February 2026</p>
 

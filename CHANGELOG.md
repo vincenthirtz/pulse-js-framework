@@ -5,6 +5,33 @@ All notable changes to Pulse Framework will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.28] - 2026-02-05
+
+### Accessibility Improvements
+
+### Added
+
+- add table captions for WCAG 1.3.1 compliance
+- WCAG 2.1 AA accessibility compliance
+- add modern JS operators and CSS features support
+
+### Changed
+
+- test(docs): add WCAG accessibility and Header tests
+
+### Fixed
+
+- improve WCAG AA color contrast and keyboard accessibility
+- skip hidden nav items and add aria-label to nav elements
+- revert initial text setting to fix t() initialization error
+- improve WCAG accessibility - color contrast and ARIA fixes
+- add missing translation keys to is and eo locales
+- minor WCAG accessibility improvements
+- use standard rel="alternate" for sitemap link
+- fully encode favicon data URI for W3C validation
+- W3C HTML and CSS validation compliance
+
+
 ## [1.7.25] - 2026-02-05
 
 ### Props & Text Interpolation Fixes
