@@ -672,6 +672,18 @@ export function transformComponentCall(transformer, node, indent) {
  * @param {number} indent - Indentation level
  * @returns {string} JavaScript code
  */
+/**
+ * Escape a string for use in a template literal
+ * @param {string} str - String to escape
+ * @returns {string} Escaped string
+ */
+function escapeTemplateString(str) {
+  return str
+    .replace(/\\/g, '\\\\')  // Escape backslashes first
+    .replace(/`/g, '\\`')    // Escape backticks
+    .replace(/\$/g, '\\$');  // Escape dollar signs to prevent ${} interpretation
+}
+
 export function transformTextNode(transformer, node, indent) {
   const pad = ' '.repeat(indent);
   const parts = node.parts;
@@ -684,7 +696,8 @@ export function transformTextNode(transformer, node, indent) {
   // Has interpolations - use text() with a function
   const textParts = parts.map(part => {
     if (typeof part === 'string') {
-      return JSON.stringify(part);
+      // Escape for template literal (not JSON.stringify which adds quotes)
+      return escapeTemplateString(part);
     }
     // Interpolation
     const expr = transformExpressionString(transformer, part.expression);

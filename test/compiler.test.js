@@ -1798,6 +1798,243 @@ view {
 });
 
 // =============================================================================
+// Props Tests
+// =============================================================================
+
+printSection('Props Tests');
+
+test('compiles component with props definition', () => {
+  const source = `
+@page Button
+
+props {
+  label: "Click"
+  disabled: false
+  onClick: null
+}
+
+view {
+  button[disabled={disabled}] "{label}"
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  assert(result.code.includes('const { label = "Click", disabled = false, onClick = null } = props'), 'Expected props destructuring');
+  // Props should not have .get() - they are plain values
+  assert(!result.code.includes('label.get()'), 'Props should not use .get()');
+  assert(!result.code.includes('disabled.get()'), 'Props should not use .get()');
+});
+
+test('compiles passing props to child component', () => {
+  const source = `
+import Button from './Button.pulse'
+
+@page App
+
+state {
+  buttonLabel: "Submit"
+  isDisabled: true
+}
+
+view {
+  div {
+    Button(label={buttonLabel}, disabled={isDisabled})
+    Button(label="Static", disabled=false)
+  }
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  assert(result.code.includes('Button.render'), 'Expected Button.render call');
+  assert(result.code.includes('label: buttonLabel.get()'), 'Expected state var getter in props');
+  assert(result.code.includes('disabled: isDisabled.get()'), 'Expected state var getter in props');
+  assert(result.code.includes('label: "Static"'), 'Expected static prop value');
+});
+
+test('compiles props with complex expressions', () => {
+  const source = `
+import Badge from './Badge.pulse'
+
+@page App
+
+state {
+  status: "pending"
+  count: 5
+}
+
+view {
+  Badge(type={status === "error" ? "danger" : "info"}, label={count > 0 ? count + " items" : "No items"})
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  assert(result.code.includes('Badge.render'), 'Expected Badge.render call');
+  assert(result.code.includes('status.get()'), 'Expected status getter in ternary');
+  assert(result.code.includes('count.get()'), 'Expected count getter in ternary');
+});
+
+test('compiles props/state collision correctly (props take precedence)', () => {
+  const source = `
+@page Component
+
+props {
+  count: 0
+}
+
+state {
+  count: 10
+}
+
+view {
+  span "Count: {count}"
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  // In render function, props shadow state - count should NOT have .get()
+  assert(result.code.includes('const { count = 0 } = props'), 'Expected props destructuring');
+  // The text interpolation should use count directly (from props), not count.get()
+  assert(result.code.includes('`Count: ${count}`'), 'Expected count without .get() (props take precedence)');
+});
+
+test('compiles props with object and array values', () => {
+  const source = `
+import Card from './Card.pulse'
+
+@page App
+
+state {
+  user: { name: "John", age: 30 }
+  items: [1, 2, 3]
+}
+
+view {
+  Card(data={user}, items={items})
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  assert(result.code.includes('data: user.get()'), 'Expected user getter');
+  assert(result.code.includes('items: items.get()'), 'Expected items getter');
+});
+
+test('compiles action passed as prop callback', () => {
+  const source = `
+import SearchInput from './SearchInput.pulse'
+
+@page App
+
+state {
+  query: ""
+}
+
+view {
+  SearchInput(value={query}, onSearch={handleSearch})
+}
+
+actions {
+  handleSearch(q) {
+    query = q
+  }
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  assert(result.code.includes('onSearch: handleSearch'), 'Expected action passed as prop');
+});
+
+test('compiles nested components with slots and props', () => {
+  const source = `
+import Header from './Header.pulse'
+import SearchInput from './SearchInput.pulse'
+
+@page App
+
+state {
+  searchQuery: ""
+}
+
+view {
+  Header(title="My App") {
+    SearchInput(value={searchQuery}, placeholder="Search...")
+  }
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  assert(result.code.includes('Header.render'), 'Expected Header.render call');
+  assert(result.code.includes('props: { title: "My App" }'), 'Expected Header props');
+  assert(result.code.includes('slots:'), 'Expected slots in Header call');
+  assert(result.code.includes('SearchInput.render'), 'Expected SearchInput in slot');
+});
+
+test('compiles props with method calls (filter, map, etc.)', () => {
+  const source = `
+import List from './List.pulse'
+
+@page App
+
+state {
+  items: [{ id: 1, active: true }, { id: 2, active: false }]
+}
+
+view {
+  List(activeItems={items.filter(i => i.active)}, total={items.length})
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  assert(result.code.includes('items.get().filter'), 'Expected filter on state getter');
+  assert(result.code.includes('items.get().length'), 'Expected length on state getter');
+});
+
+test('compiles text interpolation correctly (no extra quotes)', () => {
+  const source = `
+@page Test
+
+state {
+  name: "John"
+  count: 5
+}
+
+view {
+  span "Hello {name}, you have {count} items"
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  // Should be: text(() => \`Hello ${name.get()}, you have ${count.get()} items\`)
+  // NOT: text(() => \`"Hello "${name.get()}", you have "${count.get()}" items"\`)
+  assert(result.code.includes('`Hello ${name.get()}, you have ${count.get()} items`'), 'Expected clean text interpolation without extra quotes');
+  assert(!result.code.includes('"Hello "'), 'Should not have quoted string parts');
+});
+
+test('compiles props in child component expressions', () => {
+  const source = `
+@page ChildComponent
+
+props {
+  value: ""
+  onChange: null
+}
+
+view {
+  div {
+    input[value={value}]
+    span "Current: {value}"
+    button @click(onChange && onChange(value)) "Submit"
+  }
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  // Props should be used directly, not with .get()
+  assert(!result.code.includes('value.get()'), 'Props should not use .get()');
+  assert(!result.code.includes('onChange.get()'), 'Props should not use .get()');
+  assert(result.code.includes('`Current: ${value}`'), 'Expected value prop in text');
+});
+
+// =============================================================================
 // Results
 // =============================================================================
 

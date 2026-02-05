@@ -25,10 +25,14 @@ export function transformExpression(transformer, node) {
 
   switch (node.type) {
     case NodeType.Identifier:
+      // Props take precedence over state (props are destructured in render scope)
+      if (transformer.propVars.has(node.name)) {
+        return node.name;
+      }
       if (transformer.stateVars.has(node.name)) {
         return `${node.name}.get()`;
       }
-      // Props are accessed directly (already destructured)
+      // Other identifiers (actions, imports, etc.) accessed directly
       return node.name;
 
     case NodeType.Literal:
@@ -153,8 +157,13 @@ export function transformExpression(transformer, node) {
  */
 export function transformExpressionString(transformer, exprStr) {
   // Simple transformation: wrap state vars with .get()
+  // Props take precedence - don't wrap props with .get()
   let result = exprStr;
   for (const stateVar of transformer.stateVars) {
+    // Skip if this var name is also a prop (props shadow state in render scope)
+    if (transformer.propVars.has(stateVar)) {
+      continue;
+    }
     result = result.replace(
       new RegExp(`\\b${stateVar}\\b`, 'g'),
       `${stateVar}.get()`
