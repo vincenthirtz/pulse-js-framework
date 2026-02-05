@@ -533,6 +533,92 @@ function verifyTagOnRemote(version) {
 }
 
 /**
+ * Check if gh CLI is available
+ */
+function isGhCliAvailable() {
+  try {
+    execSync('gh --version', { cwd: root, stdio: 'ignore' });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Create GitHub release using gh CLI
+ */
+function createGitHubRelease(version, title, changes) {
+  if (!isGhCliAvailable()) {
+    log.warn('  gh CLI not available, skipping GitHub release creation');
+    log.info('  Install gh CLI: https://cli.github.com/');
+    return { success: false, reason: 'gh-not-installed' };
+  }
+
+  // Build release notes
+  let notes = '';
+
+  if (title) {
+    notes += `## ${title}\n\n`;
+  }
+
+  if (changes.added?.length > 0) {
+    notes += `### ✨ Added\n\n`;
+    for (const item of changes.added) {
+      notes += `- ${item}\n`;
+    }
+    notes += '\n';
+  }
+
+  if (changes.changed?.length > 0) {
+    notes += `### 🔄 Changed\n\n`;
+    for (const item of changes.changed) {
+      notes += `- ${item}\n`;
+    }
+    notes += '\n';
+  }
+
+  if (changes.fixed?.length > 0) {
+    notes += `### 🐛 Fixed\n\n`;
+    for (const item of changes.fixed) {
+      notes += `- ${item}\n`;
+    }
+    notes += '\n';
+  }
+
+  if (changes.removed?.length > 0) {
+    notes += `### 🗑️ Removed\n\n`;
+    for (const item of changes.removed) {
+      notes += `- ${item}\n`;
+    }
+    notes += '\n';
+  }
+
+  // Write notes to temp file
+  const tempFile = join(tmpdir(), `pulse-release-notes-${Date.now()}.md`);
+  writeFileSync(tempFile, notes, 'utf-8');
+
+  try {
+    const releaseTitle = title ? `v${version} - ${title}` : `v${version}`;
+    const command = `gh release create v${version} --title "${releaseTitle}" --notes-file "${tempFile}"`;
+
+    log.info(`  Creating GitHub release v${version}...`);
+    execSync(command, { cwd: root, stdio: 'inherit' });
+
+    log.info(`  GitHub release created successfully`);
+    return { success: true };
+  } catch (error) {
+    log.error(`  Failed to create GitHub release: ${error.message}`);
+    return { success: false, error };
+  } finally {
+    try {
+      unlinkSync(tempFile);
+    } catch {
+      // Ignore cleanup errors
+    }
+  }
+}
+
+/**
  * Execute a git command with error handling
  */
 function execGitCommand(command, description) {
@@ -619,24 +705,53 @@ function gitCommitTagPush(newVersion, title, changes, dryRun = false) {
     return { success: false, stage: 'push', error: result.error };
   }
 
-  // git push --tags
-  result = execGitCommand('git push --tags', 'git push --tags');
-  if (!result.success) {
-    log.error('');
-    log.error('Tag push failed. The tag exists locally but not on remote.');
-    log.error('You can manually push tags with:');
-    log.error('  git push --tags');
-    return { success: false, stage: 'push-tags', error: result.error };
-  }
+  // git push --tags (use gh CLI if available for better error handling)
+  if (isGhCliAvailable()) {
+    // Use git push directly as gh doesn't have a push command
+    result = execGitCommand('git push --tags', 'git push --tags');
+    if (!result.success) {
+      log.error('');
+      log.error('Tag push failed. The tag exists locally but not on remote.');
+      log.error('You can manually push tags with:');
+      log.error('  git push --tags');
+      return { success: false, stage: 'push-tags', error: result.error };
+    }
 
-  // Verify tag was pushed to remote
-  if (!verifyTagOnRemote(newVersion)) {
-    log.warn('');
-    log.warn('Tag push appeared to succeed but tag not found on remote.');
-    log.warn('You may need to manually verify or push with:');
-    log.warn('  git push --tags');
+    // Verify tag was pushed using gh
+    try {
+      execSync(`gh release view v${newVersion}`, { cwd: root, stdio: 'ignore' });
+      log.info(`  Verified: tag v${newVersion} exists on remote (via gh)`);
+    } catch {
+      // Tag pushed but no release yet, which is fine
+      if (verifyTagOnRemote(newVersion)) {
+        log.info(`  Verified: tag v${newVersion} exists on remote`);
+      } else {
+        log.warn('');
+        log.warn('Tag push appeared to succeed but tag not found on remote.');
+        log.warn('You may need to manually verify or push with:');
+        log.warn('  git push --tags');
+      }
+    }
   } else {
-    log.info(`  Verified: tag v${newVersion} exists on remote`);
+    // Fallback to standard git push --tags
+    result = execGitCommand('git push --tags', 'git push --tags');
+    if (!result.success) {
+      log.error('');
+      log.error('Tag push failed. The tag exists locally but not on remote.');
+      log.error('You can manually push tags with:');
+      log.error('  git push --tags');
+      return { success: false, stage: 'push-tags', error: result.error };
+    }
+
+    // Verify tag was pushed to remote
+    if (!verifyTagOnRemote(newVersion)) {
+      log.warn('');
+      log.warn('Tag push appeared to succeed but tag not found on remote.');
+      log.warn('You may need to manually verify or push with:');
+      log.warn('  git push --tags');
+    } else {
+      log.info(`  Verified: tag v${newVersion} exists on remote`);
+    }
   }
 
   return { success: true };
@@ -714,6 +829,7 @@ Types:
 Options:
   --dry-run         Show what would be done without making changes
   --no-push         Create commit and tag but don't push
+  --no-gh-release   Skip creating GitHub release (only create tag)
   --title <text>    Release title (e.g., "Performance Improvements")
   --skip-prompt     Use empty changelog (for automated releases)
   --skip-docs-test  Skip documentation validation before release
@@ -733,6 +849,7 @@ Examples:
   pulse release patch --title "Security" --fixed "XSS vulnerability,SQL injection" -y
   pulse release patch --title "New API" --added "Feature A,Feature B" --fixed "Bug X" -y
   pulse release patch --discord-webhook "https://discord.com/api/webhooks/..."
+  pulse release patch --no-gh-release  # Create tag but skip GitHub release
   `);
 }
 
@@ -750,6 +867,7 @@ export async function runRelease(args) {
   // Parse options
   const dryRun = args.includes('--dry-run');
   const noPush = args.includes('--no-push');
+  const noGhRelease = args.includes('--no-gh-release');
   const skipPrompt = args.includes('--skip-prompt');
   const fromCommits = args.includes('--from-commits') || args.includes('--fc');
   const autoConfirm = args.includes('--yes') || args.includes('-y');
@@ -984,8 +1102,32 @@ export async function runRelease(args) {
   log.info(`Release v${newVersion} complete!`);
   log.info('');
 
+  // Create GitHub release using gh CLI
+  if (!dryRun && !noPush && !noGhRelease && hasChanges) {
+    log.info('Creating GitHub release...');
+    const ghResult = createGitHubRelease(newVersion, title, changes);
+
+    if (!ghResult.success) {
+      if (ghResult.reason === 'gh-not-installed') {
+        log.info('Manual step:');
+        log.info(`  Create GitHub release: https://github.com/vincenthirtz/pulse-js-framework/releases/new?tag=v${newVersion}`);
+      } else {
+        log.warn('GitHub release creation failed, but release was successful.');
+        log.info('Manual step:');
+        log.info(`  Create GitHub release: https://github.com/vincenthirtz/pulse-js-framework/releases/new?tag=v${newVersion}`);
+      }
+    }
+  } else if (dryRun) {
+    log.info('  [dry-run] Would create GitHub release using gh CLI');
+  } else if (noGhRelease) {
+    log.info('Skipping GitHub release creation (--no-gh-release)');
+    log.info('Manual step:');
+    log.info(`  Create GitHub release: https://github.com/vincenthirtz/pulse-js-framework/releases/new?tag=v${newVersion}`);
+  }
+
   // Send Discord notification if webhook URL provided
   if (discordWebhook && !dryRun) {
+    log.info('');
     log.info('Sending Discord notification...');
     try {
       await sendDiscordNotification(discordWebhook, newVersion, title, changes);
@@ -995,10 +1137,5 @@ export async function runRelease(args) {
     }
   } else if (discordWebhook && dryRun) {
     log.info('  [dry-run] Would send Discord notification to webhook');
-  }
-
-  if (!dryRun && !noPush) {
-    log.info('Next step:');
-    log.info(`  Create GitHub release: https://github.com/vincenthirtz/pulse-js-framework/releases/new?tag=v${newVersion}`);
   }
 }
