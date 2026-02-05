@@ -36,7 +36,18 @@ export function ChangelogPage() {
     
     
     
+    
     <section class="doc-section changelog-section">
+      <h2>v1.7.29 - Test Fix</h2>
+      <p class="release-date">February 2026</p>
+
+      <div class="changelog-group">
+        <ul class="feature-list">
+          <li><strong>Changed:</strong> test(docs): update WCAG test to expect #a1a1aa for --text-muted</li>
+        </ul>
+      </div>
+    </section>
+<section class="doc-section changelog-section">
       <h2>v1.7.28 - Accessibility Improvements</h2>
       <p class="release-date">February 2026</p>
 
