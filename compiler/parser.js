@@ -1564,35 +1564,70 @@ export class Parser {
     const selectorParts = [];
     let lastLine = this.current()?.line;
     let lastToken = null;
+    let inAtRule = false;  // Track if we're inside an @-rule like @media
+    let inParens = 0;      // Track parenthesis depth
 
     while (!this.is(TokenType.LBRACE) && !this.is(TokenType.EOF)) {
       const token = this.advance();
       const currentLine = token.line;
       const tokenValue = String(token.value);
 
+      // Track @-rules (media queries, keyframes, etc.)
+      if (tokenValue === '@') {
+        inAtRule = true;
+      }
+
+      // Track parenthesis depth for media queries
+      if (tokenValue === '(') inParens++;
+      if (tokenValue === ')') inParens--;
+
       // Determine if we need a space before this token
       if (selectorParts.length > 0 && currentLine === lastLine) {
         const lastPart = selectorParts[selectorParts.length - 1];
 
         // Don't add space after these (they attach to what follows)
-        const noSpaceAfter = ['.', '#', ':', '[', '(', '>', '+', '~', '-'];
+        const noSpaceAfter = new Set(['.', '#', '[', '(', '>', '+', '~', '-', '@', ':']);
+
         // Don't add space before these (they attach to what precedes)
-        const noSpaceBefore = [':', ']', ')', ',', '.', '#', '-'];
+        // In @media queries inside parens: "max-width:" should not have space before ":"
+        const noSpaceBefore = new Set([']', ')', ',', '.', '#', '-', ':']);
+
+        // CSS units that should attach to numbers (no space before)
+        const cssUnits = new Set(['px', 'em', 'rem', 'vh', 'vw', 'vmin', 'vmax', '%', 'fr', 's', 'ms', 'deg', 'rad', 'turn', 'grad', 'ex', 'ch', 'pt', 'pc', 'in', 'cm', 'mm', 'dvh', 'dvw', 'svh', 'svw', 'lvh', 'lvw']);
 
         // Special case: . or # after an identifier needs space (descendant selector)
         // e.g., ".school .date" - need space between "school" and "."
         const isDescendantSelector = (tokenValue === '.' || tokenValue === '#') &&
-                                     lastToken?.type === TokenType.IDENT;
+                                     lastToken?.type === TokenType.IDENT &&
+                                     !inAtRule;  // Don't add space in @media selectors
 
-        // Special case: hyphenated class names like .job-title
-        // Don't add space if current token is '-' and last token was IDENT
+        // Special case: hyphenated class/id names like .job-title, .card-3d, max-width
+        // Check if we're continuing a class/id name - the last part should end with alphanumeric
+        // that was started by . or # (no space in between)
+        const lastPartJoined = selectorParts.join('');
+        // Check if we're in the middle of a class/id name (last char is alphanumeric or -)
+        // AND there's a . or # that started this name (not separated by space)
+        const lastSegmentMatch = lastPartJoined.match(/[.#]([a-zA-Z0-9_-]*)$/);
+        const inClassName = lastSegmentMatch && lastSegmentMatch[1].length > 0;
+
+        // Don't add space if current token is '-' and last token was IDENT or NUMBER
         // Or if last token was '-' (the next token should attach to it)
-        const isHyphenatedIdent = (tokenValue === '-' && lastToken?.type === TokenType.IDENT) ||
-                                  (lastToken?.type === TokenType.MINUS);
+        // Also handle .card-3d where we have NUMBER followed by IDENT (but only if in class name context)
+        const isHyphenatedIdent = (tokenValue === '-' && (lastToken?.type === TokenType.IDENT || lastToken?.type === TokenType.NUMBER)) ||
+                                  (lastToken?.type === TokenType.MINUS) ||
+                                  (inClassName && lastToken?.type === TokenType.NUMBER && token.type === TokenType.IDENT);
 
-        const needsSpace = !noSpaceAfter.includes(lastPart) &&
-                          !noSpaceBefore.includes(tokenValue) &&
-                          !isHyphenatedIdent ||
+        // Special case: CSS units after numbers (768px, 1.5em)
+        const isUnitAfterNumber = cssUnits.has(tokenValue) && lastToken?.type === TokenType.NUMBER;
+
+        // Special case: @-rule keywords (media, keyframes, etc.) should attach to @
+        const isAtRuleKeyword = lastPart === '@' && /^[a-zA-Z]/.test(tokenValue);
+
+        const needsSpace = !noSpaceAfter.has(lastPart) &&
+                          !noSpaceBefore.has(tokenValue) &&
+                          !isHyphenatedIdent &&
+                          !isUnitAfterNumber &&
+                          !isAtRuleKeyword ||
                           isDescendantSelector;
 
         if (needsSpace) {
@@ -1677,27 +1712,52 @@ export class Parser {
 
   /**
    * Parse style property
+   * Handles CSS property names (including custom properties like --var-name)
+   * and complex CSS values with proper spacing
    */
   parseStyleProperty() {
+    // Parse property name (including custom properties with --)
     let name = '';
+    let nameTokens = [];
     while (!this.is(TokenType.COLON) && !this.is(TokenType.EOF)) {
-      name += this.advance().value;
+      nameTokens.push(this.advance());
     }
-    name = name.trim();
+    // Join name tokens without spaces (property names don't have spaces)
+    name = nameTokens.map(t => t.value).join('').trim();
 
     this.expect(TokenType.COLON);
 
-    // Tokens that should not have space after them in CSS values
-    const noSpaceAfter = new Set(['#', '(', '.', '/', 'rgba', 'rgb', 'hsl', 'hsla', 'var', 'calc', 'url', 'linear-gradient', 'radial-gradient']);
-    // Tokens that should not have space before them (units and punctuation)
-    const noSpaceBefore = new Set([')', ',', '%', 'px', 'em', 'rem', 'vh', 'vw', 'vmin', 'vmax', 'fr', 's', 'ms', '(', 'deg', 'rad', 'turn', 'grad', 'ex', 'ch', 'pt', 'pc', 'in', 'cm', 'mm']);
+    // CSS functions that should not have space before (
+    const cssFunctions = new Set([
+      'rgba', 'rgb', 'hsl', 'hsla', 'hwb', 'lab', 'lch', 'oklch', 'oklab',
+      'var', 'calc', 'min', 'max', 'clamp', 'url', 'attr', 'env', 'counter', 'counters',
+      'linear-gradient', 'radial-gradient', 'conic-gradient', 'repeating-linear-gradient', 'repeating-radial-gradient',
+      'translate', 'translateX', 'translateY', 'translateZ', 'translate3d',
+      'rotate', 'rotateX', 'rotateY', 'rotateZ', 'rotate3d',
+      'scale', 'scaleX', 'scaleY', 'scaleZ', 'scale3d',
+      'skew', 'skewX', 'skewY', 'matrix', 'matrix3d', 'perspective',
+      'cubic-bezier', 'steps', 'drop-shadow', 'blur', 'brightness', 'contrast',
+      'grayscale', 'hue-rotate', 'invert', 'opacity', 'saturate', 'sepia',
+      'minmax', 'repeat', 'fit-content', 'image', 'element', 'cross-fade',
+      'color-mix', 'light-dark'
+    ]);
 
-    let value = '';
-    let lastTokenValue = '';
+    // CSS units that should attach to preceding number (no space before)
+    const cssUnits = new Set([
+      '%', 'px', 'em', 'rem', 'vh', 'vw', 'vmin', 'vmax', 'dvh', 'dvw', 'svh', 'svw', 'lvh', 'lvw',
+      'fr', 's', 'ms', 'deg', 'rad', 'turn', 'grad',
+      'ex', 'ch', 'cap', 'ic', 'lh', 'rlh',
+      'pt', 'pc', 'in', 'cm', 'mm', 'Q',
+      'dpi', 'dpcm', 'dppx', 'x'
+    ]);
+
+    // Tokens that should not have space before them
+    const noSpaceBefore = new Set([')', ',', '(', ';']);
+    cssUnits.forEach(u => noSpaceBefore.add(u));
+
+    // Collect value tokens
+    let valueTokens = [];
     let lastTokenLine = this.current()?.line || 0;
-    let afterHash = false;  // Track if we're collecting a hex color
-    let hexColorLength = 0; // Track hex color length (max 8 for RRGGBBAA)
-    let inCssVar = false;   // Track if we're inside var(--...)
 
     while (!this.is(TokenType.SEMICOLON) && !this.is(TokenType.RBRACE) && !this.is(TokenType.EOF)) {
       const currentToken = this.current();
@@ -1707,64 +1767,165 @@ export class Parser {
         if (this.isPropertyStart() || this.isNestedRule()) {
           break;
         }
+        lastTokenLine = currentToken.line;
       }
-      const token = this.advance();
-      // Use raw value if available to preserve original representation
-      // This is important for numbers that might be parsed as scientific notation
-      let tokenValue = token.raw || String(token.value);
 
-      // Track CSS var() context - no spaces in var(--name)
-      if (lastTokenValue === 'var' && tokenValue === '(') {
+      valueTokens.push(this.advance());
+    }
+
+    // Build value string with proper spacing
+    let value = '';
+    let inHexColor = false;
+    let hexLength = 0;
+    let parenDepth = 0;
+    let inCssVar = false;
+    let inCalc = false;  // Track if we're inside calc(), min(), max(), clamp() where operators need spaces
+    let calcDepth = 0;   // Track nested calc depth
+
+    // Functions where arithmetic operators need spaces
+    const mathFunctions = new Set(['calc', 'min', 'max', 'clamp']);
+
+    // Helper to check if a string is valid hex
+    const isValidHex = (str) => /^[0-9a-fA-F]+$/.test(String(str));
+
+    for (let i = 0; i < valueTokens.length; i++) {
+      const token = valueTokens[i];
+      const tokenValue = token.raw || String(token.value);
+      const prevToken = i > 0 ? valueTokens[i - 1] : null;
+      const prevValue = prevToken ? (prevToken.raw || String(prevToken.value)) : '';
+
+      // Track parenthesis depth
+      if (tokenValue === '(') parenDepth++;
+      if (tokenValue === ')') parenDepth--;
+
+      // Track CSS var() context
+      if (prevValue === 'var' && tokenValue === '(') {
         inCssVar = true;
       } else if (inCssVar && tokenValue === ')') {
         inCssVar = false;
       }
 
-      // For hex colors (#abc123), collect tokens without spacing after #
-      // Hex colors are 3, 4, 6, or 8 characters long
-      if (tokenValue === '#') {
-        afterHash = true;
-        hexColorLength = 0;
-      } else if (afterHash) {
-        // Check if this token is a valid hex color continuation
+      // Track calc/min/max/clamp context - operators need spaces in these
+      if (mathFunctions.has(prevValue) && tokenValue === '(') {
+        inCalc = true;
+        calcDepth = parenDepth;
+      } else if (inCalc && tokenValue === ')' && parenDepth < calcDepth) {
+        inCalc = false;
+      }
+
+      // Handle HEX_COLOR token (from lexer) - it's already a complete hex color
+      if (token.type === TokenType.HEX_COLOR) {
+        // HEX_COLOR is already complete, no tracking needed
+        inHexColor = false;
+      }
+      // Track hex colors for legacy cases - look for # followed by hex digits
+      // Handle cases like #667eea being tokenized as # 667 eea
+      // Valid hex colors are 3, 4, 6, or 8 chars long
+      else if (tokenValue === '#') {
+        inHexColor = true;
+        hexLength = 0;
+      } else if (inHexColor) {
+        // Check if this token could be part of hex color
+        // Numbers and identifiers that are valid hex chars continue the color
         const tokenStr = String(tokenValue);
-        const isHexChar = /^[0-9a-fA-F]+$/.test(tokenStr);
-        if (isHexChar) {
-          const newLength = hexColorLength + tokenStr.length;
-          // Valid hex color lengths are 3, 4, 6, or 8
-          // If adding this token would exceed a valid length, stop
-          if (hexColorLength >= 6 || newLength > 8) {
-            afterHash = false;
-          } else {
-            hexColorLength = newLength;
+        if (isValidHex(tokenStr) && hexLength + tokenStr.length <= 8) {
+          hexLength += tokenStr.length;
+
+          // Check if we should stop collecting hex color now
+          // Stop if: we have 6+ chars, OR the next token is likely a CSS value (%, px, etc.)
+          const nextToken = valueTokens[i + 1];
+          const nextValue = nextToken ? String(nextToken.raw || nextToken.value) : '';
+
+          // CSS units/symbols that indicate the hex color is complete
+          const cssValueIndicators = new Set(['%', 'px', 'em', 'rem', 'vh', 'vw', ',', ')', ' ', '']);
+
+          // End hex color if:
+          // - We've reached 6 or 8 chars (complete hex)
+          // - Next token is a CSS unit/punctuation (like %, px, comma, paren)
+          // - Next token is empty (end of value)
+          if (hexLength >= 6 || cssValueIndicators.has(nextValue) || nextToken?.type === TokenType.PERCENT || nextToken?.type === TokenType.COMMA || nextToken?.type === TokenType.RPAREN) {
+            inHexColor = false;  // Done collecting hex color
           }
         } else {
-          afterHash = false;
+          // This token is not part of hex, end hex color collection
+          inHexColor = false;
         }
       }
 
-      // Add space before this token unless:
-      // - It's the first token
-      // - Last token was in noSpaceAfter
-      // - This token is in noSpaceBefore
-      // - We're collecting a hex color (afterHash is true)
-      // - We're inside var(--...) and this is part of the variable name
-      // - Last was '-' and current is an identifier (hyphenated name)
-      const skipSpace = noSpaceAfter.has(String(lastTokenValue)) ||
-                        noSpaceBefore.has(tokenValue) ||
-                        afterHash ||
-                        inCssVar ||
-                        (lastTokenValue === '-' || lastTokenValue === '--') ||
-                        (tokenValue === '-' && /^[a-zA-Z]/.test(String(this.current()?.value || '')));
+      // Determine if we need space before this token
+      let needsSpace = value.length > 0;
 
-      if (value.length > 0 && !skipSpace) {
+      if (needsSpace) {
+        // No space after # (hex color start)
+        if (prevValue === '#') {
+          needsSpace = false;
+        }
+        // No space after these
+        else if (prevValue === '(' || prevValue === '.' || prevValue === '/' || prevValue === '@') {
+          needsSpace = false;
+        }
+        // No space after ! for !important
+        else if (prevValue === '!' && tokenValue === 'important') {
+          needsSpace = false;
+        }
+        // No space after CSS functions before (
+        else if (cssFunctions.has(prevValue) && tokenValue === '(') {
+          needsSpace = false;
+        }
+        // No space before these
+        else if (noSpaceBefore.has(tokenValue)) {
+          needsSpace = false;
+        }
+        // No space in hex colors (continuing after #)
+        else if (inHexColor && hexLength > 0) {
+          needsSpace = false;
+        }
+        // No space in CSS var() content
+        else if (inCssVar) {
+          needsSpace = false;
+        }
+        // No space for hyphenated identifiers (ease-in-out, sans-serif, -apple-system)
+        // BUT in calc(), min(), max(), clamp() - operators need spaces around them
+        // Note: Some CSS keywords like 'in' are also Pulse keywords, so check token value too
+        // Check if current token is '-' and should attach to previous identifier-like token
+        else if (tokenValue === '-' && !inCalc && (prevToken?.type === TokenType.IDENT || prevToken?.type === TokenType.NUMBER || /^[a-zA-Z]/.test(prevValue))) {
+          needsSpace = false;
+        }
+        // Check if current token follows a '-' (either prevValue is '-' or value ends with '-')
+        // Include keywords that might appear in CSS values (in, from, to, etc.)
+        // BUT in calc(), don't attach numbers to '-' (keep space for operators)
+        else if (!inCalc && (prevValue === '-' || value.endsWith('-')) && (token.type === TokenType.IDENT || token.type === TokenType.NUMBER || /^[a-zA-Z]/.test(tokenValue))) {
+          needsSpace = false;
+        }
+        // No space for -- (CSS custom property reference)
+        else if (prevValue === '-' && tokenValue === '-') {
+          needsSpace = false;
+        }
+        else if (prevValue === '--' || value.endsWith('--')) {
+          needsSpace = false;
+        }
+        // CSS unit after number
+        else if (cssUnits.has(tokenValue) && prevToken?.type === TokenType.NUMBER) {
+          needsSpace = false;
+        }
+        // Handle cases like preserve-3d where identifier follows number in hyphenated value
+        // Check if we're continuing a hyphenated identifier (value ends with number after hyphen)
+        else if (token.type === TokenType.IDENT && prevToken?.type === TokenType.NUMBER) {
+          // Check if the value looks like it's a hyphenated pattern: word-NUM + IDENT (e.g., preserve-3 + d, card-3 + d)
+          const hyphenNumberPattern = /-\d+$/;
+          if (hyphenNumberPattern.test(value)) {
+            needsSpace = false;
+          }
+        }
+      }
+
+      if (needsSpace) {
         value += ' ';
-        afterHash = false;  // Space ends hex collection
       }
 
       value += tokenValue;
-      lastTokenValue = tokenValue;
     }
+
     value = value.trim();
 
     if (this.is(TokenType.SEMICOLON)) {
@@ -2068,14 +2229,15 @@ export class Parser {
    */
   isPropertyStart() {
     // Check if it looks like: identifier (with possible hyphens) followed by :
-    // CSS properties can be: margin, margin-bottom, -webkit-transform, etc.
-    if (!this.is(TokenType.IDENT) && !this.is(TokenType.MINUS)) return false;
+    // CSS properties can be: margin, margin-bottom, -webkit-transform, --custom-prop, etc.
+    // Include MINUSMINUS for CSS custom properties (--var-name)
+    if (!this.is(TokenType.IDENT) && !this.is(TokenType.MINUS) && !this.is(TokenType.MINUSMINUS)) return false;
 
     let i = 0;
-    // Skip over property name tokens (IDENT and MINUS for hyphenated names)
+    // Skip over property name tokens (IDENT, MINUS, MINUSMINUS for hyphenated/custom props)
     while (this.peek(i)) {
       const token = this.peek(i);
-      if (token.type === TokenType.IDENT || token.type === TokenType.MINUS) {
+      if (token.type === TokenType.IDENT || token.type === TokenType.MINUS || token.type === TokenType.MINUSMINUS) {
         i++;
       } else {
         break;

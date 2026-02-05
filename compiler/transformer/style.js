@@ -46,50 +46,124 @@ export function transformStyle(transformer, styleBlock) {
 }
 
 /**
+ * Check if a selector is an @-rule (media query, keyframes, etc.)
+ * @param {string} selector - CSS selector
+ * @returns {boolean}
+ */
+function isAtRule(selector) {
+  return selector.trim().startsWith('@');
+}
+
+/**
+ * Check if a selector is @keyframes
+ * @param {string} selector - CSS selector
+ * @returns {boolean}
+ */
+function isKeyframesRule(selector) {
+  return selector.trim().startsWith('@keyframes');
+}
+
+/**
+ * Check if a selector is a keyframe step (from, to, or percentage)
+ * @param {string} selector - CSS selector
+ * @returns {boolean}
+ */
+function isKeyframeStep(selector) {
+  const trimmed = selector.trim();
+  return trimmed === 'from' || trimmed === 'to' || /^\d+%$/.test(trimmed);
+}
+
+/**
  * Flatten nested CSS rules by combining selectors
  * Handles CSS nesting by prepending parent selector to nested rules
+ * Special handling for @-rules (media queries, keyframes, etc.)
  * @param {Object} transformer - Transformer instance
  * @param {Object} rule - CSS rule from AST
  * @param {string} parentSelector - Parent selector to prepend (empty for top-level)
  * @param {Array<string>} output - Array to collect flattened CSS rules
+ * @param {string} atRuleWrapper - Optional @-rule wrapper (e.g., "@media (max-width: 768px)")
+ * @param {boolean} inKeyframes - Whether we're inside @keyframes (don't scope keyframe steps)
  */
-export function flattenStyleRule(transformer, rule, parentSelector, output) {
+export function flattenStyleRule(transformer, rule, parentSelector, output, atRuleWrapper = '', inKeyframes = false) {
+  const selector = rule.selector;
+
+  // Check if this is an @-rule
+  if (isAtRule(selector)) {
+    const isKeyframes = isKeyframesRule(selector);
+
+    // @keyframes should be output as a complete block, not flattened
+    if (isKeyframes) {
+      const lines = [];
+      lines.push(`  ${selector} {`);
+
+      // Output all keyframe steps
+      for (const nested of rule.nestedRules) {
+        lines.push(`    ${nested.selector} {`);
+        for (const prop of nested.properties) {
+          lines.push(`      ${prop.name}: ${prop.value};`);
+        }
+        lines.push('    }');
+      }
+
+      lines.push('  }');
+      output.push(lines.join('\n'));
+      return;
+    }
+
+    // Other @-rules (@media, @supports) wrap their nested rules
+    for (const nested of rule.nestedRules) {
+      flattenStyleRule(transformer, nested, '', output, selector, false);
+    }
+    return;
+  }
+
   // Build the full selector by combining parent and current
-  let fullSelector = rule.selector;
+  let fullSelector = selector;
 
   if (parentSelector) {
     // Handle & (parent reference) in nested selectors
-    if (rule.selector.includes('&')) {
+    if (selector.includes('&')) {
       // Replace & with parent selector
-      fullSelector = rule.selector.replace(/&/g, parentSelector);
+      fullSelector = selector.replace(/&/g, parentSelector);
     } else {
       // Combine parent and child with space (descendant combinator)
-      fullSelector = `${parentSelector} ${rule.selector}`;
+      fullSelector = `${parentSelector} ${selector}`;
     }
   }
 
-  // Apply scope to selector if enabled
+  // Apply scope to selector if enabled (but not for keyframe steps)
   let scopedSelector = fullSelector;
-  if (transformer.scopeId) {
+  if (transformer.scopeId && !inKeyframes && !isKeyframeStep(selector)) {
     scopedSelector = scopeStyleSelector(transformer, fullSelector);
   }
 
   // Only output rule if it has properties
   if (rule.properties.length > 0) {
     const lines = [];
-    lines.push(`  ${scopedSelector} {`);
 
-    for (const prop of rule.properties) {
-      lines.push(`    ${prop.name}: ${prop.value};`);
+    // If wrapped in an @-rule, output the wrapper
+    if (atRuleWrapper) {
+      lines.push(`  ${atRuleWrapper} {`);
+      lines.push(`    ${scopedSelector} {`);
+      for (const prop of rule.properties) {
+        lines.push(`      ${prop.name}: ${prop.value};`);
+      }
+      lines.push('    }');
+      lines.push('  }');
+    } else {
+      lines.push(`  ${scopedSelector} {`);
+      for (const prop of rule.properties) {
+        lines.push(`    ${prop.name}: ${prop.value};`);
+      }
+      lines.push('  }');
     }
 
-    lines.push('  }');
     output.push(lines.join('\n'));
   }
 
   // Recursively flatten nested rules with combined selector
   for (const nested of rule.nestedRules) {
-    flattenStyleRule(transformer, nested, fullSelector, output);
+    flattenStyleRule(transformer, nested, fullSelector, output, atRuleWrapper, inKeyframes);
   }
 }
 

@@ -99,6 +99,7 @@ export const TokenType = {
   // Identifiers and selectors
   IDENT: 'IDENT',
   SELECTOR: 'SELECTOR',  // CSS selector like .class, #id, tag.class#id
+  HEX_COLOR: 'HEX_COLOR', // CSS hex color like #fff, #667eea
 
   // Special
   INTERPOLATION_START: 'INTERPOLATION_START', // {
@@ -409,8 +410,9 @@ export class Lexer {
 
   /**
    * Read an identifier or keyword
+   * @param {boolean} forceIdent - If true, always return IDENT type (ignore keywords)
    */
-  readIdentifier() {
+  readIdentifier(forceIdent = false) {
     const startLine = this.line;
     const startColumn = this.column;
     let value = '';
@@ -419,7 +421,7 @@ export class Lexer {
       value += this.advance();
     }
 
-    const type = KEYWORDS[value] || TokenType.IDENT;
+    const type = forceIdent ? TokenType.IDENT : (KEYWORDS[value] || TokenType.IDENT);
     return new Token(type, value, startLine, startColumn);
   }
 
@@ -694,8 +696,13 @@ export class Lexer {
         continue;
       }
 
-      // Hash outside selector
+      // Hash outside selector - check for hex color in style context
       if (char === '#') {
+        // In style context, check if this is a hex color
+        if (this.isStyleContext() && /[0-9a-fA-F]/.test(this.peek())) {
+          this.tokens.push(this.readHexColor());
+          continue;
+        }
         this.advance();
         this.tokens.push(new Token(TokenType.HASH, '#', startLine, startColumn));
         continue;
@@ -704,14 +711,29 @@ export class Lexer {
       // Identifiers, keywords, and selectors
       if (/[a-zA-Z_$]/.test(char)) {
         // First check if this is a keyword - keywords take precedence
+        // BUT in style context, most keywords should be treated as identifiers
+        // (e.g., 'style' in 'transform-style', 'in' in 'ease-in-out')
         const word = this.peekWord();
-        if (KEYWORDS[word]) {
-          this.tokens.push(this.readIdentifier());
+        const inStyle = this.isStyleContext();
+
+        // Keywords that should NEVER be treated as keywords in style context
+        // These appear in CSS property names and values
+        const cssReservedWords = new Set([
+          'style', 'in', 'from', 'to', 'if', 'else', 'for', 'as', 'of',
+          'true', 'false', 'null', 'export', 'import'
+        ]);
+
+        const shouldBeKeyword = KEYWORDS[word] && (!inStyle || !cssReservedWords.has(word));
+        // Force identifier if in style context and word is a CSS reserved word
+        const forceIdent = inStyle && cssReservedWords.has(word);
+
+        if (shouldBeKeyword) {
+          this.tokens.push(this.readIdentifier(false));
         } else if (this.isViewContext() && this.couldBeSelector()) {
           // Only treat as selector if not a keyword
           this.tokens.push(this.readSelector());
         } else {
-          this.tokens.push(this.readIdentifier());
+          this.tokens.push(this.readIdentifier(forceIdent));
         }
         continue;
       }
@@ -723,6 +745,43 @@ export class Lexer {
 
     this.tokens.push(new Token(TokenType.EOF, null, this.line, this.column));
     return this.tokens;
+  }
+
+  /**
+   * Check if we're in a style context (inside style block)
+   */
+  isStyleContext() {
+    // Look back through tokens for 'style' keyword
+    for (let i = this.tokens.length - 1; i >= 0; i--) {
+      const token = this.tokens[i];
+      if (token.type === TokenType.STYLE) {
+        return true;
+      }
+      if (token.type === TokenType.STATE ||
+          token.type === TokenType.VIEW ||
+          token.type === TokenType.ACTIONS ||
+          token.type === TokenType.ROUTER ||
+          token.type === TokenType.STORE) {
+        return false;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Read a CSS hex color (#fff, #ffffff, #667eea, etc.)
+   */
+  readHexColor() {
+    const startLine = this.line;
+    const startColumn = this.column;
+    let value = this.advance(); // #
+
+    // Read hex characters (0-9, a-f, A-F)
+    while (!this.isEOF() && /[0-9a-fA-F]/.test(this.current())) {
+      value += this.advance();
+    }
+
+    return new Token(TokenType.HEX_COLOR, value, startLine, startColumn);
   }
 
   /**
