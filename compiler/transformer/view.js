@@ -5,8 +5,8 @@
  */
 
 import { NodeType } from '../parser.js';
-import { transformValue } from './state.js';
-import { transformExpression, transformExpressionString } from './expressions.js';
+import { transformValue, transformPropDependentActions } from './state.js';
+import { transformExpression, transformExpressionString, transformFunctionBody } from './expressions.js';
 
 /** View node transformers lookup table */
 export const VIEW_NODE_HANDLERS = {
@@ -38,14 +38,27 @@ export function transformView(transformer, viewBlock) {
   // Generate render function with props parameter
   lines.push('function render({ props = {}, slots = {} } = {}) {');
 
-  // Destructure props with defaults if component has props
+  // Extract props using useProp() for reactive prop support
+  // useProp checks for a getter (propName$) and returns a computed if present
   if (transformer.propVars.size > 0) {
-    const propsDestructure = [...transformer.propVars].map(name => {
+    for (const name of transformer.propVars) {
       const defaultValue = transformer.propDefaults.get(name);
       const defaultCode = defaultValue ? transformValue(transformer, defaultValue) : 'undefined';
-      return `${name} = ${defaultCode}`;
-    }).join(', ');
-    lines.push(`  const { ${propsDestructure} } = props;`);
+      lines.push(`  const ${name} = useProp(props, '${name}', ${defaultCode});`);
+    }
+  }
+
+  // Generate prop-dependent actions inside render (after useProp declarations)
+  if (transformer.ast.actions && transformer.propVars.size > 0) {
+    const propActions = transformPropDependentActions(
+      transformer,
+      transformer.ast.actions,
+      transformFunctionBody,
+      '  '
+    );
+    if (propActions.trim()) {
+      lines.push(propActions);
+    }
   }
 
   lines.push('  return (');
@@ -416,7 +429,7 @@ function extractDynamicAttributes(selector) {
           }
         }
 
-        // Static attribute - parse the value
+        // Parse the attribute value (may be static or contain interpolations)
         let attrValue = '';
         if (quoteChar) {
           // Quoted value - read until closing quote
@@ -437,8 +450,15 @@ function extractDynamicAttributes(selector) {
         // Skip closing ]
         if (selector[i] === ']') i++;
 
-        // Add to static attrs (don't put in selector)
-        staticAttrs.push({ name: attrName, value: attrValue });
+        // Check if the value contains interpolation {expr}
+        // If so, treat as dynamic attribute with template string
+        if (attrValue.includes('{') && attrValue.includes('}')) {
+          // Convert "text {expr} more" to template string: `text ${expr} more`
+          dynamicAttrs.push({ name: attrName, expr: attrValue, isInterpolated: true });
+        } else {
+          // Pure static attribute
+          staticAttrs.push({ name: attrName, value: attrValue });
+        }
         continue;
       } else {
         // Boolean attribute (no value) like [disabled]
@@ -618,7 +638,16 @@ export function transformElement(transformer, node, indent) {
 
   // Chain dynamic attribute bindings (e.g., [value={searchQuery}])
   for (const attr of dynamicAttrs) {
-    const exprCode = transformExpressionString(transformer, attr.expr);
+    let exprCode;
+    if (attr.isInterpolated) {
+      // String with interpolation: "display: {show ? 'block' : 'none'}"
+      // Convert to template literal: `display: ${show.get() ? 'block' : 'none'}`
+      const templateStr = attr.expr.replace(/\{/g, '${');
+      exprCode = '`' + transformExpressionString(transformer, templateStr) + '`';
+    } else {
+      // Pure expression: {searchQuery}
+      exprCode = transformExpressionString(transformer, attr.expr);
+    }
     result = `bind(${result}, '${attr.name}', () => ${exprCode})`;
   }
 
@@ -643,7 +672,68 @@ export function addScopeToSelector(transformer, selector) {
 }
 
 /**
+ * Check if an expression references any state variables
+ * @param {Object} transformer - Transformer instance
+ * @param {Object} node - AST node to check
+ * @returns {boolean} True if expression uses state variables
+ */
+function expressionUsesState(transformer, node) {
+  if (!node) return false;
+
+  switch (node.type) {
+    case NodeType.Identifier:
+      return transformer.stateVars.has(node.name);
+
+    case NodeType.MemberExpression:
+      return expressionUsesState(transformer, node.object) ||
+             (node.computed && expressionUsesState(transformer, node.property));
+
+    case NodeType.CallExpression:
+      return expressionUsesState(transformer, node.callee) ||
+             node.arguments.some(arg => expressionUsesState(transformer, arg));
+
+    case NodeType.BinaryExpression:
+    case NodeType.ConditionalExpression:
+      return expressionUsesState(transformer, node.left) ||
+             expressionUsesState(transformer, node.right) ||
+             (node.test && expressionUsesState(transformer, node.test)) ||
+             (node.consequent && expressionUsesState(transformer, node.consequent)) ||
+             (node.alternate && expressionUsesState(transformer, node.alternate));
+
+    case NodeType.UnaryExpression:
+    case NodeType.UpdateExpression:
+      return expressionUsesState(transformer, node.argument);
+
+    case NodeType.ArrayLiteral:
+      return node.elements?.some(el => expressionUsesState(transformer, el));
+
+    case NodeType.ObjectLiteral:
+      return node.properties?.some(prop =>
+        expressionUsesState(transformer, prop.value)
+      );
+
+    case NodeType.ArrowFunction:
+      // Arrow functions capture state, but don't need wrapping themselves
+      return false;
+
+    case NodeType.SpreadElement:
+      return expressionUsesState(transformer, node.argument);
+
+    default:
+      return false;
+  }
+}
+
+/**
  * Transform a component call (imported component)
+ *
+ * For reactive props (those that reference state variables), we pass both:
+ * - The current value: `propName: value`
+ * - A getter function: `propName$: () => value`
+ *
+ * The child component can use `useProp(props, 'propName', default)` to get
+ * a reactive computed if a getter exists, or the static value otherwise.
+ *
  * @param {Object} transformer - Transformer instance
  * @param {Object} node - Element node (component)
  * @param {number} indent - Indentation level
@@ -670,17 +760,26 @@ export function transformComponentCall(transformer, node, indent) {
   }
 
   // Build component call
-  let code = `${pad}${componentName}.render({ `;
-
   const renderArgs = [];
 
   // Add props if any
   if (node.props && node.props.length > 0) {
-    const propsCode = node.props.map(prop => {
+    const propEntries = [];
+
+    for (const prop of node.props) {
       const valueCode = transformExpression(transformer, prop.value);
-      return `${prop.name}: ${valueCode}`;
-    }).join(', ');
-    renderArgs.push(`props: { ${propsCode} }`);
+      const usesState = expressionUsesState(transformer, prop.value);
+
+      if (usesState) {
+        // Reactive prop: pass both value and getter
+        // The getter allows child to create a reactive binding via useProp()
+        propEntries.push(`${prop.name}$: () => ${valueCode}`);
+      }
+      // Always pass the current value (for non-useProp access and initial render)
+      propEntries.push(`${prop.name}: ${valueCode}`);
+    }
+
+    renderArgs.push(`props: { ${propEntries.join(', ')} }`);
   }
 
   // Add slots if any
@@ -691,9 +790,8 @@ export function transformComponentCall(transformer, node, indent) {
     renderArgs.push(`slots: { ${slotCode} }`);
   }
 
-  code += renderArgs.join(', ');
-  code += ' })';
-  return code;
+  const renderCall = `${componentName}.render({ ${renderArgs.join(', ')} })`;
+  return `${pad}${renderCall}`;
 }
 
 /**

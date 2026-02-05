@@ -25,9 +25,9 @@ export function transformExpression(transformer, node) {
 
   switch (node.type) {
     case NodeType.Identifier:
-      // Props take precedence over state (props are destructured in render scope)
+      // Props and state are both reactive (wrapped in computed via useProp or pulse)
       if (transformer.propVars.has(node.name)) {
-        return node.name;
+        return `${node.name}.get()`;
       }
       if (transformer.stateVars.has(node.name)) {
         return `${node.name}.get()`;
@@ -47,12 +47,18 @@ export function transformExpression(transformer, node) {
 
     case NodeType.MemberExpression: {
       const obj = transformExpression(transformer, node.object);
-      // Use optional chaining when accessing properties on function call results
+      // Use optional chaining when accessing properties on:
+      // 1. Function call results (could return null/undefined)
+      // 2. Props (commonly receive null values like notification: null)
+      // Note: State vars don't get optional chaining to avoid breaking array/object methods
       const isCallResult = node.object.type === NodeType.CallExpression;
-      const accessor = isCallResult ? '?.' : '.';
+      const isProp = node.object.type === NodeType.Identifier &&
+        transformer.propVars.has(node.object.name);
+      const useOptionalChaining = isCallResult || isProp;
+      const accessor = useOptionalChaining ? '?.' : '.';
       if (node.computed) {
         const prop = transformExpression(transformer, node.property);
-        return isCallResult ? `${obj}?.[${prop}]` : `${obj}[${prop}]`;
+        return useOptionalChaining ? `${obj}?.[${prop}]` : `${obj}[${prop}]`;
       }
       return `${obj}${accessor}${node.property}`;
     }
@@ -156,17 +162,30 @@ export function transformExpression(transformer, node) {
  * @returns {string} Transformed expression string
  */
 export function transformExpressionString(transformer, exprStr) {
-  // Simple transformation: wrap state vars with .get()
-  // Props take precedence - don't wrap props with .get()
+  // Simple transformation: wrap state and prop vars with .get()
+  // Both are now reactive (useProp returns computed for uniform interface)
   let result = exprStr;
+
+  // Transform state vars
   for (const stateVar of transformer.stateVars) {
-    // Skip if this var name is also a prop (props shadow state in render scope)
-    if (transformer.propVars.has(stateVar)) {
-      continue;
-    }
     result = result.replace(
       new RegExp(`\\b${stateVar}\\b`, 'g'),
       `${stateVar}.get()`
+    );
+  }
+
+  // Transform prop vars (now also reactive via useProp)
+  // Add optional chaining when followed by property access for nullable props
+  // Props commonly receive null values (e.g., notification: null)
+  for (const propVar of transformer.propVars) {
+    result = result.replace(
+      new RegExp(`\\b${propVar}\\b(?=\\.)`, 'g'),
+      `${propVar}.get()?`
+    );
+    // Handle standalone prop var (not followed by property access)
+    result = result.replace(
+      new RegExp(`\\b${propVar}\\b(?!\\.)`, 'g'),
+      `${propVar}.get()`
     );
   }
 
@@ -186,7 +205,7 @@ export function transformExpressionString(transformer, exprStr) {
  * @returns {string} JavaScript code
  */
 export function transformFunctionBody(transformer, tokens) {
-  const { stateVars, actionNames } = transformer;
+  const { stateVars, propVars, actionNames } = transformer;
   let code = '';
   let lastToken = null;
   let lastNonSpaceToken = null;
@@ -194,7 +213,7 @@ export function transformFunctionBody(transformer, tokens) {
   // Tokens that must follow } directly without semicolon
   const NO_SEMI_BEFORE = new Set(['catch', 'finally', 'else']);
 
-  const needsManualSemicolon = (token, nextToken, lastNonSpace) => {
+  const needsManualSemicolon = (token, nextToken, lastNonSpace, tokenIndex) => {
     if (!token || lastNonSpace?.value === 'new') return false;
     // Don't add semicolon after 'await' - it always needs its expression
     if (lastNonSpace?.value === 'await') return false;
@@ -214,6 +233,20 @@ export function transformFunctionBody(transformer, tokens) {
     if (nextToken?.type === 'LPAREN' &&
         (BUILTIN_FUNCTIONS.has(token.value) || actionNames.has(token.value))) return true;
     if (nextToken?.type === 'DOT' && BUILTIN_FUNCTIONS.has(token.value)) return true;
+
+    // Check for property assignment or method call: identifier.property = value OR identifier.method()
+    // This is a new statement if token is followed by .property = ... or .method(...)
+    if (nextToken?.type === 'DOT') {
+      // Look ahead to see if this is an assignment or method call
+      for (let j = tokenIndex + 1; j < tokens.length && j < tokenIndex + 10; j++) {
+        const t = tokens[j];
+        // Assignment: identifier.property = value
+        if (t.type === 'EQ' && tokens[j-1]?.type === 'IDENT') return true;
+        // Method call: identifier.method()
+        if (t.type === 'LPAREN' && tokens[j-1]?.type === 'IDENT') return true;
+        if (t.type === 'SEMI') break;
+      }
+    }
     return false;
   };
 
@@ -242,7 +275,7 @@ export function transformFunctionBody(transformer, tokens) {
     }
 
     // Add semicolon before statement starters
-    if (needsManualSemicolon(token, nextToken, lastNonSpaceToken) &&
+    if (needsManualSemicolon(token, nextToken, lastNonSpaceToken, i) &&
         afterStatementEnd(lastNonSpaceToken)) {
       if (!afterIfCondition && lastToken && lastToken.value !== ';' && lastToken.value !== '{') {
         code += '; ';
@@ -416,10 +449,74 @@ export function transformFunctionBody(transformer, tokens) {
 
   // Replace state var reads (not in assignments, not already with .get/.set)
   // Allow spread operators (...stateVar) but block member access (obj.stateVar)
+  // Skip object literal keys (e.g., { users: value } - don't transform the key 'users')
   for (const stateVar of stateVars) {
     code = code.replace(
       new RegExp(`(?:(?<=\\.\\.\\.)|(?<!\\.))\\b${stateVar}\\b(?!\\s*=(?!=)|\\s*\\(|\\s*\\.(?:get|set))`, 'g'),
-      `${stateVar}.get()`
+      (match, offset) => {
+        // Check if this is an object key by looking at context
+        // Pattern: after { or , and before : (with arbitrary content between)
+        const after = code.slice(offset + match.length, offset + match.length + 10);
+
+        // If followed by : (not ::), check if it's an object key
+        if (/^\s*:(?!:)/.test(after)) {
+          // Look backwards for the nearest { or , that would indicate object context
+          // We need to track bracket depth to handle nested structures
+          let depth = 0;
+          for (let i = offset - 1; i >= 0; i--) {
+            const ch = code[i];
+            if (ch === ')' || ch === ']') depth++;
+            else if (ch === '(' || ch === '[') depth--;
+            else if (ch === '}') depth++;
+            else if (ch === '{') {
+              if (depth === 0) {
+                // Found opening brace at same depth - this is an object key
+                return match;
+              }
+              depth--;
+            }
+            else if (ch === ',' && depth === 0) {
+              // Found comma at same depth - this is an object key
+              return match;
+            }
+            // Stop if we hit a semicolon at depth 0 (different statement)
+            else if (ch === ';' && depth === 0) break;
+          }
+        }
+
+        return `${stateVar}.get()`;
+      }
+    );
+  }
+
+  // Replace prop var reads (props are reactive via useProp, need .get() like state vars)
+  // For props: allow function calls (prop callbacks need .get()() pattern)
+  // Skip object keys, allow spreads, block member access
+  for (const propVar of propVars) {
+    code = code.replace(
+      new RegExp(`(?:(?<=\\.\\.\\.)|(?<!\\.))\\b${propVar}\\b(?!\\s*=(?!=)|\\s*\\.(?:get|set))`, 'g'),
+      (match, offset) => {
+        // Check if this is an object key
+        const after = code.slice(offset + match.length, offset + match.length + 10);
+
+        if (/^\s*:(?!:)/.test(after)) {
+          let depth = 0;
+          for (let i = offset - 1; i >= 0; i--) {
+            const ch = code[i];
+            if (ch === ')' || ch === ']') depth++;
+            else if (ch === '(' || ch === '[') depth--;
+            else if (ch === '}') depth++;
+            else if (ch === '{') {
+              if (depth === 0) return match;
+              depth--;
+            }
+            else if (ch === ',' && depth === 0) return match;
+            else if (ch === ';' && depth === 0) break;
+          }
+        }
+
+        return `${propVar}.get()`;
+      }
     );
   }
 
