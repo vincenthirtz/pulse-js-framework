@@ -95,9 +95,10 @@ test('Search.js has keyboard navigation (arrows)', () => {
   assert(content.includes('Escape'), 'Should handle Escape');
 });
 
-test('Search.js uses navStructureFlat for results', () => {
+test('Search.js uses navStructure for results', () => {
   const content = readFileSync(join(componentsDir, 'Search.js'), 'utf-8');
-  assert(content.includes('navStructureFlat'), 'Should use navStructureFlat for search');
+  assert(content.includes('navStructure'), 'Should use navStructure for search');
+  assert(content.includes('getNavItemsWithDesc'), 'Should have helper to get nav items with descriptions');
 });
 
 test('Search.js has ARIA accessibility attributes', () => {
