@@ -94,6 +94,22 @@ export function transformState(transformer, stateBlock) {
 }
 
 /**
+ * Check if an action body references any prop variables
+ * @param {Array} bodyTokens - Function body tokens
+ * @param {Set} propVars - Set of prop variable names
+ * @returns {boolean} True if action references props
+ */
+export function actionReferencesProp(bodyTokens, propVars) {
+  if (propVars.size === 0) return false;
+  for (const token of bodyTokens) {
+    if (token.type === 'IDENT' && propVars.has(token.value)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
  * Transform actions block to function declarations
  * @param {Object} transformer - Transformer instance
  * @param {Object} actionsBlock - Actions block from AST
@@ -104,6 +120,11 @@ export function transformActions(transformer, actionsBlock, transformFunctionBod
   const lines = ['// Actions'];
 
   for (const fn of actionsBlock.functions) {
+    // Skip actions that reference props - they'll be generated inside render()
+    if (actionReferencesProp(fn.body, transformer.propVars)) {
+      continue;
+    }
+
     const asyncKeyword = fn.async ? 'async ' : '';
     const params = fn.params.join(', ');
     const body = transformFunctionBody(transformer, fn.body);
@@ -111,6 +132,36 @@ export function transformActions(transformer, actionsBlock, transformFunctionBod
     lines.push(`${asyncKeyword}function ${fn.name}(${params}) {`);
     lines.push(`  ${body}`);
     lines.push('}');
+    lines.push('');
+  }
+
+  return lines.join('\n');
+}
+
+/**
+ * Transform prop-dependent actions (to be placed inside render function)
+ * @param {Object} transformer - Transformer instance
+ * @param {Object} actionsBlock - Actions block from AST
+ * @param {Function} transformFunctionBody - Function to transform body tokens
+ * @param {string} indent - Indentation string
+ * @returns {string} JavaScript code
+ */
+export function transformPropDependentActions(transformer, actionsBlock, transformFunctionBody, indent = '  ') {
+  const lines = [];
+
+  for (const fn of actionsBlock.functions) {
+    // Only include actions that reference props
+    if (!actionReferencesProp(fn.body, transformer.propVars)) {
+      continue;
+    }
+
+    const asyncKeyword = fn.async ? 'async ' : '';
+    const params = fn.params.join(', ');
+    const body = transformFunctionBody(transformer, fn.body);
+
+    lines.push(`${indent}${asyncKeyword}function ${fn.name}(${params}) {`);
+    lines.push(`${indent}  ${body}`);
+    lines.push(`${indent}}`);
     lines.push('');
   }
 

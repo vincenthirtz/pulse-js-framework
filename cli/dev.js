@@ -134,12 +134,15 @@ export async function startDevServer(args) {
             });
             res.end(result.code);
           } else {
+            const errorDetails = result.errors.map(e => `${e.message} at line ${e.line || '?'}:${e.column || '?'}`).join('\n');
+            console.error(`[Pulse] Compilation error in ${filePath}:`, result.errors);
             res.writeHead(500, { 'Content-Type': 'text/plain' });
-            res.end(`Compilation error: ${result.errors.map(e => e.message).join('\n')}`);
+            res.end(`Compilation error: ${errorDetails}\nFile: ${filePath}`);
           }
         } catch (error) {
+          console.error(`[Pulse] Error compiling ${filePath}:`, error);
           res.writeHead(500, { 'Content-Type': 'text/plain' });
-          res.end(`Error: ${error.message}`);
+          res.end(`Error: ${error.message}\nFile: ${filePath}`);
         }
         return;
       }

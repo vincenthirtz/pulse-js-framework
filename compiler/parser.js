@@ -1597,9 +1597,14 @@ export class Parser {
 
         // Special case: . or # after an identifier needs space (descendant selector)
         // e.g., ".school .date" - need space between "school" and "."
+        // BUT NOT for "body.dark" where . is directly adjacent to body (no whitespace)
+        // We check if tokens are adjacent by comparing positions
+        const expectedNextCol = lastToken ? (lastToken.column + String(lastToken.value).length) : 0;
+        const tokensAreAdjacent = token.column === expectedNextCol;
         const isDescendantSelector = (tokenValue === '.' || tokenValue === '#') &&
                                      lastToken?.type === TokenType.IDENT &&
-                                     !inAtRule;  // Don't add space in @media selectors
+                                     !inAtRule &&  // Don't add space in @media selectors
+                                     !tokensAreAdjacent;  // Only add space if not directly adjacent
 
         // Special case: hyphenated class/id names like .job-title, .card-3d, max-width
         // Check if we're continuing a class/id name - the last part should end with alphanumeric

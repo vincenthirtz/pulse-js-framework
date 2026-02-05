@@ -33,7 +33,8 @@ export const PUNCT_NO_SPACE_AFTER = [
 /** JavaScript statement keywords */
 export const STATEMENT_KEYWORDS = new Set([
   'let', 'const', 'var', 'return', 'if', 'else', 'for', 'while',
-  'switch', 'throw', 'try', 'catch', 'finally'
+  'switch', 'throw', 'try', 'catch', 'finally', 'break', 'continue',
+  'case', 'default'
 ]);
 
 /** Built-in JavaScript functions and objects */

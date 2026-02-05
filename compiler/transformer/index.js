@@ -178,15 +178,7 @@ export class Transformer {
       extractImportedComponents(this, this.ast.imports);
     }
 
-    // Pre-scan for a11y usage to determine imports
-    if (this.ast.view) {
-      this._scanA11yUsage(this.ast.view);
-    }
-
-    // Imports (runtime + user imports)
-    parts.push(generateImports(this));
-
-    // Extract prop variables
+    // Extract prop variables (before imports so useProp can be conditionally imported)
     if (this.ast.props) {
       extractPropVars(this, this.ast.props);
     }
@@ -200,6 +192,14 @@ export class Transformer {
     if (this.ast.actions) {
       extractActionNames(this, this.ast.actions);
     }
+
+    // Pre-scan for a11y usage to determine imports
+    if (this.ast.view) {
+      this._scanA11yUsage(this.ast.view);
+    }
+
+    // Imports (runtime + user imports) - after extraction so we know what to import
+    parts.push(generateImports(this));
 
     // Store (must come before router so $store is available to guards)
     if (this.ast.store) {

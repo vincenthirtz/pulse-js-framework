@@ -1316,6 +1316,39 @@ export function untrack(fn) {
   }
 }
 
+/**
+ * Create a reactive prop from component props object.
+ * If the prop has a reactive getter (marked with $ suffix), returns a computed.
+ * Otherwise returns the static value.
+ *
+ * @template T
+ * @param {Object} props - Component props object
+ * @param {string} name - Prop name to extract
+ * @param {T} [defaultValue] - Default value if prop is undefined
+ * @returns {T|Pulse<T>} The prop value (reactive if getter exists, static otherwise)
+ *
+ * @example
+ * // In compiled component render function:
+ * function render({ props = {} } = {}) {
+ *   const darkMode = useProp(props, 'darkMode', false);
+ *   // darkMode is now reactive - can use in text(() => darkMode.get())
+ * }
+ */
+export function useProp(props, name, defaultValue) {
+  const getter = props[`${name}$`];
+  if (typeof getter === 'function') {
+    // Reactive prop - wrap in computed for automatic dependency tracking
+    return computed(() => {
+      const value = getter();
+      return value !== undefined ? value : defaultValue;
+    });
+  }
+  // Static prop - wrap in computed for uniform interface
+  // This allows child components to always use prop.get() consistently
+  const value = props[name];
+  return computed(() => value !== undefined ? value : defaultValue);
+}
+
 export default {
   Pulse,
   pulse,
@@ -1337,5 +1370,7 @@ export default {
   // HMR support
   setCurrentModule,
   clearCurrentModule,
-  disposeModule
+  disposeModule,
+  // Component props helper
+  useProp
 };

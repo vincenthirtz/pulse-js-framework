@@ -210,9 +210,11 @@ export class SourceMapGenerator {
    * @returns {string} Comment with base64 encoded source map
    */
   toComment() {
-    const base64 = typeof btoa === 'function'
-      ? btoa(this.toString())
-      : Buffer.from(this.toString()).toString('base64');
+    // Use Buffer for base64 encoding (supports UTF-8, unlike btoa which is Latin1-only)
+    const json = this.toString();
+    const base64 = typeof Buffer !== 'undefined'
+      ? Buffer.from(json, 'utf-8').toString('base64')
+      : btoa(unescape(encodeURIComponent(json))); // Browser fallback for UTF-8
     return `//# sourceMappingURL=data:application/json;charset=utf-8;base64,${base64}`;
   }
 

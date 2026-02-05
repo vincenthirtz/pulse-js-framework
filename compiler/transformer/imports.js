@@ -46,6 +46,11 @@ export function generateImports(transformer) {
     'model'
   ];
 
+  // Add useProp if component has props (for reactive prop support)
+  if (transformer.propVars.size > 0) {
+    runtimeImports.push('useProp');
+  }
+
   lines.push(`import { ${runtimeImports.join(', ')} } from '${options.runtime}';`);
 
   // A11y imports (if a11y features are used)
