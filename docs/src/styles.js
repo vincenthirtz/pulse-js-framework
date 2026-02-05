@@ -2485,6 +2485,9 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .search-result-desc {
@@ -2493,11 +2496,54 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  margin-top: 2px;
+}
+
+.search-result-category {
+  font-size: 0.7em;
+  font-weight: 500;
+  padding: 2px 6px;
+  background: var(--primary);
+  color: white;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+.search-result-hash {
+  display: inline-flex;
+  color: var(--text-muted);
+  opacity: 0.7;
+  flex-shrink: 0;
+}
+
+.search-result-external {
+  display: inline-flex;
+  color: var(--text-muted);
+  margin-right: 4px;
 }
 
 .search-result-arrow {
   color: var(--text-muted);
   font-size: 1.2em;
+  flex-shrink: 0;
+}
+
+.search-divider {
+  padding: 8px 16px 4px;
+  font-size: 0.7em;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+}
+
+.search-divider:first-child {
+  border-top: none;
+  margin-top: 0;
 }
 
 .search-empty {
@@ -2510,6 +2556,12 @@ body {
   font-size: 2em;
   margin-bottom: 12px;
   opacity: 0.5;
+}
+
+.search-empty-hint {
+  font-size: 0.85em;
+  margin-top: 8px;
+  opacity: 0.7;
 }
 
 .search-hint {

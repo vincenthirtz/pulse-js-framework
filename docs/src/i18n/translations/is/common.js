@@ -296,7 +296,11 @@ export default {
     recentSearches: 'Nýlegar leitir',
     suggestions: 'Tillögur',
     openSearch: 'Opna leit',
-    closeSearch: 'Loka leit'
+    closeSearch: 'Loka leit',
+    tryDifferent: 'Reyndu annan leitarstreng',
+    pages: 'Síður',
+    quickLinks: 'Fljótlegar API-tenglar',
+    externalLinks: 'Ytri auðlindir'
   },
 
   // Table of Contents

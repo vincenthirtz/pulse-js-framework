@@ -296,7 +296,11 @@ export default {
     recentSearches: 'Búsquedas recientes',
     suggestions: 'Sugerencias',
     openSearch: 'Abrir búsqueda',
-    closeSearch: 'Cerrar búsqueda'
+    closeSearch: 'Cerrar búsqueda',
+    tryDifferent: 'Intenta con otro término de búsqueda',
+    pages: 'Páginas',
+    quickLinks: 'Enlaces rápidos API',
+    externalLinks: 'Recursos externos'
   },
 
   // Table of Contents

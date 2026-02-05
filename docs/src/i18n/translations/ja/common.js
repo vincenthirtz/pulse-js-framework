@@ -296,7 +296,11 @@ export default {
     recentSearches: '最近の検索',
     suggestions: '候補',
     openSearch: '検索を開く',
-    closeSearch: '検索を閉じる'
+    closeSearch: '検索を閉じる',
+    tryDifferent: '別の検索語をお試しください',
+    pages: 'ページ',
+    quickLinks: 'APIクイックリンク',
+    externalLinks: '外部リソース'
   },
 
   // Table of Contents

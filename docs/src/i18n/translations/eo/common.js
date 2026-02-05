@@ -296,7 +296,11 @@ export default {
     recentSearches: 'Lastaj serĉoj',
     suggestions: 'Sugestoj',
     openSearch: 'Malfermi serĉon',
-    closeSearch: 'Fermi serĉon'
+    closeSearch: 'Fermi serĉon',
+    tryDifferent: 'Provu alian serĉvorton',
+    pages: 'Paĝoj',
+    quickLinks: 'API-rapidligiloj',
+    externalLinks: 'Eksteraj rimedoj'
   },
 
   // Table of Contents
