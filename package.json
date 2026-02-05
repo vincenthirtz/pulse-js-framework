@@ -1,6 +1,6 @@
 {
   "name": "pulse-js-framework",
-  "version": "1.7.26",
+  "version": "1.7.27",
   "description": "A declarative DOM framework with CSS selector-based structure and reactive pulsations",
   "type": "module",
   "main": "index.js",
