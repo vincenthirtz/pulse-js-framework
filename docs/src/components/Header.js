@@ -63,8 +63,12 @@ export function Header() {
 
   // Desktop navigation with dropdowns (uses shared navStructure from state.js)
   const nav = el('nav.nav');
+  nav.setAttribute('aria-label', 'Main navigation');
 
   for (const item of navStructure) {
+    // Skip hidden items (like changelog)
+    if (item.hidden) continue;
+
     if (item.children) {
       // Dropdown menu
       const dropdown = el('.nav-dropdown');
