@@ -105,7 +105,9 @@ export default {
     viewSource: 'Vidi Fontkodon',
     tryIt: 'Provi',
     install: 'Instali',
-    update: 'Ĝisdatigi'
+    update: 'Ĝisdatigi',
+    skipToContent: 'Salti al enhavo',
+    selectLanguage: 'Elekti lingvon'
   },
 
   // Footer

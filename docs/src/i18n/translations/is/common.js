@@ -105,7 +105,9 @@ export default {
     viewSource: 'Skoða Kóða',
     tryIt: 'Prófa',
     install: 'Setja upp',
-    update: 'Uppfæra'
+    update: 'Uppfæra',
+    skipToContent: 'Fara í efni',
+    selectLanguage: 'Velja tungumál'
   },
 
   // Footer
