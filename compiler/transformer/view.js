@@ -355,8 +355,17 @@ function parseBalancedExpression(str, start) {
  * @param {string} selector - CSS selector with potential dynamic attributes
  * @returns {Object} { cleanSelector, dynamicAttrs }
  */
+/**
+ * Extract all attributes (static and dynamic) from a selector string.
+ * Static attributes become part of the attrs object passed to el().
+ * Dynamic attributes (with {expr} values) are bound via bind().
+ *
+ * @param {string} selector - Element selector like "div.class[href=url][value={expr}]"
+ * @returns {{cleanSelector: string, staticAttrs: Array<{name: string, value: string}>, dynamicAttrs: Array<{name: string, expr: string}>}}
+ */
 function extractDynamicAttributes(selector) {
   const dynamicAttrs = [];
+  const staticAttrs = [];
   let cleanSelector = '';
   let i = 0;
 
@@ -367,7 +376,7 @@ function extractDynamicAttributes(selector) {
 
       // Parse attribute name
       let attrName = '';
-      while (i < selector.length && /[a-zA-Z0-9-]/.test(selector[i])) {
+      while (i < selector.length && /[a-zA-Z0-9-_]/.test(selector[i])) {
         attrName += selector[i];
         i++;
       }
@@ -382,9 +391,12 @@ function extractDynamicAttributes(selector) {
         // Skip whitespace
         while (i < selector.length && /\s/.test(selector[i])) i++;
 
-        // Check for optional quote
-        const hasQuote = selector[i] === '"';
-        if (hasQuote) i++;
+        // Determine quote character (or none)
+        let quoteChar = null;
+        if (selector[i] === '"' || selector[i] === "'") {
+          quoteChar = selector[i];
+          i++;
+        }
 
         // Check for dynamic expression {
         if (selector[i] === '{') {
@@ -394,7 +406,7 @@ function extractDynamicAttributes(selector) {
             i = result.end + 1; // Skip past closing }
 
             // Skip optional closing quote
-            if (hasQuote && selector[i] === '"') i++;
+            if (quoteChar && selector[i] === quoteChar) i++;
 
             // Skip closing ]
             if (selector[i] === ']') i++;
@@ -403,16 +415,40 @@ function extractDynamicAttributes(selector) {
             continue;
           }
         }
-      }
 
-      // Not a dynamic attribute, copy everything from [ to ]
-      let bracketDepth = 1;
-      cleanSelector += '[';
-      while (i < selector.length && bracketDepth > 0) {
-        if (selector[i] === '[') bracketDepth++;
-        else if (selector[i] === ']') bracketDepth--;
-        cleanSelector += selector[i];
-        i++;
+        // Static attribute - parse the value
+        let attrValue = '';
+        if (quoteChar) {
+          // Quoted value - read until closing quote
+          while (i < selector.length && selector[i] !== quoteChar) {
+            attrValue += selector[i];
+            i++;
+          }
+          // Skip closing quote
+          if (selector[i] === quoteChar) i++;
+        } else {
+          // Unquoted value - read until ]
+          while (i < selector.length && selector[i] !== ']') {
+            attrValue += selector[i];
+            i++;
+          }
+        }
+
+        // Skip closing ]
+        if (selector[i] === ']') i++;
+
+        // Add to static attrs (don't put in selector)
+        staticAttrs.push({ name: attrName, value: attrValue });
+        continue;
+      } else {
+        // Boolean attribute (no value) like [disabled]
+        // Skip to closing ]
+        while (i < selector.length && selector[i] !== ']') i++;
+        if (selector[i] === ']') i++;
+
+        // Add as boolean attribute
+        staticAttrs.push({ name: attrName, value: '' });
+        continue;
       }
     } else {
       cleanSelector += selector[i];
@@ -420,7 +456,7 @@ function extractDynamicAttributes(selector) {
     }
   }
 
-  return { cleanSelector, dynamicAttrs };
+  return { cleanSelector, staticAttrs, dynamicAttrs };
 }
 
 /**
@@ -445,8 +481,8 @@ export function transformElement(transformer, node, indent) {
     return transformComponentCall(transformer, node, indent);
   }
 
-  // Extract dynamic attributes from selector (e.g., [value={searchQuery}])
-  let { cleanSelector, dynamicAttrs } = extractDynamicAttributes(node.selector);
+  // Extract all attributes from selector (static and dynamic)
+  let { cleanSelector, staticAttrs, dynamicAttrs } = extractDynamicAttributes(node.selector);
 
   // Add scoped class to selector if CSS scoping is enabled
   let selector = cleanSelector;
@@ -483,50 +519,45 @@ export function transformElement(transformer, node, indent) {
     transformer.usesA11y.trapFocus = true;
   }
 
-  // Build ARIA attributes from directives
-  const ariaAttrs = [];
+  // Collect all static attributes for the el() attrs object
+  const allStaticAttrs = [];
 
-  // Process @a11y directives
+  // Add attributes extracted from selector
+  for (const attr of staticAttrs) {
+    // Escape single quotes in values
+    const escapedValue = attr.value.replace(/'/g, "\\'");
+    if (attr.value === '') {
+      // Boolean attribute
+      allStaticAttrs.push(`'${attr.name}': true`);
+    } else {
+      allStaticAttrs.push(`'${attr.name}': '${escapedValue}'`);
+    }
+  }
+
+  // Process @a11y directives - add to static attrs
   for (const directive of a11yDirectives) {
     const attrs = buildA11yAttributes(transformer, directive);
     for (const [key, value] of Object.entries(attrs)) {
       const valueCode = typeof value === 'string' ? `'${value}'` : value;
-      ariaAttrs.push(`'${key}': ${valueCode}`);
+      allStaticAttrs.push(`'${key}': ${valueCode}`);
     }
   }
 
   // Process @live directives (add aria-live and aria-atomic)
   for (const directive of liveDirectives) {
     const priority = directive.priority || 'polite';
-    ariaAttrs.push(`'aria-live': '${priority}'`);
-    ariaAttrs.push(`'aria-atomic': 'true'`);
-  }
-
-  // Build selector with inline ARIA attributes
-  let enhancedSelector = selector;
-  if (ariaAttrs.length > 0) {
-    // Convert ARIA attrs to selector attribute syntax where possible
-    // For dynamic values, we'll need to use setAriaAttributes
-    const staticAttrs = [];
-    const dynamicAttrs = [];
-
-    for (const attr of ariaAttrs) {
-      const match = attr.match(/^'([^']+)':\s*'([^']+)'$/);
-      if (match) {
-        // Static attribute - can embed in selector
-        staticAttrs.push(`[${match[1]}=${match[2]}]`);
-      } else {
-        dynamicAttrs.push(attr);
-      }
-    }
-
-    // Add static ARIA attributes to selector
-    enhancedSelector = selector + staticAttrs.join('');
+    allStaticAttrs.push(`'aria-live': '${priority}'`);
+    allStaticAttrs.push(`'aria-atomic': 'true'`);
   }
 
   // Start with el() call - escape single quotes in selector
-  const escapedSelector = enhancedSelector.replace(/'/g, "\\'");
+  const escapedSelector = selector.replace(/'/g, "\\'");
   parts.push(`${pad}el('${escapedSelector}'`);
+
+  // Add attributes object if we have any static attributes
+  if (allStaticAttrs.length > 0) {
+    parts.push(`, { ${allStaticAttrs.join(', ')} }`);
+  }
 
   // Add text content
   if (node.textContent.length > 0) {

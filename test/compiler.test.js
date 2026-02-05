@@ -899,9 +899,9 @@ view {
 
   const result = compile(source);
   assert(result.success, 'Expected successful compilation');
-  // Should add aria-live attribute
-  assert(result.code.includes('[aria-live=polite]'), 'Expected aria-live=polite');
-  assert(result.code.includes('[aria-atomic=true]'), 'Expected aria-atomic=true');
+  // Should add aria-live attribute in attrs object
+  assert(result.code.includes("'aria-live': 'polite'"), 'Expected aria-live=polite');
+  assert(result.code.includes("'aria-atomic': 'true'"), 'Expected aria-atomic=true');
 });
 
 test('compiles @focusTrap directive', () => {
@@ -953,8 +953,9 @@ view {
 
   const result = compile(source);
   assert(result.success, 'Expected successful compilation');
-  assert(result.code.includes('[role=dialog]'), 'Expected role=dialog');
-  assert(result.code.includes('[aria-modal=true]'), 'Expected aria-modal=true');
+  // Attributes now in attrs object, not selector
+  assert(result.code.includes("'role': 'dialog'"), 'Expected role=dialog');
+  assert(result.code.includes("'aria-modal': 'true'"), 'Expected aria-modal=true');
   assert(result.code.includes('trapFocus'), 'Expected trapFocus');
 });
 
@@ -1421,6 +1422,134 @@ view {
   const result = compile(source);
   assert(result.success, 'Expected successful compilation');
   assert(result.code.includes('bind'), 'Expected bind call');
+});
+
+// =============================================================================
+// Static Attributes Tests (href, src, placeholder, etc.)
+// =============================================================================
+
+printSection('Static Attributes Tests');
+
+test('compiles href attribute with URL', () => {
+  const source = `
+@page App
+
+view {
+  a[href="https://github.com/vincenthirtz"][target="_blank"] "GitHub"
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  // Attributes should be in attrs object, not selector
+  assert(result.code.includes("'href': 'https://github.com/vincenthirtz'"), 'Expected href as attribute');
+  assert(result.code.includes("'target': '_blank'"), 'Expected target as attribute');
+  // URL should NOT appear in selector
+  assert(!result.code.includes("el('a[https"), 'URL should not be in selector');
+});
+
+test('compiles src and alt attributes on img', () => {
+  const source = `
+@page App
+
+view {
+  img[src="https://example.com/image.png"][alt="Example image"]
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  assert(result.code.includes("'src': 'https://example.com/image.png'"), 'Expected src as attribute');
+  assert(result.code.includes("'alt': 'Example image'"), 'Expected alt as attribute');
+});
+
+test('compiles input with type and placeholder', () => {
+  const source = `
+@page App
+
+view {
+  input[type="text"][placeholder="Enter your name"]
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  assert(result.code.includes("'type': 'text'"), 'Expected type as attribute');
+  assert(result.code.includes("'placeholder': 'Enter your name'"), 'Expected placeholder as attribute');
+});
+
+test('compiles label with for attribute', () => {
+  const source = `
+@page App
+
+view {
+  label[for="email-input"] "Email"
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  assert(result.code.includes("'for': 'email-input'"), 'Expected for as attribute');
+});
+
+test('compiles boolean attribute without value', () => {
+  const source = `
+@page App
+
+view {
+  input[disabled]
+  button[autofocus] "Submit"
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  assert(result.code.includes("'disabled': true"), 'Expected disabled as boolean attribute');
+  assert(result.code.includes("'autofocus': true"), 'Expected autofocus as boolean attribute');
+});
+
+test('compiles mixed static and dynamic attributes', () => {
+  const source = `
+@page App
+
+state {
+  isDisabled: false
+}
+
+view {
+  input[type="text"][placeholder="Name"][disabled={isDisabled}]
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  // Static attributes in attrs object
+  assert(result.code.includes("'type': 'text'"), 'Expected type as static attribute');
+  assert(result.code.includes("'placeholder': 'Name'"), 'Expected placeholder as static attribute');
+  // Dynamic attribute should use bind
+  assert(result.code.includes('bind'), 'Expected bind for dynamic attribute');
+  assert(result.code.includes("'disabled'"), 'Expected disabled in bind call');
+});
+
+test('compiles textarea with placeholder', () => {
+  const source = `
+@page App
+
+view {
+  textarea[placeholder="Enter message here"]
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  assert(result.code.includes("'placeholder': 'Enter message here'"), 'Expected placeholder as attribute');
+});
+
+test('compiles attributes with special characters in values', () => {
+  const source = `
+@page App
+
+view {
+  a[href="https://example.com/path?query=value&other=123"][title="Click here!"]
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  assert(result.code.includes("'href': 'https://example.com/path?query=value&other=123'"), 'Expected href with query params');
+  assert(result.code.includes("'title': 'Click here!'"), 'Expected title as attribute');
 });
 
 // =============================================================================
