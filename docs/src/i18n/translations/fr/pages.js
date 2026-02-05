@@ -227,67 +227,124 @@ export default {
   examples: {
     title: '✨ Exemples',
     intro: 'Explorez ces applications exemples pour voir Pulse en action.',
-
-    // Example cards
+    viewDemo: 'Voir la démo →',
+    viewSource: 'Voir le code',
     hmrDemo: {
       title: 'Démo HMR',
       desc: 'Remplacement de module à chaud avec préservation d\'état.',
-      features: ['État préservé pendant HMR', 'Nettoyage auto des effets', 'Changement de thème', 'Persistance des notes', 'Compteur de mises à jour HMR']
+      features: [
+        'Éditer le code sans rafraîchir',
+        'État préservé entre les changements',
+        'Retour visuel instantané',
+        'Rechargement CSS à chaud',
+        'Récupération d\'erreur'
+      ]
     },
     blog: {
-      title: '📰 Blog',
-      desc: 'Application blog complète avec CRUD, catégories et recherche.',
-      features: ['Opérations CRUD', 'Filtrage par catégorie', 'Fonctionnalité de recherche', 'Mode clair/sombre', 'Design responsive']
+      title: 'Blog',
+      desc: 'Blog complet avec articles et catégories.',
+      features: [
+        'Opérations CRUD',
+        'Filtrage par catégorie',
+        'Fonctionnalité de recherche',
+        'Support Markdown',
+        'Design responsive'
+      ]
     },
     todoApp: {
-      title: '📝 App Todo',
-      desc: 'Application todo complète avec mode sombre et persistance.',
-      features: ['Ajouter, modifier, supprimer', 'Filtrer par statut', 'Mode sombre', 'Persistance LocalStorage', 'Suivi de progression']
+      title: 'App Todo',
+      desc: 'Liste de tâches classique avec persistance locale.',
+      features: [
+        'Ajouter/modifier/supprimer des tâches',
+        'Filtrer par statut',
+        'Synchronisation localStorage',
+        'Glisser-déposer',
+        'Raccourcis clavier'
+      ]
     },
     weatherApp: {
-      title: '🌤️ App Météo',
-      desc: 'Application météo en temps réel avec l\'API Open-Meteo.',
-      features: ['Recherche de ville', 'Conditions actuelles', 'Prévisions 7 jours', 'Villes favorites', 'Bascule °C/°F']
+      title: 'App Météo',
+      desc: 'Tableau de bord météo avec intégration API.',
+      features: [
+        'Météo actuelle',
+        'Prévisions multi-jours',
+        'Recherche de lieu',
+        'Unités de température',
+        'Icônes météo'
+      ]
     },
     ecommerce: {
-      title: '🛒 Boutique E-commerce',
-      desc: 'Expérience shopping complète avec panier et checkout.',
-      features: ['Catalogue produits', 'Recherche et filtres', 'Panier d\'achat', 'Flux de paiement', 'Persistance LocalStorage']
+      title: 'E-Commerce',
+      desc: 'Catalogue de produits avec panier et paiement.',
+      features: [
+        'Liste de produits',
+        'Panier d\'achat',
+        'Flux de paiement',
+        'Historique des commandes',
+        'Design responsive'
+      ]
     },
     chatApp: {
-      title: '💬 App Chat',
-      desc: 'Messagerie en temps réel avec salons et utilisateurs simulés.',
-      features: ['Plusieurs salons', 'Présence utilisateur', 'Réponses bot simulées', 'Sélecteur d\'emoji', 'Persistance des messages']
+      title: 'App Chat',
+      desc: 'Interface de chat en temps réel avec historique.',
+      features: [
+        'Messages en temps réel',
+        'Présence utilisateur',
+        'Historique des messages',
+        'Indicateurs de frappe',
+        'Support emoji'
+      ]
     },
     routerDemo: {
-      title: '🧭 Démo Routeur',
-      desc: 'Routage SPA avec navigation, guards et routes dynamiques.',
-      features: ['Paramètres de route', 'Query strings', 'Guards de route', 'Style lien actif', 'Routes protégées']
+      title: 'Démo Routeur',
+      desc: 'Routage SPA avec routes imbriquées.',
+      features: [
+        'Modes hash et history',
+        'Paramètres dynamiques',
+        'Guards de route',
+        'Chargement différé',
+        'Routes imbriquées'
+      ]
     },
     storeDemo: {
-      title: '📝 Démo Store',
-      desc: 'Gestion d\'état global avec le système Store de Pulse.',
-      features: ['createStore avec persistance', 'Actions et getters', 'Annuler/Rétablir', 'Stores modulaires', 'Plugin Logger']
+      title: 'Démo Store',
+      desc: 'Gestion d\'état global avec persistance.',
+      features: [
+        'État centralisé',
+        'Actions et getters',
+        'Synchronisation localStorage',
+        'Annuler/rétablir',
+        'Support DevTools'
+      ]
     },
     dashboard: {
-      title: '📊 Dashboard Admin',
-      desc: 'Interface admin complète démontrant toutes les fonctionnalités.',
-      features: ['Auth et guards', 'Graphiques, tableaux, modales', 'Opérations CRUD', 'Thèmes et paramètres', 'Toutes les fonctionnalités réactives']
+      title: 'Tableau de bord',
+      desc: 'Tableau de bord admin avec graphiques et tableaux.',
+      features: [
+        'Visualisation de données',
+        'Tableaux triables',
+        'Filtres et recherche',
+        'Mise en page responsive',
+        'Mode sombre'
+      ]
     },
     sportsNews: {
-      title: '⚽ Actualités Sportives',
+      title: 'Actualités Sportives',
       desc: 'App de news avec client HTTP et récupération réactive.',
-      features: ['Intégration client HTTP', 'Filtrage par catégorie', 'Recherche avec debounce', 'Système de favoris', 'Mode sombre']
+      features: [
+        'Intégration client HTTP',
+        'Filtrage par catégorie',
+        'Recherche avec debounce',
+        'Système de favoris',
+        'Mode sombre'
+      ]
     },
-
-    viewDemo: 'Voir la démo →',
-    viewSource: 'Voir le code',
     runLocally: 'Exécuter les exemples localement',
-    runLocallyDesc: 'Pour exécuter les projets exemples sur votre machine :',
+    runLocallyDesc: 'Clonez le dépôt et lancez n\'importe quel exemple avec le serveur de dev :',
     createYourOwn: 'Créez le vôtre',
-    createYourOwnDesc: 'Démarrez un nouveau projet Pulse :',
-    mobileExamples: '📱 Exemples mobiles',
-    mobileExamplesDesc: 'Pulse peut aussi tourner sur des plateformes mobiles via WebView.'
+    createYourOwnDesc: 'Démarrez un nouveau projet Pulse avec le CLI :',
+    mobileExamples: 'Exemples mobiles',
+    mobileExamplesDesc: 'Exemples démontrant les fonctionnalités mobiles natives :'
   },
 
   // Playground page
@@ -1170,3 +1227,4 @@ export default {
     nextGraphQL: 'Client GraphQL →'
   }
 };
+

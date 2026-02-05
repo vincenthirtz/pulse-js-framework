@@ -224,67 +224,124 @@ export default {
   examples: {
     title: '✨ Beispiele',
     intro: 'Entdecken Sie diese Beispielanwendungen, um Pulse in Aktion zu sehen.',
-
-    // Example cards
+    viewDemo: 'Demo ansehen →',
+    viewSource: 'Quellcode ansehen',
     hmrDemo: {
       title: 'HMR-Demo',
       desc: 'Hot Module Replacement mit Zustandserhaltung.',
-      features: ['Zustand während HMR erhalten', 'Automatische Effekt-Bereinigung', 'Theme-Wechsel', 'Notizen-Persistenz', 'HMR-Update-Zähler']
+      features: [
+        'Code bearbeiten ohne Neuladen',
+        'Zustand über Änderungen erhalten',
+        'Sofortiges visuelles Feedback',
+        'CSS Hot Reload',
+        'Fehlerwiederherstellung'
+      ]
     },
     blog: {
-      title: '📰 Blog',
-      desc: 'Vollständige Blog-Anwendung mit CRUD, Kategorien und Suche.',
-      features: ['CRUD-Operationen', 'Kategorie-Filterung', 'Suchfunktion', 'Hell-/Dunkelmodus', 'Responsives Design']
+      title: 'Blog',
+      desc: 'Voll ausgestatteter Blog mit Beiträgen und Kategorien.',
+      features: [
+        'CRUD-Operationen',
+        'Kategoriefilterung',
+        'Suchfunktion',
+        'Markdown-Unterstützung',
+        'Responsives Design'
+      ]
     },
     todoApp: {
-      title: '📝 Todo-App',
-      desc: 'Vollständige Todo-Anwendung mit Dunkelmodus und Persistenz.',
-      features: ['Hinzufügen, Bearbeiten, Löschen', 'Nach Status filtern', 'Dunkelmodus', 'LocalStorage-Persistenz', 'Fortschrittsverfolgung']
+      title: 'Todo-App',
+      desc: 'Klassische Aufgabenliste mit lokaler Speicherpersistenz.',
+      features: [
+        'Aufgaben hinzufügen/bearbeiten/löschen',
+        'Nach Status filtern',
+        'LocalStorage-Sync',
+        'Drag and Drop',
+        'Tastaturkürzel'
+      ]
     },
     weatherApp: {
-      title: '🌤️ Wetter-App',
-      desc: 'Echtzeit-Wetter-Anwendung mit Open-Meteo API.',
-      features: ['Stadtsuche', 'Aktuelle Bedingungen', '7-Tage-Vorhersage', 'Favoritenstädte', '°C/°F-Umschaltung']
+      title: 'Wetter-App',
+      desc: 'Wetter-Dashboard mit API-Integration.',
+      features: [
+        'Aktuelles Wetter',
+        'Mehrtagesvorhersage',
+        'Standortsuche',
+        'Temperatureinheiten',
+        'Wetter-Icons'
+      ]
     },
     ecommerce: {
-      title: '🛒 E-Commerce-Shop',
-      desc: 'Vollständiges Einkaufserlebnis mit Warenkorb und Checkout.',
-      features: ['Produktkatalog', 'Suche und Filter', 'Warenkorb', 'Checkout-Ablauf', 'LocalStorage-Persistenz']
+      title: 'E-Commerce',
+      desc: 'Produktkatalog mit Warenkorb und Kasse.',
+      features: [
+        'Produktliste',
+        'Warenkorb',
+        'Checkout-Ablauf',
+        'Bestellverlauf',
+        'Responsives Design'
+      ]
     },
     chatApp: {
-      title: '💬 Chat-App',
-      desc: 'Echtzeit-Messaging mit Räumen und simulierten Benutzern.',
-      features: ['Mehrere Räume', 'Benutzeranwesenheit', 'Simulierte Bot-Antworten', 'Emoji-Auswahl', 'Nachrichten-Persistenz']
+      title: 'Chat-App',
+      desc: 'Echtzeit-Chat-Oberfläche mit Nachrichtenverlauf.',
+      features: [
+        'Echtzeit-Nachrichten',
+        'Benutzeranwesenheit',
+        'Nachrichtenverlauf',
+        'Tippanzeige',
+        'Emoji-Unterstützung'
+      ]
     },
     routerDemo: {
-      title: '🧭 Router-Demo',
-      desc: 'SPA-Routing mit Navigation, Guards und dynamischen Routen.',
-      features: ['Routen-Parameter', 'Query-Strings', 'Routen-Guards', 'Aktiver Link-Style', 'Geschützte Routen']
+      title: 'Router-Demo',
+      desc: 'SPA-Routing mit verschachtelten Routen.',
+      features: [
+        'Hash- und History-Modus',
+        'Dynamische Parameter',
+        'Routen-Guards',
+        'Lazy Loading',
+        'Verschachtelte Routen'
+      ]
     },
     storeDemo: {
-      title: '📝 Store-Demo',
-      desc: 'Globales Zustandsmanagement mit dem Pulse Store-System.',
-      features: ['createStore mit Persistenz', 'Actions und Getters', 'Rückgängig/Wiederherstellen', 'Modulare Stores', 'Logger-Plugin']
+      title: 'Store-Demo',
+      desc: 'Globales Zustandsmanagement mit Persistenz.',
+      features: [
+        'Zentralisierter Zustand',
+        'Actions und Getters',
+        'LocalStorage-Sync',
+        'Rückgängig/Wiederholen',
+        'DevTools-Unterstützung'
+      ]
     },
     dashboard: {
-      title: '📊 Admin-Dashboard',
-      desc: 'Vollständige Admin-Oberfläche, die alle Funktionen demonstriert.',
-      features: ['Auth und Guards', 'Diagramme, Tabellen, Modals', 'CRUD-Operationen', 'Themes und Einstellungen', 'Alle reaktiven Funktionen']
+      title: 'Dashboard',
+      desc: 'Admin-Dashboard mit Diagrammen und Tabellen.',
+      features: [
+        'Datenvisualisierung',
+        'Sortierbare Tabellen',
+        'Filter und Suche',
+        'Responsives Layout',
+        'Dunkelmodus'
+      ]
     },
     sportsNews: {
-      title: '⚽ Sport-News',
+      title: 'Sport-News',
       desc: 'News-App mit HTTP-Client und reaktivem Datenabruf.',
-      features: ['HTTP-Client-Integration', 'Kategoriefilterung', 'Suche mit Debounce', 'Favoritensystem', 'Dunkelmodus']
+      features: [
+        'HTTP-Client-Integration',
+        'Kategoriefilterung',
+        'Suche mit Debounce',
+        'Favoritensystem',
+        'Dunkelmodus'
+      ]
     },
-
-    viewDemo: 'Demo ansehen →',
-    viewSource: 'Quellcode ansehen',
     runLocally: 'Beispiele lokal ausführen',
-    runLocallyDesc: 'Um die Beispielprojekte auf Ihrem Computer auszuführen:',
+    runLocallyDesc: 'Klonen Sie das Repository und führen Sie ein Beispiel mit dem Dev-Server aus:',
     createYourOwn: 'Eigenes erstellen',
-    createYourOwnDesc: 'Starten Sie ein neues Pulse-Projekt:',
-    mobileExamples: '📱 Mobile Beispiele',
-    mobileExamplesDesc: 'Pulse kann auch auf mobilen Plattformen über WebView laufen.'
+    createYourOwnDesc: 'Starten Sie ein neues Pulse-Projekt mit dem CLI:',
+    mobileExamples: 'Mobile Beispiele',
+    mobileExamplesDesc: 'Beispiele, die native mobile Funktionen demonstrieren:'
   },
 
   // Playground page

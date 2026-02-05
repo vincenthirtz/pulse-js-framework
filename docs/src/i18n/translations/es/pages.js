@@ -224,66 +224,124 @@ export default {
   examples: {
     title: '✨ Ejemplos',
     intro: 'Explora estas aplicaciones de ejemplo para ver Pulse en acción.',
-
+    viewDemo: 'Ver demo →',
+    viewSource: 'Ver código',
     hmrDemo: {
       title: 'Demo HMR',
       desc: 'Reemplazo de módulo en caliente con preservación de estado.',
-      features: ['Estado preservado durante HMR', 'Limpieza auto de efectos', 'Cambio de tema', 'Persistencia de notas', 'Contador de actualizaciones HMR']
+      features: [
+        'Editar código sin recargar',
+        'Estado preservado entre cambios',
+        'Retroalimentación visual instantánea',
+        'Recarga CSS en caliente',
+        'Recuperación de errores'
+      ]
     },
     blog: {
-      title: '📰 Blog',
-      desc: 'Aplicación de blog completa con CRUD, categorías y búsqueda.',
-      features: ['Operaciones CRUD', 'Filtrado por categoría', 'Funcionalidad de búsqueda', 'Modo claro/oscuro', 'Diseño responsive']
+      title: 'Blog',
+      desc: 'Blog completo con publicaciones y categorías.',
+      features: [
+        'Operaciones CRUD',
+        'Filtrado por categoría',
+        'Funcionalidad de búsqueda',
+        'Soporte Markdown',
+        'Diseño responsive'
+      ]
     },
     todoApp: {
-      title: '📝 App Todo',
-      desc: 'Aplicación todo completa con modo oscuro y persistencia.',
-      features: ['Agregar, editar, eliminar', 'Filtrar por estado', 'Modo oscuro', 'Persistencia LocalStorage', 'Seguimiento de progreso']
+      title: 'App Todo',
+      desc: 'Lista de tareas clásica con persistencia local.',
+      features: [
+        'Agregar/editar/eliminar tareas',
+        'Filtrar por estado',
+        'Sincronización localStorage',
+        'Arrastrar y soltar',
+        'Atajos de teclado'
+      ]
     },
     weatherApp: {
-      title: '🌤️ App Clima',
-      desc: 'Aplicación de clima en tiempo real con API Open-Meteo.',
-      features: ['Búsqueda de ciudad', 'Condiciones actuales', 'Pronóstico 7 días', 'Ciudades favoritas', 'Alternar °C/°F']
+      title: 'App Clima',
+      desc: 'Panel de clima con integración de API.',
+      features: [
+        'Clima actual',
+        'Pronóstico multi-día',
+        'Búsqueda de ubicación',
+        'Unidades de temperatura',
+        'Iconos del clima'
+      ]
     },
     ecommerce: {
-      title: '🛒 Tienda E-commerce',
-      desc: 'Experiencia de compra completa con carrito y checkout.',
-      features: ['Catálogo de productos', 'Búsqueda y filtros', 'Carrito de compras', 'Flujo de pago', 'Persistencia LocalStorage']
+      title: 'E-Commerce',
+      desc: 'Catálogo de productos con carrito y checkout.',
+      features: [
+        'Lista de productos',
+        'Carrito de compras',
+        'Flujo de checkout',
+        'Historial de pedidos',
+        'Diseño responsive'
+      ]
     },
     chatApp: {
-      title: '💬 App Chat',
-      desc: 'Mensajería en tiempo real con salas y usuarios simulados.',
-      features: ['Múltiples salas', 'Presencia de usuario', 'Respuestas bot simuladas', 'Selector de emoji', 'Persistencia de mensajes']
+      title: 'App Chat',
+      desc: 'Interfaz de chat en tiempo real con historial de mensajes.',
+      features: [
+        'Mensajes en tiempo real',
+        'Presencia de usuario',
+        'Historial de mensajes',
+        'Indicadores de escritura',
+        'Soporte emoji'
+      ]
     },
     routerDemo: {
-      title: '🧭 Demo Router',
-      desc: 'Enrutamiento SPA con navegación, guards y rutas dinámicas.',
-      features: ['Parámetros de ruta', 'Query strings', 'Guards de ruta', 'Estilo de enlace activo', 'Rutas protegidas']
+      title: 'Demo Router',
+      desc: 'Enrutamiento SPA con rutas anidadas.',
+      features: [
+        'Modos hash e history',
+        'Parámetros dinámicos',
+        'Guards de ruta',
+        'Carga diferida',
+        'Rutas anidadas'
+      ]
     },
     storeDemo: {
-      title: '📝 Demo Store',
-      desc: 'Gestión de estado global con el sistema Store de Pulse.',
-      features: ['createStore con persistencia', 'Acciones y getters', 'Deshacer/Rehacer', 'Stores modulares', 'Plugin Logger']
+      title: 'Demo Store',
+      desc: 'Gestión de estado global con persistencia.',
+      features: [
+        'Estado centralizado',
+        'Acciones y getters',
+        'Sincronización localStorage',
+        'Deshacer/rehacer',
+        'Soporte DevTools'
+      ]
     },
     dashboard: {
-      title: '📊 Dashboard Admin',
-      desc: 'Interfaz admin completa demostrando todas las características.',
-      features: ['Auth y guards', 'Gráficos, tablas, modales', 'Operaciones CRUD', 'Temas y configuración', 'Todas las características reactivas']
+      title: 'Dashboard',
+      desc: 'Panel de administración con gráficos y tablas.',
+      features: [
+        'Visualización de datos',
+        'Tablas ordenables',
+        'Filtros y búsqueda',
+        'Diseño responsive',
+        'Modo oscuro'
+      ]
     },
     sportsNews: {
-      title: '⚽ Noticias Deportivas',
+      title: 'Noticias Deportivas',
       desc: 'App de noticias con cliente HTTP y obtención reactiva de datos.',
-      features: ['Integración cliente HTTP', 'Filtrado por categoría', 'Búsqueda con debounce', 'Sistema de favoritos', 'Modo oscuro']
+      features: [
+        'Integración cliente HTTP',
+        'Filtrado por categoría',
+        'Búsqueda con debounce',
+        'Sistema de favoritos',
+        'Modo oscuro'
+      ]
     },
-
-    viewDemo: 'Ver demo →',
-    viewSource: 'Ver código',
     runLocally: 'Ejecutar ejemplos localmente',
-    runLocallyDesc: 'Para ejecutar los proyectos de ejemplo en tu máquina:',
+    runLocallyDesc: 'Clona el repositorio y ejecuta cualquier ejemplo con el servidor de desarrollo:',
     createYourOwn: 'Crea el tuyo',
-    createYourOwnDesc: 'Inicia un nuevo proyecto Pulse:',
-    mobileExamples: '📱 Ejemplos móviles',
-    mobileExamplesDesc: 'Pulse también puede ejecutarse en plataformas móviles via WebView.'
+    createYourOwnDesc: 'Inicia un nuevo proyecto Pulse con el CLI:',
+    mobileExamples: 'Ejemplos móviles',
+    mobileExamplesDesc: 'Ejemplos que demuestran características móviles nativas:'
   },
 
   // Playground page
