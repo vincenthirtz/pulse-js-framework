@@ -1,0 +1,168 @@
+name: Promote to Main
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_type:
+        description: 'Release version type (will create release after merge)'
+        required: false
+        type: choice
+        options:
+          - none
+          - patch
+          - minor
+          - major
+        default: 'none'
+
+jobs:
+  create-pr:
+    name: Create PR develop → main
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check if PR already exists
+        id: check_pr
+        run: |
+          EXISTING_PR=$(gh pr list --base main --head develop --state open --json number --jq '.[0].number')
+          if [ -n "$EXISTING_PR" ]; then
+            echo "PR already exists: #$EXISTING_PR"
+            echo "PR_EXISTS=true" >> $GITHUB_OUTPUT
+            echo "PR_NUMBER=$EXISTING_PR" >> $GITHUB_OUTPUT
+          else
+            echo "No existing PR found"
+            echo "PR_EXISTS=false" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get commits since last release
+        if: steps.check_pr.outputs.PR_EXISTS == 'false'
+        id: get_commits
+        run: |
+          # Get last tag on main
+          LAST_TAG=$(git describe --tags --abbrev=0 origin/main 2>/dev/null || echo "")
+
+          if [ -z "$LAST_TAG" ]; then
+            # No tags yet, get all commits
+            COMMITS=$(git log origin/develop --pretty=format:"- %s" --no-merges -20)
+          else
+            # Get commits since last tag
+            COMMITS=$(git log ${LAST_TAG}..origin/develop --pretty=format:"- %s" --no-merges)
+          fi
+
+          # Count commits
+          COMMIT_COUNT=$(echo "$COMMITS" | wc -l | tr -d ' ')
+
+          echo "COMMITS<<EOF" >> $GITHUB_OUTPUT
+          echo "$COMMITS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          echo "COMMIT_COUNT=$COMMIT_COUNT" >> $GITHUB_OUTPUT
+          echo "LAST_TAG=$LAST_TAG" >> $GITHUB_OUTPUT
+
+      - name: Create Pull Request
+        if: steps.check_pr.outputs.PR_EXISTS == 'false'
+        id: create_pr
+        run: |
+          # Build PR body
+          LAST_TAG="${{ steps.get_commits.outputs.LAST_TAG }}"
+          COMMITS="${{ steps.get_commits.outputs.COMMITS }}"
+          COMMIT_COUNT="${{ steps.get_commits.outputs.COMMIT_COUNT }}"
+
+          if [ -n "$LAST_TAG" ]; then
+            TITLE="Release: Promote develop to main (since $LAST_TAG)"
+          else
+            TITLE="Release: Promote develop to main (initial release)"
+          fi
+
+          BODY=$(cat <<EOF
+          ## 🚀 Promote develop to main
+
+          This PR promotes the current \`develop\` branch to \`main\` for production deployment.
+
+          ### 📊 Changes
+
+          **Commits since ${LAST_TAG:-beginning}**: $COMMIT_COUNT
+
+          <details>
+          <summary>View all commits</summary>
+
+          $COMMITS
+
+          </details>
+
+          ### ✅ Pre-merge Checklist
+
+          - [ ] All CI checks passing
+          - [ ] Staging deployment tested
+          - [ ] Breaking changes documented (if any)
+          - [ ] Version bumped appropriately
+
+          ### 🎯 Post-merge Actions
+
+          After merging this PR:
+          1. Production will be deployed to Netlify automatically
+          2. ${VERSION_TYPE_MSG}
+
+          ---
+
+          **Staging URL**: https://staging--pulse-js.netlify.app
+          **Production URL**: https://pulse-js.fr
+          EOF
+          )
+
+          VERSION_TYPE_MSG="Manual release creation required"
+          if [ "${{ inputs.version_type }}" != "none" ]; then
+            VERSION_TYPE_MSG="Release workflow will be triggered automatically (${{ inputs.version_type }})"
+          fi
+
+          BODY=$(echo "$BODY" | sed "s/\${VERSION_TYPE_MSG}/$VERSION_TYPE_MSG/g")
+
+          # Create PR
+          PR_URL=$(gh pr create \
+            --base main \
+            --head develop \
+            --title "$TITLE" \
+            --body "$BODY" \
+            --label "release")
+
+          echo "PR_URL=$PR_URL" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Add comment to existing PR
+        if: steps.check_pr.outputs.PR_EXISTS == 'true'
+        run: |
+          PR_NUMBER="${{ steps.check_pr.outputs.PR_NUMBER }}"
+          gh pr comment $PR_NUMBER --body "🔄 Workflow re-run requested. Please review changes."
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create summary
+        run: |
+          if [ "${{ steps.check_pr.outputs.PR_EXISTS }}" == "true" ]; then
+            echo "## ℹ️ PR Already Exists" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "A PR from \`develop\` to \`main\` already exists:" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "[View PR #${{ steps.check_pr.outputs.PR_NUMBER }}](https://github.com/${{ github.repository }}/pull/${{ steps.check_pr.outputs.PR_NUMBER }})" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## ✅ PR Created Successfully!" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**PR URL**: ${{ steps.create_pr.outputs.PR_URL }}" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Commits**: ${{ steps.get_commits.outputs.COMMIT_COUNT }}" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            if [ "${{ inputs.version_type }}" != "none" ]; then
+              echo "**Release Type**: ${{ inputs.version_type }}" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "⚠️ After merge, a ${{ inputs.version_type }} release will be created automatically" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi

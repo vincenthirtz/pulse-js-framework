@@ -1,0 +1,21 @@
+# Code Owners for Pulse Framework
+
+# Default owner for everything in the repository
+* @vincenthirtz
+
+# Critical paths require explicit review
+/.github/workflows/ @vincenthirtz
+/cli/release.js @vincenthirtz
+/package.json @vincenthirtz
+
+# Core runtime system
+/runtime/pulse.js @vincenthirtz
+/runtime/dom.js @vincenthirtz
+
+# Compiler
+/compiler/ @vincenthirtz
+
+# Documentation
+/docs/ @vincenthirtz
+*.md @vincenthirtz
+/CHANGELOG.md @vincenthirtz
