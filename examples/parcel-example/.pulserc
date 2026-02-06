@@ -1,0 +1,9 @@
+{
+  "sourceMap": true,
+  "extractCss": true,
+  "verbose": false,
+  "sass": {
+    "loadPaths": ["src/styles"],
+    "compressed": false
+  }
+}

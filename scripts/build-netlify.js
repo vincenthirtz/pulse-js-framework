@@ -14,7 +14,7 @@ import { compile } from '../compiler/index.js';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..');
 
-const EXAMPLES = ['hmr', 'blog', 'todo', 'chat', 'ecommerce', 'meteo', 'router', 'store', 'dashboard', 'sports', 'less-example', 'stylus-example', 'webpack-example', 'rollup-example', 'esbuild-example'];
+const EXAMPLES = ['hmr', 'blog', 'todo', 'chat', 'ecommerce', 'meteo', 'router', 'store', 'dashboard', 'sports', 'less-example', 'stylus-example', 'webpack-example', 'rollup-example', 'esbuild-example', 'parcel-example'];
 
 console.log('🚀 Building Pulse for Netlify...\n');
 

@@ -252,6 +252,22 @@ export function ExamplesPage() {
           ${t('examples.viewDemo')}
         </a>
       </div>
+
+      <div class="example-card">
+        <div class="example-icon">📦</div>
+        <h3>${t('examples.parcelDemo.title')}</h3>
+        <p>${t('examples.parcelDemo.desc')}</p>
+        <ul class="example-features">
+          <li>✓ ${t('examples.parcelDemo.features.0')}</li>
+          <li>✓ ${t('examples.parcelDemo.features.1')}</li>
+          <li>✓ ${t('examples.parcelDemo.features.2')}</li>
+          <li>✓ ${t('examples.parcelDemo.features.3')}</li>
+          <li>✓ ${t('examples.parcelDemo.features.4')}</li>
+        </ul>
+        <a href="/examples/parcel-example/" class="btn btn-primary">
+          ${t('examples.viewDemo')}
+        </a>
+      </div>
     </div>
 
     <section class="doc-section">
