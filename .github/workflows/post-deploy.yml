@@ -76,13 +76,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [validate-branch, check-deploy]
     if: |
-      always() &&
-      (github.event_name == 'workflow_dispatch' ||
-       (github.event_name == 'push' &&
-        needs.validate-branch.result == 'success' &&
-        needs.validate-branch.outputs.should_run == 'true' &&
-        needs.check-deploy.result == 'success' &&
-        needs.check-deploy.outputs.should_release == 'true'))
+      github.event_name == 'workflow_dispatch' ||
+      (needs.validate-branch.outputs.should_run == 'true' &&
+       needs.check-deploy.outputs.should_release == 'true')
 
     steps:
       - name: Checkout
@@ -273,7 +269,33 @@ EOFCHANGELOG
           echo "- [Release Page](https://github.com/vincenthirtz/pulse-js-framework/releases/tag/v$VERSION)" >> $GITHUB_STEP_SUMMARY
           echo "- [Documentation](https://pulse-js.fr)" >> $GITHUB_STEP_SUMMARY
 
-  # Job 3: Publier sur npm (optionnel, commenté par défaut)
+  # Job 3: Provide workflow status (prevents "failed" when skipped)
+  workflow-status:
+    runs-on: ubuntu-latest
+    needs: [validate-branch, check-deploy, propose-release]
+    if: always()
+
+    steps:
+      - name: Determine Workflow Status
+        run: |
+          if [ "${{ needs.validate-branch.outputs.should_run }}" != "true" ]; then
+            echo "ℹ️ Workflow skipped - not running on main branch"
+            exit 0
+          elif [ "${{ needs.check-deploy.outputs.should_release }}" != "true" ]; then
+            echo "ℹ️ Workflow skipped - last commit was a version bump"
+            exit 0
+          elif [ "${{ needs.propose-release.result }}" = "success" ]; then
+            echo "✅ Release workflow completed successfully"
+            exit 0
+          elif [ "${{ needs.propose-release.result }}" = "skipped" ]; then
+            echo "ℹ️ Release workflow was skipped"
+            exit 0
+          else
+            echo "❌ Release workflow failed"
+            exit 1
+          fi
+
+  # Job 4: Publier sur npm (optionnel, commenté par défaut)
   # publish-npm:
   #   runs-on: ubuntu-latest
   #   needs: [propose-release]

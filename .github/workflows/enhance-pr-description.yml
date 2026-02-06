@@ -74,9 +74,9 @@ jobs:
 
           # Déterminer le type de release suggéré
           SUGGESTED_RELEASE="patch"
-          if [ $BREAKING_COUNT -gt 0 ]; then
+          if [ "$BREAKING_COUNT" -gt 0 ]; then
             SUGGESTED_RELEASE="major"
-          elif [ $FEAT_COUNT -gt 0 ]; then
+          elif [ "$FEAT_COUNT" -gt 0 ]; then
             SUGGESTED_RELEASE="minor"
           fi
 
@@ -125,7 +125,7 @@ jobs:
 
           # Badge de breaking change
           BREAKING_BADGE=""
-          if [ $BREAKING_COUNT -gt 0 ]; then
+          if [ "$BREAKING_COUNT" -gt 0 ]; then
             BREAKING_BADGE="
           > ⚠️ **BREAKING CHANGES** detected! Review carefully before merging.
           "
@@ -218,18 +218,18 @@ jobs:
           fi
 
           # Breaking changes
-          if [ $BREAKING_COUNT -gt 0 ]; then
+          if [ "$BREAKING_COUNT" -gt 0 ]; then
             LABELS="$LABELS breaking-change"
           fi
 
           # Type principal
-          if [ $FEAT_COUNT -gt 0 ]; then
+          if [ "$FEAT_COUNT" -gt 0 ]; then
             LABELS="$LABELS enhancement"
           fi
-          if [ $FIX_COUNT -gt 0 ]; then
+          if [ "$FIX_COUNT" -gt 0 ]; then
             LABELS="$LABELS bug"
           fi
-          if [ $DOCS_COUNT -gt 0 ]; then
+          if [ "$DOCS_COUNT" -gt 0 ]; then
             LABELS="$LABELS documentation"
           fi
 
