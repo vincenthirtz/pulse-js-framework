@@ -55,6 +55,7 @@ jobs:
           echo "📦 New version: $NEW_VERSION"
 
       - name: Update CHANGELOG
+        id: changelog
         run: |
           VERSION="${{ steps.bump.outputs.new_version }}"
           DATE=$(date +%Y-%m-%d)
@@ -66,6 +67,11 @@ jobs:
           else
             COMMITS=$(git log --pretty=format:"- %s" --no-merges ${PREV_TAG}..HEAD)
           fi
+
+          # Save commits for Discord notification
+          echo "commits<<EOF" >> $GITHUB_OUTPUT
+          echo "$COMMITS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
           # Create changelog header
           {
@@ -119,6 +125,87 @@ jobs:
             echo "🏷️ Tag v$VERSION created and pushed"
           fi
 
+      - name: Send Discord Notification
+        if: success()
+        run: |
+          VERSION="${{ steps.bump.outputs.new_version }}"
+          PREV_VERSION="${{ steps.current_version.outputs.version }}"
+          TYPE="${{ github.event.inputs.release_type }}"
+          COMMITS="${{ steps.changelog.outputs.commits }}"
+
+          # Count commits
+          COMMIT_COUNT=$(echo "$COMMITS" | grep -c "^-" || echo 0)
+
+          # Categorize commits
+          FEAT_COUNT=$(echo "$COMMITS" | grep -c "^- feat" || echo 0)
+          FIX_COUNT=$(echo "$COMMITS" | grep -c "^- fix" || echo 0)
+          BREAKING_COUNT=$(echo "$COMMITS" | grep -c "!" || echo 0)
+
+          # Determine color based on release type
+          if [ "$TYPE" = "major" ]; then
+            COLOR="15158332"  # Red
+          elif [ "$TYPE" = "minor" ]; then
+            COLOR="3447003"   # Blue
+          else
+            COLOR="2067276"   # Green
+          fi
+
+          # Format commits for Discord (limit to 20 lines)
+          COMMITS_FORMATTED=$(echo "$COMMITS" | head -20 | sed 's/^/\\n/')
+          if [ "$COMMIT_COUNT" -gt 20 ]; then
+            COMMITS_FORMATTED="${COMMITS_FORMATTED}\\n\\n_... and $((COMMIT_COUNT - 20)) more commits_"
+          fi
+
+          # Release type emoji
+          if [ "$TYPE" = "major" ]; then
+            TYPE_EMOJI="🚀"
+          elif [ "$TYPE" = "minor" ]; then
+            TYPE_EMOJI="✨"
+          else
+            TYPE_EMOJI="🔧"
+          fi
+
+          # Build JSON payload
+          PAYLOAD=$(cat <<EOF
+          {
+            "embeds": [{
+              "title": "🎉 New Release: v${VERSION}",
+              "description": "${TYPE_EMOJI} **${TYPE}** release • ${PREV_VERSION} → ${VERSION}",
+              "color": ${COLOR},
+              "fields": [
+                {
+                  "name": "📊 Statistics",
+                  "value": "• ${COMMIT_COUNT} commits\\n• ${FEAT_COUNT} features\\n• ${FIX_COUNT} fixes${BREAKING_COUNT:+\\n• ⚠️ ${BREAKING_COUNT} breaking changes}",
+                  "inline": true
+                },
+                {
+                  "name": "🔗 Links",
+                  "value": "[View Release](https://github.com/${{ github.repository }}/releases/tag/v${VERSION})\\n[View Workflow](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})",
+                  "inline": true
+                },
+                {
+                  "name": "📝 Changes",
+                  "value": "${COMMITS_FORMATTED}",
+                  "inline": false
+                }
+              ],
+              "footer": {
+                "text": "Pulse JS Framework"
+              },
+              "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)"
+            }]
+          }
+          EOF
+          )
+
+          # Send to Discord
+          curl -H "Content-Type: application/json" \
+               -X POST \
+               -d "$PAYLOAD" \
+               "${{ secrets.DISCORD_WEBHOOK }}"
+
+          echo "✅ Discord notification sent"
+
       - name: Summary
         run: |
           VERSION="${{ steps.bump.outputs.new_version }}"
@@ -135,6 +222,7 @@ jobs:
           echo "2. ✅ CHANGELOG.md updated" >> $GITHUB_STEP_SUMMARY
           echo "3. ✅ Changes committed to main" >> $GITHUB_STEP_SUMMARY
           echo "4. ✅ Git tag v$VERSION created and pushed" >> $GITHUB_STEP_SUMMARY
+          echo "5. ✅ Discord notification sent" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 🚀 Next Steps" >> $GITHUB_STEP_SUMMARY
           echo "The **Release** workflow will now automatically:" >> $GITHUB_STEP_SUMMARY
