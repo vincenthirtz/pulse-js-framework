@@ -122,10 +122,10 @@ jobs:
           DATE=$(date +%Y-%m-%d)
 
           # Créer le header du changelog
-          cat > CHANGELOG.tmp << EOF
+          cat > CHANGELOG.tmp << 'EOFCHANGELOG'
 # Changelog
 
-## [$VERSION] - $DATE
+## [VERSION_PLACEHOLDER] - DATE_PLACEHOLDER
 
 ### Added
 - Features from this release
@@ -138,7 +138,12 @@ jobs:
 
 ---
 
-EOF
+EOFCHANGELOG
+
+          # Remplacer les placeholders
+          sed -i.bak "s/VERSION_PLACEHOLDER/$VERSION/g" CHANGELOG.tmp
+          sed -i.bak "s/DATE_PLACEHOLDER/$DATE/g" CHANGELOG.tmp
+          rm -f CHANGELOG.tmp.bak
 
           # Ajouter l'ancien changelog s'il existe
           if [ -f CHANGELOG.md ]; then
@@ -186,26 +191,27 @@ EOF
           # Extraire du CHANGELOG
           CHANGELOG_SECTION=$(awk '/^## \['$VERSION'\]/,/^## \[|^---/{print}' CHANGELOG.md | head -n -1)
 
-          cat > release_notes.md << EOF
-          ## 🚀 Release v$VERSION
-
-          $CHANGELOG_SECTION
-
-          ### 📝 Commits
-
-          $COMMITS
-
-          ### 📦 Installation
-
-          \`\`\`bash
-          npm install pulse-js-framework@$VERSION
-          \`\`\`
-
-          ### 🔗 Links
-
-          - [Documentation](https://pulse-js.fr)
-          - [Changelog](https://github.com/vincenthirtz/pulse-js-framework/blob/main/CHANGELOG.md)
-          EOF
+          # Créer les notes de release
+          {
+            echo "## 🚀 Release v$VERSION"
+            echo ""
+            echo "$CHANGELOG_SECTION"
+            echo ""
+            echo "### 📝 Commits"
+            echo ""
+            echo "$COMMITS"
+            echo ""
+            echo "### 📦 Installation"
+            echo ""
+            echo '```bash'
+            echo "npm install pulse-js-framework@$VERSION"
+            echo '```'
+            echo ""
+            echo "### 🔗 Links"
+            echo ""
+            echo "- [Documentation](https://pulse-js.fr)"
+            echo "- [Changelog](https://github.com/vincenthirtz/pulse-js-framework/blob/main/CHANGELOG.md)"
+          } > release_notes.md
 
           echo "notes_file=release_notes.md" >> $GITHUB_OUTPUT
 
