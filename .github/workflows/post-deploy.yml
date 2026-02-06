@@ -140,10 +140,9 @@ jobs:
 
 EOFCHANGELOG
 
-          # Remplacer les placeholders
-          sed -i.bak "s/VERSION_PLACEHOLDER/$VERSION/g" CHANGELOG.tmp
-          sed -i.bak "s/DATE_PLACEHOLDER/$DATE/g" CHANGELOG.tmp
-          rm -f CHANGELOG.tmp.bak
+          # Remplacer les placeholders (compatible Linux)
+          sed -i "s/VERSION_PLACEHOLDER/$VERSION/g" CHANGELOG.tmp
+          sed -i "s/DATE_PLACEHOLDER/$DATE/g" CHANGELOG.tmp
 
           # Ajouter l'ancien changelog s'il existe
           if [ -f CHANGELOG.md ]; then
