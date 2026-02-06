@@ -23,6 +23,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Get PR details
         id: pr_details
@@ -41,11 +42,14 @@ jobs:
       - name: Analyze commits
         id: analyze
         run: |
-          BASE="${{ steps.pr_details.outputs.BASE_REF }}"
-          HEAD="${{ steps.pr_details.outputs.HEAD_REF }}"
+          BASE="${{ github.event.pull_request.base.sha }}"
+          HEAD="${{ github.event.pull_request.head.sha }}"
+
+          # Fetch base branch
+          git fetch origin ${{ github.event.pull_request.base.ref }}
 
           # Commits
-          COMMITS=$(git log origin/$BASE..origin/$HEAD --pretty=format:"- %s (%h)" --no-merges)
+          COMMITS=$(git log $BASE..$HEAD --pretty=format:"- %s (%h)" --no-merges)
           COMMIT_COUNT=$(echo "$COMMITS" | wc -l | tr -d ' ')
 
           # Stats par type de commit (Conventional Commits)
@@ -58,15 +62,15 @@ jobs:
           BREAKING_COUNT=$(echo "$COMMITS" | grep -c "!" || echo 0)
 
           # Fichiers modifiés
-          FILES_CHANGED=$(git diff --name-only origin/$BASE...origin/$HEAD | wc -l | tr -d ' ')
-          ADDITIONS=$(git diff --shortstat origin/$BASE...origin/$HEAD | grep -oE '[0-9]+ insertion' | grep -oE '[0-9]+' || echo 0)
-          DELETIONS=$(git diff --shortstat origin/$BASE...origin/$HEAD | grep -oE '[0-9]+ deletion' | grep -oE '[0-9]+' || echo 0)
+          FILES_CHANGED=$(git diff --name-only $BASE...$HEAD | wc -l | tr -d ' ')
+          ADDITIONS=$(git diff --shortstat $BASE...$HEAD | grep -oE '[0-9]+ insertion' | grep -oE '[0-9]+' || echo 0)
+          DELETIONS=$(git diff --shortstat $BASE...$HEAD | grep -oE '[0-9]+ deletion' | grep -oE '[0-9]+' || echo 0)
 
           # Fichiers par catégorie
-          SRC_FILES=$(git diff --name-only origin/$BASE...origin/$HEAD | grep -c "^src/" || echo 0)
-          TEST_FILES=$(git diff --name-only origin/$BASE...origin/$HEAD | grep -c "^test/" || echo 0)
-          DOCS_FILES=$(git diff --name-only origin/$BASE...origin/$HEAD | grep -c "^docs/" || echo 0)
-          CONFIG_FILES=$(git diff --name-only origin/$BASE...origin/$HEAD | grep -cE '\.(json|yml|yaml|toml|md)$' || echo 0)
+          SRC_FILES=$(git diff --name-only $BASE...$HEAD | grep -c "^src/" || echo 0)
+          TEST_FILES=$(git diff --name-only $BASE...$HEAD | grep -c "^test/" || echo 0)
+          DOCS_FILES=$(git diff --name-only $BASE...$HEAD | grep -c "^docs/" || echo 0)
+          CONFIG_FILES=$(git diff --name-only $BASE...$HEAD | grep -cE '\.(json|yml|yaml|toml|md)$' || echo 0)
 
           # Déterminer le type de release suggéré
           SUGGESTED_RELEASE="patch"
