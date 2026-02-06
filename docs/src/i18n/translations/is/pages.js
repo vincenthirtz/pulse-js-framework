@@ -380,6 +380,17 @@ export default {
         'Vöktunarhamur fyrir þróun'
       ]
     },
+    parcelDemo: {
+      title: 'Parcel Samþætting',
+      desc: 'Sýnir Pulse Parcel umbreytingu með núll-stillingu pakkningu, HMR og CSS forvinnslu.',
+      features: [
+        'Parcel umbreytingarsamþætting',
+        'Núll-stillingar pakkning',
+        'Heit Einingarskipti (HMR)',
+        'CSS útdráttur í Parcel pípulínu',
+        'SASS/LESS/Stylus stuðningur'
+      ]
+    },
     esbuildDemo: {
       title: 'ESBuild Samþætting',
       desc: 'Sýnir Pulse ESBuild viðbót með ofur-hröðum byggingum, CSS útdrætti og vöktunarham.',

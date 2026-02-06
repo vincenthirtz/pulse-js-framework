@@ -380,6 +380,17 @@ export default {
         'Watch-Modus für Entwicklung'
       ]
     },
+    parcelDemo: {
+      title: 'Parcel Integration',
+      desc: 'Demonstriert Pulse Parcel Transformer mit Zero-Config Bundling, HMR und CSS-Vorverarbeitung.',
+      features: [
+        'Parcel Transformer Integration',
+        'Zero-Configuration Bundling',
+        'Hot Module Replacement (HMR)',
+        'CSS-Extraktion zur Parcel-Pipeline',
+        'SASS/LESS/Stylus-Unterstützung'
+      ]
+    },
     esbuildDemo: {
       title: 'ESBuild Integration',
       desc: 'Zeigt Pulse ESBuild-Plugin mit ultra-schnellen Builds, CSS-Extraktion und Watch-Modus.',

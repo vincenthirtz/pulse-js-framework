@@ -380,6 +380,17 @@ export default {
         'Rigarda reĝimo por disvolvado'
       ]
     },
+    parcelDemo: {
+      title: 'Parcel Integriĝo',
+      desc: 'Montras Pulse Parcel transformilon kun nul-agorda pakaĵado, HMR kaj CSS antaŭprilaborado.',
+      features: [
+        'Parcel transformila integriĝo',
+        'Nul-agorda pakaĵado',
+        'Varmmodula Anstataŭigo (HMR)',
+        'CSS eltiro al Parcel dukto',
+        'SASS/LESS/Stylus subteno'
+      ]
+    },
     esbuildDemo: {
       title: 'ESBuild Integriĝo',
       desc: 'Montras Pulse ESBuild kromaĵon kun ultra-rapidaj konstruoj, CSS ekstraktado kaj observa reĝimo.',

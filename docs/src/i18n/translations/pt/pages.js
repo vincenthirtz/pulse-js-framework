@@ -380,6 +380,17 @@ export default {
         'Modo watch para desenvolvimento'
       ]
     },
+    parcelDemo: {
+      title: 'Integração Parcel',
+      desc: 'Demonstra o transformador Parcel do Pulse com empacotamento sem configuração, HMR e pré-processamento CSS.',
+      features: [
+        'Integração do transformador Parcel',
+        'Empacotamento sem configuração',
+        'Hot Module Replacement (HMR)',
+        'Extração de CSS para o pipeline Parcel',
+        'Suporte SASS/LESS/Stylus'
+      ]
+    },
     esbuildDemo: {
       title: 'Integração ESBuild',
       desc: 'Mostra o plugin ESBuild do Pulse com builds ultra-rápidos, extração CSS e modo watch.',
