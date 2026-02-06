@@ -155,12 +155,20 @@ jobs:
           # Append summary marker if not present
           if ! echo "$CURRENT_DESC" | grep -q "## 📝 Commit Summary"; then
             SUMMARY=$(cat /tmp/summary.md)
-            NEW_DESC="${CURRENT_DESC}
+
+            # Write to temp file to avoid quoting issues
+            cat > /tmp/new_desc.md << 'EOF_DESC'
+${CURRENT_DESC}
 
 ---
 
-${SUMMARY}"
+${SUMMARY}
+EOF_DESC
+
+            # Replace variables
+            sed -i "s|\${CURRENT_DESC}|$CURRENT_DESC|g" /tmp/new_desc.md
+            sed -i "s|\${SUMMARY}|$SUMMARY|g" /tmp/new_desc.md
 
             # Update PR description
-            gh pr edit $PR_NUMBER --body "$NEW_DESC"
+            gh pr edit $PR_NUMBER --body-file /tmp/new_desc.md
           fi
