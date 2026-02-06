@@ -50,7 +50,11 @@ jobs:
 
           # Commits
           COMMITS=$(git log $BASE..$HEAD --pretty=format:"- %s (%h)" --no-merges)
-          COMMIT_COUNT=$(echo "$COMMITS" | wc -l | tr -d ' ')
+          if [ -z "$COMMITS" ]; then
+            COMMIT_COUNT=0
+          else
+            COMMIT_COUNT=$(echo "$COMMITS" | wc -l | tr -d ' ')
+          fi
 
           # Stats par type de commit (Conventional Commits)
           FEAT_COUNT=$(echo "$COMMITS" | grep -c "^- feat" || echo 0)
