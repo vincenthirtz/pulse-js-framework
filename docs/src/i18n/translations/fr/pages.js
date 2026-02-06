@@ -394,6 +394,17 @@ export default {
         'Serveur de dev intégré'
       ]
     },
+    parcelDemo: {
+      title: 'Intégration Parcel',
+      desc: 'Démontre le transformer Parcel avec bundling sans configuration, HMR, et prétraitement CSS.',
+      features: [
+        'Intégration transformer Parcel',
+        'Bundling sans configuration',
+        'Remplacement de module à chaud (HMR)',
+        'Extraction CSS vers pipeline Parcel',
+        'Support SASS/LESS/Stylus'
+      ]
+    },
     runLocally: 'Exécuter les exemples localement',
     runLocallyDesc: 'Clonez le dépôt et lancez n\'importe quel exemple avec le serveur de dev :',
     createYourOwn: 'Créez le vôtre',

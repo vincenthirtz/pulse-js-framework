@@ -220,6 +220,19 @@ Both integrations support **automatic CSS preprocessing** for SASS, LESS, and St
 | `less.*` | object | `{}` | LESS-specific options |
 | `stylus.*` | object | `{}` | Stylus-specific options |
 
+### Parcel Plugin Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `sourceMap` | boolean | `true` | Generate source maps |
+| `extractCss` | boolean | `true` | Extract CSS for Parcel's CSS pipeline |
+| `verbose` | boolean | `false` | Log preprocessor info |
+| `sass.loadPaths` | string[] | `[]` | SASS include paths |
+| `sass.compressed` | boolean | `false` | Minify SASS output |
+| `sass.verbose` | boolean | `false` | Log SASS compilation |
+| `less.*` | object | `{}` | LESS-specific options |
+| `stylus.*` | object | `{}` | Stylus-specific options |
+
 ## Development
 
 ### Testing Vite Plugin
@@ -250,6 +263,14 @@ npm run dev
 
 ```bash
 cd examples/esbuild-example
+npm install
+npm run dev
+```
+
+### Testing Parcel Plugin
+
+```bash
+cd examples/parcel-example
 npm install
 npm run dev
 ```
@@ -290,9 +311,92 @@ await esbuild.build({
 - ✅ Watch mode compatible
 - ✅ No external dependencies required
 
+### Parcel Plugin (`parcel-plugin.js`) ✅
+
+Parcel transformer with CSS extraction and preprocessor support.
+
+**Installation:**
+
+1. Install Pulse as a dev dependency:
+```bash
+npm install -D pulse-js-framework
+```
+
+2. Create `.parcelrc` configuration:
+```json
+{
+  "extends": "@parcel/config-default",
+  "transformers": {
+    "*.pulse": ["pulse-js-framework/parcel"]
+  }
+}
+```
+
+3. Optionally create `.pulserc` or `.pulserc.json` for plugin options:
+```json
+{
+  "sourceMap": true,
+  "extractCss": true,
+  "verbose": false,
+  "sass": {
+    "loadPaths": ["src/styles"],
+    "compressed": false
+  },
+  "less": {
+    "loadPaths": []
+  },
+  "stylus": {
+    "loadPaths": []
+  }
+}
+```
+
+Or configure via `package.json`:
+```json
+{
+  "pulse": {
+    "sourceMap": true,
+    "extractCss": true,
+    "sass": {
+      "loadPaths": ["src/styles"]
+    }
+  }
+}
+```
+
+**Usage:**
+
+```javascript
+// src/main.js
+import MyComponent from './MyComponent.pulse';
+import { mount } from 'pulse-js-framework/runtime';
+
+mount('#app', MyComponent());
+```
+
+**Features:**
+- ✅ Automatic `.pulse` file transformation
+- ✅ CSS extraction to Parcel's CSS pipeline
+- ✅ Source map generation
+- ✅ SASS/LESS/Stylus auto-detection and compilation
+- ✅ Hot Module Replacement (HMR)
+- ✅ Watch mode support
+- ✅ Zero configuration (works out of the box)
+
+**Development Server:**
+
+```bash
+parcel src/index.html
+```
+
+**Production Build:**
+
+```bash
+parcel build src/index.html
+```
+
 ## Planned Integrations
 
-- [ ] Parcel transformer (`parcel-transformer.js`)
 - [ ] SWC plugin (`swc-plugin.js`)
 
 ## Architecture

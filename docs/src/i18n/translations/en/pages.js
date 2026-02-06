@@ -394,6 +394,17 @@ export default {
         'Built-in dev server'
       ]
     },
+    parcelDemo: {
+      title: 'Parcel Integration',
+      desc: 'Demonstrates Pulse Parcel transformer with zero-config bundling, HMR, and CSS preprocessing.',
+      features: [
+        'Parcel transformer integration',
+        'Zero-configuration bundling',
+        'Hot Module Replacement (HMR)',
+        'CSS extraction to Parcel pipeline',
+        'SASS/LESS/Stylus support'
+      ]
+    },
     runLocally: 'Run Examples Locally',
     runLocallyDesc: 'Clone the repository and run any example with the dev server:',
     createYourOwn: 'Create Your Own',

@@ -380,6 +380,17 @@ export default {
         '開発用ウォッチモード'
       ]
     },
+    parcelDemo: {
+      title: 'Parcel統合',
+      desc: 'ゼロ設定バンドリング、HMR、CSSプリプロセッシングを備えたPulse Parcelトランスフォーマーのデモ',
+      features: [
+        'Parcelトランスフォーマー統合',
+        'ゼロ設定バンドリング',
+        'ホットモジュール交換 (HMR)',
+        'ParcelパイプラインへのCSS抽出',
+        'SASS/LESS/Stylusサポート'
+      ]
+    },
     esbuildDemo: {
       title: 'ESBuild統合',
       desc: 'Pulse ESBuildプラグインで超高速ビルド、CSS抽出、ウォッチモードを表示。',

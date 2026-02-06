@@ -252,6 +252,11 @@
   to = "/examples/esbuild-example/index.html"
   status = 200
 
+[[redirects]]
+  from = "/examples/parcel-example/*"
+  to = "/examples/parcel-example/index.html"
+  status = 200
+
 # Main SPA fallback (must be last - only applies if file doesn't exist)
 [[redirects]]
   from = "/*"

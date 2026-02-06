@@ -1,0 +1,296 @@
+@page App
+
+state {
+  count: 0,
+  theme: 'dark'
+}
+
+view {
+  .app {
+    .header {
+      h1 "📦 Pulse + Parcel"
+      p.subtitle "Zero-config bundling with Hot Module Replacement"
+    }
+
+    .counter {
+      h2 "Counter Demo"
+      .count-display {
+        span.count "{count}"
+        span.label "clicks"
+      }
+
+      .button-group {
+        button.btn.btn-primary @click(count++) "Increment"
+        button.btn.btn-secondary @click(count--) "Decrement"
+        button.btn.btn-outline @click(count = 0) "Reset"
+      }
+    }
+
+    .theme-switcher {
+      h2 "Theme Switcher"
+      .theme-buttons {
+        button.btn[class={theme === 'dark' ? 'active' : ''}] @click(theme = 'dark') "🌙 Dark"
+        button.btn[class={theme === 'light' ? 'active' : ''}] @click(theme = 'light') "☀️ Light"
+        button.btn[class={theme === 'blue' ? 'active' : ''}] @click(theme = 'blue') "💎 Blue"
+      }
+    }
+
+    .features {
+      h2 "Features"
+      .feature-grid {
+        .feature-card {
+          span.icon "⚡"
+          h3 "Zero Config"
+          p "Works out of the box with .parcelrc"
+        }
+        .feature-card {
+          span.icon "🔥"
+          h3 "Hot Reload"
+          p "Fast HMR for instant updates"
+        }
+        .feature-card {
+          span.icon "🎨"
+          h3 "SASS Support"
+          p "Auto-detected CSS preprocessing"
+        }
+        .feature-card {
+          span.icon "📦"
+          h3 "Optimized"
+          p "Automatic code splitting & minification"
+        }
+      }
+    }
+
+    .footer {
+      p "Built with Pulse + Parcel"
+      a[href="https://github.com/vincenthirtz/pulse-js-framework"] "View on GitHub"
+    }
+  }
+}
+
+style {
+  // SASS variables
+  $dark-bg: #1a1a1a;
+  $dark-text: #e0e0e0;
+  $dark-card: #2a2a2a;
+
+  $light-bg: #f5f5f5;
+  $light-text: #333;
+  $light-card: #fff;
+
+  $blue-bg: #0a1929;
+  $blue-text: #b2bac2;
+  $blue-card: #132f4c;
+
+  $primary: #646cff;
+  $secondary: #42b883;
+  $border: rgba(255, 255, 255, 0.1);
+
+  // Mixins
+  @mixin theme-colors($bg, $text, $card) {
+    background: $bg;
+    color: $text;
+
+    .counter, .theme-switcher, .features {
+      background: $card;
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .feature-card {
+      background: rgba(255, 255, 255, 0.03);
+      border-color: rgba(255, 255, 255, 0.05);
+    }
+  }
+
+  .app {
+    min-height: 100vh;
+    padding: 2rem;
+    max-width: 800px;
+    margin: 0 auto;
+    transition: all 0.3s ease;
+
+    // Theme variants
+    &[data-theme="dark"] {
+      @include theme-colors($dark-bg, $dark-text, $dark-card);
+    }
+
+    &[data-theme="light"] {
+      @include theme-colors($light-bg, $light-text, $light-card);
+    }
+
+    &[data-theme="blue"] {
+      @include theme-colors($blue-bg, $blue-text, $blue-card);
+    }
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 3rem;
+
+    h1 {
+      font-size: 3rem;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, $primary, $secondary);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subtitle {
+      opacity: 0.7;
+      font-size: 1.1rem;
+    }
+  }
+
+  .counter, .theme-switcher, .features {
+    background: $dark-card;
+    border: 1px solid $border;
+    border-radius: 12px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+
+    h2 {
+      margin-bottom: 1.5rem;
+      font-size: 1.5rem;
+    }
+  }
+
+  .count-display {
+    text-align: center;
+    margin-bottom: 2rem;
+
+    .count {
+      display: block;
+      font-size: 4rem;
+      font-weight: bold;
+      color: $primary;
+      margin-bottom: 0.5rem;
+    }
+
+    .label {
+      font-size: 1rem;
+      opacity: 0.6;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+  }
+
+  .button-group, .theme-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+
+    &.btn-primary {
+      background: $primary;
+      color: white;
+
+      &:hover {
+        background: lighten($primary, 10%);
+      }
+    }
+
+    &.btn-secondary {
+      background: $secondary;
+      color: white;
+
+      &:hover {
+        background: lighten($secondary, 10%);
+      }
+    }
+
+    &.btn-outline {
+      background: transparent;
+      color: currentColor;
+      border: 2px solid currentColor;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.1);
+      }
+    }
+
+    &.active {
+      background: $primary;
+      color: white;
+      box-shadow: 0 0 0 3px rgba(100, 108, 255, 0.3);
+    }
+  }
+
+  .feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+  }
+
+  .feature-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 1.5rem;
+    text-align: center;
+    transition: all 0.2s ease;
+
+    &:hover {
+      transform: translateY(-4px);
+      border-color: $primary;
+      box-shadow: 0 4px 12px rgba(100, 108, 255, 0.2);
+    }
+
+    .icon {
+      font-size: 2.5rem;
+      display: block;
+      margin-bottom: 0.75rem;
+    }
+
+    h3 {
+      font-size: 1.1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    p {
+      font-size: 0.9rem;
+      opacity: 0.7;
+      line-height: 1.5;
+    }
+  }
+
+  .footer {
+    text-align: center;
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid $border;
+    opacity: 0.7;
+
+    p {
+      margin-bottom: 0.5rem;
+    }
+
+    a {
+      color: $primary;
+      text-decoration: none;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+}
