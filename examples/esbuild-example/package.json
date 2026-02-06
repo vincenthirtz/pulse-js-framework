@@ -1,0 +1,18 @@
+{
+  "name": "pulse-esbuild-example",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Example Pulse app using ESBuild",
+  "scripts": {
+    "dev": "node build.js --watch",
+    "build": "node build.js",
+    "serve": "npx http-server dist -p 3000 -o"
+  },
+  "dependencies": {
+    "pulse-js-framework": "file:../.."
+  },
+  "devDependencies": {
+    "esbuild": "^0.20.0",
+    "sass": "^1.70.0"
+  }
+}

@@ -383,6 +383,17 @@ export default {
         'Mode watch pour le développement'
       ]
     },
+    esbuildDemo: {
+      title: 'Intégration ESBuild',
+      desc: 'Montre le plugin ESBuild de Pulse avec builds ultra-rapides, extraction CSS et mode watch.',
+      features: [
+        'Intégration plugin ESBuild',
+        'Builds incrémentaux ultra-rapides',
+        'Extraction CSS vers fichier séparé',
+        'Support du prétraitement SASS',
+        'Serveur de dev intégré'
+      ]
+    },
     runLocally: 'Exécuter les exemples localement',
     runLocallyDesc: 'Clonez le dépôt et lancez n\'importe quel exemple avec le serveur de dev :',
     createYourOwn: 'Créez le vôtre',

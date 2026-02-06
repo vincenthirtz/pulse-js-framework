@@ -1,0 +1,16 @@
+@page TestComponent
+
+state {
+  count: 0
+}
+
+view {
+  .counter {
+    h1 "Count: {count}"
+    button @click(count++) "Increment"
+  }
+}
+
+style {
+  .counter { padding: 20px; }
+}

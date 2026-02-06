@@ -131,7 +131,7 @@ jobs:
 
             **File Types**: ${Object.entries(fileTypes).map(([ext, count]) => `${ext} (${count})`).join(', ')}
 
-            **Auto-assigned labels**: ${Array.from(labels).map(l => \`\`\`${l}\`\`\`\`).join(', ')}
+            **Auto-assigned labels**: ${Array.from(labels).map(l => `\`${l}\``).join(', ')}
             `;
 
             console.log(summary);

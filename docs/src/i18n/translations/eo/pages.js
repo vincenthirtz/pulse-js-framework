@@ -380,6 +380,17 @@ export default {
         'Rigarda reĝimo por disvolvado'
       ]
     },
+    esbuildDemo: {
+      title: 'ESBuild Integriĝo',
+      desc: 'Montras Pulse ESBuild kromaĵon kun ultra-rapidaj konstruoj, CSS ekstraktado kaj observa reĝimo.',
+      features: [
+        'ESBuild kromaĵa integriĝo',
+        'Fulmrapidaj inkrementaj konstruoj',
+        'CSS ekstraktado al aparta dosiero',
+        'SASS antaŭprilaborada subteno',
+        'Enkonstruita programista servilo'
+      ]
+    },
     runLocally: 'Ruli Ekzemplojn Loke',
     runLocallyDesc: 'Por ruli la ekzemplajn projektojn sur via maŝino:',
     createYourOwn: 'Kreu Vian Propran',

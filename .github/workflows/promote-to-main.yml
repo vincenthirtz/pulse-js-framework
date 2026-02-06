@@ -52,20 +52,59 @@ jobs:
 
           if [ -z "$LAST_TAG" ]; then
             # No tags yet, get all commits
-            COMMITS=$(git log origin/develop --pretty=format:"- %s" --no-merges -20)
+            COMMITS=$(git log origin/develop --pretty=format:"- %s (%h)" --no-merges -20)
           else
             # Get commits since last tag
-            COMMITS=$(git log ${LAST_TAG}..origin/develop --pretty=format:"- %s" --no-merges)
+            COMMITS=$(git log ${LAST_TAG}..origin/develop --pretty=format:"- %s (%h)" --no-merges)
           fi
 
           # Count commits
           COMMIT_COUNT=$(echo "$COMMITS" | wc -l | tr -d ' ')
+
+          # Stats par type de commit (Conventional Commits)
+          FEAT_COUNT=$(echo "$COMMITS" | grep -c "^- feat" || echo 0)
+          FIX_COUNT=$(echo "$COMMITS" | grep -c "^- fix" || echo 0)
+          DOCS_COUNT=$(echo "$COMMITS" | grep -c "^- docs" || echo 0)
+          CHORE_COUNT=$(echo "$COMMITS" | grep -c "^- chore" || echo 0)
+          REFACTOR_COUNT=$(echo "$COMMITS" | grep -c "^- refactor" || echo 0)
+          TEST_COUNT=$(echo "$COMMITS" | grep -c "^- test" || echo 0)
+          BREAKING_COUNT=$(echo "$COMMITS" | grep -c "!" || echo 0)
+
+          # Fichiers modifiés
+          if [ -z "$LAST_TAG" ]; then
+            FILES_CHANGED=$(git diff --name-only origin/main...origin/develop | wc -l | tr -d ' ')
+            ADDITIONS=$(git diff --shortstat origin/main...origin/develop | grep -oE '[0-9]+ insertion' | grep -oE '[0-9]+' || echo 0)
+            DELETIONS=$(git diff --shortstat origin/main...origin/develop | grep -oE '[0-9]+ deletion' | grep -oE '[0-9]+' || echo 0)
+          else
+            FILES_CHANGED=$(git diff --name-only ${LAST_TAG}..origin/develop | wc -l | tr -d ' ')
+            ADDITIONS=$(git diff --shortstat ${LAST_TAG}..origin/develop | grep -oE '[0-9]+ insertion' | grep -oE '[0-9]+' || echo 0)
+            DELETIONS=$(git diff --shortstat ${LAST_TAG}..origin/develop | grep -oE '[0-9]+ deletion' | grep -oE '[0-9]+' || echo 0)
+          fi
+
+          # Déterminer le type de release suggéré
+          SUGGESTED_RELEASE="patch"
+          if [ $BREAKING_COUNT -gt 0 ]; then
+            SUGGESTED_RELEASE="major"
+          elif [ $FEAT_COUNT -gt 0 ]; then
+            SUGGESTED_RELEASE="minor"
+          fi
 
           echo "COMMITS<<EOF" >> $GITHUB_OUTPUT
           echo "$COMMITS" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
           echo "COMMIT_COUNT=$COMMIT_COUNT" >> $GITHUB_OUTPUT
           echo "LAST_TAG=$LAST_TAG" >> $GITHUB_OUTPUT
+          echo "FEAT_COUNT=$FEAT_COUNT" >> $GITHUB_OUTPUT
+          echo "FIX_COUNT=$FIX_COUNT" >> $GITHUB_OUTPUT
+          echo "DOCS_COUNT=$DOCS_COUNT" >> $GITHUB_OUTPUT
+          echo "CHORE_COUNT=$CHORE_COUNT" >> $GITHUB_OUTPUT
+          echo "REFACTOR_COUNT=$REFACTOR_COUNT" >> $GITHUB_OUTPUT
+          echo "TEST_COUNT=$TEST_COUNT" >> $GITHUB_OUTPUT
+          echo "BREAKING_COUNT=$BREAKING_COUNT" >> $GITHUB_OUTPUT
+          echo "FILES_CHANGED=$FILES_CHANGED" >> $GITHUB_OUTPUT
+          echo "ADDITIONS=$ADDITIONS" >> $GITHUB_OUTPUT
+          echo "DELETIONS=$DELETIONS" >> $GITHUB_OUTPUT
+          echo "SUGGESTED_RELEASE=$SUGGESTED_RELEASE" >> $GITHUB_OUTPUT
 
       - name: Create Pull Request
         if: steps.check_pr.outputs.PR_EXISTS == 'false'
@@ -82,17 +121,61 @@ jobs:
             TITLE="Release: Promote develop to main (initial release)"
           fi
 
+          # Récupérer les statistiques
+          FEAT_COUNT="${{ steps.get_commits.outputs.FEAT_COUNT }}"
+          FIX_COUNT="${{ steps.get_commits.outputs.FIX_COUNT }}"
+          DOCS_COUNT="${{ steps.get_commits.outputs.DOCS_COUNT }}"
+          CHORE_COUNT="${{ steps.get_commits.outputs.CHORE_COUNT }}"
+          REFACTOR_COUNT="${{ steps.get_commits.outputs.REFACTOR_COUNT }}"
+          TEST_COUNT="${{ steps.get_commits.outputs.TEST_COUNT }}"
+          BREAKING_COUNT="${{ steps.get_commits.outputs.BREAKING_COUNT }}"
+          FILES_CHANGED="${{ steps.get_commits.outputs.FILES_CHANGED }}"
+          ADDITIONS="${{ steps.get_commits.outputs.ADDITIONS }}"
+          DELETIONS="${{ steps.get_commits.outputs.DELETIONS }}"
+          SUGGESTED_RELEASE="${{ steps.get_commits.outputs.SUGGESTED_RELEASE }}"
+
+          # Badge de breaking change
+          BREAKING_BADGE=""
+          if [ $BREAKING_COUNT -gt 0 ]; then
+            BREAKING_BADGE="
+          > ⚠️ **WARNING**: This PR contains $BREAKING_COUNT breaking change(s)!
+          "
+          fi
+
           BODY=$(cat <<EOF
           ## 🚀 Promote develop to main
 
           This PR promotes the current \`develop\` branch to \`main\` for production deployment.
 
-          ### 📊 Changes
+          $BREAKING_BADGE
 
-          **Commits since ${LAST_TAG:-beginning}**: $COMMIT_COUNT
+          ### 📊 Statistics
+
+          | Metric | Count |
+          |--------|-------|
+          | Total Commits | $COMMIT_COUNT |
+          | Files Changed | $FILES_CHANGED |
+          | Lines Added | +$ADDITIONS |
+          | Lines Deleted | -$DELETIONS |
+
+          ### 🏷️ Commit Types
+
+          | Type | Count |
+          |------|-------|
+          | ✨ Features | $FEAT_COUNT |
+          | 🐛 Fixes | $FIX_COUNT |
+          | 📚 Docs | $DOCS_COUNT |
+          | 🔧 Chore | $CHORE_COUNT |
+          | ♻️ Refactor | $REFACTOR_COUNT |
+          | ✅ Tests | $TEST_COUNT |
+          | 💥 Breaking | $BREAKING_COUNT |
+
+          ### 🎯 Suggested Release
+
+          Based on commit analysis: **$SUGGESTED_RELEASE**
 
           <details>
-          <summary>View all commits</summary>
+          <summary>📝 View all commits ($COMMIT_COUNT)</summary>
 
           $COMMITS
 
@@ -115,6 +198,8 @@ jobs:
 
           **Staging URL**: https://staging--pulse-js.netlify.app
           **Production URL**: https://pulse-js.fr
+
+          <sub>🤖 Auto-generated by promote-to-main workflow</sub>
           EOF
           )
 

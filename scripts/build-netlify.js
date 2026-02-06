@@ -14,7 +14,7 @@ import { compile } from '../compiler/index.js';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..');
 
-const EXAMPLES = ['hmr', 'blog', 'todo', 'chat', 'ecommerce', 'meteo', 'router', 'store', 'dashboard', 'sports', 'less-example', 'stylus-example', 'webpack-example', 'rollup-example'];
+const EXAMPLES = ['hmr', 'blog', 'todo', 'chat', 'ecommerce', 'meteo', 'router', 'store', 'dashboard', 'sports', 'less-example', 'stylus-example', 'webpack-example', 'rollup-example', 'esbuild-example'];
 
 console.log('🚀 Building Pulse for Netlify...\n');
 
@@ -311,6 +311,12 @@ const examplesIndexHtml = `<!DOCTYPE html>
         <span class="arrow">→</span>
         <h2>🎲 Rollup Integration</h2>
         <p>Shows Pulse Rollup plugin with tree-shaking, CSS extraction, and watch mode.</p>
+      </a>
+
+      <a href="/examples/esbuild-example/" class="example">
+        <span class="arrow">→</span>
+        <h2>⚡ ESBuild Integration</h2>
+        <p>Demonstrates Pulse ESBuild plugin with ultra-fast builds, CSS extraction, and watch mode.</p>
       </a>
     </div>
 
