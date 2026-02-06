@@ -24,48 +24,38 @@ permissions:
   pull-requests: write
 
 jobs:
-  # Job 1: Attendre la confirmation du déploiement Netlify
-  wait-for-deploy:
+  # Job 1: Vérifier que nous sommes sur main
+  check-deploy:
     runs-on: ubuntu-latest
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     outputs:
-      deploy_url: ${{ steps.netlify.outputs.deploy_url }}
+      should_release: ${{ steps.check.outputs.should_release }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Wait for Netlify Deploy
-        id: netlify
-        uses: nwtgck/actions-netlify@v2
-        with:
-          publish-dir: 'dist'
-          production-deploy: true
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          enable-pull-request-comment: false
-          enable-commit-comment: false
-          overwrites-pull-request-comment: false
-        timeout-minutes: 15
-
-      - name: Check Deploy Status
-        if: steps.netlify.outputs.deploy-url == ''
+      - name: Check if deploy should trigger release
+        id: check
         run: |
-          echo "❌ Netlify deploy failed or timed out"
-          exit 1
-
-      - name: Deploy Success
-        run: |
-          echo "✅ Netlify deploy succeeded"
-          echo "🌐 Deploy URL: ${{ steps.netlify.outputs.deploy-url }}"
+          # Vérifier si le dernier commit n'est pas déjà un bump de version
+          LAST_COMMIT=$(git log -1 --pretty=%B)
+          if echo "$LAST_COMMIT" | grep -q "chore(release): bump version"; then
+            echo "⏭️  Skipping release - last commit was a version bump"
+            echo "should_release=false" >> $GITHUB_OUTPUT
+          else
+            echo "✅ Ready for release"
+            echo "should_release=true" >> $GITHUB_OUTPUT
+          fi
 
   # Job 2: Proposer une release (déclenché manuellement ou automatiquement)
   propose-release:
     runs-on: ubuntu-latest
-    needs: [wait-for-deploy]
+    needs: [check-deploy]
     if: |
       always() &&
       (github.event_name == 'workflow_dispatch' ||
-       (github.event_name == 'push' && needs.wait-for-deploy.result == 'success'))
+       (github.event_name == 'push' && needs.check-deploy.outputs.should_release == 'true'))
 
     steps:
       - name: Checkout
