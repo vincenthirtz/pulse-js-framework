@@ -1,0 +1,27 @@
+# Codecov Configuration for Pulse Framework
+
+coverage:
+  status:
+    project:
+      default:
+        target: 88%         # Overall project coverage target
+        threshold: 1%       # Allow 1% decrease
+        
+    patch:
+      default:
+        target: 76%         # Patch coverage target (more lenient for docs/examples)
+        threshold: 10%      # Allow larger variance for patch
+        
+# Ignore documentation and workflow files from coverage
+ignore:
+  - "docs/**/*"
+  - "examples/**/*"
+  - ".github/**/*"
+  - "*.md"
+  - "test/**/*"           # Test files themselves don't need coverage
+
+# Comment settings
+comment:
+  layout: "reach,diff,flags,tree"
+  behavior: default
+  require_changes: false
