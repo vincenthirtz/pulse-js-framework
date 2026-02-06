@@ -123,8 +123,11 @@ pulse/
 │   ├── docs.js          # API documentation generator
 │   └── utils/
 │       └── file-utils.js  # Shared utilities (glob, parseArgs)
-├── loader/
-│   └── vite-plugin.js   # Vite integration
+├── loader/              # Build tool integrations
+│   ├── vite-plugin.js     # Vite plugin
+│   ├── webpack-loader.js  # Webpack loader
+│   ├── rollup-plugin.js   # Rollup plugin
+│   └── esbuild-plugin.js  # ESBuild plugin
 ├── examples/            # Example apps (todo, chat, ecommerce, electron)
 ├── test/                # Test suite
 └── docs/                # Documentation site
@@ -2510,6 +2513,7 @@ import { compile } from 'pulse-js-framework/compiler';
 import pulsePlugin from 'pulse-js-framework/vite';        // Vite plugin
 import pulseLoader from 'pulse-js-framework/webpack';     // Webpack loader
 import rollupPlugin from 'pulse-js-framework/rollup';     // Rollup plugin
+import esbuildPlugin from 'pulse-js-framework/esbuild';   // ESBuild plugin
 ```
 
 ## Testing
@@ -2739,7 +2743,7 @@ const type = detectPreprocessor(css);  // 'sass' | 'less' | 'stylus' | 'none'
 
 ## Development Notes
 
-- Vite integration is optional but recommended for projects
+- **Build tool integrations** available for Vite, Webpack, Rollup, and ESBuild (see `loader/` directory)
 - The framework works directly in browsers without build step
 - Circular dependency protection limits to 100 iterations
 - Effects use try-catch to prevent one error from breaking others

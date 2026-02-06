@@ -380,6 +380,17 @@ export default {
         '開発用ウォッチモード'
       ]
     },
+    esbuildDemo: {
+      title: 'ESBuild統合',
+      desc: 'Pulse ESBuildプラグインで超高速ビルド、CSS抽出、ウォッチモードを表示。',
+      features: [
+        'ESBuildプラグイン統合',
+        '超高速インクリメンタルビルド',
+        'CSSを別ファイルに抽出',
+        'SASSプリプロセッサのサポート',
+        '組み込み開発サーバー'
+      ]
+    },
     runLocally: 'ローカルで実行',
     runLocallyDesc: 'マシンでサンプルプロジェクトを実行するには：',
     createYourOwn: '自分で作成',

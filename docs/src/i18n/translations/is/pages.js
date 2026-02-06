@@ -380,6 +380,17 @@ export default {
         'Vöktunarhamur fyrir þróun'
       ]
     },
+    esbuildDemo: {
+      title: 'ESBuild Samþætting',
+      desc: 'Sýnir Pulse ESBuild viðbót með ofur-hröðum byggingum, CSS útdrætti og vöktunarham.',
+      features: [
+        'ESBuild viðbótar samþætting',
+        'Bráðhraðar stigvaxandi byggingar',
+        'CSS útdráttur í aðskilda skrá',
+        'SASS forvinnslu stuðningur',
+        'Innbyggður þróunarþjónn'
+      ]
+    },
     runLocally: 'Keyra Dæmi Staðbundið',
     runLocallyDesc: 'Til að keyra sýnishornaverkefni á vélinni þinni:',
     createYourOwn: 'Búðu Til Þitt Eigið',

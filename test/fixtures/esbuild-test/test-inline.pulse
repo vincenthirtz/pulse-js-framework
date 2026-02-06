@@ -1,0 +1,9 @@
+@page TestComponent
+
+view {
+  div.test "Content"
+}
+
+style {
+  .test { color: red; }
+}

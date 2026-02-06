@@ -208,6 +208,18 @@ Both integrations support **automatic CSS preprocessing** for SASS, LESS, and St
 | `less.*` | object | `{}` | LESS-specific options |
 | `stylus.*` | object | `{}` | Stylus-specific options |
 
+### ESBuild Plugin Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `sourceMap` | boolean | `true` | Generate source maps |
+| `extractCss` | string | `null` | Output CSS filename (null = inline) |
+| `sass.loadPaths` | string[] | `[]` | SASS include paths |
+| `sass.compressed` | boolean | `false` | Minify SASS output |
+| `sass.verbose` | boolean | `false` | Log SASS compilation |
+| `less.*` | object | `{}` | LESS-specific options |
+| `stylus.*` | object | `{}` | Stylus-specific options |
+
 ## Development
 
 ### Testing Vite Plugin
@@ -234,9 +246,52 @@ npm install
 npm run dev
 ```
 
+### Testing ESBuild Plugin
+
+```bash
+cd examples/esbuild-example
+npm install
+npm run dev
+```
+
+### ESBuild Plugin (`esbuild-plugin.js`) ✅
+
+ESBuild plugin with CSS extraction and preprocessor support.
+
+**Installation:**
+
+```javascript
+// build.js
+import * as esbuild from 'esbuild';
+import pulsePlugin from 'pulse-js-framework/esbuild';
+
+await esbuild.build({
+  entryPoints: ['src/main.js'],
+  bundle: true,
+  outfile: 'dist/bundle.js',
+  plugins: [
+    pulsePlugin({
+      sourceMap: true,
+      extractCss: 'dist/bundle.css',  // Extract to CSS file
+      sass: {
+        loadPaths: ['src/styles']
+      }
+    })
+  ]
+});
+```
+
+**Features:**
+- ✅ ESBuild support
+- ✅ CSS extraction to separate file
+- ✅ Source map generation
+- ✅ SASS/LESS/Stylus auto-detection
+- ✅ Fast incremental builds
+- ✅ Watch mode compatible
+- ✅ No external dependencies required
+
 ## Planned Integrations
 
-- [ ] ESBuild plugin (`esbuild-plugin.js`)
 - [ ] Parcel transformer (`parcel-transformer.js`)
 - [ ] SWC plugin (`swc-plugin.js`)
 

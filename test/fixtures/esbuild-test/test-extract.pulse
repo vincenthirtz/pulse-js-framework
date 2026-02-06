@@ -1,0 +1,18 @@
+@page TestComponent
+
+state {
+  count: 0
+}
+
+view {
+  .counter {
+    h1 "Count: {count}"
+  }
+}
+
+style {
+  .counter {
+    padding: 20px;
+    background: #fff;
+  }
+}

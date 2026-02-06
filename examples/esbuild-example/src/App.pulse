@@ -1,0 +1,303 @@
+@page App
+
+state {
+  count: 0
+  todos: []
+  newTodo: ''
+}
+
+view {
+  .app {
+    header {
+      h1 "Pulse + ESBuild Example"
+      p "Fast builds with ESBuild integration"
+    }
+
+    main {
+      .counter {
+        h2 "Counter: {count}"
+        .buttons {
+          button @click(count++) "Increment"
+          button @click(count--) "Decrement"
+          button @click(count = 0) "Reset"
+        }
+      }
+
+      .todo-section {
+        h2 "Todo List"
+        .input-row {
+          input[type=text][placeholder="What needs to be done?"]
+            @value(newTodo)
+            @input(newTodo = event.target.value)
+            @keydown(event.key === 'Enter' && addTodo())
+          button @click(addTodo()) "Add"
+        }
+
+        @if(todos.length > 0) {
+          ul.todo-list {
+            @for(todo of todos) {
+              li.todo-item[class="{todo.done ? 'done' : ''}"] {
+                input[type=checkbox]
+                  @checked(todo.done)
+                  @change(toggleTodo(todo.id))
+                span.todo-text "{todo.text}"
+                button.delete @click(deleteTodo(todo.id)) "×"
+              }
+            }
+          }
+          .footer {
+            span.count "{todos.filter(t => !t.done).length} items left"
+            button @click(clearCompleted()) "Clear completed"
+          }
+        } @else {
+          p.empty "No todos yet. Add one above!"
+        }
+      }
+    }
+
+    footer {
+      p "Built with Pulse JS Framework + ESBuild"
+      a[href="https://github.com/vincenthirtz/pulse-js-framework"] "View on GitHub"
+    }
+  }
+}
+
+style {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  $primary: #646cff;
+  $bg: #242424;
+  $text: #e0e0e0;
+
+  body {
+    font-family: Inter, system-ui, sans-serif;
+    background: $bg;
+    color: $text;
+    line-height: 1.6;
+  }
+
+  .app {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 40px 20px;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 40px;
+
+    h1 {
+      font-size: 2.5em;
+      color: $primary;
+      margin-bottom: 10px;
+    }
+
+    p {
+      color: #999;
+    }
+  }
+
+  .counter {
+    background: #2a2a2a;
+    padding: 30px;
+    border-radius: 12px;
+    margin-bottom: 40px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+
+    h2 {
+      font-size: 2em;
+      color: $primary;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .buttons {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+
+      button {
+        padding: 10px 20px;
+        font-size: 1em;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        background: $primary;
+        color: white;
+        transition: all 0.2s;
+
+        &:hover {
+          background: darken($primary, 10%);
+          transform: translateY(-2px);
+        }
+
+        &:active {
+          transform: translateY(0);
+        }
+      }
+    }
+  }
+
+  .todo-section {
+    background: #2a2a2a;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+
+    h2 {
+      font-size: 1.8em;
+      margin-bottom: 20px;
+      color: $primary;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+
+      input {
+        flex: 1;
+        padding: 12px;
+        font-size: 1em;
+        border: 2px solid #444;
+        border-radius: 6px;
+        background: #1a1a1a;
+        color: $text;
+
+        &:focus {
+          outline: none;
+          border-color: $primary;
+        }
+      }
+
+      button {
+        padding: 12px 24px;
+        font-size: 1em;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        background: $primary;
+        color: white;
+        transition: all 0.2s;
+
+        &:hover {
+          background: darken($primary, 10%);
+        }
+      }
+    }
+
+    .todo-list {
+      list-style: none;
+      margin-bottom: 20px;
+
+      .todo-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+        background: #1a1a1a;
+        border-radius: 6px;
+        margin-bottom: 8px;
+        transition: all 0.2s;
+
+        &:hover {
+          background: #222;
+        }
+
+        &.done {
+          opacity: 0.6;
+
+          .todo-text {
+            text-decoration: line-through;
+            color: #888;
+          }
+        }
+
+        input[type=checkbox] {
+          width: 20px;
+          height: 20px;
+          cursor: pointer;
+        }
+
+        .todo-text {
+          flex: 1;
+          font-size: 1em;
+        }
+
+        .delete {
+          padding: 4px 12px;
+          font-size: 1.5em;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+          background: #ff4444;
+          color: white;
+          transition: all 0.2s;
+
+          &:hover {
+            background: #ff0000;
+          }
+        }
+      }
+    }
+
+    .empty {
+      text-align: center;
+      color: #888;
+      padding: 40px;
+      font-style: italic;
+    }
+
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 20px;
+      border-top: 1px solid #444;
+
+      .count {
+        color: #888;
+      }
+
+      button {
+        padding: 8px 16px;
+        font-size: 0.9em;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        background: transparent;
+        color: #ff4444;
+        border: 1px solid #ff4444;
+        transition: all 0.2s;
+
+        &:hover {
+          background: #ff4444;
+          color: white;
+        }
+      }
+    }
+  }
+
+  footer {
+    text-align: center;
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid #444;
+    color: #888;
+
+    a {
+      color: $primary;
+      text-decoration: none;
+      margin-top: 10px;
+      display: inline-block;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+}
