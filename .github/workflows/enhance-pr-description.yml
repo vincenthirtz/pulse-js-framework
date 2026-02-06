@@ -66,9 +66,16 @@ jobs:
           BREAKING_COUNT=$(echo "$COMMITS" | grep -c "!" || echo 0)
 
           # Fichiers modifiés
-          FILES_CHANGED=$(git diff --name-only $BASE...$HEAD | wc -l | tr -d ' ')
-          ADDITIONS=$(git diff --shortstat $BASE...$HEAD | grep -oE '[0-9]+ insertion' | grep -oE '[0-9]+' || echo 0)
-          DELETIONS=$(git diff --shortstat $BASE...$HEAD | grep -oE '[0-9]+ deletion' | grep -oE '[0-9]+' || echo 0)
+          FILES_CHANGED=$(git diff --name-only $BASE...$HEAD | wc -l | tr -d ' \n')
+
+          # Extraire additions et deletions de façon robuste
+          SHORTSTAT=$(git diff --shortstat $BASE...$HEAD)
+          ADDITIONS=$(echo "$SHORTSTAT" | grep -oE '[0-9]+ insertion' | grep -oE '[0-9]+' | tr -d '\n' || echo "0")
+          DELETIONS=$(echo "$SHORTSTAT" | grep -oE '[0-9]+ deletion' | grep -oE '[0-9]+' | tr -d '\n' || echo "0")
+
+          # S'assurer qu'on a des valeurs valides
+          ADDITIONS=${ADDITIONS:-0}
+          DELETIONS=${DELETIONS:-0}
 
           # Fichiers par catégorie
           SRC_FILES=$(git diff --name-only $BASE...$HEAD | grep -c "^src/" || echo 0)
