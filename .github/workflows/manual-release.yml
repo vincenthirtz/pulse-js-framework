@@ -1,0 +1,146 @@
+name: Manual Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: 'Release Type'
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+        default: 'patch'
+
+permissions:
+  contents: write
+
+jobs:
+  bump-version:
+    name: Bump Version & Create Tag
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Get Current Version
+        id: current_version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "📦 Current version: $VERSION"
+
+      - name: Bump Version
+        id: bump
+        run: |
+          TYPE="${{ github.event.inputs.release_type }}"
+          npm version $TYPE --no-git-tag-version
+          NEW_VERSION=$(node -p "require('./package.json').version")
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "📦 New version: $NEW_VERSION"
+
+      - name: Update CHANGELOG
+        run: |
+          VERSION="${{ steps.bump.outputs.new_version }}"
+          DATE=$(date +%Y-%m-%d)
+          PREV_TAG=$(git describe --abbrev=0 --tags 2>/dev/null || echo "")
+
+          # Get commits since last tag
+          if [ -z "$PREV_TAG" ]; then
+            COMMITS=$(git log --pretty=format:"- %s" --no-merges -20)
+          else
+            COMMITS=$(git log --pretty=format:"- %s" --no-merges ${PREV_TAG}..HEAD)
+          fi
+
+          # Create changelog header
+          {
+            echo "# Changelog"
+            echo ""
+            echo "## [$VERSION] - $DATE"
+            echo ""
+            echo "### Changes"
+            echo ""
+            echo "$COMMITS"
+            echo ""
+            echo "---"
+            echo ""
+          } > CHANGELOG.tmp
+
+          # Append old changelog if exists
+          if [ -f CHANGELOG.md ]; then
+            tail -n +2 CHANGELOG.md >> CHANGELOG.tmp
+          fi
+
+          mv CHANGELOG.tmp CHANGELOG.md
+          echo "✅ CHANGELOG updated"
+
+      - name: Commit Version Bump
+        run: |
+          VERSION="${{ steps.bump.outputs.new_version }}"
+          git add package.json CHANGELOG.md
+
+          # Only commit if there are changes
+          if git diff --staged --quiet; then
+            echo "⚠️ No changes to commit"
+          else
+            git commit -m "chore(release): bump version to $VERSION
+
+          Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
+            git push origin main
+            echo "✅ Version bumped and pushed"
+          fi
+
+      - name: Create and Push Git Tag
+        run: |
+          VERSION="${{ steps.bump.outputs.new_version }}"
+
+          # Check if tag already exists
+          if git rev-parse "v$VERSION" >/dev/null 2>&1; then
+            echo "⚠️ Tag v$VERSION already exists"
+            exit 1
+          else
+            git tag -a "v$VERSION" -m "Release v$VERSION"
+            git push origin "v$VERSION"
+            echo "🏷️ Tag v$VERSION created and pushed"
+          fi
+
+      - name: Summary
+        run: |
+          VERSION="${{ steps.bump.outputs.new_version }}"
+          TYPE="${{ github.event.inputs.release_type }}"
+          echo "## 🎉 Version Bumped to v$VERSION!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Type**: $TYPE" >> $GITHUB_STEP_SUMMARY
+          echo "- **Previous**: ${{ steps.current_version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **New**: $VERSION" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tag**: v$VERSION" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### ✅ Completed" >> $GITHUB_STEP_SUMMARY
+          echo "1. ✅ Version bumped in package.json" >> $GITHUB_STEP_SUMMARY
+          echo "2. ✅ CHANGELOG.md updated" >> $GITHUB_STEP_SUMMARY
+          echo "3. ✅ Changes committed to main" >> $GITHUB_STEP_SUMMARY
+          echo "4. ✅ Git tag v$VERSION created and pushed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🚀 Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "The **Release** workflow will now automatically:" >> $GITHUB_STEP_SUMMARY
+          echo "- Run tests" >> $GITHUB_STEP_SUMMARY
+          echo "- Build the project" >> $GITHUB_STEP_SUMMARY
+          echo "- Create GitHub Release" >> $GITHUB_STEP_SUMMARY
+          echo "- Publish to npm" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "[View Release Workflow](https://github.com/${{ github.repository }}/actions/workflows/release.yml)" >> $GITHUB_STEP_SUMMARY
