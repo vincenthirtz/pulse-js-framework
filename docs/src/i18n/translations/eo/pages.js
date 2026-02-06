@@ -358,6 +358,28 @@ export default {
         'Gradianto kaj animacioj'
       ]
     },
+    webpackDemo: {
+      title: 'Webpack Integriĝo',
+      desc: 'Montras Pulse Webpack ŝargilon kun HMR, CSS eltiro kaj SASS antaŭprilaborado.',
+      features: [
+        'Webpack 5 ŝargila integriĝo',
+        'Varmega Modula Anstataŭigo (HMR)',
+        'CSS eltiro kun style-loader',
+        'SASS antaŭprilaborada subteno',
+        'Fontaj mapoj por senerarigado'
+      ]
+    },
+    rollupDemo: {
+      title: 'Rollup Integriĝo',
+      desc: 'Montras Pulse Rollup kromaĵon kun arba skuado, CSS eltiro kaj optimumigitaj konstruaĵoj.',
+      features: [
+        'Rollup 4+ kromaĵa integriĝo',
+        'CSS eltiro al aparta dosiero',
+        'ES modula arba skuado',
+        'SASS antaŭprilaborada subteno',
+        'Rigarda reĝimo por disvolvado'
+      ]
+    },
     runLocally: 'Ruli Ekzemplojn Loke',
     runLocallyDesc: 'Por ruli la ekzemplajn projektojn sur via maŝino:',
     createYourOwn: 'Kreu Vian Propran',

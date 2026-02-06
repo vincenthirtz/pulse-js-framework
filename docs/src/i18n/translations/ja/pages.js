@@ -358,6 +358,28 @@ export default {
         'グラデーションとアニメーション'
       ]
     },
+    webpackDemo: {
+      title: 'Webpack統合',
+      desc: 'HMR、CSS抽出、SASSプリプロセッシングを備えたPulse Webpackローダーのデモ。',
+      features: [
+        'Webpack 5ローダー統合',
+        'ホットモジュールリプレースメント（HMR）',
+        'style-loaderによるCSS抽出',
+        'SASSプリプロセッシングサポート',
+        'デバッグ用ソースマップ'
+      ]
+    },
+    rollupDemo: {
+      title: 'Rollup統合',
+      desc: 'ツリーシェイキング、CSS抽出、最適化ビルドを備えたPulse Rollupプラグインのデモ。',
+      features: [
+        'Rollup 4+プラグイン統合',
+        '個別ファイルへのCSS抽出',
+        'ESモジュールツリーシェイキング',
+        'SASSプリプロセッシングサポート',
+        '開発用ウォッチモード'
+      ]
+    },
     runLocally: 'ローカルで実行',
     runLocallyDesc: 'マシンでサンプルプロジェクトを実行するには：',
     createYourOwn: '自分で作成',

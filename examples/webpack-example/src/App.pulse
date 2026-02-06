@@ -1,0 +1,110 @@
+@page App
+
+state {
+  count: 0,
+  theme: 'light'
+}
+
+view {
+  .app[class={theme}] {
+    .header {
+      h1 "Pulse + Webpack"
+      p "Counter: {count}"
+    }
+
+    .controls {
+      button @click(count++) "Increment"
+      button @click(count--) "Decrement"
+      button @click(count = 0) "Reset"
+    }
+
+    .theme-toggle {
+      button @click(theme = theme === 'light' ? 'dark' : 'light') {
+        "Switch to {theme === 'light' ? 'dark' : 'light'} mode"
+      }
+    }
+  }
+}
+
+style {
+  // SASS variables and nesting
+  $primary: #646cff;
+  $dark-bg: #1a1a1a;
+  $light-bg: #ffffff;
+  $spacing: 20px;
+
+  .app {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.3s, color 0.3s;
+
+    &.light {
+      background: $light-bg;
+      color: #213547;
+    }
+
+    &.dark {
+      background: $dark-bg;
+      color: rgba(255, 255, 255, 0.87);
+    }
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: $spacing * 2;
+
+    h1 {
+      font-size: 3em;
+      margin: 0;
+    }
+
+    p {
+      font-size: 1.5em;
+      margin: $spacing 0;
+    }
+  }
+
+  .controls {
+    display: flex;
+    gap: $spacing / 2;
+    margin-bottom: $spacing;
+
+    button {
+      padding: $spacing / 2 $spacing;
+      font-size: 1em;
+      background: $primary;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: opacity 0.2s;
+
+      &:hover {
+        opacity: 0.8;
+      }
+
+      &:active {
+        opacity: 0.6;
+      }
+    }
+  }
+
+  .theme-toggle {
+    button {
+      padding: $spacing / 2 $spacing;
+      background: transparent;
+      border: 1px solid currentColor;
+      color: currentColor;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+
+      &:hover {
+        background: rgba(100, 108, 255, 0.1);
+      }
+    }
+  }
+}

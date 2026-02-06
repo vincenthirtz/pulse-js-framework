@@ -358,6 +358,28 @@ export default {
         'Stigli og hreyfimyndir'
       ]
     },
+    webpackDemo: {
+      title: 'Webpack Samþætting',
+      desc: 'Sýnir Pulse Webpack hleðslutæki með HMR, CSS útdrátt og SASS forvinnslu.',
+      features: [
+        'Webpack 5 hleðslutækja samþætting',
+        'Hot Module Replacement (HMR)',
+        'CSS útdráttur með style-loader',
+        'SASS forvinnslu stuðningur',
+        'Source maps fyrir kembing'
+      ]
+    },
+    rollupDemo: {
+      title: 'Rollup Samþætting',
+      desc: 'Sýnir Pulse Rollup viðbót með tree-shaking, CSS útdrætti og fínstilltum smíðum.',
+      features: [
+        'Rollup 4+ viðbótar samþætting',
+        'CSS útdráttur í aðskilda skrá',
+        'ES eininga tree-shaking',
+        'SASS forvinnslu stuðningur',
+        'Vöktunarhamur fyrir þróun'
+      ]
+    },
     runLocally: 'Keyra Dæmi Staðbundið',
     runLocallyDesc: 'Til að keyra sýnishornaverkefni á vélinni þinni:',
     createYourOwn: 'Búðu Til Þitt Eigið',

@@ -204,6 +204,38 @@ export function ExamplesPage() {
           ${t('examples.viewDemo')}
         </a>
       </div>
+
+      <div class="example-card">
+        <div class="example-icon">📦</div>
+        <h3>${t('examples.webpackDemo.title')}</h3>
+        <p>${t('examples.webpackDemo.desc')}</p>
+        <ul class="example-features">
+          <li>✓ ${t('examples.webpackDemo.features.0')}</li>
+          <li>✓ ${t('examples.webpackDemo.features.1')}</li>
+          <li>✓ ${t('examples.webpackDemo.features.2')}</li>
+          <li>✓ ${t('examples.webpackDemo.features.3')}</li>
+          <li>✓ ${t('examples.webpackDemo.features.4')}</li>
+        </ul>
+        <a href="/examples/webpack-example/" class="btn btn-primary">
+          ${t('examples.viewDemo')}
+        </a>
+      </div>
+
+      <div class="example-card">
+        <div class="example-icon">🎲</div>
+        <h3>${t('examples.rollupDemo.title')}</h3>
+        <p>${t('examples.rollupDemo.desc')}</p>
+        <ul class="example-features">
+          <li>✓ ${t('examples.rollupDemo.features.0')}</li>
+          <li>✓ ${t('examples.rollupDemo.features.1')}</li>
+          <li>✓ ${t('examples.rollupDemo.features.2')}</li>
+          <li>✓ ${t('examples.rollupDemo.features.3')}</li>
+          <li>✓ ${t('examples.rollupDemo.features.4')}</li>
+        </ul>
+        <a href="/examples/rollup-example/" class="btn btn-primary">
+          ${t('examples.viewDemo')}
+        </a>
+      </div>
     </div>
 
     <section class="doc-section">

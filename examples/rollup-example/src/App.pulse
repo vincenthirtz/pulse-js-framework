@@ -1,0 +1,190 @@
+@page App
+
+state {
+  count: 0,
+  theme: 'light',
+  history: []
+}
+
+view {
+  .app[class={theme}] {
+    .header {
+      h1 "⚡ Pulse + Rollup"
+      p "Counter: {count}"
+    }
+
+    .controls {
+      button @click(incrementCount()) "Increment"
+      button @click(decrementCount()) "Decrement"
+      button @click(resetCount()) "Reset"
+    }
+
+    .theme-toggle {
+      button @click(toggleTheme()) {
+        "Switch to {theme === 'light' ? 'dark' : 'light'} mode"
+      }
+    }
+
+    @if (history.length > 0) {
+      .history {
+        h3 "History"
+        ul {
+          @for (entry in history) {
+            li "{entry.action}: {entry.value} ({entry.time})"
+          }
+        }
+      }
+    }
+  }
+}
+
+script {
+  function incrementCount() {
+    count++;
+    addHistory('Increment', count);
+  }
+
+  function decrementCount() {
+    count--;
+    addHistory('Decrement', count);
+  }
+
+  function resetCount() {
+    const oldCount = count;
+    count = 0;
+    addHistory('Reset', oldCount);
+  }
+
+  function toggleTheme() {
+    theme = theme === 'light' ? 'dark' : 'light';
+  }
+
+  function addHistory(action, value) {
+    const now = new Date();
+    const time = `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+    history = [...history, { action, value, time }];
+
+    // Keep only last 5 entries
+    if (history.length > 5) {
+      history = history.slice(-5);
+    }
+  }
+}
+
+style {
+  // SASS variables and nesting
+  $primary: #646cff;
+  $dark-bg: #1a1a1a;
+  $light-bg: #ffffff;
+  $spacing: 20px;
+  $border-radius: 8px;
+
+  .app {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.3s, color 0.3s;
+    padding: $spacing;
+
+    &.light {
+      background: $light-bg;
+      color: #213547;
+    }
+
+    &.dark {
+      background: $dark-bg;
+      color: rgba(255, 255, 255, 0.87);
+    }
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: $spacing * 2;
+
+    h1 {
+      font-size: 3em;
+      margin: 0;
+      background: linear-gradient(90deg, $primary, #9089fc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    p {
+      font-size: 1.8em;
+      margin: $spacing 0;
+      font-weight: bold;
+    }
+  }
+
+  .controls {
+    display: flex;
+    gap: $spacing / 2;
+    margin-bottom: $spacing;
+
+    button {
+      padding: $spacing / 2 $spacing;
+      font-size: 1em;
+      background: $primary;
+      color: white;
+      border: none;
+      border-radius: $border-radius;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+
+      &:hover {
+        opacity: 0.8;
+      }
+
+      &:active {
+        transform: scale(0.95);
+      }
+    }
+  }
+
+  .theme-toggle {
+    margin-bottom: $spacing * 2;
+
+    button {
+      padding: $spacing / 2 $spacing;
+      background: transparent;
+      border: 1px solid currentColor;
+      color: currentColor;
+      border-radius: $border-radius;
+      cursor: pointer;
+      transition: background-color 0.2s;
+
+      &:hover {
+        background: rgba(100, 108, 255, 0.1);
+      }
+    }
+  }
+
+  .history {
+    margin-top: $spacing * 2;
+    padding: $spacing;
+    background: rgba(100, 108, 255, 0.05);
+    border: 1px solid rgba(100, 108, 255, 0.2);
+    border-radius: $border-radius;
+    min-width: 300px;
+
+    h3 {
+      margin: 0 0 $spacing / 2 0;
+      font-size: 1.2em;
+      color: $primary;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+
+      li {
+        padding: $spacing / 4 0;
+        font-family: monospace;
+        font-size: 0.9em;
+      }
+    }
+  }
+}

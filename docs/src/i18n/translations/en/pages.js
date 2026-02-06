@@ -361,6 +361,28 @@ export default {
         'Gradient and animations'
       ]
     },
+    webpackDemo: {
+      title: 'Webpack Integration',
+      desc: 'Demonstrates Pulse Webpack loader with HMR, CSS extraction, and SASS preprocessing.',
+      features: [
+        'Webpack 5 loader integration',
+        'Hot Module Replacement (HMR)',
+        'CSS extraction with style-loader',
+        'SASS preprocessing support',
+        'Source maps for debugging'
+      ]
+    },
+    rollupDemo: {
+      title: 'Rollup Integration',
+      desc: 'Shows Pulse Rollup plugin with tree-shaking, CSS extraction, and optimized builds.',
+      features: [
+        'Rollup 4+ plugin integration',
+        'CSS extraction to separate file',
+        'ES module tree-shaking',
+        'SASS preprocessing support',
+        'Watch mode for development'
+      ]
+    },
     runLocally: 'Run Examples Locally',
     runLocallyDesc: 'Clone the repository and run any example with the dev server:',
     createYourOwn: 'Create Your Own',
