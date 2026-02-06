@@ -28,10 +28,29 @@ permissions:
   pull-requests: write
 
 jobs:
+  # Job 0: Check if we should run (prevents "failed" status on develop)
+  validate-branch:
+    runs-on: ubuntu-latest
+    outputs:
+      should_run: ${{ steps.check.outputs.should_run }}
+
+    steps:
+      - name: Check if running on main branch
+        id: check
+        run: |
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "should_run=true" >> $GITHUB_OUTPUT
+            echo "✅ Running on main branch"
+          else
+            echo "should_run=false" >> $GITHUB_OUTPUT
+            echo "⏭️ Skipping - only runs on main branch (current: ${{ github.ref }})"
+          fi
+
   # Job 1: Vérifier que nous sommes sur main
   check-deploy:
     runs-on: ubuntu-latest
-    if: github.event_name == 'push'
+    needs: [validate-branch]
+    if: github.event_name == 'push' && needs.validate-branch.outputs.should_run == 'true'
     outputs:
       should_release: ${{ steps.check.outputs.should_release }}
 
@@ -55,10 +74,12 @@ jobs:
   # Job 2: Proposer une release (déclenché manuellement ou automatiquement)
   propose-release:
     runs-on: ubuntu-latest
-    needs: [check-deploy]
+    needs: [validate-branch, check-deploy]
     if: |
       github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'push' && needs.check-deploy.outputs.should_release == 'true')
+      (github.event_name == 'push' &&
+       needs.validate-branch.outputs.should_run == 'true' &&
+       needs.check-deploy.outputs.should_release == 'true')
 
     steps:
       - name: Checkout
