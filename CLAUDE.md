@@ -2423,6 +2423,9 @@ view {
 | `cli/scaffold.js` | Code generation (components, pages, stores, hooks) |
 | `cli/docs.js` | API docs generator (JSDoc parsing, Markdown/HTML/JSON output) |
 | `cli/utils/file-utils.js` | findPulseFiles, parseArgs, formatBytes |
+| `loader/vite-plugin.js` | Vite plugin for .pulse files (HMR, CSS extraction, preprocessors) |
+| `loader/webpack-loader.js` | Webpack loader for .pulse files (HMR, CSS extraction, preprocessors) |
+| `loader/rollup-plugin.js` | Rollup plugin for .pulse files (tree-shaking, CSS extraction, preprocessors) |
 | `examples/todo/src/main.js` | Best reference implementation |
 
 ## Code Conventions
@@ -2503,8 +2506,10 @@ import { PulseError, Errors, formatError, ParserError, RuntimeError } from 'puls
 // Compiler
 import { compile } from 'pulse-js-framework/compiler';
 
-// Vite plugin
-import pulsePlugin from 'pulse-js-framework/vite';
+// Build tool integrations
+import pulsePlugin from 'pulse-js-framework/vite';        // Vite plugin
+import pulseLoader from 'pulse-js-framework/webpack';     // Webpack loader
+import rollupPlugin from 'pulse-js-framework/rollup';     // Rollup plugin
 ```
 
 ## Testing

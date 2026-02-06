@@ -361,6 +361,28 @@ export default {
         'Dégradés et animations'
       ]
     },
+    webpackDemo: {
+      title: 'Intégration Webpack',
+      desc: 'Démontre le loader Webpack de Pulse avec HMR, extraction CSS et prétraitement SASS.',
+      features: [
+        'Intégration loader Webpack 5',
+        'Hot Module Replacement (HMR)',
+        'Extraction CSS avec style-loader',
+        'Support du prétraitement SASS',
+        'Source maps pour le débogage'
+      ]
+    },
+    rollupDemo: {
+      title: 'Intégration Rollup',
+      desc: 'Montre le plugin Rollup de Pulse avec tree-shaking, extraction CSS et builds optimisés.',
+      features: [
+        'Intégration plugin Rollup 4+',
+        'Extraction CSS vers fichier séparé',
+        'Tree-shaking des modules ES',
+        'Support du prétraitement SASS',
+        'Mode watch pour le développement'
+      ]
+    },
     runLocally: 'Exécuter les exemples localement',
     runLocallyDesc: 'Clonez le dépôt et lancez n\'importe quel exemple avec le serveur de dev :',
     createYourOwn: 'Créez le vôtre',

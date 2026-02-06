@@ -1,0 +1,80 @@
+name: Develop Summary
+
+on:
+  push:
+    branches: [develop]
+
+jobs:
+  summary:
+    name: Create Develop Summary
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get commits since last release
+        id: commits
+        run: |
+          # Get last tag on main
+          LAST_TAG=$(git describe --tags --abbrev=0 origin/main 2>/dev/null || echo "")
+
+          if [ -z "$LAST_TAG" ]; then
+            COMMIT_COUNT=$(git log origin/develop --oneline --no-merges | wc -l | tr -d ' ')
+          else
+            COMMIT_COUNT=$(git log ${LAST_TAG}..origin/develop --oneline --no-merges | wc -l | tr -d ' ')
+          fi
+
+          echo "COMMIT_COUNT=$COMMIT_COUNT" >> $GITHUB_OUTPUT
+          echo "LAST_TAG=$LAST_TAG" >> $GITHUB_OUTPUT
+
+      - name: Check if PR to main exists
+        id: check_pr
+        run: |
+          PR_COUNT=$(gh pr list --base main --head develop --state open --json number | jq '. | length')
+          echo "PR_COUNT=$PR_COUNT" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create summary
+        run: |
+          echo "## 🔨 Develop Branch Updated" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch**: \`develop\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Commits since last release**: ${{ steps.commits.outputs.COMMIT_COUNT }}" >> $GITHUB_STEP_SUMMARY
+          if [ -n "${{ steps.commits.outputs.LAST_TAG }}" ]; then
+            echo "**Last release**: ${{ steps.commits.outputs.LAST_TAG }}" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ steps.check_pr.outputs.PR_COUNT }}" -gt 0 ]; then
+            echo "### ✅ PR to Main Already Exists" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "A pull request from \`develop\` to \`main\` is already open." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "👉 [View Open PRs](https://github.com/${{ github.repository }}/pulls?q=is%3Aopen+is%3Apr+base%3Amain+head%3Adevelop)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### 🚀 Ready to Promote to Production?" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "When ready to deploy to production:" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "1. **Create PR to main**: [Promote to Main](https://github.com/${{ github.repository }}/actions/workflows/promote-to-main.yml)" >> $GITHUB_STEP_SUMMARY
+            echo "2. **Review changes**: All commits will be reviewed" >> $GITHUB_STEP_SUMMARY
+            echo "3. **Merge**: Production deployment happens automatically" >> $GITHUB_STEP_SUMMARY
+            echo "4. **Release**: Create release tag after deployment" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### ℹ️ Branch Strategy" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- \`develop\` = Integration branch (no deployment)" >> $GITHUB_STEP_SUMMARY
+          echo "- \`main\` = Production branch (auto-deploys to Netlify)" >> $GITHUB_STEP_SUMMARY
+          echo "- PRs from features → \`develop\` for testing" >> $GITHUB_STEP_SUMMARY
+          echo "- PRs from \`develop\` → \`main\` for releases" >> $GITHUB_STEP_SUMMARY

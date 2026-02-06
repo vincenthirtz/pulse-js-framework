@@ -237,6 +237,16 @@
   to = "/examples/stylus-example/index.html"
   status = 200
 
+[[redirects]]
+  from = "/examples/webpack-example/*"
+  to = "/examples/webpack-example/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/examples/rollup-example/*"
+  to = "/examples/rollup-example/index.html"
+  status = 200
+
 # Main SPA fallback (must be last - only applies if file doesn't exist)
 [[redirects]]
   from = "/*"

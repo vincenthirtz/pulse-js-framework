@@ -3,7 +3,7 @@ name: PR Preview
 on:
   pull_request:
     types: [opened, synchronize, reopened]
-    branches: [main]
+    branches: [main, develop]
 
 # Cancel in-progress runs for same PR
 concurrency:

@@ -143,34 +143,189 @@ log.debug('State snapshot:', state);  // Only shown at DEBUG level
 
 ## Making Changes
 
-### Branches
+### Branch Strategy (Git Flow)
 
-- `main` - Stable release branch
-- Feature branches - `feature/your-feature-name`
-- Bug fixes - `fix/bug-description`
+We use **Git Flow** for development:
+
+```
+main (production)
+  ← develop (integration)
+      ← feature/* (new features)
+      ← bugfix/* (bug fixes)
+      ← hotfix/* (urgent production fixes)
+```
+
+**Branch Types**:
+- `main` - **Production branch** (protected, auto-deploys to Netlify)
+- `develop` - **Integration branch** (protected, no deployment)
+- `feature/*` - New features (merge to `develop`)
+- `bugfix/*` - Bug fixes (merge to `develop`)
+- `hotfix/*` - Urgent fixes (merge to `main`, then back to `develop`)
+
+### Development Workflow
+
+#### 1. Starting a New Feature
+
+```bash
+# Make sure develop is up to date
+git checkout develop
+git pull origin develop
+
+# Create feature branch
+git checkout -b feature/my-awesome-feature
+
+# Work on your feature
+git add .
+git commit -m "feat: add awesome feature"
+
+# Push and create PR to develop
+git push -u origin feature/my-awesome-feature
+```
+
+Then create a Pull Request: `feature/my-awesome-feature` → `develop`
+
+#### 2. Bug Fix
+
+```bash
+# Same workflow as feature
+git checkout develop
+git pull origin develop
+git checkout -b bugfix/fix-important-bug
+
+# Fix the bug
+git add .
+git commit -m "fix: resolve important bug"
+
+# Push and create PR to develop
+git push -u origin bugfix/fix-important-bug
+```
+
+Then create a Pull Request: `bugfix/fix-important-bug` → `develop`
+
+#### 3. Hotfix (Emergency Production Fix)
+
+```bash
+# Create from main (production)
+git checkout main
+git pull origin main
+git checkout -b hotfix/critical-security-fix
+
+# Fix the critical issue
+git add .
+git commit -m "fix: critical security vulnerability"
+
+# Push and create PR to main
+git push -u origin hotfix/critical-security-fix
+```
+
+Then:
+1. Create PR: `hotfix/critical-security-fix` → `main`
+2. After merge to main, also merge back to develop:
+   ```bash
+   git checkout develop
+   git pull origin develop
+   git merge main
+   git push origin develop
+   ```
 
 ### Commit Messages
 
-Use clear, descriptive commit messages:
+We follow **Conventional Commits** format:
 
 ```
-Add history plugin to store module
+<type>(<scope>): <subject>
 
-- Implement undo/redo functionality
-- Add $canUndo and $canRedo methods
-- Limit history to configurable max entries
+<body>
+
+<footer>
+```
+
+**Types**:
+- `feat:` - New feature
+- `fix:` - Bug fix
+- `docs:` - Documentation changes
+- `style:` - Code style/formatting (no logic change)
+- `refactor:` - Code refactoring (no feature/fix)
+- `perf:` - Performance improvements
+- `test:` - Add or update tests
+- `chore:` - Build/config changes, dependencies
+
+**Examples**:
+```bash
+feat(router): add lazy loading support
+
+- Implement lazy() function
+- Add preload() helper
+- Update documentation
+
+Closes #123
+```
+
+```bash
+fix(compiler): handle edge case in CSS parsing
+
+Fixes an issue where nested media queries were not properly scoped.
+
+Fixes #456
+```
+
+```bash
+chore(deps): update dependencies
+
+- Update @actions/core to v1.10.0
+- Update codecov action to v4
 ```
 
 ### Pull Requests
 
-1. Fork the repository
-2. Create a feature branch from `main`
-3. Make your changes
-4. Run `npm test` and ensure all tests pass
-5. Submit a pull request with:
-   - Clear description of changes
-   - Link to related issues (if any)
-   - Test coverage for new features
+#### Creating a PR
+
+1. **Fork** the repository (or use branch if you have write access)
+2. **Create branch** from `develop` (or `main` for hotfixes)
+3. **Make changes** with tests
+4. **Run tests**: `npm test` (all must pass)
+5. **Push** your branch
+6. **Create PR** on GitHub
+
+#### PR Requirements
+
+✅ **Required**:
+- All CI checks passing (tests, coverage, lint, build, security)
+- Clear description of changes
+- Link to related issues
+- Test coverage for new features
+- No merge conflicts
+
+✅ **Recommended**:
+- Screenshots/GIFs for UI changes
+- Performance impact notes
+- Breaking changes documented
+
+#### PR Labels
+
+PRs are **automatically labeled** based on changed files:
+- `documentation` - Docs changes
+- `tests` - Test updates
+- `compiler` - Compiler changes
+- `runtime` - Runtime changes
+- `cli` - CLI changes
+- `ci/cd` - Workflow changes
+- `size/XS` to `size/XL` - Based on lines changed
+
+#### PR Preview
+
+Every PR gets an **automatic Netlify preview deployment**:
+- Preview URL posted as comment
+- Updates on each new commit
+- Test changes before merge
+
+### Code Review Process
+
+1. **Automated checks** run (CI, tests, security audit)
+2. **Code review** by maintainers
+3. **Address feedback** with additional commits
+4. **Approval** from reviewer(s)
+5. **Merge** (squash and merge or merge commit)
 
 ## Adding New Features
 
@@ -228,10 +383,122 @@ When reporting bugs, please include:
 4. Expected vs actual behavior
 5. Relevant code snippets
 
+## Release Process
+
+**Note**: Only maintainers can create releases.
+
+### Creating a Release
+
+1. **Ensure `develop` is stable**:
+   - All CI checks passing
+   - All features tested
+   - No known critical bugs
+
+2. **Promote to production**:
+   ```bash
+   # Option A: Via GitHub Actions
+   # Go to Actions > Promote to Main > Run workflow
+
+   # Option B: Manual PR
+   git checkout develop
+   git pull origin develop
+   # Create PR on GitHub: develop → main
+   ```
+
+3. **Review and merge PR**:
+   - Review all changes since last release
+   - Ensure CHANGELOG is updated
+   - Merge PR to `main`
+
+4. **Production deploys automatically**:
+   - Netlify deployment triggers on merge
+   - Live at https://pulse-js.fr
+
+5. **Create release tag**:
+   ```bash
+   # Go to Actions > Create Release > Run workflow
+   # Select version type: patch, minor, or major
+   ```
+
+6. **Release artifacts created**:
+   - GitHub release with changelog
+   - npm package published
+   - Documentation updated
+
+### Version Numbering
+
+We use **Semantic Versioning** (semver):
+
+- `MAJOR.MINOR.PATCH` (e.g., `1.7.34`)
+- **PATCH** (`1.7.34` → `1.7.35`): Bug fixes, no breaking changes
+- **MINOR** (`1.7.34` → `1.8.0`): New features, backward compatible
+- **MAJOR** (`1.7.34` → `2.0.0`): Breaking changes
+
+### Changelog
+
+The changelog is **automatically generated** from commit messages:
+- `feat:` commits → Added section
+- `fix:` commits → Fixed section
+- `chore:`, `refactor:`, etc. → Changed section
+- Breaking changes (with `!` or `BREAKING CHANGE:`) → Special section
+
+## Branch Protection
+
+Both `main` and `develop` are **protected branches**:
+
+### Main Branch
+- ✅ Requires 1 PR review
+- ✅ Requires status checks (test, coverage, lint, build, security)
+- ✅ Requires conversation resolution
+- ✅ Linear history enforced
+- ❌ No direct pushes
+- ❌ No force pushes
+- ❌ No deletion
+
+### Develop Branch
+- ✅ Requires status checks (test, coverage, lint, build, security)
+- ✅ Requires conversation resolution
+- ✅ Linear history enforced
+- ❌ No direct pushes
+- ❌ No force pushes
+- ❌ No deletion
+
+**Why protected?**
+- Ensures code quality
+- Prevents accidental breakage
+- Enforces review process
+- Maintains clean history
+
+## CI/CD Pipeline
+
+### Continuous Integration
+
+Every push triggers:
+1. **Security Audit**: npm audit for vulnerabilities
+2. **Tests**: Run on Node.js 18, 20, 22 (parallel)
+3. **Coverage**: Check code coverage (70% threshold)
+4. **Lint**: Syntax validation
+5. **Build**: Documentation site build
+
+### Continuous Deployment
+
+- **PR Previews**: Every PR gets Netlify preview
+- **Staging**: `develop` branch (no deployment)
+- **Production**: `main` branch → auto-deploys to Netlify
+
+### Automated Workflows
+
+- **Auto-labeling**: PRs labeled based on files changed
+- **Bundle size check**: Warns if >10MB
+- **Dependency updates**: Dependabot creates weekly PRs
+- **Security alerts**: Automatic vulnerability scanning
+
 ## Questions?
 
-- Open a [GitHub Issue](https://github.com/vincenthirtz/pulse-js-framework/issues)
-- Check existing issues and discussions
+- 💬 Open a [GitHub Issue](https://github.com/vincenthirtz/pulse-js-framework/issues)
+- 📖 Check [existing issues](https://github.com/vincenthirtz/pulse-js-framework/issues?q=is%3Aissue)
+- 📚 Read [documentation](https://pulse-js.fr)
+- 🔧 Check [workflow README](.github/workflows/README.md)
 
 ## License
 

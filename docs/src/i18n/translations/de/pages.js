@@ -358,6 +358,28 @@ export default {
         'Verläufe und Animationen'
       ]
     },
+    webpackDemo: {
+      title: 'Webpack-Integration',
+      desc: 'Demonstriert Pulse Webpack-Loader mit HMR, CSS-Extraktion und SASS-Vorverarbeitung.',
+      features: [
+        'Webpack 5 Loader-Integration',
+        'Hot Module Replacement (HMR)',
+        'CSS-Extraktion mit style-loader',
+        'SASS-Vorverarbeitung',
+        'Source Maps für Debugging'
+      ]
+    },
+    rollupDemo: {
+      title: 'Rollup-Integration',
+      desc: 'Zeigt Pulse Rollup-Plugin mit Tree-Shaking, CSS-Extraktion und optimierten Builds.',
+      features: [
+        'Rollup 4+ Plugin-Integration',
+        'CSS-Extraktion in separate Datei',
+        'ES-Modul Tree-Shaking',
+        'SASS-Vorverarbeitung',
+        'Watch-Modus für Entwicklung'
+      ]
+    },
     runLocally: 'Beispiele lokal ausführen',
     runLocallyDesc: 'Klonen Sie das Repository und führen Sie ein Beispiel mit dem Dev-Server aus:',
     createYourOwn: 'Eigenes erstellen',

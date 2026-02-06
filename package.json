@@ -94,6 +94,8 @@
       "types": "./types/index.d.ts",
       "default": "./loader/vite-plugin.js"
     },
+    "./webpack": "./loader/webpack-loader.js",
+    "./rollup": "./loader/rollup-plugin.js",
     "./mobile": "./mobile/bridge/pulse-native.js",
     "./package.json": "./package.json"
   },
@@ -110,7 +112,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "test": "npm run test:compiler && npm run test:sourcemap && npm run test:css-parsing && npm run test:preprocessor && npm run test:pulse && npm run test:dom && npm run test:dom-element && npm run test:dom-list && npm run test:dom-conditional && npm run test:dom-lifecycle && npm run test:dom-selector && npm run test:dom-adapter && npm run test:dom-advanced && npm run test:enhanced-mock-adapter && npm run test:router && npm run test:store && npm run test:context && npm run test:hmr && npm run test:lint && npm run test:format && npm run test:analyze && npm run test:cli && npm run test:cli-ui && npm run test:cli-create && npm run test:lru-cache && npm run test:utils && npm run test:utils-coverage && npm run test:docs && npm run test:docs-nav && npm run test:async && npm run test:async-coverage && npm run test:form && npm run test:http && npm run test:devtools && npm run test:native && npm run test:a11y && npm run test:a11y-enhanced && npm run test:logger && npm run test:logger-prod && npm run test:errors && npm run test:security && npm run test:websocket && npm run test:graphql && npm run test:graphql-coverage && npm run test:doctor && npm run test:scaffold && npm run test:test-runner && npm run test:build && npm run test:integration && npm run test:context-stress && npm run test:form-edge-cases && npm run test:graphql-subscriptions && npm run test:http-edge-cases && npm run test:integration-advanced && npm run test:websocket-stress && npm run test:ssr && npm run test:ssr-hydrator",
+    "test": "npm run test:compiler && npm run test:sourcemap && npm run test:css-parsing && npm run test:preprocessor && npm run test:pulse && npm run test:dom && npm run test:dom-element && npm run test:dom-list && npm run test:dom-conditional && npm run test:dom-lifecycle && npm run test:dom-selector && npm run test:dom-adapter && npm run test:dom-advanced && npm run test:enhanced-mock-adapter && npm run test:router && npm run test:store && npm run test:context && npm run test:hmr && npm run test:lint && npm run test:format && npm run test:analyze && npm run test:cli && npm run test:cli-ui && npm run test:cli-create && npm run test:lru-cache && npm run test:utils && npm run test:utils-coverage && npm run test:docs && npm run test:docs-nav && npm run test:async && npm run test:async-coverage && npm run test:form && npm run test:http && npm run test:devtools && npm run test:native && npm run test:a11y && npm run test:a11y-enhanced && npm run test:logger && npm run test:logger-prod && npm run test:errors && npm run test:security && npm run test:websocket && npm run test:graphql && npm run test:graphql-coverage && npm run test:doctor && npm run test:scaffold && npm run test:test-runner && npm run test:build && npm run test:integration && npm run test:context-stress && npm run test:form-edge-cases && npm run test:graphql-subscriptions && npm run test:http-edge-cases && npm run test:integration-advanced && npm run test:websocket-stress && npm run test:ssr && npm run test:ssr-hydrator && npm run test:webpack-loader && npm run test:rollup-plugin",
     "test:compiler": "node test/compiler.test.js",
     "test:sourcemap": "node test/sourcemap.test.js",
     "test:css-parsing": "node test/css-parsing.test.js",
@@ -168,6 +170,8 @@
     "test:websocket-stress": "node test/websocket-stress.test.js",
     "test:ssr": "node test/ssr.test.js",
     "test:ssr-hydrator": "node test/ssr-hydrator.test.js",
+    "test:webpack-loader": "node test/webpack-loader.test.js",
+    "test:rollup-plugin": "node test/rollup-plugin.test.js",
     "build:netlify": "node scripts/build-netlify.js",
     "version": "node scripts/sync-version.js",
     "docs": "node cli/index.js dev docs"

@@ -358,6 +358,28 @@ export default {
         'Gradientes e animações'
       ]
     },
+    webpackDemo: {
+      title: 'Integração Webpack',
+      desc: 'Demonstra o loader Webpack do Pulse com HMR, extração CSS e pré-processamento SASS.',
+      features: [
+        'Integração loader Webpack 5',
+        'Hot Module Replacement (HMR)',
+        'Extração CSS com style-loader',
+        'Suporte pré-processamento SASS',
+        'Source maps para debug'
+      ]
+    },
+    rollupDemo: {
+      title: 'Integração Rollup',
+      desc: 'Mostra o plugin Rollup do Pulse com tree-shaking, extração CSS e builds otimizados.',
+      features: [
+        'Integração plugin Rollup 4+',
+        'Extração CSS para arquivo separado',
+        'Tree-shaking de módulos ES',
+        'Suporte pré-processamento SASS',
+        'Modo watch para desenvolvimento'
+      ]
+    },
     runLocally: 'Executar Exemplos Localmente',
     runLocallyDesc: 'Para executar os projetos de exemplo na sua máquina:',
     createYourOwn: 'Crie o Seu',
