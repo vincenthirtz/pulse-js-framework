@@ -167,6 +167,7 @@ jobs:
 
       - name: Send Discord Notification
         if: success() && env.DISCORD_WEBHOOK != ''
+        continue-on-error: true
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         run: |
