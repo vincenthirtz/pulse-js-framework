@@ -154,8 +154,10 @@ jobs:
             --base main \
             --head "$BRANCH" \
             --title "chore(release): v${VERSION}" \
-            --body-file /tmp/pr_body.md \
-            --label "release")
+            --body-file /tmp/pr_body.md)
+
+          # Add label if it exists (non-blocking)
+          gh pr edit "$PR_URL" --add-label "release" 2>/dev/null || true
 
           echo "pr_url=$PR_URL" >> $GITHUB_OUTPUT
           echo "PR created: $PR_URL"
