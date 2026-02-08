@@ -258,7 +258,7 @@ jobs:
 
   # Release job - only runs when manually triggered with a release type
   release:
-    name: Trigger Release (${{ inputs.release_type }})
+    name: Trigger Release
     runs-on: ubuntu-latest
     timeout-minutes: 5
     needs: [test, lint, build, coverage]
