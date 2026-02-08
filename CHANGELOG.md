@@ -1,5 +1,64 @@
 # Changelog
 
+## [1.7.35] - 2026-02-08
+
+### Changes
+
+- fix(ci): make Discord notification non-blocking in manual-release
+- chore(release): bump version to 1.7.34
+- fix(ci): handle existing release branch in manual-release workflow
+- fix(ci): make release label optional in manual-release workflow
+- fix(ci): use PR-based flow for manual-release workflow
+- fix(ci): remove dynamic input from release job name
+- fix(ci): restrict release trigger to main branch only
+- feat(ci): add release type choice to CI workflow_dispatch
+- feat(loader): add SWC plugin for .pulse file compilation
+- fix(ci): harden and optimize GitHub Actions workflows
+- feat(ci): add Discord notification to manual-release workflow
+- fix(ci): handle empty git diff stats in enhance-pr-description workflow
+- feat(ci): optimize release process with two-step workflow
+- fix(ci): handle empty commits in enhance-pr-description workflow
+- feat(ci): integrate manual release workflow into CI
+- fix(ci): fix bash quoting issues in PR workflows
+- fix(ci): improve post-deploy workflow status handling
+- feat(ci): add automatic PR commit summary workflow
+- fix(examples): add missing index.html to parcel-example
+- fix(i18n): add missing parcelDemo translations and increase line variance
+- fix(ci): improve test runner robustness for GitHub Actions
+- refactor(test): improve Parcel plugin test robustness and maintainability
+- fix(test): make Parcel plugin tests more robust for CI
+- feat(loader): add Parcel transformer with full integration
+- fix(ci): fix conditional logic in post-deploy workflow
+- fix(ci): add explicit branch validation to post-deploy workflow
+- fix(ci): simplify sed command in post-deploy workflow
+- fix(ci): fix YAML syntax error in post-deploy workflow
+- fix(ci): prevent post-deploy workflow loop and improve branch filtering
+- fix(ci): fix post-deploy workflow to only run on main branch
+- chore(ci): add codecov configuration for better coverage reporting
+- fix(ci): fix failing GitHub Actions workflows
+- feat(loader): add ESBuild plugin with ultra-fast builds
+- docs(ci): add comprehensive PR automation documentation
+- feat(ci): enhance PR descriptions with detailed commit analysis
+- chore(ci): remove obsolete create-release workflow
+- feat(ci): add automated post-deploy release system
+- feat(loaders): add Webpack and Rollup build tool integrations
+- docs: add quick setup guide for Git Flow and branch protection
+- docs: update CONTRIBUTING.md with Git Flow strategy
+- feat(git): implement Git Flow with branch protection and develop branch
+- docs(ci): add comprehensive CI/CD improvements summary
+- chore(ci): bump codecov/codecov-action from 4 to 5
+- chore(ci): bump actions/cache from 4 to 5
+- chore(ci): bump actions/github-script from 7 to 8
+- feat(ci): comprehensive CI/CD improvements and automation
+- feat(ci): add automated release creation workflow after Netlify deploy
+- feat(release): add GitHub CLI integration for automated releases
+- chore(release): v1.7.33 - compiler improvements for LESS/Stylus examples
+- feat(compiler): add support for compound assignment and increment operators
+- fix(docs): update LESS and Stylus example links to point to live demos
+
+---
+
+
 ## [1.7.34] - 2026-02-08
 
 ### Changes
