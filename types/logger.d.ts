@@ -94,6 +94,18 @@ export declare function getLogLevel(): LogLevelValue;
 export declare function setFormatter(formatter: LogFormatter | null): void;
 
 /**
+ * Configure logger options (production mode, etc.)
+ */
+export declare function configureLogger(options?: {
+  production?: boolean;
+}): void;
+
+/**
+ * Check if logger is in production (noop) mode
+ */
+export declare function isProductionMode(): boolean;
+
+/**
  * Create a logger instance with optional namespace
  */
 export declare function createLogger(

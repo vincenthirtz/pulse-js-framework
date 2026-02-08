@@ -638,6 +638,110 @@ test('watch returns cleanup function', () => {
   assertEqual(runCount, 2, 'Watch should not run after cleanup');
 });
 
+test('watch provides old values on first run', () => {
+  const p = pulse(10);
+  let capturedOld = null;
+
+  watch(p, (newVals, oldVals) => {
+    capturedOld = oldVals;
+  });
+
+  // On first run, old values should be the initial value (from peek())
+  assertDeepEqual(capturedOld, [10]);
+});
+
+test('watch tracks old and new across multiple changes', () => {
+  const p = pulse('a');
+  const history = [];
+
+  watch(p, ([newVal], [oldVal]) => {
+    history.push({ newVal, oldVal });
+  });
+
+  p.set('b');
+  p.set('c');
+
+  assertEqual(history.length, 3); // initial + 2 changes
+  assertEqual(history[1].oldVal, 'a');
+  assertEqual(history[1].newVal, 'b');
+  assertEqual(history[2].oldVal, 'b');
+  assertEqual(history[2].newVal, 'c');
+});
+
+test('watch single source wraps in array', () => {
+  const p = pulse(5);
+  let receivedNew = null;
+
+  watch(p, (newVals) => {
+    receivedNew = newVals;
+  });
+
+  assert(Array.isArray(receivedNew), 'New values should be an array');
+  assertEqual(receivedNew.length, 1);
+  assertEqual(receivedNew[0], 5);
+});
+
+test('watch multiple sources tracks all old values', () => {
+  const a = pulse(1);
+  const b = pulse(2);
+  const c = pulse(3);
+  let lastOld = null;
+
+  watch([a, b, c], (newVals, oldVals) => {
+    lastOld = oldVals;
+  });
+
+  a.set(10);
+  assertDeepEqual(lastOld, [1, 2, 3]);
+});
+
+test('watch does not fire when value is same', () => {
+  const p = pulse(1);
+  let runCount = 0;
+
+  watch(p, () => {
+    runCount++;
+  });
+
+  assertEqual(runCount, 1, 'Initial run');
+
+  p.set(1); // Same value
+  assertEqual(runCount, 1, 'Should not fire for same value');
+
+  p.set(2);
+  assertEqual(runCount, 2, 'Should fire for different value');
+});
+
+test('watch works with computed sources', () => {
+  const base = pulse(5);
+  const doubled = computed(() => base.get() * 2);
+  let lastNew = null;
+
+  watch(doubled, (newVals) => {
+    lastNew = newVals;
+  });
+
+  assertEqual(lastNew[0], 10);
+
+  base.set(10);
+  assertEqual(lastNew[0], 20);
+});
+
+test('watch callback receives correct types', () => {
+  const p = pulse({ name: 'Alice', age: 30 });
+  let capturedNew = null;
+
+  watch(p, (newVals) => {
+    capturedNew = newVals[0];
+  });
+
+  assertEqual(capturedNew.name, 'Alice');
+
+  p.set({ name: 'Bob', age: 25 });
+  assertEqual(capturedNew.name, 'Bob');
+  assertEqual(capturedNew.age, 25);
+});
+
 // =============================================================================
 // untrack Tests
 // =============================================================================
@@ -716,6 +820,132 @@ test('memo with custom equals', () => {
   assertEqual(computeCount, 2);
 });
 
+test('memo with no arguments', () => {
+  let computeCount = 0;
+
+  const getTimestamp = memo(() => {
+    computeCount++;
+    return 'fixed-value';
+  });
+
+  assertEqual(getTimestamp(), 'fixed-value');
+  assertEqual(computeCount, 1);
+
+  assertEqual(getTimestamp(), 'fixed-value');
+  assertEqual(computeCount, 1, 'Should cache zero-arg calls');
+});
+
+test('memo recomputes when arg count changes', () => {
+  let computeCount = 0;
+
+  const fn = memo((...args) => {
+    computeCount++;
+    return args.reduce((a, b) => a + b, 0);
+  });
+
+  assertEqual(fn(1, 2), 3);
+  assertEqual(computeCount, 1);
+
+  assertEqual(fn(1, 2, 3), 6);
+  assertEqual(computeCount, 2, 'Different arg count should recompute');
+});
+
+test('memo handles null and undefined args', () => {
+  let computeCount = 0;
+
+  const fn = memo((a) => {
+    computeCount++;
+    return a;
+  });
+
+  fn(null);
+  assertEqual(computeCount, 1);
+
+  fn(null);
+  assertEqual(computeCount, 1, 'Should cache null');
+
+  fn(undefined);
+  assertEqual(computeCount, 2, 'undefined !== null');
+
+  fn(undefined);
+  assertEqual(computeCount, 2, 'Should cache undefined');
+});
+
+test('memo with multiple arguments', () => {
+  let computeCount = 0;
+
+  const add = memo((a, b, c) => {
+    computeCount++;
+    return a + b + c;
+  });
+
+  assertEqual(add(1, 2, 3), 6);
+  assertEqual(add(1, 2, 3), 6);
+  assertEqual(computeCount, 1, 'Same 3 args should be cached');
+
+  assertEqual(add(1, 2, 4), 7);
+  assertEqual(computeCount, 2, 'Third arg changed');
+});
+
+test('memo caches only the last call', () => {
+  let computeCount = 0;
+
+  const fn = memo((x) => {
+    computeCount++;
+    return x * 10;
+  });
+
+  assertEqual(fn(1), 10);
+  assertEqual(fn(2), 20);
+  assertEqual(computeCount, 2);
+
+  // Going back to first arg should recompute (not a multi-key cache)
+  assertEqual(fn(1), 10);
+  assertEqual(computeCount, 3, 'memo only caches the last call');
+});
+
+test('memo returns correct type', () => {
+  const fn = memo((x) => ({ doubled: x * 2 }));
+
+  const result = fn(5);
+  assertEqual(result.doubled, 10);
+
+  const cached = fn(5);
+  assert(result === cached, 'Should return exact same reference from cache');
+});
+
+test('memo with boolean args', () => {
+  let computeCount = 0;
+
+  const fn = memo((flag) => {
+    computeCount++;
+    return flag ? 'yes' : 'no';
+  });
+
+  assertEqual(fn(true), 'yes');
+  assertEqual(fn(true), 'yes');
+  assertEqual(computeCount, 1);
+
+  assertEqual(fn(false), 'no');
+  assertEqual(computeCount, 2);
+});
+
+test('memo with string args', () => {
+  let computeCount = 0;
+
+  const greet = memo((name) => {
+    computeCount++;
+    return `Hello, ${name}!`;
+  });
+
+  assertEqual(greet('Alice'), 'Hello, Alice!');
+  assertEqual(greet('Alice'), 'Hello, Alice!');
+  assertEqual(computeCount, 1);
+
+  assertEqual(greet('Bob'), 'Hello, Bob!');
+  assertEqual(computeCount, 2);
+});
+
 // =============================================================================
 // memoComputed Tests
 // =============================================================================
@@ -740,6 +970,161 @@ test('memoComputed combines memo with computed', () => {
 
   // Reading again should not recompute if deps haven't changed
   assertEqual(result.get(), 6);
+});
+
+test('memoComputed recomputes when deps change', () => {
+  const x = pulse(10);
+  let computeCount = 0;
+
+  const doubled = memoComputed(
+    () => {
+      computeCount++;
+      return x.get() * 2;
+    },
+    { deps: [x] }
+  );
+
+  assertEqual(doubled.get(), 20);
+  assertEqual(computeCount, 1);
+
+  x.set(20);
+  assertEqual(doubled.get(), 40);
+  assertEqual(computeCount, 2);
+});
+
+test('memoComputed is reactive in effects', () => {
+  const count = pulse(5);
+  let effectValue = 0;
+
+  const tripled = memoComputed(
+    () => count.get() * 3,
+    { deps: [count] }
+  );
+
+  effect(() => {
+    effectValue = tripled.get();
+  });
+
+  assertEqual(effectValue, 15);
+
+  count.set(10);
+  assertEqual(effectValue, 30);
+});
+
+test('memoComputed with multiple deps', () => {
+  const firstName = pulse('John');
+  const lastName = pulse('Doe');
+  let computeCount = 0;
+
+  const fullName = memoComputed(
+    () => {
+      computeCount++;
+      return `${firstName.get()} ${lastName.get()}`;
+    },
+    { deps: [firstName, lastName] }
+  );
+
+  assertEqual(fullName.get(), 'John Doe');
+  assertEqual(computeCount, 1);
+
+  firstName.set('Jane');
+  assertEqual(fullName.get(), 'Jane Doe');
+  assertEqual(computeCount, 2);
+
+  lastName.set('Smith');
+  assertEqual(fullName.get(), 'Jane Smith');
+  assertEqual(computeCount, 3);
+});
+
+test('memoComputed is read-only', () => {
+  const p = pulse(1);
+  const mc = memoComputed(() => p.get(), { deps: [p] });
+
+  let threw = false;
+  try {
+    mc.set(42);
+  } catch (e) {
+    threw = true;
+  }
+
+  assert(threw, 'memoComputed should be read-only');
+});
+
+test('memoComputed with no deps', () => {
+  let computeCount = 0;
+
+  const result = memoComputed(() => {
+    computeCount++;
+    return 42;
+  });
+
+  assertEqual(result.get(), 42);
+  assertEqual(computeCount, 1);
+});
+
+test('memoComputed with custom equals', () => {
+  const items = pulse([1, 2, 3]);
+  let computeCount = 0;
+
+  const sum = memoComputed(
+    () => {
+      computeCount++;
+      return items.get().reduce((a, b) => a + b, 0);
+    },
+    { deps: [items], equals: (a, b) => JSON.stringify(a) === JSON.stringify(b) }
+  );
+
+  assertEqual(sum.get(), 6);
+  assertEqual(computeCount, 1);
+});
+
+test('memoComputed works in batch', () => {
+  const a = pulse(1);
+  const b = pulse(2);
+  let computeCount = 0;
+
+  const sum = memoComputed(
+    () => {
+      computeCount++;
+      return a.get() + b.get();
+    },
+    { deps: [a, b] }
+  );
+
+  assertEqual(sum.get(), 3);
+  const initialCount = computeCount;
+
+  batch(() => {
+    a.set(10);
+    b.set(20);
+  });
+
+  assertEqual(sum.get(), 30);
+});
+
+test('memoComputed with function deps', () => {
+  const p = pulse(5);
+
+  const result = memoComputed(
+    () => p.get() * 2,
+    { deps: [() => p.get()] }
+  );
+
+  assertEqual(result.get(), 10);
+
+  p.set(10);
+  assertEqual(result.get(), 20);
+});
+
+test('memoComputed can be disposed', () => {
+  const p = pulse(1);
+  const mc = memoComputed(() => p.get() * 2, { deps: [p] });
+
+  assertEqual(mc.get(), 2);
+
+  mc.dispose();
+  // After dispose, it should not track changes
+  p.set(10);
 });
 
 // =============================================================================
@@ -778,6 +1163,103 @@ testAsync('fromPromise uses initial value', async () => {
 
   assertEqual(value.get(), 'initial');
   assert(loading.get() === true);
+});
+
+testAsync('fromPromise initial state is loading=true, error=null', async () => {
+  const { loading, error } = fromPromise(new Promise(() => {})); // Never resolves
+  assertEqual(loading.get(), true);
+  assertEqual(error.get(), null);
+});
+
+testAsync('fromPromise resolves with object value', async () => {
+  const data = { name: 'Alice', age: 30 };
+  const { value, loading, error } = fromPromise(Promise.resolve(data));
+
+  await new Promise(r => setTimeout(r, 10));
+
+  assertEqual(value.get().name, 'Alice');
+  assertEqual(value.get().age, 30);
+  assertEqual(loading.get(), false);
+  assertEqual(error.get(), null);
+});
+
+testAsync('fromPromise resolves with array value', async () => {
+  const { value } = fromPromise(Promise.resolve([1, 2, 3]));
+
+  await new Promise(r => setTimeout(r, 10));
+
+  assertDeepEqual(value.get(), [1, 2, 3]);
+});
+
+testAsync('fromPromise resolves with null', async () => {
+  const { value, loading } = fromPromise(Promise.resolve(null), 'fallback');
+
+  await new Promise(r => setTimeout(r, 10));
+
+  assertEqual(value.get(), null);
+  assertEqual(loading.get(), false);
+});
+
+testAsync('fromPromise resolves with zero', async () => {
+  const { value, loading } = fromPromise(Promise.resolve(0));
+
+  await new Promise(r => setTimeout(r, 10));
+
+  assertEqual(value.get(), 0);
+  assertEqual(loading.get(), false);
+});
+
+testAsync('fromPromise error is accessible', async () => {
+  const err = new TypeError('Network failure');
+  const { error, loading } = fromPromise(Promise.reject(err));
+
+  await new Promise(r => setTimeout(r, 10));
+
+  assert(error.get() instanceof TypeError, 'Should preserve error type');
+  assertEqual(error.get().message, 'Network failure');
+  assertEqual(loading.get(), false);
+});
+
+testAsync('fromPromise is reactive in effects', async () => {
+  const { value, loading } = fromPromise(Promise.resolve(99));
+  let effectRuns = 0;
+
+  effect(() => {
+    value.get();
+    loading.get();
+    effectRuns++;
+  });
+
+  assertEqual(effectRuns, 1, 'Effect runs initially');
+
+  await new Promise(r => setTimeout(r, 10));
+
+  // After promise resolves, both value and loading change (batched)
+  assert(effectRuns >= 2, 'Effect should re-run when promise resolves');
+});
+
+testAsync('fromPromise default initial value is undefined', async () => {
+  const { value } = fromPromise(new Promise(r => setTimeout(() => r(42), 50)));
+
+  assertEqual(value.get(), undefined);
+});
+
+testAsync('fromPromise loading transitions to false on error', async () => {
+  const { loading } = fromPromise(Promise.reject(new Error('fail')));
+
+  assertEqual(loading.get(), true, 'Should start loading');
+
+  await new Promise(r => setTimeout(r, 10));
+
+  assertEqual(loading.get(), false, 'Should stop loading after error');
+});
+
+testAsync('fromPromise value unchanged on rejection', async () => {
+  const { value } = fromPromise(Promise.reject(new Error('fail')), 'initial');
+
+  await new Promise(r => setTimeout(r, 10));
+
+  assertEqual(value.get(), 'initial', 'Value should remain initial on rejection');
 });
 
 // =============================================================================
