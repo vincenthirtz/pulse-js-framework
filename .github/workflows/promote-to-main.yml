@@ -14,13 +14,15 @@ on:
           - major
         default: 'none'
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   create-pr:
-    name: Create PR develop → main
+    name: Create PR develop -> main
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
+    timeout-minutes: 10
 
     steps:
       - name: Checkout repository
@@ -51,17 +53,17 @@ jobs:
           LAST_TAG=$(git describe --tags --abbrev=0 origin/main 2>/dev/null || echo "")
 
           if [ -z "$LAST_TAG" ]; then
-            # No tags yet, get all commits
             COMMITS=$(git log origin/develop --pretty=format:"- %s (%h)" --no-merges -20)
           else
-            # Get commits since last tag
             COMMITS=$(git log ${LAST_TAG}..origin/develop --pretty=format:"- %s (%h)" --no-merges)
           fi
 
-          # Count commits
+          # Save commits to file (avoids shell injection when building PR body)
+          echo "$COMMITS" > /tmp/commits.txt
+
           COMMIT_COUNT=$(echo "$COMMITS" | wc -l | tr -d ' ')
 
-          # Stats par type de commit (Conventional Commits)
+          # Stats by commit type (Conventional Commits)
           FEAT_COUNT=$(echo "$COMMITS" | grep -c "^- feat" || echo 0)
           FIX_COUNT=$(echo "$COMMITS" | grep -c "^- fix" || echo 0)
           DOCS_COUNT=$(echo "$COMMITS" | grep -c "^- docs" || echo 0)
@@ -70,7 +72,7 @@ jobs:
           TEST_COUNT=$(echo "$COMMITS" | grep -c "^- test" || echo 0)
           BREAKING_COUNT=$(echo "$COMMITS" | grep -c "!" || echo 0)
 
-          # Fichiers modifiés
+          # Files changed
           if [ -z "$LAST_TAG" ]; then
             FILES_CHANGED=$(git diff --name-only origin/main...origin/develop | wc -l | tr -d ' ')
             ADDITIONS=$(git diff --shortstat origin/main...origin/develop | grep -oE '[0-9]+ insertion' | grep -oE '[0-9]+' || echo 0)
@@ -81,17 +83,14 @@ jobs:
             DELETIONS=$(git diff --shortstat ${LAST_TAG}..origin/develop | grep -oE '[0-9]+ deletion' | grep -oE '[0-9]+' || echo 0)
           fi
 
-          # Déterminer le type de release suggéré
+          # Suggested release type
           SUGGESTED_RELEASE="patch"
-          if [ $BREAKING_COUNT -gt 0 ]; then
+          if [ "$BREAKING_COUNT" -gt 0 ]; then
             SUGGESTED_RELEASE="major"
-          elif [ $FEAT_COUNT -gt 0 ]; then
+          elif [ "$FEAT_COUNT" -gt 0 ]; then
             SUGGESTED_RELEASE="minor"
           fi
 
-          echo "COMMITS<<EOF" >> $GITHUB_OUTPUT
-          echo "$COMMITS" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
           echo "COMMIT_COUNT=$COMMIT_COUNT" >> $GITHUB_OUTPUT
           echo "LAST_TAG=$LAST_TAG" >> $GITHUB_OUTPUT
           echo "FEAT_COUNT=$FEAT_COUNT" >> $GITHUB_OUTPUT
@@ -106,22 +105,10 @@ jobs:
           echo "DELETIONS=$DELETIONS" >> $GITHUB_OUTPUT
           echo "SUGGESTED_RELEASE=$SUGGESTED_RELEASE" >> $GITHUB_OUTPUT
 
-      - name: Create Pull Request
+      - name: Build PR body
         if: steps.check_pr.outputs.PR_EXISTS == 'false'
-        id: create_pr
         run: |
-          # Build PR body
-          LAST_TAG="${{ steps.get_commits.outputs.LAST_TAG }}"
-          COMMITS="${{ steps.get_commits.outputs.COMMITS }}"
           COMMIT_COUNT="${{ steps.get_commits.outputs.COMMIT_COUNT }}"
-
-          if [ -n "$LAST_TAG" ]; then
-            TITLE="Release: Promote develop to main (since $LAST_TAG)"
-          else
-            TITLE="Release: Promote develop to main (initial release)"
-          fi
-
-          # Récupérer les statistiques
           FEAT_COUNT="${{ steps.get_commits.outputs.FEAT_COUNT }}"
           FIX_COUNT="${{ steps.get_commits.outputs.FIX_COUNT }}"
           DOCS_COUNT="${{ steps.get_commits.outputs.DOCS_COUNT }}"
@@ -134,88 +121,101 @@ jobs:
           DELETIONS="${{ steps.get_commits.outputs.DELETIONS }}"
           SUGGESTED_RELEASE="${{ steps.get_commits.outputs.SUGGESTED_RELEASE }}"
 
-          # Badge de breaking change
-          BREAKING_BADGE=""
-          if [ $BREAKING_COUNT -gt 0 ]; then
-            BREAKING_BADGE="
-          > ⚠️ **WARNING**: This PR contains $BREAKING_COUNT breaking change(s)!
-          "
-          fi
+          # Read commits safely from file
+          COMMITS=$(cat /tmp/commits.txt)
 
-          BODY=$(cat <<EOF
-          ## 🚀 Promote develop to main
-
-          This PR promotes the current \`develop\` branch to \`main\` for production deployment.
-
-          $BREAKING_BADGE
-
-          ### 📊 Statistics
-
-          | Metric | Count |
-          |--------|-------|
-          | Total Commits | $COMMIT_COUNT |
-          | Files Changed | $FILES_CHANGED |
-          | Lines Added | +$ADDITIONS |
-          | Lines Deleted | -$DELETIONS |
-
-          ### 🏷️ Commit Types
-
-          | Type | Count |
-          |------|-------|
-          | ✨ Features | $FEAT_COUNT |
-          | 🐛 Fixes | $FIX_COUNT |
-          | 📚 Docs | $DOCS_COUNT |
-          | 🔧 Chore | $CHORE_COUNT |
-          | ♻️ Refactor | $REFACTOR_COUNT |
-          | ✅ Tests | $TEST_COUNT |
-          | 💥 Breaking | $BREAKING_COUNT |
-
-          ### 🎯 Suggested Release
-
-          Based on commit analysis: **$SUGGESTED_RELEASE**
-
-          <details>
-          <summary>📝 View all commits ($COMMIT_COUNT)</summary>
-
-          $COMMITS
-
-          </details>
-
-          ### ✅ Pre-merge Checklist
-
-          - [ ] All CI checks passing
-          - [ ] Staging deployment tested
-          - [ ] Breaking changes documented (if any)
-          - [ ] Version bumped appropriately
-
-          ### 🎯 Post-merge Actions
-
-          After merging this PR:
-          1. Production will be deployed to Netlify automatically
-          2. ${VERSION_TYPE_MSG}
-
-          ---
-
-          **Staging URL**: https://staging--pulse-js.netlify.app
-          **Production URL**: https://pulse-js.fr
-
-          <sub>🤖 Auto-generated by promote-to-main workflow</sub>
-          EOF
-          )
-
+          # Determine version type message BEFORE using it
           VERSION_TYPE_MSG="Manual release creation required"
           if [ "${{ inputs.version_type }}" != "none" ]; then
             VERSION_TYPE_MSG="Release workflow will be triggered automatically (${{ inputs.version_type }})"
           fi
 
-          BODY=$(echo "$BODY" | sed "s/\${VERSION_TYPE_MSG}/$VERSION_TYPE_MSG/g")
+          # Breaking change badge
+          BREAKING_BADGE=""
+          if [ "$BREAKING_COUNT" -gt 0 ]; then
+            BREAKING_BADGE="> **WARNING**: This PR contains $BREAKING_COUNT breaking change(s)!"
+          fi
 
-          # Create PR
+          # Build PR body to file (safe: no ${{ }} interpolation of commit messages)
+          {
+            echo "## Promote develop to main"
+            echo ""
+            echo "This PR promotes the current \`develop\` branch to \`main\` for production deployment."
+            echo ""
+            if [ -n "$BREAKING_BADGE" ]; then
+              echo "$BREAKING_BADGE"
+              echo ""
+            fi
+            echo "### Statistics"
+            echo ""
+            echo "| Metric | Count |"
+            echo "|--------|-------|"
+            echo "| Total Commits | ${COMMIT_COUNT} |"
+            echo "| Files Changed | ${FILES_CHANGED} |"
+            echo "| Lines Added | +${ADDITIONS} |"
+            echo "| Lines Deleted | -${DELETIONS} |"
+            echo ""
+            echo "### Commit Types"
+            echo ""
+            echo "| Type | Count |"
+            echo "|------|-------|"
+            echo "| Features | ${FEAT_COUNT} |"
+            echo "| Fixes | ${FIX_COUNT} |"
+            echo "| Docs | ${DOCS_COUNT} |"
+            echo "| Chore | ${CHORE_COUNT} |"
+            echo "| Refactor | ${REFACTOR_COUNT} |"
+            echo "| Tests | ${TEST_COUNT} |"
+            echo "| Breaking | ${BREAKING_COUNT} |"
+            echo ""
+            echo "### Suggested Release"
+            echo ""
+            echo "Based on commit analysis: **${SUGGESTED_RELEASE}**"
+            echo ""
+            echo "<details>"
+            echo "<summary>View all commits (${COMMIT_COUNT})</summary>"
+            echo ""
+            echo "$COMMITS"
+            echo ""
+            echo "</details>"
+            echo ""
+            echo "### Pre-merge Checklist"
+            echo ""
+            echo "- [ ] All CI checks passing"
+            echo "- [ ] Staging deployment tested"
+            echo "- [ ] Breaking changes documented (if any)"
+            echo "- [ ] Version bumped appropriately"
+            echo ""
+            echo "### Post-merge Actions"
+            echo ""
+            echo "After merging this PR:"
+            echo "1. Production will be deployed to Netlify automatically"
+            echo "2. ${VERSION_TYPE_MSG}"
+            echo ""
+            echo "---"
+            echo ""
+            echo "**Staging URL**: https://staging--pulse-js.netlify.app"
+            echo "**Production URL**: https://pulse-js.fr"
+            echo ""
+            echo "<sub>Auto-generated by promote-to-main workflow</sub>"
+          } > /tmp/pr_body.md
+
+      - name: Create Pull Request
+        if: steps.check_pr.outputs.PR_EXISTS == 'false'
+        id: create_pr
+        run: |
+          LAST_TAG="${{ steps.get_commits.outputs.LAST_TAG }}"
+
+          if [ -n "$LAST_TAG" ]; then
+            TITLE="Release: Promote develop to main (since $LAST_TAG)"
+          else
+            TITLE="Release: Promote develop to main (initial release)"
+          fi
+
           PR_URL=$(gh pr create \
             --base main \
             --head develop \
             --title "$TITLE" \
-            --body "$BODY" \
+            --body-file /tmp/pr_body.md \
             --label "release")
 
           echo "PR_URL=$PR_URL" >> $GITHUB_OUTPUT
@@ -226,20 +226,20 @@ jobs:
         if: steps.check_pr.outputs.PR_EXISTS == 'true'
         run: |
           PR_NUMBER="${{ steps.check_pr.outputs.PR_NUMBER }}"
-          gh pr comment $PR_NUMBER --body "🔄 Workflow re-run requested. Please review changes."
+          gh pr comment $PR_NUMBER --body "Workflow re-run requested. Please review changes."
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create summary
         run: |
           if [ "${{ steps.check_pr.outputs.PR_EXISTS }}" == "true" ]; then
-            echo "## ℹ️ PR Already Exists" >> $GITHUB_STEP_SUMMARY
+            echo "## PR Already Exists" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "A PR from \`develop\` to \`main\` already exists:" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "[View PR #${{ steps.check_pr.outputs.PR_NUMBER }}](https://github.com/${{ github.repository }}/pull/${{ steps.check_pr.outputs.PR_NUMBER }})" >> $GITHUB_STEP_SUMMARY
           else
-            echo "## ✅ PR Created Successfully!" >> $GITHUB_STEP_SUMMARY
+            echo "## PR Created Successfully" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "**PR URL**: ${{ steps.create_pr.outputs.PR_URL }}" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
@@ -248,6 +248,6 @@ jobs:
             if [ "${{ inputs.version_type }}" != "none" ]; then
               echo "**Release Type**: ${{ inputs.version_type }}" >> $GITHUB_STEP_SUMMARY
               echo "" >> $GITHUB_STEP_SUMMARY
-              echo "⚠️ After merge, a ${{ inputs.version_type }} release will be created automatically" >> $GITHUB_STEP_SUMMARY
+              echo "After merge, a ${{ inputs.version_type }} release will be created automatically" >> $GITHUB_STEP_SUMMARY
             fi
           fi

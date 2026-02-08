@@ -20,6 +20,7 @@ jobs:
   bump-version:
     name: Bump Version & Create Tag
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout repository
@@ -43,7 +44,7 @@ jobs:
         run: |
           VERSION=$(node -p "require('./package.json').version")
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "📦 Current version: $VERSION"
+          echo "Current version: $VERSION"
 
       - name: Bump Version
         id: bump
@@ -52,7 +53,7 @@ jobs:
           npm version $TYPE --no-git-tag-version
           NEW_VERSION=$(node -p "require('./package.json').version")
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
-          echo "📦 New version: $NEW_VERSION"
+          echo "New version: $NEW_VERSION"
 
       - name: Update CHANGELOG
         id: changelog
@@ -68,10 +69,8 @@ jobs:
             COMMITS=$(git log --pretty=format:"- %s" --no-merges ${PREV_TAG}..HEAD)
           fi
 
-          # Save commits for Discord notification
-          echo "commits<<EOF" >> $GITHUB_OUTPUT
-          echo "$COMMITS" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          # Save commits to file for safe reuse (avoids shell injection)
+          echo "$COMMITS" > /tmp/commits.txt
 
           # Create changelog header
           {
@@ -93,7 +92,7 @@ jobs:
           fi
 
           mv CHANGELOG.tmp CHANGELOG.md
-          echo "✅ CHANGELOG updated"
+          echo "CHANGELOG updated"
 
       - name: Commit Version Bump
         run: |
@@ -102,13 +101,13 @@ jobs:
 
           # Only commit if there are changes
           if git diff --staged --quiet; then
-            echo "⚠️ No changes to commit"
+            echo "No changes to commit"
           else
             git commit -m "chore(release): bump version to $VERSION
 
           Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
             git push origin main
-            echo "✅ Version bumped and pushed"
+            echo "Version bumped and pushed"
           fi
 
       - name: Create and Push Git Tag
@@ -117,114 +116,104 @@ jobs:
 
           # Check if tag already exists
           if git rev-parse "v$VERSION" >/dev/null 2>&1; then
-            echo "⚠️ Tag v$VERSION already exists"
+            echo "::error::Tag v$VERSION already exists"
             exit 1
           else
             git tag -a "v$VERSION" -m "Release v$VERSION"
             git push origin "v$VERSION"
-            echo "🏷️ Tag v$VERSION created and pushed"
+            echo "Tag v$VERSION created and pushed"
           fi
 
       - name: Send Discord Notification
-        if: success()
+        if: success() && env.DISCORD_WEBHOOK != ''
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         run: |
           VERSION="${{ steps.bump.outputs.new_version }}"
           PREV_VERSION="${{ steps.current_version.outputs.version }}"
           TYPE="${{ github.event.inputs.release_type }}"
-          COMMITS="${{ steps.changelog.outputs.commits }}"
 
-          # Count commits
+          # Read commits from file (safe from injection)
+          COMMITS=$(cat /tmp/commits.txt 2>/dev/null || echo "No commits found")
+
+          # Count commits safely
           COMMIT_COUNT=$(echo "$COMMITS" | grep -c "^-" || echo 0)
-
-          # Categorize commits
           FEAT_COUNT=$(echo "$COMMITS" | grep -c "^- feat" || echo 0)
           FIX_COUNT=$(echo "$COMMITS" | grep -c "^- fix" || echo 0)
           BREAKING_COUNT=$(echo "$COMMITS" | grep -c "!" || echo 0)
 
           # Determine color based on release type
           if [ "$TYPE" = "major" ]; then
-            COLOR="15158332"  # Red
+            COLOR=15158332
+            TYPE_EMOJI="major"
           elif [ "$TYPE" = "minor" ]; then
-            COLOR="3447003"   # Blue
+            COLOR=3447003
+            TYPE_EMOJI="minor"
           else
-            COLOR="2067276"   # Green
+            COLOR=2067276
+            TYPE_EMOJI="patch"
           fi
 
-          # Format commits for Discord (limit to 20 lines)
-          COMMITS_FORMATTED=$(echo "$COMMITS" | head -20 | sed 's/^/\\n/')
+          # Format commits for Discord (limit to 20 lines, safely escaped via jq)
+          COMMITS_FORMATTED=$(echo "$COMMITS" | head -20)
           if [ "$COMMIT_COUNT" -gt 20 ]; then
-            COMMITS_FORMATTED="${COMMITS_FORMATTED}\\n\\n_... and $((COMMIT_COUNT - 20)) more commits_"
+            COMMITS_FORMATTED="${COMMITS_FORMATTED}
+
+          ... and $((COMMIT_COUNT - 20)) more commits"
           fi
 
-          # Release type emoji
-          if [ "$TYPE" = "major" ]; then
-            TYPE_EMOJI="🚀"
-          elif [ "$TYPE" = "minor" ]; then
-            TYPE_EMOJI="✨"
-          else
-            TYPE_EMOJI="🔧"
-          fi
-
-          # Build JSON payload
-          PAYLOAD=$(cat <<EOF
-          {
-            "embeds": [{
-              "title": "🎉 New Release: v${VERSION}",
-              "description": "${TYPE_EMOJI} **${TYPE}** release • ${PREV_VERSION} → ${VERSION}",
-              "color": ${COLOR},
-              "fields": [
-                {
-                  "name": "📊 Statistics",
-                  "value": "• ${COMMIT_COUNT} commits\\n• ${FEAT_COUNT} features\\n• ${FIX_COUNT} fixes${BREAKING_COUNT:+\\n• ⚠️ ${BREAKING_COUNT} breaking changes}",
-                  "inline": true
-                },
-                {
-                  "name": "🔗 Links",
-                  "value": "[View Release](https://github.com/${{ github.repository }}/releases/tag/v${VERSION})\\n[View Workflow](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})",
-                  "inline": true
-                },
-                {
-                  "name": "📝 Changes",
-                  "value": "${COMMITS_FORMATTED}",
-                  "inline": false
-                }
-              ],
-              "footer": {
-                "text": "Pulse JS Framework"
-              },
-              "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)"
-            }]
-          }
-          EOF
-          )
+          # Build JSON payload safely using jq (prevents injection)
+          PAYLOAD=$(jq -n \
+            --arg title "New Release: v${VERSION}" \
+            --arg desc "${TYPE_EMOJI} release: ${PREV_VERSION} -> ${VERSION}" \
+            --argjson color "$COLOR" \
+            --arg stats "Commits: ${COMMIT_COUNT} | Features: ${FEAT_COUNT} | Fixes: ${FIX_COUNT}${BREAKING_COUNT:+ | Breaking: ${BREAKING_COUNT}}" \
+            --arg links "Release: https://github.com/${{ github.repository }}/releases/tag/v${VERSION}" \
+            --arg changes "$COMMITS_FORMATTED" \
+            --arg footer "Pulse JS Framework" \
+            --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)" \
+            '{
+              embeds: [{
+                title: $title,
+                description: $desc,
+                color: $color,
+                fields: [
+                  { name: "Statistics", value: $stats, inline: true },
+                  { name: "Links", value: $links, inline: true },
+                  { name: "Changes", value: $changes, inline: false }
+                ],
+                footer: { text: $footer },
+                timestamp: $timestamp
+              }]
+            }')
 
           # Send to Discord
-          curl -H "Content-Type: application/json" \
+          curl -sf -H "Content-Type: application/json" \
                -X POST \
                -d "$PAYLOAD" \
-               "${{ secrets.DISCORD_WEBHOOK }}"
+               "$DISCORD_WEBHOOK"
 
-          echo "✅ Discord notification sent"
+          echo "Discord notification sent"
 
       - name: Summary
         run: |
           VERSION="${{ steps.bump.outputs.new_version }}"
           TYPE="${{ github.event.inputs.release_type }}"
-          echo "## 🎉 Version Bumped to v$VERSION!" >> $GITHUB_STEP_SUMMARY
+          echo "## Version Bumped to v$VERSION" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- **Type**: $TYPE" >> $GITHUB_STEP_SUMMARY
           echo "- **Previous**: ${{ steps.current_version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
           echo "- **New**: $VERSION" >> $GITHUB_STEP_SUMMARY
           echo "- **Tag**: v$VERSION" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### ✅ Completed" >> $GITHUB_STEP_SUMMARY
-          echo "1. ✅ Version bumped in package.json" >> $GITHUB_STEP_SUMMARY
-          echo "2. ✅ CHANGELOG.md updated" >> $GITHUB_STEP_SUMMARY
-          echo "3. ✅ Changes committed to main" >> $GITHUB_STEP_SUMMARY
-          echo "4. ✅ Git tag v$VERSION created and pushed" >> $GITHUB_STEP_SUMMARY
-          echo "5. ✅ Discord notification sent" >> $GITHUB_STEP_SUMMARY
+          echo "### Completed" >> $GITHUB_STEP_SUMMARY
+          echo "1. Version bumped in package.json" >> $GITHUB_STEP_SUMMARY
+          echo "2. CHANGELOG.md updated" >> $GITHUB_STEP_SUMMARY
+          echo "3. Changes committed to main" >> $GITHUB_STEP_SUMMARY
+          echo "4. Git tag v$VERSION created and pushed" >> $GITHUB_STEP_SUMMARY
+          echo "5. Discord notification sent" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 🚀 Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
           echo "The **Release** workflow will now automatically:" >> $GITHUB_STEP_SUMMARY
           echo "- Run tests" >> $GITHUB_STEP_SUMMARY
           echo "- Build the project" >> $GITHUB_STEP_SUMMARY
