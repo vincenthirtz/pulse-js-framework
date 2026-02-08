@@ -321,6 +321,27 @@ export function sanitizeHtml(html, options = {}) {
         attrValue = sanitized;
       }
 
+      // Sanitize style attribute to prevent CSS injection
+      if (attrName === 'style') {
+        const parts = attrValue.split(';').filter(Boolean);
+        const safeParts = [];
+        for (const part of parts) {
+          const colonIndex = part.indexOf(':');
+          if (colonIndex === -1) continue;
+          const cssProp = part.slice(0, colonIndex).trim();
+          const cssVal = part.slice(colonIndex + 1).trim();
+          if (/url\s*\(/i.test(cssVal) || /expression\s*\(/i.test(cssVal) ||
+              /javascript:/i.test(cssVal) || /behavior\s*:/i.test(cssVal) ||
+              /-moz-binding/i.test(cssVal)) {
+            log.warn(`Blocked dangerous CSS in style attribute: ${cssProp}`);
+            continue;
+          }
+          safeParts.push(`${cssProp}: ${cssVal}`);
+        }
+        attrValue = safeParts.join('; ');
+        if (!attrValue) continue;
+      }
+
       result += ` ${attrName}="${escapeHtml(attrValue)}"`;
     }
 

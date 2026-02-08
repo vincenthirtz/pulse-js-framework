@@ -146,7 +146,7 @@ export default function pulsePlugin(options = {}) {
                 compressed: sassOptions.compressed || false
               });
 
-              if (preprocessed.wasSass) {
+              if (preprocessed.preprocessor !== 'none') {
                 css = preprocessed.css;
               }
             } catch (sassError) {

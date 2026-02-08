@@ -3,6 +3,7 @@
   "version": "1.7.35",
   "description": "A declarative DOM framework with CSS selector-based structure and reactive pulsations",
   "type": "module",
+  "sideEffects": false,
   "main": "index.js",
   "types": "types/index.d.ts",
   "bin": {
@@ -178,6 +179,8 @@
     "test:esbuild-plugin": "node test/esbuild-plugin.test.js",
     "test:parcel-plugin": "node test/parcel-plugin.test.js",
     "test:swc-plugin": "node test/swc-plugin.test.js",
+    "test:dom-binding": "node test/dom-binding.test.js",
+    "test:interceptor-manager": "node test/interceptor-manager.test.js",
     "build:netlify": "node scripts/build-netlify.js",
     "version": "node scripts/sync-version.js",
     "docs": "node cli/index.js dev docs"

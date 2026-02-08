@@ -5,7 +5,7 @@
  */
 
 /** Generate a unique scope ID for CSS scoping */
-export const generateScopeId = () => 'p' + Math.random().toString(36).substring(2, 8);
+export const generateScopeId = () => 'p' + Math.random().toString(36).substring(2, 12);
 
 /** Token types that should not have space after them */
 export const NO_SPACE_AFTER = new Set([
