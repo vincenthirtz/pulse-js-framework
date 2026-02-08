@@ -263,6 +263,7 @@ jobs:
     timeout-minutes: 5
     needs: [test, lint, build, coverage]
     if: >-
+      github.ref == 'refs/heads/main' &&
       github.event_name == 'workflow_dispatch' &&
       inputs.release_type != 'none'
 
