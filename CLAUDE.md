@@ -128,7 +128,8 @@ pulse/
 │   ├── webpack-loader.js  # Webpack loader
 │   ├── rollup-plugin.js   # Rollup plugin
 │   ├── esbuild-plugin.js  # ESBuild plugin
-│   └── parcel-plugin.js   # Parcel transformer
+│   ├── parcel-plugin.js   # Parcel transformer
+│   └── swc-plugin.js      # SWC plugin
 ├── examples/            # Example apps (todo, chat, ecommerce, electron)
 ├── test/                # Test suite
 └── docs/                # Documentation site
@@ -2516,6 +2517,7 @@ import pulseLoader from 'pulse-js-framework/webpack';     // Webpack loader
 import rollupPlugin from 'pulse-js-framework/rollup';     // Rollup plugin
 import esbuildPlugin from 'pulse-js-framework/esbuild';   // ESBuild plugin
 import parcelPlugin from 'pulse-js-framework/parcel';     // Parcel transformer
+import swcPlugin from 'pulse-js-framework/swc';           // SWC plugin
 ```
 
 ## Testing

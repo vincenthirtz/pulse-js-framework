@@ -1,0 +1,9 @@
+@page FileTest
+
+view {
+  div.hello "Hello World"
+}
+
+style {
+  .hello { color: blue; }
+}

@@ -98,6 +98,7 @@
     "./rollup": "./loader/rollup-plugin.js",
     "./esbuild": "./loader/esbuild-plugin.js",
     "./parcel": "./loader/parcel-plugin.js",
+    "./swc": "./loader/swc-plugin.js",
     "./mobile": "./mobile/bridge/pulse-native.js",
     "./package.json": "./package.json"
   },
@@ -176,6 +177,7 @@
     "test:rollup-plugin": "node test/rollup-plugin.test.js",
     "test:esbuild-plugin": "node test/esbuild-plugin.test.js",
     "test:parcel-plugin": "node test/parcel-plugin.test.js",
+    "test:swc-plugin": "node test/swc-plugin.test.js",
     "build:netlify": "node scripts/build-netlify.js",
     "version": "node scripts/sync-version.js",
     "docs": "node cli/index.js dev docs"

@@ -233,6 +233,18 @@ Both integrations support **automatic CSS preprocessing** for SASS, LESS, and St
 | `less.*` | object | `{}` | LESS-specific options |
 | `stylus.*` | object | `{}` | Stylus-specific options |
 
+### SWC Plugin Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `sourceMap` | boolean | `true` | Generate source maps |
+| `extractCss` | string | `null` | Output CSS filename (null = inline) |
+| `sass.loadPaths` | string[] | `[]` | SASS include paths |
+| `sass.compressed` | boolean | `false` | Minify SASS output |
+| `sass.verbose` | boolean | `false` | Log SASS compilation |
+| `less.*` | object | `{}` | LESS-specific options |
+| `stylus.*` | object | `{}` | Stylus-specific options |
+
 ## Development
 
 ### Testing Vite Plugin
@@ -273,6 +285,12 @@ npm run dev
 cd examples/parcel-example
 npm install
 npm run dev
+```
+
+### Testing SWC Plugin
+
+```bash
+npm run test:swc-plugin
 ```
 
 ### ESBuild Plugin (`esbuild-plugin.js`) ✅
@@ -395,13 +413,73 @@ parcel src/index.html
 parcel build src/index.html
 ```
 
+### SWC Plugin (`swc-plugin.js`) ✅
+
+SWC plugin with CSS extraction, preprocessor support, and standalone transform API.
+
+**Usage with plugin interface:**
+
+```javascript
+// build.js
+import pulsePlugin from 'pulse-js-framework/swc';
+
+const plugin = pulsePlugin({
+  sourceMap: true,
+  extractCss: 'dist/bundle.css',
+  sass: {
+    loadPaths: ['src/styles']
+  }
+});
+
+plugin.buildStart();
+
+// Transform each .pulse file
+const result = plugin.transform(pulseSource, 'src/App.pulse');
+console.log(result.code);  // Compiled JavaScript
+console.log(result.css);   // Extracted CSS
+
+plugin.buildEnd();  // Writes accumulated CSS to dist/bundle.css
+```
+
+**Usage with direct transform API:**
+
+```javascript
+import { transformPulseFile, transformPulseCode } from 'pulse-js-framework/swc';
+
+// Transform a file
+const result = transformPulseFile('src/App.pulse', { sourceMap: true });
+
+// Transform source code
+const result2 = transformPulseCode(source, { filename: 'App.pulse' });
+```
+
+**Batch processing:**
+
+```javascript
+import { buildPulseFiles } from 'pulse-js-framework/swc';
+
+const results = buildPulseFiles(
+  ['src/App.pulse', 'src/Home.pulse'],
+  { extractCss: 'dist/bundle.css' }
+);
+```
+
+**Features:**
+- ✅ Standalone transform API (no SWC dependency required)
+- ✅ Plugin interface with build lifecycle
+- ✅ CSS extraction to separate file
+- ✅ Source map generation
+- ✅ SASS/LESS/Stylus auto-detection and compilation
+- ✅ Batch file processing
+- ✅ No external dependencies required
+
 ## Planned Integrations
 
-- [ ] SWC plugin (`swc-plugin.js`)
+All planned integrations have been implemented.
 
 ## Architecture
 
-Both integrations follow the same pattern:
+All integrations follow the same pattern:
 
 1. **Compile** `.pulse` files to JavaScript using `compiler/index.js`
 2. **Extract CSS** from compiled output
@@ -409,7 +487,11 @@ Both integrations follow the same pattern:
 4. **Pass to build tool** pipeline:
    - Vite: Virtual CSS modules
    - Webpack: css-loader chain
-5. **Enable HMR** for development
+   - Rollup: Accumulated CSS asset
+   - ESBuild: File-based CSS accumulation
+   - Parcel: Asset API
+   - SWC: File-based CSS accumulation with standalone transform API
+5. **Enable HMR** for development (where supported)
 
 ## Contributing
 

@@ -4,12 +4,14 @@ name: Setup Labels
 on:
   workflow_dispatch:
 
+permissions:
+  issues: write
+
 jobs:
   labels:
     name: Create/Update Labels
     runs-on: ubuntu-latest
-    permissions:
-      issues: write
+    timeout-minutes: 5
 
     steps:
       - name: Create labels

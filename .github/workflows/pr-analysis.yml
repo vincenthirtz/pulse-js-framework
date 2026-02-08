@@ -1,0 +1,249 @@
+name: PR Analysis
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main, develop]
+
+permissions:
+  pull-requests: write
+  contents: read
+
+# Cancel in-progress runs for same PR
+concurrency:
+  group: pr-analysis-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: Analyze PR
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Fetch base branch
+        run: git fetch origin ${{ github.event.pull_request.base.ref }}
+
+      - name: Label and analyze PR
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const baseRef = pr.base.ref;
+            const headSha = pr.head.sha;
+            const baseSha = pr.base.sha;
+
+            // ===== 1. Auto-label based on changed files =====
+            const { data: files } = await github.rest.pulls.listFiles({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number,
+              per_page: 300,
+            });
+
+            const labels = new Set();
+            const pathRules = [
+              [/^docs\/|\.md$/, 'documentation'],
+              [/^test\/|\.test\.js$/, 'tests'],
+              [/^compiler\//, 'compiler'],
+              [/^runtime\//, 'runtime'],
+              [/^cli\//, 'cli'],
+              [/^examples\//, 'examples'],
+              [/^\.github\//, 'ci/cd'],
+              [/^loader\//, 'runtime'],
+              [/^package(-lock)?\.json$/, 'dependencies'],
+              [/security|auth/, 'security'],
+              [/performance|benchmark/, 'performance'],
+              [/a11y|accessibility/, 'accessibility'],
+            ];
+
+            for (const file of files) {
+              for (const [pattern, label] of pathRules) {
+                if (pattern.test(file.filename)) {
+                  labels.add(label);
+                }
+              }
+            }
+
+            // Size labels
+            const changedLines = files.reduce((sum, f) => sum + f.changes, 0);
+            const additions = files.reduce((sum, f) => sum + f.additions, 0);
+            const deletions = files.reduce((sum, f) => sum + f.deletions, 0);
+
+            if (changedLines < 10) labels.add('size/XS');
+            else if (changedLines < 50) labels.add('size/S');
+            else if (changedLines < 200) labels.add('size/M');
+            else if (changedLines < 500) labels.add('size/L');
+            else labels.add('size/XL');
+
+            // ===== 2. Analyze commits =====
+            const { data: commits } = await github.rest.pulls.listCommits({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number,
+              per_page: 100,
+            });
+
+            const commitMessages = commits.map(c => c.commit.message.split('\n')[0]);
+            const commitCount = commitMessages.length;
+
+            // Categorize commits (conventional commits)
+            const categories = {
+              feat: 0, fix: 0, docs: 0, chore: 0,
+              refactor: 0, test: 0, breaking: 0
+            };
+
+            for (const msg of commitMessages) {
+              if (/^feat/i.test(msg)) categories.feat++;
+              if (/^fix/i.test(msg)) categories.fix++;
+              if (/^docs/i.test(msg)) categories.docs++;
+              if (/^chore/i.test(msg)) categories.chore++;
+              if (/^refactor/i.test(msg)) categories.refactor++;
+              if (/^test/i.test(msg)) categories.test++;
+              if (msg.includes('!') || msg.toLowerCase().includes('breaking')) categories.breaking++;
+            }
+
+            // Breaking changes from PR title/body
+            const prTitle = pr.title || '';
+            const prBody = pr.body || '';
+            if (
+              prBody.toLowerCase().includes('breaking change') ||
+              prTitle.toLowerCase().includes('breaking') ||
+              prTitle.includes('!:')
+            ) {
+              categories.breaking = Math.max(categories.breaking, 1);
+            }
+
+            if (categories.breaking > 0) labels.add('breaking-change');
+            if (categories.feat > 0) labels.add('enhancement');
+            if (categories.fix > 0) labels.add('bug');
+
+            // Suggested release type
+            let suggestedRelease = 'patch';
+            if (categories.breaking > 0) suggestedRelease = 'major';
+            else if (categories.feat > 0) suggestedRelease = 'minor';
+
+            // File types breakdown
+            const fileTypes = {};
+            for (const f of files) {
+              const ext = f.filename.split('.').pop();
+              fileTypes[ext] = (fileTypes[ext] || 0) + 1;
+            }
+
+            // ===== 3. Apply labels =====
+            if (labels.size > 0) {
+              try {
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: pr.number,
+                  labels: Array.from(labels),
+                });
+              } catch (e) {
+                console.log('Failed to add some labels (may not exist):', e.message);
+              }
+            }
+
+            // ===== 4. Post/update analysis comment =====
+            const breakingBadge = categories.breaking > 0
+              ? `\n> **WARNING**: This PR contains ${categories.breaking} breaking change(s). Review carefully before merging.\n`
+              : '';
+
+            const commitList = commitMessages
+              .map(msg => `- ${msg}`)
+              .join('\n');
+
+            const commentBody = `## PR Analysis
+
+            ${breakingBadge}
+
+            ### Statistics
+
+            | Metric | Count |
+            |--------|-------|
+            | Commits | ${commitCount} |
+            | Files Changed | ${files.length} |
+            | Lines Added | +${additions} |
+            | Lines Deleted | -${deletions} |
+
+            ### Commit Types
+
+            | Type | Count |
+            |------|-------|
+            | Features | ${categories.feat} |
+            | Fixes | ${categories.fix} |
+            | Docs | ${categories.docs} |
+            | Chore | ${categories.chore} |
+            | Refactor | ${categories.refactor} |
+            | Tests | ${categories.test} |
+            | Breaking | ${categories.breaking} |
+
+            ### Suggested Release Type
+
+            Based on commit analysis: **${suggestedRelease}**
+
+            **File types**: ${Object.entries(fileTypes).map(([ext, count]) => `${ext} (${count})`).join(', ')}
+
+            **Labels**: ${Array.from(labels).map(l => `\`${l}\``).join(', ')}
+
+            <details>
+            <summary>View all commits (${commitCount})</summary>
+
+            ${commitList}
+
+            </details>
+
+            ---
+
+            <sub>Auto-generated by PR Analysis workflow</sub>`.replace(/^            /gm, '');
+
+            // Find existing comment to update (upsert pattern)
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+            });
+
+            const botComment = comments.find(c =>
+              c.user.type === 'Bot' &&
+              c.body.includes('## PR Analysis')
+            );
+
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: commentBody,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                body: commentBody,
+              });
+            }
+
+            // ===== 5. Add breaking change warning =====
+            if (categories.breaking > 0) {
+              const warningExists = comments.some(c =>
+                c.user.type === 'Bot' &&
+                c.body.includes('breaking changes')
+              );
+
+              if (!warningExists) {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: pr.number,
+                  body: '**Warning**: This PR contains breaking changes. Make sure to update the major version when releasing.',
+                });
+              }
+            }

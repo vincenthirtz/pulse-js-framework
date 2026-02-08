@@ -1,0 +1,3 @@
+@page Batch2
+view { span "World" }
+style { span { color: blue; } }

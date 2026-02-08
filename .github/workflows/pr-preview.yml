@@ -10,13 +10,15 @@ concurrency:
   group: pr-preview-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
+permissions:
+  pull-requests: write
+  contents: read
+
 jobs:
   preview:
     name: Deploy PR Preview
     runs-on: ubuntu-latest
-    permissions:
-      pull-requests: write
-      contents: read
+    timeout-minutes: 10
 
     steps:
       - name: Checkout repository
@@ -27,15 +29,6 @@ jobs:
         with:
           node-version: 20
           cache: 'npm'
-
-      - name: Cache node_modules
-        uses: actions/cache@v5
-        with:
-          path: node_modules
-          key: ${{ runner.os }}-node-20-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-20-
-            ${{ runner.os }}-node-
 
       - name: Install dependencies
         run: npm ci
