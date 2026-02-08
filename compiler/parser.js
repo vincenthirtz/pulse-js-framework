@@ -100,7 +100,9 @@ export class Parser {
    * Peek at token at offset
    */
   peek(offset = 1) {
-    return this.tokens[this.pos + offset];
+    const index = this.pos + offset;
+    if (index < 0 || index >= this.tokens.length) return undefined;
+    return this.tokens[index];
   }
 
   /**

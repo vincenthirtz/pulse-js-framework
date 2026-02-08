@@ -408,12 +408,16 @@ export function deserializeState(data) {
  * // Default implementation just stores in global
  * restoreState(window.__PULSE_STATE__);
  */
+// Module-scoped state store (avoids globalThis collision between multiple SSR instances)
+let _ssrState = null;
+
 export function restoreState(state) {
   const deserialized = typeof state === 'string'
     ? deserializeState(state)
     : state;
 
-  // Store in global for access by components
+  // Store in module scope and global for backward compatibility
+  _ssrState = deserialized;
   if (typeof globalThis !== 'undefined') {
     globalThis.__PULSE_SSR_STATE__ = deserialized;
   }
@@ -430,8 +434,18 @@ export function restoreState(state) {
  * const userData = getSSRState('user');
  */
 export function getSSRState(key) {
-  const state = globalThis?.__PULSE_SSR_STATE__ || {};
+  const state = _ssrState || globalThis?.__PULSE_SSR_STATE__ || {};
   return key ? state[key] : state;
+}
+
+/**
+ * Clear the SSR state. Use in tests or when cleaning up SSR context.
+ */
+export function clearSSRState() {
+  _ssrState = null;
+  if (typeof globalThis !== 'undefined') {
+    delete globalThis.__PULSE_SSR_STATE__;
+  }
 }
 
 // ============================================================================
@@ -456,6 +470,7 @@ export default {
   deserializeState,
   restoreState,
   getSSRState,
+  clearSSRState,
 
   // Mode checks
   isSSR,
