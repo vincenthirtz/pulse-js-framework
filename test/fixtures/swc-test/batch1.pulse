@@ -1,0 +1,3 @@
+@page Batch1
+view { div "Hello" }
+style { div { color: red; } }

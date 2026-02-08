@@ -69,7 +69,8 @@ const testScripts = [
   'test:webpack-loader',
   'test:rollup-plugin',
   'test:esbuild-plugin',
-  'test:parcel-plugin'
+  'test:parcel-plugin',
+  'test:swc-plugin'
 ];
 
 const results = {
