@@ -6,9 +6,21 @@ on:
   pull_request:
     branches: [main, develop]
   workflow_dispatch:
+    inputs:
+      release_type:
+        description: 'Release type (leave "none" to only run CI)'
+        required: false
+        type: choice
+        options:
+          - none
+          - patch
+          - minor
+          - major
+        default: 'none'
 
 permissions:
-  contents: read
+  contents: write
+  actions: write
 
 # Cancel in-progress runs for same PR/branch
 concurrency:
@@ -195,7 +207,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: [build]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     permissions:
       contents: read
       deployments: write
@@ -243,3 +255,38 @@ jobs:
           echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Branch**: main" >> $GITHUB_STEP_SUMMARY
           echo "- **Time**: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+
+  # Release job - only runs when manually triggered with a release type
+  release:
+    name: Trigger Release (${{ inputs.release_type }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [test, lint, build, coverage]
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      inputs.release_type != 'none'
+
+    steps:
+      - name: Trigger Manual Release workflow
+        uses: actions/github-script@v8
+        with:
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'manual-release.yml',
+              ref: context.ref,
+              inputs: {
+                release_type: '${{ inputs.release_type }}'
+              }
+            });
+
+            console.log('Triggered manual-release.yml with release_type: ${{ inputs.release_type }}');
+
+      - name: Release summary
+        run: |
+          echo "## Release Triggered" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "All CI checks passed. Triggered **${{ inputs.release_type }}** release." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "[View Release Workflow](https://github.com/${{ github.repository }}/actions/workflows/manual-release.yml)" >> $GITHUB_STEP_SUMMARY
