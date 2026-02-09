@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.7.37] - 2026-02-09
+
+### Changes
+
+- fix(ci): add release jobs to manual-release workflow
+
+---
+
+
 ## [1.7.36] - 2026-02-09
 
 ### Changes
