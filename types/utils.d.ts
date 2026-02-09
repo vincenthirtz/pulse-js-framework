@@ -236,6 +236,91 @@ export declare function throttle<T extends (...args: unknown[]) => unknown>(
 ): CancellableFunction<T>;
 
 // =============================================================================
+// CSS Sanitization
+// =============================================================================
+
+/**
+ * Check if a string is a valid CSS property name
+ */
+export declare function isValidCSSProperty(prop: string): boolean;
+
+/** Result of CSS value sanitization */
+export interface SanitizeCSSResult {
+  safe: boolean;
+  value: string;
+  blocked?: string;
+}
+
+/**
+ * Sanitize a CSS value to prevent CSS injection
+ */
+export declare function sanitizeCSSValue(
+  value: string,
+  options?: { allowUrl?: boolean }
+): SanitizeCSSResult;
+
+/**
+ * Safely set an inline style on an element
+ */
+export declare function safeSetStyle(
+  element: HTMLElement,
+  prop: string,
+  value: string,
+  options?: { allowUrl?: boolean }
+): boolean;
+
+// =============================================================================
+// Environment Utilities
+// =============================================================================
+
+/**
+ * Check if running in a browser environment
+ */
+export declare function isBrowser(): boolean;
+
+/**
+ * Listen to a window event with cleanup support
+ */
+export declare function onWindowEvent(
+  event: string,
+  handler: (e: Event) => void,
+  onCleanup?: (cleanup: () => void) => void,
+  options?: AddEventListenerOptions
+): () => void;
+
+/**
+ * Listen to window focus events
+ */
+export declare function onWindowFocus(
+  handler: () => void,
+  onCleanup?: (cleanup: () => void) => void
+): () => void;
+
+/**
+ * Listen to online events
+ */
+export declare function onWindowOnline(
+  handler: () => void,
+  onCleanup?: (cleanup: () => void) => void
+): () => void;
+
+/**
+ * Listen to offline events
+ */
+export declare function onWindowOffline(
+  handler: () => void,
+  onCleanup?: (cleanup: () => void) => void
+): () => void;
+
+/**
+ * Listen to network change events
+ */
+export declare function onNetworkChange(
+  handlers: { online?: () => void; offline?: () => void },
+  onCleanup?: (cleanup: () => void) => void
+): () => void;
+
+// =============================================================================
 // Default Export
 // =============================================================================
 

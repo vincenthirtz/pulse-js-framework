@@ -172,11 +172,80 @@ export interface ReactiveContext {
 
 /**
  * Global reactive context
+ * @deprecated Use globalContext instead
  */
-export declare const context: ReactiveContext;
+export declare const context: ReactiveContextClass;
+
+/**
+ * Global reactive context instance
+ */
+export declare const globalContext: ReactiveContextClass;
+
+/**
+ * Reactive context class for isolated state management (testing, SSR)
+ */
+export declare class ReactiveContextClass {
+  readonly name: string;
+  currentEffect: EffectFn | null;
+  batchDepth: number;
+  pendingEffects: Set<EffectFn>;
+  isRunningEffects: boolean;
+
+  constructor(options?: { name?: string });
+
+  /** Run a function within this context */
+  run<T>(fn: () => T): T;
+
+  /** Reset context to initial state */
+  reset(): void;
+}
 
 /**
  * Reset the reactive context to initial state.
  * Use this in tests to ensure isolation between test cases.
  */
 export declare function resetContext(): void;
+
+/**
+ * Create an isolated reactive context for testing or SSR
+ */
+export declare function createContext(options?: { name?: string }): ReactiveContextClass;
+
+/**
+ * Get the currently active reactive context
+ */
+export declare function getActiveContext(): ReactiveContextClass;
+
+/**
+ * Run a function within a specific reactive context
+ */
+export declare function withContext<T>(ctx: ReactiveContextClass, fn: () => T): T;
+
+/**
+ * Effect error with context information
+ */
+export declare class EffectError extends Error {
+  readonly effectId: string;
+  readonly phase: string;
+  readonly cause: Error;
+}
+
+/**
+ * Register a global error handler for effect errors
+ * @returns Cleanup function
+ */
+export declare function onEffectError(handler: (error: EffectError) => void): () => void;
+
+/**
+ * Create a reactive prop from component props object
+ */
+export declare function useProp<T>(props: Record<string, unknown>, name: string, defaultValue?: T): Pulse<T>;
+
+/** HMR support - set the current module for effect tracking */
+export declare function setCurrentModule(moduleId: string): void;
+
+/** HMR support - clear the current module */
+export declare function clearCurrentModule(): void;
+
+/** HMR support - dispose all effects registered to a module */
+export declare function disposeModule(moduleId: string): void;

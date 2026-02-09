@@ -70,7 +70,9 @@ const testScripts = [
   'test:rollup-plugin',
   'test:esbuild-plugin',
   'test:parcel-plugin',
-  'test:swc-plugin'
+  'test:swc-plugin',
+  'test:dom-binding',
+  'test:interceptor-manager'
 ];
 
 const results = {

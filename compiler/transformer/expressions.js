@@ -182,14 +182,54 @@ export function transformExpression(transformer, node) {
  * @returns {string} Transformed expression string
  */
 export function transformExpressionString(transformer, exprStr) {
-  // Simple transformation: wrap state and prop vars with .get()
+  // Transform state and prop vars in expression strings (interpolations, attribute bindings)
   // Both are now reactive (useProp returns computed for uniform interface)
   let result = exprStr;
 
-  // Transform state vars
+  // First, handle assignments to state vars: stateVar = expr -> stateVar.set(expr)
+  // This must happen before the generic .get() replacement to avoid generating
+  // invalid code like stateVar.get() = expr (LHS of assignment is not a reference)
+  for (const stateVar of transformer.stateVars) {
+    // Compound assignment: stateVar += expr -> stateVar.update(_v => _v + expr)
+    result = result.replace(
+      new RegExp(`\\b${stateVar}\\s*(\\+=|-=|\\*=|\\/=|&&=|\\|\\|=|\\?\\?=)\\s*`, 'g'),
+      (_match, op) => {
+        const baseOp = op.slice(0, -1); // Remove trailing '='
+        return `${stateVar}.update(_v => _v ${baseOp} `;
+      }
+    );
+    // Close the .update() call - find the end of the expression after the replacement
+    // This is handled by the fact that the expression continues after the replacement text
+    // and the closing paren is added by wrapping logic below.
+
+    // Simple assignment: stateVar = expr -> stateVar.set(expr)
+    // Use negative lookbehind to skip compound assignments (already handled)
+    // Use negative lookahead to skip == and ===
+    result = result.replace(
+      new RegExp(`\\b${stateVar}\\s*=(?!=)`, 'g'),
+      `${stateVar}.set(`
+    );
+  }
+
+  // If we inserted .set( or .update(, we need to close the parenthesis
+  // Find unclosed .set( and .update( calls and close them at end of expression
+  if (result.includes('.set(') || result.includes('.update(_v =>')) {
+    // For .update(_v => _v op expr), close with )
+    result = result.replace(
+      /\.update\(_v => _v [^\)]*$/,
+      (m) => m + ')'
+    );
+    // For .set(expr), close with )
+    result = result.replace(
+      /\.set\(([^)]*$)/,
+      (_m, expr) => `.set(${expr})`
+    );
+  }
+
+  // Transform state var reads (not already transformed to .get/.set/.update)
   for (const stateVar of transformer.stateVars) {
     result = result.replace(
-      new RegExp(`\\b${stateVar}\\b`, 'g'),
+      new RegExp(`\\b${stateVar}\\b(?!\\.(?:get|set|update))`, 'g'),
       `${stateVar}.get()`
     );
   }

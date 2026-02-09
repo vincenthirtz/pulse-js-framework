@@ -286,3 +286,66 @@ export declare function whenTransition(
   elseTemplate?: ConditionTemplate,
   options?: WhenTransitionOptions
 ): DocumentFragment;
+
+// =============================================================================
+// DOM Configuration
+// =============================================================================
+
+/** DOM configuration options */
+export interface DomConfig {
+  selectorCacheCapacity?: number;
+}
+
+/**
+ * Configure DOM options (selector cache capacity, etc.)
+ */
+export declare function configureDom(config: DomConfig): void;
+
+/**
+ * Get current DOM configuration
+ */
+export declare function getDomConfig(): DomConfig;
+
+/**
+ * Clear the selector cache
+ */
+export declare function clearSelectorCache(): void;
+
+/** Cache metrics */
+export interface CacheMetrics {
+  hitRate: number;
+  size: number;
+  capacity: number;
+  hits?: number;
+  misses?: number;
+}
+
+/**
+ * Get selector cache performance metrics
+ */
+export declare function getCacheMetrics(): CacheMetrics;
+
+/**
+ * Reset cache metrics counters
+ */
+export declare function resetCacheMetrics(): void;
+
+/**
+ * Resolve a CSS selector to element configuration
+ */
+export declare function resolveSelector(selector: string): ParsedSelector;
+
+/**
+ * Configure auto-ARIA behavior
+ */
+export declare function configureA11y(options: {
+  enabled?: boolean;
+  autoAria?: boolean;
+  warnMissingAlt?: boolean;
+  warnMissingLabel?: boolean;
+}): void;
+
+/**
+ * Compute the Longest Increasing Subsequence (used internally by list())
+ */
+export declare function computeLIS(arr: number[]): number[];

@@ -43,6 +43,7 @@ import {
   deserializeState,
   restoreState,
   getSSRState,
+  clearSSRState,
   hydrate,
   isSSR
 } from '../runtime/ssr.js';
@@ -1215,7 +1216,7 @@ describe('State Restoration', () => {
   });
 
   test('getSSRState returns empty object when no state', () => {
-    delete globalThis.__PULSE_SSR_STATE__;
+    clearSSRState();
 
     const state = getSSRState();
     assert.deepStrictEqual(state, {});

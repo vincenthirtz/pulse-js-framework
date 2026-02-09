@@ -91,6 +91,24 @@ export function restoreFocus(): void;
  */
 export function clearFocusStack(): void;
 
+/**
+ * Handle escape key press within a container
+ * @returns Cleanup function to remove listener
+ */
+export function onEscapeKey(
+  container: HTMLElement,
+  onEscape: () => void,
+  options?: { stopPropagation?: boolean }
+): () => void;
+
+/**
+ * Track keyboard vs mouse focus for :focus-visible styling
+ */
+export function createFocusVisibleTracker(): {
+  isKeyboardUser: Pulse<boolean>;
+  cleanup: () => void;
+};
+
 // =============================================================================
 // SKIP LINKS
 // =============================================================================
@@ -138,10 +156,28 @@ export function prefersColorScheme(): 'light' | 'dark' | 'no-preference';
  */
 export function prefersHighContrast(): boolean;
 
+/**
+ * Check if user prefers reduced transparency
+ */
+export function prefersReducedTransparency(): boolean;
+
+/**
+ * Check if forced colors mode is active (Windows High Contrast Mode)
+ */
+export function forcedColorsMode(): 'active' | 'none';
+
+/**
+ * Check user's preferred contrast level
+ */
+export function prefersContrast(): 'no-preference' | 'more' | 'less' | 'custom';
+
 export interface UserPreferences {
   reducedMotion: Pulse<boolean>;
   colorScheme: Pulse<'light' | 'dark' | 'no-preference'>;
   highContrast: Pulse<boolean>;
+  reducedTransparency?: Pulse<boolean>;
+  forcedColors?: Pulse<'active' | 'none'>;
+  contrast?: Pulse<'no-preference' | 'more' | 'less' | 'custom'>;
 }
 
 /**
@@ -210,6 +246,96 @@ export function createTabs(
 ): TabsControl;
 
 // =============================================================================
+// ARIA WIDGETS
+// =============================================================================
+
+export interface ModalOptions {
+  labelledBy?: string;
+  describedBy?: string;
+  closeOnBackdropClick?: boolean;
+  onClose?: () => void;
+}
+
+export interface ModalControl {
+  open: () => void;
+  close: () => void;
+  isOpen: Pulse<boolean>;
+}
+
+/**
+ * Create an ARIA-compliant modal dialog
+ */
+export function createModal(
+  dialog: HTMLElement,
+  options?: ModalOptions
+): ModalControl;
+
+export interface TooltipOptions {
+  showDelay?: number;
+  hideDelay?: number;
+}
+
+export interface TooltipControl {
+  isVisible: Pulse<boolean>;
+  cleanup: () => void;
+}
+
+/**
+ * Create an ARIA-compliant tooltip
+ */
+export function createTooltip(
+  trigger: HTMLElement,
+  tooltip: HTMLElement,
+  options?: TooltipOptions
+): TooltipControl;
+
+export interface AccordionOptions {
+  triggerSelector?: string;
+  panelSelector?: string;
+  allowMultiple?: boolean;
+  defaultOpen?: number;
+}
+
+export interface AccordionControl {
+  open: (index: number) => void;
+  close: (index: number) => void;
+  toggle: (index: number) => void;
+  closeAll: () => void;
+  openIndices: Pulse<number[]>;
+  cleanup: () => void;
+}
+
+/**
+ * Create an ARIA-compliant accordion
+ */
+export function createAccordion(
+  container: HTMLElement,
+  options?: AccordionOptions
+): AccordionControl;
+
+export interface MenuOptions {
+  itemSelector?: string;
+  closeOnSelect?: boolean;
+  onSelect?: (element: HTMLElement, index: number) => void;
+}
+
+export interface MenuControl {
+  open: () => void;
+  close: () => void;
+  toggle: () => void;
+  cleanup: () => void;
+}
+
+/**
+ * Create an ARIA-compliant dropdown menu
+ */
+export function createMenu(
+  button: HTMLElement,
+  menu: HTMLElement,
+  options?: MenuOptions
+): MenuControl;
+
+// =============================================================================
 // KEYBOARD NAVIGATION
 // =============================================================================
 
@@ -261,6 +387,61 @@ export function logA11yIssues(issues: A11yIssue[]): void;
 export function highlightA11yIssues(issues: A11yIssue[]): () => void;
 
 // =============================================================================
+// COLOR CONTRAST
+// =============================================================================
+
+/**
+ * Calculate WCAG contrast ratio between two colors
+ */
+export function getContrastRatio(foreground: string, background: string): number;
+
+/**
+ * Check if a contrast ratio meets WCAG requirements
+ */
+export function meetsContrastRequirement(
+  ratio: number,
+  level?: 'AA' | 'AAA',
+  textSize?: 'normal' | 'large'
+): boolean;
+
+/**
+ * Get the effective background color of an element (handles transparency)
+ */
+export function getEffectiveBackgroundColor(element: HTMLElement): string;
+
+/**
+ * Check contrast of a specific element
+ */
+export function checkElementContrast(
+  element: HTMLElement,
+  level?: 'AA' | 'AAA'
+): {
+  ratio: number;
+  passes: boolean;
+  foreground: string;
+  background: string;
+};
+
+// =============================================================================
+// ANNOUNCEMENT QUEUE
+// =============================================================================
+
+export interface AnnouncementQueueOptions {
+  minDelay?: number;
+}
+
+export interface AnnouncementQueue {
+  add: (message: string, options?: { priority?: 'polite' | 'assertive' }) => void;
+  clear: () => void;
+  queueLength: Pulse<number>;
+}
+
+/**
+ * Create a queue for managing multiple announcements
+ */
+export function createAnnouncementQueue(options?: AnnouncementQueueOptions): AnnouncementQueue;
+
+// =============================================================================
 // UTILITIES
 // =============================================================================
 
@@ -284,6 +465,11 @@ export function makeInert(element: HTMLElement): () => void;
  * Create screen reader only text (visually hidden)
  */
 export function srOnly(text: string): HTMLSpanElement;
+
+/**
+ * Compute the accessible name of an element (aria-label, text content, etc.)
+ */
+export function getAccessibleName(element: HTMLElement): string;
 
 // =============================================================================
 // DEFAULT EXPORT

@@ -345,6 +345,94 @@ withContext(testCtx, () => {
 });
 testCtx.reset();  // Clean up after test
 resetContext();   // Reset global context
+
+// ===== watch() =====
+// Watch specific pulses and run callback on change (simpler than effect())
+import { watch } from 'pulse-js-framework/runtime/pulse';
+
+// Single source - callback receives ([newVal], [oldVal])
+const stop = watch(count, ([newVal], [oldVal]) => {
+  console.log(`Changed from ${oldVal} to ${newVal}`);
+});
+stop(); // Stop watching
+
+// Multiple sources
+watch([firstName, lastName], ([newFirst, newLast], [oldFirst, oldLast]) => {
+  console.log(`Name changed to ${newFirst} ${newLast}`);
+});
+
+// ===== createState() =====
+// Create a reactive object (proxy-based) from a plain object
+import { createState } from 'pulse-js-framework/runtime/pulse';
+
+const state = createState({ count: 0, name: 'Alice', items: [1, 2, 3] });
+
+// Read/write like plain object (reactive under the hood)
+state.count = 5;           // Triggers effects
+console.log(state.count);  // 5
+
+// Reactive in effects
+effect(() => console.log(state.name));
+state.name = 'Bob';  // Effect re-runs
+
+// Access underlying pulse
+const countPulse = state.$pulse('count');
+
+// Array helpers (reactive mutations)
+state.items$push(4, 5);        // [1, 2, 3, 4, 5]
+state.items$pop();             // Removes last
+state.items$shift();           // Removes first
+state.items$unshift(0);        // Adds to front
+state.items$splice(1, 2);      // Splice
+state.items$filter(x => x > 2); // In-place filter
+state.items$map(x => x * 2);    // In-place map
+state.items$sort((a, b) => a - b); // In-place sort
+
+// ===== memo() =====
+// Memoize expensive function calls (caches last call)
+import { memo } from 'pulse-js-framework/runtime/pulse';
+
+const expensiveCalc = memo((x, y) => {
+  console.log('Computing...');
+  return x * y;
+});
+
+expensiveCalc(2, 3); // Logs "Computing...", returns 6
+expensiveCalc(2, 3); // Returns 6 (cached, no log)
+expensiveCalc(3, 4); // Logs "Computing...", returns 12
+
+// Custom equality for object args
+const memoized = memo(
+  (obj) => obj.value * 2,
+  { equals: (a, b) => a?.value === b?.value }
+);
+
+// ===== memoComputed() =====
+// Memoized computed value - only recalculates when deps actually change
+import { memoComputed } from 'pulse-js-framework/runtime/pulse';
+
+const items = pulse([1, 2, 3, 4, 5]);
+const filter = pulse('');
+
+const filtered = memoComputed(
+  () => items.get().filter(i => String(i).includes(filter.get())),
+  { deps: [items, filter] }
+);
+
+// ===== fromPromise() =====
+// Wrap a Promise into reactive state { value, loading, error }
+import { fromPromise } from 'pulse-js-framework/runtime/pulse';
+
+const { value, loading, error } = fromPromise(
+  fetch('/api/data').then(r => r.json()),
+  []  // Optional initial value
+);
+
+effect(() => {
+  if (loading.get()) return console.log('Loading...');
+  if (error.get()) return console.log('Error:', error.get());
+  console.log('Data:', value.get());
+});
 ```
 
 ### DOM Creation (runtime/dom.js)
@@ -2446,7 +2534,7 @@ view {
 
 ```javascript
 // Core reactivity
-import { pulse, effect, computed, batch } from 'pulse-js-framework/runtime';
+import { pulse, effect, computed, batch, watch, createState, memo, memoComputed, fromPromise } from 'pulse-js-framework/runtime';
 
 // DOM helpers (includes auto-ARIA)
 import { el, mount, on, text, bind, model, list, when, show, match, configureA11y, onMount, onUnmount, component } from 'pulse-js-framework/runtime';

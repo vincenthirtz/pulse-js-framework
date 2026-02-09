@@ -2768,6 +2768,65 @@ actions {
 });
 
 // =============================================================================
+// State assignment in text interpolation (transformExpressionString bug fix)
+// =============================================================================
+
+test('compiles state assignment in text interpolation to .set() not .get() =', () => {
+  const source = `
+@page Test
+
+state {
+  show: false
+}
+
+view {
+  p "{show = !show}"
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  // Should generate show.set(!show.get()), NOT show.get() = !show.get()
+  assert(!result.code.includes('.get() ='), 'Assignment should not produce .get() on left side');
+  assert(result.code.includes('show.set('), 'Assignment should use .set()');
+});
+
+test('compiles compound assignment in text interpolation to .update()', () => {
+  const source = `
+@page Test
+
+state {
+  count: 0
+}
+
+view {
+  p "Value: {count += 1}"
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  assert(!result.code.includes('.get() +'), 'Compound assignment should not produce .get() +=');
+  assert(result.code.includes('count.update('), 'Compound assignment should use .update()');
+});
+
+test('does not treat == as assignment in text interpolation', () => {
+  const source = `
+@page Test
+
+state {
+  count: 0
+}
+
+view {
+  p "{count == 0 ? 'zero' : 'nonzero'}"
+}`;
+
+  const result = compile(source);
+  assert(result.success, 'Expected successful compilation');
+  assert(!result.code.includes('.set('), 'Equality check should not produce .set()');
+  assert(result.code.includes('count.get() == 0'), 'Equality check should use .get()');
+});
+
+// =============================================================================
 // Results
 // =============================================================================
 
