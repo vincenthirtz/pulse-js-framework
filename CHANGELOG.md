@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.7.36] - 2026-02-09
+
+### Changes
+
+- fix(test): use clearSSRState() to properly reset module-scoped state in SSR test
+- fix(compiler): transform state assignments in text interpolation to .set() instead of .get() =
+- fix(actions): repair syntax github action
+- feat: complete milestone 1 - type/implementation parity (v1.8.0)
+- feat: harden runtime, improve SSR state isolation, add type definitions and tests
+- feat(ci): auto-tag on release PR merge in manual-release workflow
+- chore(release): bump version to 1.7.35
+- chore(release): bump version to 1.7.34
+- chore(ci): bump codecov/codecov-action from 4 to 5
+- chore(ci): bump actions/cache from 4 to 5
+- chore(ci): bump actions/github-script from 7 to 8
+
+---
+
+
 ## [1.7.35] - 2026-02-08
 
 ### Changes
