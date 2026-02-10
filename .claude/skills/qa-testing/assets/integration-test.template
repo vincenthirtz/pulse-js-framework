@@ -1,0 +1,84 @@
+/**
+ * Integration tests for {{NAME}}
+ *
+ * Tests cover cross-module interactions and realistic workflows.
+ */
+
+import { test, describe, beforeEach, afterEach } from 'node:test';
+import assert from 'node:assert';
+import { pulse, effect, computed, batch, createContext, withContext } from '../runtime/pulse.js';
+import { setAdapter, MockDOMAdapter, resetAdapter } from '../runtime/dom-adapter.js';
+
+describe('{{NAME}} - Integration', () => {
+  let adapter;
+  let ctx;
+
+  beforeEach(() => {
+    // Mock DOM
+    adapter = new MockDOMAdapter();
+    setAdapter(adapter);
+
+    // Isolated reactive context
+    ctx = createContext({ name: 'test-{{kebab-name}}' });
+  });
+
+  afterEach(() => {
+    resetAdapter();
+    ctx.reset();
+  });
+
+  describe('workflow: complete user scenario', () => {
+    test('should handle end-to-end flow', () => {
+      withContext(ctx, () => {
+        // 1. Setup initial state
+        const items = pulse([]);
+        const loading = pulse(false);
+
+        // 2. Simulate user action
+        loading.set(true);
+        items.set([{ id: 1, name: 'Test' }]);
+        loading.set(false);
+
+        // 3. Verify final state
+        assert.strictEqual(loading.get(), false);
+        assert.strictEqual(items.get().length, 1);
+        assert.strictEqual(items.get()[0].name, 'Test');
+      });
+    });
+  });
+
+  describe('cross-module interaction', () => {
+    test('should coordinate between reactive state and DOM', () => {
+      withContext(ctx, () => {
+        const count = pulse(0);
+        const values = [];
+
+        effect(() => values.push(count.get()));
+
+        batch(() => {
+          count.set(1);
+          count.set(2);
+          count.set(3);
+        });
+
+        // Batch: only initial + final value
+        assert.deepStrictEqual(values, [0, 3]);
+      });
+    });
+  });
+
+  describe('error recovery', () => {
+    test('should recover from errors gracefully', () => {
+      withContext(ctx, () => {
+        const state = pulse('ok');
+
+        // Simulate error and recovery
+        state.set('error');
+        assert.strictEqual(state.get(), 'error');
+
+        state.set('recovered');
+        assert.strictEqual(state.get(), 'recovered');
+      });
+    });
+  });
+});

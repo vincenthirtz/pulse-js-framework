@@ -7,6 +7,9 @@
  * @module test/dom-lifecycle
  */
 
+import { test, describe, beforeEach } from 'node:test';
+import assert from 'node:assert';
+
 import { createDOM } from './mock-dom.js';
 
 // Set up DOM environment before importing
@@ -30,19 +33,7 @@ import {
 import { pulse, resetContext } from '../runtime/pulse.js';
 import { el } from '../runtime/dom.js';
 
-import {
-  test,
-  testAsync,
-  runAsyncTests,
-  assert,
-  assertEqual,
-  assertDeepEqual,
-  assertThrows,
-  printResults,
-  exitWithCode,
-  printSection,
-  wait
-} from './utils.js';
+import { wait } from './utils.js';
 
 // =============================================================================
 // Setup/Teardown
@@ -57,567 +48,559 @@ function cleanup() {
 // mount() Tests
 // =============================================================================
 
-printSection('mount() Tests');
+describe('mount() Tests', () => {
+  test('mount: appends element to target selector', () => {
+    cleanup();
 
-test('mount: appends element to target selector', () => {
-  cleanup();
+    const container = document.createElement('div');
+    container.id = 'app';
+    document.body.appendChild(container);
 
-  const container = document.createElement('div');
-  container.id = 'app';
-  document.body.appendChild(container);
+    const element = el('div.content', 'Hello');
 
-  const element = el('div.content', 'Hello');
+    mount('#app', element);
 
-  mount('#app', element);
+    const found = container.querySelector('.content');
+    assert.ok(found !== null, 'Element should be mounted');
+    assert.strictEqual(found.textContent, 'Hello');
 
-  const found = container.querySelector('.content');
-  assert(found !== null, 'Element should be mounted');
-  assertEqual(found.textContent, 'Hello');
+    // Cleanup
+    document.body.removeChild(container);
+  });
 
-  // Cleanup
-  document.body.removeChild(container);
-});
+  test('mount: appends element to DOM element directly', () => {
+    cleanup();
 
-test('mount: appends element to DOM element directly', () => {
-  cleanup();
+    const container = document.createElement('div');
+    const element = el('span', 'World');
 
-  const container = document.createElement('div');
-  const element = el('span', 'World');
+    mount(container, element);
 
-  mount(container, element);
+    assert.strictEqual(container.childNodes.length, 1);
+    assert.strictEqual(container.querySelector('span').textContent, 'World');
+  });
 
-  assertEqual(container.childNodes.length, 1);
-  assertEqual(container.querySelector('span').textContent, 'World');
-});
+  test('mount: returns unmount function', () => {
+    cleanup();
 
-test('mount: returns unmount function', () => {
-  cleanup();
+    const container = document.createElement('div');
+    const element = el('div.removable', 'Remove me');
 
-  const container = document.createElement('div');
-  const element = el('div.removable', 'Remove me');
+    const unmount = mount(container, element);
 
-  const unmount = mount(container, element);
+    assert.strictEqual(typeof unmount, 'function');
+    assert.strictEqual(container.querySelector('.removable') !== null, true);
 
-  assertEqual(typeof unmount, 'function');
-  assertEqual(container.querySelector('.removable') !== null, true);
+    // Call unmount
+    unmount();
 
-  // Call unmount
-  unmount();
+    assert.strictEqual(container.querySelector('.removable'), null);
+  });
 
-  assertEqual(container.querySelector('.removable'), null);
-});
+  test('mount: throws when target not found', () => {
+    cleanup();
 
-test('mount: throws when target not found', () => {
-  cleanup();
+    const element = el('div', 'Test');
 
-  const element = el('div', 'Test');
-
-  assertThrows(
-    () => mount('#nonexistent-target', element),
-    /not found/i
-  );
+    assert.throws(
+      () => mount('#nonexistent-target', element),
+      /not found/i
+    );
+  });
 });
 
 // =============================================================================
 // onMount() Tests
 // =============================================================================
 
-printSection('onMount() Tests');
+describe('onMount() Tests', () => {
+  test('onMount: calls callback after component creation', async () => {
+    cleanup();
 
-testAsync('onMount: calls callback after component creation', async () => {
-  cleanup();
+    let mountCalled = false;
+    let mountOrder = [];
 
-  let mountCalled = false;
-  let mountOrder = [];
+    const MyComponent = component((ctx) => {
+      mountOrder.push('render');
 
-  const MyComponent = component((ctx) => {
-    mountOrder.push('render');
+      ctx.onMount(() => {
+        mountCalled = true;
+        mountOrder.push('mount');
+      });
 
-    ctx.onMount(() => {
-      mountCalled = true;
-      mountOrder.push('mount');
+      return el('div', 'Component');
     });
 
-    return el('div', 'Component');
+    const instance = MyComponent();
+
+    // Mount callbacks are deferred to microtask
+    await wait(10);
+
+    assert.strictEqual(mountCalled, true);
+    assert.strictEqual(mountOrder[0], 'render');
+    assert.strictEqual(mountOrder[1], 'mount');
   });
 
-  const instance = MyComponent();
+  test('onMount: multiple callbacks are called in order', async () => {
+    cleanup();
 
-  // Mount callbacks are deferred to microtask
-  await wait(10);
+    const callOrder = [];
 
-  assertEqual(mountCalled, true);
-  assertEqual(mountOrder[0], 'render');
-  assertEqual(mountOrder[1], 'mount');
-});
+    const MyComponent = component((ctx) => {
+      ctx.onMount(() => callOrder.push(1));
+      ctx.onMount(() => callOrder.push(2));
+      ctx.onMount(() => callOrder.push(3));
 
-testAsync('onMount: multiple callbacks are called in order', async () => {
-  cleanup();
-
-  const callOrder = [];
-
-  const MyComponent = component((ctx) => {
-    ctx.onMount(() => callOrder.push(1));
-    ctx.onMount(() => callOrder.push(2));
-    ctx.onMount(() => callOrder.push(3));
-
-    return el('div');
-  });
-
-  MyComponent();
-  await wait(10);
-
-  assertDeepEqual(callOrder, [1, 2, 3]);
-});
-
-testAsync('onMount: without component context defers to microtask', async () => {
-  cleanup();
-
-  let called = false;
-
-  // Call onMount outside of component context
-  onMount(() => {
-    called = true;
-  });
-
-  // Should not be called immediately
-  assertEqual(called, false);
-
-  await wait(10);
-
-  // Should be called after microtask
-  assertEqual(called, true);
-});
-
-testAsync('onMount: handles errors in callbacks gracefully', async () => {
-  cleanup();
-
-  // Capture console.error
-  const originalError = console.error;
-  let errorLogged = false;
-  console.error = () => { errorLogged = true; };
-
-  let secondCalled = false;
-
-  const MyComponent = component((ctx) => {
-    ctx.onMount(() => {
-      throw new Error('Intentional error');
-    });
-    ctx.onMount(() => {
-      secondCalled = true;
+      return el('div');
     });
 
-    return el('div');
+    MyComponent();
+    await wait(10);
+
+    assert.deepStrictEqual(callOrder, [1, 2, 3]);
   });
 
-  MyComponent();
-  await wait(10);
+  test('onMount: without component context defers to microtask', async () => {
+    cleanup();
 
-  console.error = originalError;
+    let called = false;
 
-  // Error should have been logged
-  assertEqual(errorLogged, true);
-  // Second callback should still be called
-  assertEqual(secondCalled, true);
+    // Call onMount outside of component context
+    onMount(() => {
+      called = true;
+    });
+
+    // Should not be called immediately
+    assert.strictEqual(called, false);
+
+    await wait(10);
+
+    // Should be called after microtask
+    assert.strictEqual(called, true);
+  });
+
+  test('onMount: handles errors in callbacks gracefully', async () => {
+    cleanup();
+
+    // Capture console.error
+    const originalError = console.error;
+    let errorLogged = false;
+    console.error = () => { errorLogged = true; };
+
+    let secondCalled = false;
+
+    const MyComponent = component((ctx) => {
+      ctx.onMount(() => {
+        throw new Error('Intentional error');
+      });
+      ctx.onMount(() => {
+        secondCalled = true;
+      });
+
+      return el('div');
+    });
+
+    MyComponent();
+    await wait(10);
+
+    console.error = originalError;
+
+    // Error should have been logged
+    assert.strictEqual(errorLogged, true);
+    // Second callback should still be called
+    assert.strictEqual(secondCalled, true);
+  });
 });
 
 // =============================================================================
 // onUnmount() Tests
 // =============================================================================
 
-printSection('onUnmount() Tests');
+describe('onUnmount() Tests', () => {
+  test('onUnmount: stores callbacks on element', () => {
+    cleanup();
 
-test('onUnmount: stores callbacks on element', () => {
-  cleanup();
+    const callbacks = [];
 
-  const callbacks = [];
+    const MyComponent = component((ctx) => {
+      ctx.onUnmount(() => callbacks.push('unmount-1'));
+      ctx.onUnmount(() => callbacks.push('unmount-2'));
 
-  const MyComponent = component((ctx) => {
-    ctx.onUnmount(() => callbacks.push('unmount-1'));
-    ctx.onUnmount(() => callbacks.push('unmount-2'));
-
-    return el('div');
-  });
-
-  const instance = MyComponent();
-
-  // Callbacks should be stored on element
-  assert(instance._pulseUnmount !== undefined, 'Should have unmount callbacks');
-  assertEqual(instance._pulseUnmount.length, 2);
-});
-
-test('onUnmount: callbacks can be executed manually', () => {
-  cleanup();
-
-  let unmountCalled = false;
-
-  const MyComponent = component((ctx) => {
-    ctx.onUnmount(() => {
-      unmountCalled = true;
+      return el('div');
     });
 
-    return el('div');
+    const instance = MyComponent();
+
+    // Callbacks should be stored on element
+    assert.ok(instance._pulseUnmount !== undefined, 'Should have unmount callbacks');
+    assert.strictEqual(instance._pulseUnmount.length, 2);
   });
 
-  const instance = MyComponent();
+  test('onUnmount: callbacks can be executed manually', () => {
+    cleanup();
 
-  // Execute unmount callbacks
-  if (instance._pulseUnmount) {
-    for (const cb of instance._pulseUnmount) {
-      cb();
+    let unmountCalled = false;
+
+    const MyComponent = component((ctx) => {
+      ctx.onUnmount(() => {
+        unmountCalled = true;
+      });
+
+      return el('div');
+    });
+
+    const instance = MyComponent();
+
+    // Execute unmount callbacks
+    if (instance._pulseUnmount) {
+      for (const cb of instance._pulseUnmount) {
+        cb();
+      }
     }
-  }
 
-  assertEqual(unmountCalled, true);
-});
-
-test('onUnmount: also registers with effect cleanup', () => {
-  cleanup();
-
-  // onUnmount also calls onCleanup from pulse.js
-  // This is tested indirectly through effect cleanup
-  let cleanupCalled = false;
-
-  const MyComponent = component((ctx) => {
-    ctx.onUnmount(() => {
-      cleanupCalled = true;
-    });
-
-    return el('div');
+    assert.strictEqual(unmountCalled, true);
   });
 
-  MyComponent();
+  test('onUnmount: also registers with effect cleanup', () => {
+    cleanup();
 
-  // The cleanup is registered - we just verify the callback is stored
-  // Actual cleanup happens when effect is disposed
+    // onUnmount also calls onCleanup from pulse.js
+    // This is tested indirectly through effect cleanup
+    let cleanupCalled = false;
+
+    const MyComponent = component((ctx) => {
+      ctx.onUnmount(() => {
+        cleanupCalled = true;
+      });
+
+      return el('div');
+    });
+
+    MyComponent();
+
+    // The cleanup is registered - we just verify the callback is stored
+    // Actual cleanup happens when effect is disposed
+  });
 });
 
 // =============================================================================
 // component() Factory Tests
 // =============================================================================
 
-printSection('component() Factory Tests');
+describe('component() Factory Tests', () => {
+  test('component: creates factory function', () => {
+    cleanup();
 
-test('component: creates factory function', () => {
-  cleanup();
+    const MyComponent = component((ctx) => {
+      return el('div', 'Component');
+    });
 
-  const MyComponent = component((ctx) => {
-    return el('div', 'Component');
+    assert.strictEqual(typeof MyComponent, 'function');
   });
 
-  assertEqual(typeof MyComponent, 'function');
-});
+  test('component: factory returns DOM element', () => {
+    cleanup();
 
-test('component: factory returns DOM element', () => {
-  cleanup();
+    const MyComponent = component((ctx) => {
+      return el('div.my-component', 'Hello');
+    });
 
-  const MyComponent = component((ctx) => {
-    return el('div.my-component', 'Hello');
+    const instance = MyComponent();
+
+    assert.strictEqual(instance.tagName.toLowerCase(), 'div');
+    assert.strictEqual(instance.classList.contains('my-component'), true);
   });
 
-  const instance = MyComponent();
+  test('component: receives props', () => {
+    cleanup();
 
-  assertEqual(instance.tagName.toLowerCase(), 'div');
-  assertEqual(instance.classList.contains('my-component'), true);
-});
+    let receivedProps = null;
 
-test('component: receives props', () => {
-  cleanup();
+    const MyComponent = component((ctx) => {
+      receivedProps = ctx.props;
+      return el('div', ctx.props.message);
+    });
 
-  let receivedProps = null;
+    MyComponent({ message: 'Hello Props', count: 42 });
 
-  const MyComponent = component((ctx) => {
-    receivedProps = ctx.props;
-    return el('div', ctx.props.message);
+    assert.deepStrictEqual(receivedProps, { message: 'Hello Props', count: 42 });
   });
 
-  MyComponent({ message: 'Hello Props', count: 42 });
+  test('component: default props are empty object', () => {
+    cleanup();
 
-  assertDeepEqual(receivedProps, { message: 'Hello Props', count: 42 });
-});
+    let receivedProps = null;
 
-test('component: default props are empty object', () => {
-  cleanup();
+    const MyComponent = component((ctx) => {
+      receivedProps = ctx.props;
+      return el('div');
+    });
 
-  let receivedProps = null;
+    MyComponent();
 
-  const MyComponent = component((ctx) => {
-    receivedProps = ctx.props;
-    return el('div');
+    assert.deepStrictEqual(receivedProps, {});
   });
 
-  MyComponent();
+  test('component: context has pulse function', () => {
+    cleanup();
 
-  assertDeepEqual(receivedProps, {});
-});
+    let hasPulse = false;
 
-test('component: context has pulse function', () => {
-  cleanup();
+    const MyComponent = component((ctx) => {
+      hasPulse = typeof ctx.pulse === 'function';
+      return el('div');
+    });
 
-  let hasPulse = false;
+    MyComponent();
 
-  const MyComponent = component((ctx) => {
-    hasPulse = typeof ctx.pulse === 'function';
-    return el('div');
+    assert.strictEqual(hasPulse, true);
   });
 
-  MyComponent();
+  test('component: context has onMount and onUnmount', () => {
+    cleanup();
 
-  assertEqual(hasPulse, true);
-});
+    let hasOnMount = false;
+    let hasOnUnmount = false;
 
-test('component: context has onMount and onUnmount', () => {
-  cleanup();
+    const MyComponent = component((ctx) => {
+      hasOnMount = typeof ctx.onMount === 'function';
+      hasOnUnmount = typeof ctx.onUnmount === 'function';
+      return el('div');
+    });
 
-  let hasOnMount = false;
-  let hasOnUnmount = false;
+    MyComponent();
 
-  const MyComponent = component((ctx) => {
-    hasOnMount = typeof ctx.onMount === 'function';
-    hasOnUnmount = typeof ctx.onUnmount === 'function';
-    return el('div');
+    assert.strictEqual(hasOnMount, true);
+    assert.strictEqual(hasOnUnmount, true);
   });
 
-  MyComponent();
+  test('component: context has state object', () => {
+    cleanup();
 
-  assertEqual(hasOnMount, true);
-  assertEqual(hasOnUnmount, true);
-});
+    let hasState = false;
 
-test('component: context has state object', () => {
-  cleanup();
+    const MyComponent = component((ctx) => {
+      hasState = typeof ctx.state === 'object';
+      ctx.state.count = 0;
+      return el('div');
+    });
 
-  let hasState = false;
+    MyComponent();
 
-  const MyComponent = component((ctx) => {
-    hasState = typeof ctx.state === 'object';
-    ctx.state.count = 0;
-    return el('div');
+    assert.strictEqual(hasState, true);
   });
 
-  MyComponent();
+  test('component: context has methods object', () => {
+    cleanup();
 
-  assertEqual(hasState, true);
-});
+    let hasMethods = false;
 
-test('component: context has methods object', () => {
-  cleanup();
+    const MyComponent = component((ctx) => {
+      hasMethods = typeof ctx.methods === 'object';
+      ctx.methods.increment = () => {};
+      return el('div');
+    });
 
-  let hasMethods = false;
+    MyComponent();
 
-  const MyComponent = component((ctx) => {
-    hasMethods = typeof ctx.methods === 'object';
-    ctx.methods.increment = () => {};
-    return el('div');
+    assert.strictEqual(hasMethods, true);
   });
 
-  MyComponent();
+  test('component: with reactive state', async () => {
+    cleanup();
 
-  assertEqual(hasMethods, true);
-});
+    let count;
+    let incrementFn;
+    const Counter = component((ctx) => {
+      count = ctx.pulse(0);
+      incrementFn = () => count.update(n => n + 1);
 
-testAsync('component: with reactive state', async () => {
-  cleanup();
+      return el('div.counter', [
+        el('button.increment', {
+          onclick: incrementFn
+        }, 'Increment')
+      ]);
+    });
 
-  let count;
-  let incrementFn;
-  const Counter = component((ctx) => {
-    count = ctx.pulse(0);
-    incrementFn = () => count.update(n => n + 1);
+    const instance = Counter();
+    const container = document.createElement('div');
+    container.appendChild(instance);
 
-    return el('div.counter', [
-      el('button.increment', {
-        onclick: incrementFn
-      }, 'Increment')
-    ]);
+    await wait(10);
+
+    // Verify component structure
+    assert.ok(container.querySelector('.counter') !== null, 'Counter container should exist');
+    assert.ok(container.querySelector('.increment') !== null, 'Increment button should exist');
+
+    // Verify state starts at 0
+    assert.strictEqual(count.get(), 0);
+
+    // Test the increment function directly (bypasses mock DOM event system)
+    incrementFn();
+
+    await wait(10);
+
+    // Verify state updates
+    assert.strictEqual(count.get(), 1);
   });
-
-  const instance = Counter();
-  const container = document.createElement('div');
-  container.appendChild(instance);
-
-  await wait(10);
-
-  // Verify component structure
-  assert(container.querySelector('.counter') !== null, 'Counter container should exist');
-  assert(container.querySelector('.increment') !== null, 'Increment button should exist');
-
-  // Verify state starts at 0
-  assertEqual(count.get(), 0);
-
-  // Test the increment function directly (bypasses mock DOM event system)
-  incrementFn();
-
-  await wait(10);
-
-  // Verify state updates
-  assertEqual(count.get(), 1);
 });
 
 // =============================================================================
 // getMountContext() / setMountContext() Tests
 // =============================================================================
 
-printSection('getMountContext() / setMountContext() Tests');
+describe('getMountContext() / setMountContext() Tests', () => {
+  test('getMountContext: returns null by default', () => {
+    cleanup();
 
-test('getMountContext: returns null by default', () => {
-  cleanup();
-
-  assertEqual(getMountContext(), null);
-});
-
-test('setMountContext: sets and returns previous context', () => {
-  cleanup();
-
-  const ctx1 = { mountCallbacks: [], unmountCallbacks: [] };
-  const ctx2 = { mountCallbacks: [], unmountCallbacks: [] };
-
-  const prev1 = setMountContext(ctx1);
-  assertEqual(prev1, null);
-  assertEqual(getMountContext(), ctx1);
-
-  const prev2 = setMountContext(ctx2);
-  assertEqual(prev2, ctx1);
-  assertEqual(getMountContext(), ctx2);
-
-  // Cleanup
-  setMountContext(null);
-});
-
-test('setMountContext: component restores previous context', () => {
-  cleanup();
-
-  const outerContext = { mountCallbacks: [], unmountCallbacks: [] };
-  setMountContext(outerContext);
-
-  const Inner = component((ctx) => {
-    // Inside component, context is different
-    const innerCtx = getMountContext();
-    assert(innerCtx !== outerContext, 'Component should have its own context');
-    return el('div');
+    assert.strictEqual(getMountContext(), null);
   });
 
-  Inner();
+  test('setMountContext: sets and returns previous context', () => {
+    cleanup();
 
-  // After component, outer context should be restored
-  assertEqual(getMountContext(), outerContext);
+    const ctx1 = { mountCallbacks: [], unmountCallbacks: [] };
+    const ctx2 = { mountCallbacks: [], unmountCallbacks: [] };
 
-  // Cleanup
-  setMountContext(null);
+    const prev1 = setMountContext(ctx1);
+    assert.strictEqual(prev1, null);
+    assert.strictEqual(getMountContext(), ctx1);
+
+    const prev2 = setMountContext(ctx2);
+    assert.strictEqual(prev2, ctx1);
+    assert.strictEqual(getMountContext(), ctx2);
+
+    // Cleanup
+    setMountContext(null);
+  });
+
+  test('setMountContext: component restores previous context', () => {
+    cleanup();
+
+    const outerContext = { mountCallbacks: [], unmountCallbacks: [] };
+    setMountContext(outerContext);
+
+    const Inner = component((ctx) => {
+      // Inside component, context is different
+      const innerCtx = getMountContext();
+      assert.ok(innerCtx !== outerContext, 'Component should have its own context');
+      return el('div');
+    });
+
+    Inner();
+
+    // After component, outer context should be restored
+    assert.strictEqual(getMountContext(), outerContext);
+
+    // Cleanup
+    setMountContext(null);
+  });
 });
 
 // =============================================================================
 // Integration Tests
 // =============================================================================
 
-printSection('Lifecycle Integration Tests');
+describe('Lifecycle Integration Tests', () => {
+  test('integration: full component lifecycle', async () => {
+    cleanup();
 
-testAsync('integration: full component lifecycle', async () => {
-  cleanup();
+    const lifecycle = [];
 
-  const lifecycle = [];
+    const MyComponent = component((ctx) => {
+      lifecycle.push('setup');
 
-  const MyComponent = component((ctx) => {
-    lifecycle.push('setup');
+      ctx.onMount(() => {
+        lifecycle.push('mounted');
+      });
 
-    ctx.onMount(() => {
-      lifecycle.push('mounted');
+      ctx.onUnmount(() => {
+        lifecycle.push('unmounted');
+      });
+
+      lifecycle.push('render');
+      return el('div.lifecycle-test');
     });
 
-    ctx.onUnmount(() => {
-      lifecycle.push('unmounted');
-    });
+    const instance = MyComponent();
+    lifecycle.push('created');
 
-    lifecycle.push('render');
-    return el('div.lifecycle-test');
-  });
+    const container = document.createElement('div');
+    mount(container, instance);
+    lifecycle.push('in-dom');
 
-  const instance = MyComponent();
-  lifecycle.push('created');
+    await wait(10);
 
-  const container = document.createElement('div');
-  mount(container, instance);
-  lifecycle.push('in-dom');
+    // Should be: setup, render, created, in-dom, mounted
+    assert.strictEqual(lifecycle[0], 'setup');
+    assert.strictEqual(lifecycle[1], 'render');
+    assert.strictEqual(lifecycle[2], 'created');
+    assert.strictEqual(lifecycle[3], 'in-dom');
+    assert.strictEqual(lifecycle[4], 'mounted');
 
-  await wait(10);
-
-  // Should be: setup, render, created, in-dom, mounted
-  assertEqual(lifecycle[0], 'setup');
-  assertEqual(lifecycle[1], 'render');
-  assertEqual(lifecycle[2], 'created');
-  assertEqual(lifecycle[3], 'in-dom');
-  assertEqual(lifecycle[4], 'mounted');
-
-  // Trigger unmount
-  if (instance._pulseUnmount) {
-    for (const cb of instance._pulseUnmount) {
-      cb();
+    // Trigger unmount
+    if (instance._pulseUnmount) {
+      for (const cb of instance._pulseUnmount) {
+        cb();
+      }
     }
-  }
 
-  assertEqual(lifecycle[5], 'unmounted');
-});
-
-testAsync('integration: nested components', async () => {
-  cleanup();
-
-  const order = [];
-
-  const Child = component((ctx) => {
-    ctx.onMount(() => order.push('child-mount'));
-    ctx.onUnmount(() => order.push('child-unmount'));
-    return el('span', 'Child');
+    assert.strictEqual(lifecycle[5], 'unmounted');
   });
 
-  const Parent = component((ctx) => {
-    ctx.onMount(() => order.push('parent-mount'));
-    ctx.onUnmount(() => order.push('parent-unmount'));
-    return el('div', Child());
-  });
+  test('integration: nested components', async () => {
+    cleanup();
 
-  const instance = Parent();
-  await wait(10);
+    const order = [];
 
-  // Both should be mounted (order may vary based on microtask scheduling)
-  assert(order.includes('parent-mount'), 'Parent should be mounted');
-  assert(order.includes('child-mount'), 'Child should be mounted');
-});
-
-testAsync('integration: component with props and state', async () => {
-  cleanup();
-
-  let exclamation;
-  const Greeting = component((ctx) => {
-    exclamation = ctx.pulse('!');
-
-    ctx.onMount(() => {
-      // Could load data here
+    const Child = component((ctx) => {
+      ctx.onMount(() => order.push('child-mount'));
+      ctx.onUnmount(() => order.push('child-unmount'));
+      return el('span', 'Child');
     });
 
-    return el('div.greeting');
+    const Parent = component((ctx) => {
+      ctx.onMount(() => order.push('parent-mount'));
+      ctx.onUnmount(() => order.push('parent-unmount'));
+      return el('div', Child());
+    });
+
+    const instance = Parent();
+    await wait(10);
+
+    // Both should be mounted (order may vary based on microtask scheduling)
+    assert.ok(order.includes('parent-mount'), 'Parent should be mounted');
+    assert.ok(order.includes('child-mount'), 'Child should be mounted');
   });
 
-  const instance = Greeting({ name: 'World' });
-  const container = document.createElement('div');
-  container.appendChild(instance);
+  test('integration: component with props and state', async () => {
+    cleanup();
 
-  await wait(10);
+    let exclamation;
+    const Greeting = component((ctx) => {
+      exclamation = ctx.pulse('!');
 
-  // Verify component was created with props
-  assert(container.querySelector('.greeting') !== null, 'Greeting container should exist');
+      ctx.onMount(() => {
+        // Could load data here
+      });
 
-  // Verify state was initialized
-  assertEqual(exclamation.get(), '!');
+      return el('div.greeting');
+    });
 
-  // Verify state can be updated
-  exclamation.set('!!');
-  assertEqual(exclamation.get(), '!!');
+    const instance = Greeting({ name: 'World' });
+    const container = document.createElement('div');
+    container.appendChild(instance);
+
+    await wait(10);
+
+    // Verify component was created with props
+    assert.ok(container.querySelector('.greeting') !== null, 'Greeting container should exist');
+
+    // Verify state was initialized
+    assert.strictEqual(exclamation.get(), '!');
+
+    // Verify state can be updated
+    exclamation.set('!!');
+    assert.strictEqual(exclamation.get(), '!!');
+  });
 });
-
-// =============================================================================
-// Run Async Tests and Print Results
-// =============================================================================
-
-await runAsyncTests();
-printResults();
-exitWithCode();

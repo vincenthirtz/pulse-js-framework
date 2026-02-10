@@ -1,0 +1,93 @@
+/**
+ * {{NAME}} - Pulse Framework
+ *
+ * {{DESCRIPTION}}
+ *
+ * @module runtime/{{name}}
+ *
+ * Architecture:
+ *   Layer: Runtime (browser-safe)
+ *   Dependencies: pulse.js (core reactivity)
+ *   Pattern: {{PATTERN}}
+ *
+ * API Design:
+ *   - Factory: create{{NAME}}(options) → instance
+ *   - Hook: use{{NAME}}(config) → { reactive state, methods }
+ *   - All state exposed as Pulse instances
+ *   - Returns disposer/cleanup from subscriptions
+ *
+ * @example
+ * ```javascript
+ * import { create{{NAME}}, use{{NAME}} } from 'pulse-js-framework/runtime/{{name}}';
+ *
+ * // Factory API
+ * const instance = create{{NAME}}({
+ *   // options
+ * });
+ *
+ * // Hook API (reactive)
+ * const { data, loading, error } = use{{NAME}}({
+ *   // config
+ * });
+ * ```
+ */
+
+import { pulse, effect, computed, batch } from './pulse.js';
+
+// ============================================================
+// Constants & Configuration
+// ============================================================
+
+const DEFAULT_OPTIONS = {
+  // Add sensible defaults (P5: Convention over Configuration)
+};
+
+// ============================================================
+// Core Implementation
+// ============================================================
+
+/**
+ * Create a new {{NAME}} instance.
+ *
+ * @param {Object} options - Configuration options
+ * @returns {Object} {{NAME}} instance with methods and reactive state
+ */
+export function create{{NAME}}(options = {}) {
+  const config = { ...DEFAULT_OPTIONS, ...options };
+
+  // Reactive state (P3: Reactivity as Foundation)
+  const state = pulse(null);
+  const loading = pulse(false);
+  const error = pulse(null);
+
+  // Public API
+  return {
+    // Reactive state (exposed as Pulse instances)
+    state,
+    loading,
+    error,
+
+    // Methods
+    dispose() {
+      // Cleanup subscriptions, timers, etc.
+    }
+  };
+}
+
+/**
+ * Reactive hook for {{NAME}}.
+ *
+ * @param {Object} config - Hook configuration
+ * @returns {Object} Reactive state and control methods
+ */
+export function use{{NAME}}(config = {}) {
+  const instance = create{{NAME}}(config);
+
+  // Return reactive interface
+  return {
+    data: instance.state,
+    loading: instance.loading,
+    error: instance.error,
+    dispose: instance.dispose
+  };
+}

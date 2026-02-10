@@ -72,7 +72,9 @@ const testScripts = [
   'test:parcel-plugin',
   'test:swc-plugin',
   'test:dom-binding',
-  'test:interceptor-manager'
+  'test:interceptor-manager',
+  'test:vite-plugin',
+  'test:dev-server',
 ];
 
 const results = {
@@ -96,7 +98,8 @@ function runAllTests() {
       execSync(`npm run ${script}`, {
         stdio: 'pipe',
         maxBuffer: 10 * 1024 * 1024,
-        encoding: 'utf8'
+        encoding: 'utf8',
+        timeout: 60000  // 60s per test suite to prevent hangs
       });
 
       console.log('✓');

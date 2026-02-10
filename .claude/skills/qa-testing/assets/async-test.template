@@ -1,0 +1,87 @@
+/**
+ * Async tests for {{NAME}}
+ *
+ * Tests cover async operations, loading states, error handling, and race conditions.
+ */
+
+import { test, describe, beforeEach, afterEach, mock } from 'node:test';
+import assert from 'node:assert';
+import { pulse, effect, createContext, withContext } from '../runtime/pulse.js';
+
+describe('{{NAME}} - Async', () => {
+  let ctx;
+
+  beforeEach(() => {
+    ctx = createContext({ name: 'test-async-{{kebab-name}}' });
+  });
+
+  afterEach(() => {
+    ctx.reset();
+  });
+
+  describe('successful operations', () => {
+    test('should resolve with data', async () => {
+      const mockFetch = () => Promise.resolve({ items: [1, 2, 3] });
+
+      const result = await mockFetch();
+
+      assert.deepStrictEqual(result, { items: [1, 2, 3] });
+    });
+
+    test('should track loading state', async () => {
+      await withContext(ctx, async () => {
+        const loading = pulse(false);
+        const data = pulse(null);
+
+        loading.set(true);
+        assert.strictEqual(loading.get(), true);
+
+        const result = await Promise.resolve('data');
+        data.set(result);
+        loading.set(false);
+
+        assert.strictEqual(loading.get(), false);
+        assert.strictEqual(data.get(), 'data');
+      });
+    });
+  });
+
+  describe('error handling', () => {
+    test('should handle rejected promises', async () => {
+      const mockFetch = () => Promise.reject(new Error('Network error'));
+
+      await assert.rejects(mockFetch, { message: 'Network error' });
+    });
+
+    test('should handle timeout', async () => {
+      mock.timers.enable({ apis: ['setTimeout'] });
+
+      const slowFetch = () => new Promise((resolve) => {
+        setTimeout(() => resolve('late'), 5000);
+      });
+
+      const promise = slowFetch();
+      mock.timers.tick(5000);
+
+      const result = await promise;
+      assert.strictEqual(result, 'late');
+
+      mock.timers.reset();
+    });
+  });
+
+  describe('race conditions', () => {
+    test('should handle concurrent requests', async () => {
+      let callOrder = [];
+
+      const req1 = async () => { callOrder.push(1); return 'first'; };
+      const req2 = async () => { callOrder.push(2); return 'second'; };
+
+      const [r1, r2] = await Promise.all([req1(), req2()]);
+
+      assert.strictEqual(r1, 'first');
+      assert.strictEqual(r2, 'second');
+      assert.deepStrictEqual(callOrder, [1, 2]);
+    });
+  });
+});

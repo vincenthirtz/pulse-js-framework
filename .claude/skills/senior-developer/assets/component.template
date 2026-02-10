@@ -1,0 +1,76 @@
+/**
+ * {{NAME}} Component - Pulse Framework
+ *
+ * TODO: Description of what this component renders and when to use it.
+ *
+ * @param {Object} [props] - Component properties
+ * @param {string} [props.label] - Accessible label for the component
+ * @returns {Element} DOM element
+ *
+ * @example
+ * ```javascript
+ * import { {{NAME}} } from './components/{{NAME}}.js';
+ *
+ * const widget = {{NAME}}({
+ *   label: 'My {{NAME}}',
+ * });
+ *
+ * mount('#app', widget);
+ * ```
+ */
+
+import { pulse, effect, computed, batch } from 'pulse-js-framework/runtime/pulse';
+import { el, when, list, cls, show, on } from 'pulse-js-framework/runtime/dom';
+
+// ============================================================
+// Constants
+// ============================================================
+
+const DEFAULTS = {
+  label: '{{NAME}}',
+};
+
+// ============================================================
+// Component
+// ============================================================
+
+export function {{NAME}}(props = {}) {
+  const config = { ...DEFAULTS, ...props };
+
+  // ---- Reactive State ----
+  const isActive = pulse(false);
+
+  // ---- Derived State ----
+  const statusLabel = computed(() =>
+    isActive.get() ? 'Active' : 'Inactive'
+  );
+
+  // ---- Handlers ----
+  function handleToggle() {
+    isActive.update(v => !v);
+  }
+
+  // ---- DOM ----
+  return el('.{{kebab-name}}', {
+    role: 'region',
+    'aria-label': config.label,
+  }, [
+    // Header
+    el('.{{kebab-name}}__header', [
+      el('button.{{kebab-name}}__toggle', {
+        type: 'button',
+        onclick: handleToggle,
+        'aria-expanded': () => String(isActive.get()),
+      }, () => statusLabel.get()),
+    ]),
+
+    // Content (conditional)
+    when(
+      () => isActive.get(),
+      () => el('.{{kebab-name}}__body', [
+        // TODO: Component content here
+        el('p', 'Content goes here'),
+      ])
+    ),
+  ]);
+}

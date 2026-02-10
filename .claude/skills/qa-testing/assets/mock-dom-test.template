@@ -1,0 +1,115 @@
+/**
+ * DOM tests for {{NAME}} using MockDOMAdapter
+ *
+ * Tests cover element creation, reactive bindings, and DOM manipulation.
+ */
+
+import { test, describe, beforeEach, afterEach } from 'node:test';
+import assert from 'node:assert';
+import { setAdapter, MockDOMAdapter, resetAdapter } from '../runtime/dom-adapter.js';
+import { el, mount, text, bind, list, when, show } from '../runtime/dom.js';
+import { pulse, effect, computed } from '../runtime/pulse.js';
+
+describe('{{NAME}} - DOM', () => {
+  let adapter;
+
+  beforeEach(() => {
+    adapter = new MockDOMAdapter();
+    setAdapter(adapter);
+  });
+
+  afterEach(() => {
+    resetAdapter();
+  });
+
+  // === Element Creation ===
+
+  describe('element creation', () => {
+    test('should create element with tag and class', () => {
+      const elem = el('div.container');
+
+      assert.strictEqual(elem.tagName, 'div');
+      assert.ok(elem.className.includes('container'));
+    });
+
+    test('should create element with attributes', () => {
+      const elem = el('input', { type: 'text', placeholder: 'Enter...' });
+
+      assert.strictEqual(elem.tagName, 'input');
+    });
+
+    test('should create element with children', () => {
+      const elem = el('ul', [
+        el('li', 'Item 1'),
+        el('li', 'Item 2'),
+        el('li', 'Item 3')
+      ]);
+
+      assert.strictEqual(elem.tagName, 'ul');
+      assert.strictEqual(elem.children.length, 3);
+    });
+  });
+
+  // === Reactive Bindings ===
+
+  describe('reactive bindings', () => {
+    test('should update text reactively', () => {
+      const name = pulse('World');
+      const elem = el('span', () => `Hello, ${name.get()}!`);
+
+      assert.strictEqual(elem.textContent, 'Hello, World!');
+
+      name.set('Pulse');
+      assert.strictEqual(elem.textContent, 'Hello, Pulse!');
+    });
+
+    test('should toggle visibility with show()', () => {
+      const visible = pulse(true);
+      const elem = el('div', 'Content');
+      show(elem, () => visible.get());
+
+      visible.set(false);
+      assert.strictEqual(elem.style.display, 'none');
+
+      visible.set(true);
+      assert.notStrictEqual(elem.style.display, 'none');
+    });
+  });
+
+  // === Conditional Rendering ===
+
+  describe('conditional rendering', () => {
+    test('should render correct branch with when()', () => {
+      const loading = pulse(true);
+
+      const result = when(
+        () => loading.get(),
+        () => el('div.spinner', 'Loading...'),
+        () => el('div.content', 'Done')
+      );
+
+      // Initial: loading branch
+      assert.ok(result);
+    });
+  });
+
+  // === List Rendering ===
+
+  describe('list rendering', () => {
+    test('should render list items', () => {
+      const items = pulse([
+        { id: 1, name: 'A' },
+        { id: 2, name: 'B' },
+        { id: 3, name: 'C' }
+      ]);
+
+      const result = list(
+        () => items.get(),
+        (item) => el('li', item.name),
+        (item) => item.id
+      );
+
+      assert.ok(result);
+    });
+  });
+});
