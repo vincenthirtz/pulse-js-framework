@@ -1,0 +1,81 @@
+/**
+ * Unit tests for {{NAME}}
+ *
+ * Tests cover:
+ * - Core functionality
+ * - Edge cases (null, undefined, empty)
+ * - Error handling
+ */
+
+import { test, describe, beforeEach, afterEach } from 'node:test';
+import assert from 'node:assert';
+
+// Import module under test
+// import { functionName } from '../runtime/{{name}}.js';
+
+describe('{{NAME}}', () => {
+  beforeEach(() => {
+    // Setup: create fresh state, mocks, etc.
+  });
+
+  afterEach(() => {
+    // Cleanup: reset state, dispose effects, etc.
+  });
+
+  // === Core Functionality ===
+
+  describe('core behavior', () => {
+    test('should handle basic operation', () => {
+      // Arrange
+      const input = {};
+
+      // Act
+      const result = input; // functionName(input);
+
+      // Assert
+      assert.ok(result);
+    });
+
+    test('should return expected output for valid input', () => {
+      // Arrange
+      const input = 'valid';
+
+      // Act
+      const result = input; // functionName(input);
+
+      // Assert
+      assert.strictEqual(result, 'valid');
+    });
+  });
+
+  // === Edge Cases ===
+
+  describe('edge cases', () => {
+    test('should handle null input', () => {
+      assert.ok(true); // Replace with actual test
+    });
+
+    test('should handle undefined input', () => {
+      assert.ok(true); // Replace with actual test
+    });
+
+    test('should handle empty string', () => {
+      assert.ok(true); // Replace with actual test
+    });
+
+    test('should handle empty array', () => {
+      assert.ok(true); // Replace with actual test
+    });
+  });
+
+  // === Error Handling ===
+
+  describe('error handling', () => {
+    test('should throw on invalid input', () => {
+      assert.throws(
+        () => { /* functionName(invalidInput) */ },
+        { message: /expected error/ }
+      );
+    });
+  });
+});

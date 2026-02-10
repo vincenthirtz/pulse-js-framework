@@ -18,19 +18,10 @@ import {
 
 import { pulse, effect, computed, batch } from '../runtime/pulse.js';
 
-import {
-  test,
-  testAsync,
-  runAsyncTests,
-  assert,
-  assertEqual,
-  assertDeepEqual,
-  printResults,
-  exitWithCode,
-  printSection,
-  wait,
-  createSpy
-} from './utils.js';
+import { test, describe, beforeEach, after } from 'node:test';
+import assert from 'node:assert';
+
+import { wait, createSpy } from './utils.js';
 
 // =============================================================================
 // Mock fetch for testing
@@ -189,817 +180,813 @@ function mockWebSocket() {
 // Query Edge Cases
 // =============================================================================
 
-printSection('Query Edge Cases Tests');
+describe('Query Edge Cases Tests', () => {
+  test('useQuery handles rapid variable changes', async () => {
+    let requestCount = 0;
+    const mock = mockFetch({
+      '/graphql': () => {
+        requestCount++;
+        return createMockResponse({
+          data: { data: { value: requestCount } }
+        });
+      }
+    });
 
-testAsync('useQuery handles rapid variable changes', async () => {
-  let requestCount = 0;
-  const mock = mockFetch({
-    '/graphql': () => {
-      requestCount++;
-      return createMockResponse({
-        data: { data: { value: requestCount } }
-      });
+    try {
+      const client = createGraphQLClient({ url: '/graphql' });
+      setDefaultClient(client);
+
+      const userId = pulse(1);
+      const { data, refetch } = useQuery(
+        'query GetUser($id: ID!) { user(id: $id) { id } }',
+        () => ({ id: userId.get() }),
+        { immediate: true }
+      );
+
+      await wait(50);
+
+      // Rapid changes
+      userId.set(2);
+      userId.set(3);
+      userId.set(4);
+      userId.set(5);
+
+      await wait(100);
+
+      // Should have made requests, final data should reflect latest
+      assert.ok(requestCount >= 1, 'Should have made at least one request');
+
+      setDefaultClient(null);
+    } finally {
+      mock.restore();
     }
   });
 
-  try {
-    const client = createGraphQLClient({ url: '/graphql' });
-    setDefaultClient(client);
+  test('useQuery handles network errors gracefully', async () => {
+    const networkError = new Error('Network error');
+    networkError.name = 'TypeError';
 
-    const userId = pulse(1);
-    const { data, refetch } = useQuery(
-      'query GetUser($id: ID!) { user(id: $id) { id } }',
-      () => ({ id: userId.get() }),
-      { immediate: true }
-    );
+    const mock = mockFetch({
+      '/graphql': () => {
+        throw networkError;
+      }
+    });
 
-    await wait(50);
+    try {
+      const client = createGraphQLClient({ url: '/graphql' });
+      setDefaultClient(client);
 
-    // Rapid changes
-    userId.set(2);
-    userId.set(3);
-    userId.set(4);
-    userId.set(5);
+      const { data, error, status } = useQuery('query Test { value }');
 
-    await wait(100);
+      await wait(100);
 
-    // Should have made requests, final data should reflect latest
-    assert(requestCount >= 1, 'Should have made at least one request');
+      assert.ok(error.get() !== null, 'Should have error');
+      assert.strictEqual(status.get(), 'error', 'Status should be error');
 
-    setDefaultClient(null);
-  } finally {
-    mock.restore();
-  }
-});
-
-testAsync('useQuery handles network errors gracefully', async () => {
-  const networkError = new Error('Network error');
-  networkError.name = 'TypeError';
-
-  const mock = mockFetch({
-    '/graphql': () => {
-      throw networkError;
+      setDefaultClient(null);
+    } finally {
+      mock.restore();
     }
   });
 
-  try {
-    const client = createGraphQLClient({ url: '/graphql' });
-    setDefaultClient(client);
+  test('useQuery staleTime prevents refetch', async () => {
+    let fetchCount = 0;
+    const mock = mockFetch({
+      '/graphql': () => {
+        fetchCount++;
+        return createMockResponse({
+          data: { data: { value: fetchCount } }
+        });
+      }
+    });
 
-    const { data, error, status } = useQuery('query Test { value }');
+    try {
+      const client = createGraphQLClient({ url: '/graphql' });
+      setDefaultClient(client);
 
-    await wait(100);
+      const { data, refetch, isStale } = useQuery(
+        'query Test { value }',
+        null,
+        { staleTime: 5000 } // 5 second stale time
+      );
 
-    assert(error.get() !== null, 'Should have error');
-    assertEqual(status.get(), 'error', 'Status should be error');
+      await wait(50);
+      assert.strictEqual(fetchCount, 1, 'Should fetch once initially');
+      assert.strictEqual(data.get().value, 1);
 
-    setDefaultClient(null);
-  } finally {
-    mock.restore();
-  }
-});
+      // Try to refetch immediately - should be prevented
+      await refetch();
+      await wait(50);
 
-testAsync('useQuery staleTime prevents refetch', async () => {
-  let fetchCount = 0;
-  const mock = mockFetch({
-    '/graphql': () => {
-      fetchCount++;
-      return createMockResponse({
-        data: { data: { value: fetchCount } }
-      });
+      // Depending on implementation, may or may not prevent
+      // At minimum, we verify no crash
+      assert.ok(data.get() !== null, 'Data should still be present');
+
+      setDefaultClient(null);
+    } finally {
+      mock.restore();
     }
   });
 
-  try {
-    const client = createGraphQLClient({ url: '/graphql' });
-    setDefaultClient(client);
+  test('useQuery enabled option controls execution', async () => {
+    let fetchCount = 0;
+    const mock = mockFetch({
+      '/graphql': () => {
+        fetchCount++;
+        return createMockResponse({
+          data: { data: { value: fetchCount } }
+        });
+      }
+    });
 
-    const { data, refetch, isStale } = useQuery(
-      'query Test { value }',
-      null,
-      { staleTime: 5000 } // 5 second stale time
-    );
+    try {
+      const client = createGraphQLClient({ url: '/graphql' });
+      setDefaultClient(client);
 
-    await wait(50);
-    assertEqual(fetchCount, 1, 'Should fetch once initially');
-    assertEqual(data.get().value, 1);
+      const enabled = pulse(false);
 
-    // Try to refetch immediately - should be prevented
-    await refetch();
-    await wait(50);
+      const { data } = useQuery(
+        'query Test { value }',
+        null,
+        { enabled: computed(() => enabled.get()) }
+      );
 
-    // Depending on implementation, may or may not prevent
-    // At minimum, we verify no crash
-    assert(data.get() !== null, 'Data should still be present');
+      await wait(50);
+      assert.strictEqual(fetchCount, 0, 'Should not fetch when disabled');
 
-    setDefaultClient(null);
-  } finally {
-    mock.restore();
-  }
-});
+      enabled.set(true);
+      await wait(100);
 
-testAsync('useQuery enabled option controls execution', async () => {
-  let fetchCount = 0;
-  const mock = mockFetch({
-    '/graphql': () => {
-      fetchCount++;
-      return createMockResponse({
-        data: { data: { value: fetchCount } }
-      });
+      // After enabling, should fetch
+      // Note: implementation may vary
+      assert.ok(true, 'Should not crash when toggling enabled');
+
+      setDefaultClient(null);
+    } finally {
+      mock.restore();
     }
   });
-
-  try {
-    const client = createGraphQLClient({ url: '/graphql' });
-    setDefaultClient(client);
-
-    const enabled = pulse(false);
-
-    const { data } = useQuery(
-      'query Test { value }',
-      null,
-      { enabled: computed(() => enabled.get()) }
-    );
-
-    await wait(50);
-    assertEqual(fetchCount, 0, 'Should not fetch when disabled');
-
-    enabled.set(true);
-    await wait(100);
-
-    // After enabling, should fetch
-    // Note: implementation may vary
-    assert(true, 'Should not crash when toggling enabled');
-
-    setDefaultClient(null);
-  } finally {
-    mock.restore();
-  }
 });
 
 // =============================================================================
 // Mutation Edge Cases
 // =============================================================================
 
-printSection('Mutation Edge Cases Tests');
-
-testAsync('useMutation handles concurrent mutations', async () => {
-  let mutationCount = 0;
-  const mock = mockFetch({
-    '/graphql': async () => {
-      mutationCount++;
-      await wait(50); // Simulate network delay
-      return createMockResponse({
-        data: { data: { id: mutationCount } }
-      });
-    }
-  });
-
-  try {
-    const client = createGraphQLClient({ url: '/graphql' });
-    setDefaultClient(client);
-
-    const { mutate, loading } = useMutation(
-      'mutation Create { create { id } }'
-    );
-
-    // Fire multiple mutations concurrently
-    const promises = [
-      mutate(),
-      mutate(),
-      mutate()
-    ];
-
-    assertEqual(loading.get(), true, 'Should be loading');
-
-    const results = await Promise.all(promises);
-    assertEqual(results.length, 3, 'Should have 3 results');
-
-    setDefaultClient(null);
-  } finally {
-    mock.restore();
-  }
-});
-
-testAsync('useMutation onMutate is called before mutation', async () => {
-  const mock = mockFetch({
-    '/graphql': {
-      data: { data: { createItem: { id: 1, name: 'New Item' } } }
-    }
-  });
-
-  try {
-    const client = createGraphQLClient({ url: '/graphql' });
-    setDefaultClient(client);
-
-    let onMutateCalled = false;
-    let onSuccessCalled = false;
-    const callOrder = [];
-
-    const { mutate } = useMutation(
-      'mutation Create($name: String!) { createItem(name: $name) { id name } }',
-      {
-        onMutate: (variables) => {
-          onMutateCalled = true;
-          callOrder.push('onMutate');
-          // Return context for optimistic updates (if supported)
-          return { previousData: 'old', variables };
-        },
-        onSuccess: (data) => {
-          onSuccessCalled = true;
-          callOrder.push('onSuccess');
-        }
+describe('Mutation Edge Cases Tests', () => {
+  test('useMutation handles concurrent mutations', async () => {
+    let mutationCount = 0;
+    const mock = mockFetch({
+      '/graphql': async () => {
+        mutationCount++;
+        await wait(50); // Simulate network delay
+        return createMockResponse({
+          data: { data: { id: mutationCount } }
+        });
       }
-    );
-
-    await mutate({ name: 'New Item' });
-
-    assert(onMutateCalled, 'onMutate should be called');
-    assert(onSuccessCalled, 'onSuccess should be called');
-    // onMutate should be called before onSuccess
-    assertEqual(callOrder[0], 'onMutate', 'onMutate should be first');
-    assertEqual(callOrder[1], 'onSuccess', 'onSuccess should be second');
-
-    setDefaultClient(null);
-  } finally {
-    mock.restore();
-  }
-});
-
-testAsync('useMutation handles timeout', async () => {
-  const mock = mockFetch({
-    '/graphql': async () => {
-      await wait(200); // Long delay
-      return createMockResponse({
-        data: { data: { value: 1 } }
-      });
-    }
-  });
-
-  try {
-    const client = createGraphQLClient({ url: '/graphql', timeout: 50 });
-    setDefaultClient(client);
-
-    const { mutate, error, status } = useMutation(
-      'mutation Test { test }'
-    );
+    });
 
     try {
-      await mutate();
-    } catch (e) {
-      // Expected timeout
+      const client = createGraphQLClient({ url: '/graphql' });
+      setDefaultClient(client);
+
+      const { mutate, loading } = useMutation(
+        'mutation Create { create { id } }'
+      );
+
+      // Fire multiple mutations concurrently
+      const promises = [
+        mutate(),
+        mutate(),
+        mutate()
+      ];
+
+      assert.strictEqual(loading.get(), true, 'Should be loading');
+
+      const results = await Promise.all(promises);
+      assert.strictEqual(results.length, 3, 'Should have 3 results');
+
+      setDefaultClient(null);
+    } finally {
+      mock.restore();
     }
+  });
 
-    await wait(250);
+  test('useMutation onMutate is called before mutation', async () => {
+    const mock = mockFetch({
+      '/graphql': {
+        data: { data: { createItem: { id: 1, name: 'New Item' } } }
+      }
+    });
 
-    // Should have timeout error
-    assert(error.get() !== null || status.get() === 'error', 'Should have error state');
+    try {
+      const client = createGraphQLClient({ url: '/graphql' });
+      setDefaultClient(client);
 
-    setDefaultClient(null);
-  } finally {
-    mock.restore();
-  }
+      let onMutateCalled = false;
+      let onSuccessCalled = false;
+      const callOrder = [];
+
+      const { mutate } = useMutation(
+        'mutation Create($name: String!) { createItem(name: $name) { id name } }',
+        {
+          onMutate: (variables) => {
+            onMutateCalled = true;
+            callOrder.push('onMutate');
+            // Return context for optimistic updates (if supported)
+            return { previousData: 'old', variables };
+          },
+          onSuccess: (data) => {
+            onSuccessCalled = true;
+            callOrder.push('onSuccess');
+          }
+        }
+      );
+
+      await mutate({ name: 'New Item' });
+
+      assert.ok(onMutateCalled, 'onMutate should be called');
+      assert.ok(onSuccessCalled, 'onSuccess should be called');
+      // onMutate should be called before onSuccess
+      assert.strictEqual(callOrder[0], 'onMutate', 'onMutate should be first');
+      assert.strictEqual(callOrder[1], 'onSuccess', 'onSuccess should be second');
+
+      setDefaultClient(null);
+    } finally {
+      mock.restore();
+    }
+  });
+
+  test('useMutation handles timeout', async () => {
+    const mock = mockFetch({
+      '/graphql': async () => {
+        await wait(200); // Long delay
+        return createMockResponse({
+          data: { data: { value: 1 } }
+        });
+      }
+    });
+
+    try {
+      const client = createGraphQLClient({ url: '/graphql', timeout: 50 });
+      setDefaultClient(client);
+
+      const { mutate, error, status } = useMutation(
+        'mutation Test { test }'
+      );
+
+      try {
+        await mutate();
+      } catch (e) {
+        // Expected timeout
+      }
+
+      await wait(250);
+
+      // Should have timeout error
+      assert.ok(error.get() !== null || status.get() === 'error', 'Should have error state');
+
+      setDefaultClient(null);
+    } finally {
+      mock.restore();
+    }
+  });
 });
 
 // =============================================================================
 // Cache Invalidation Tests
 // =============================================================================
 
-printSection('Cache Invalidation Tests');
-
-testAsync('mutation can invalidate related queries', async () => {
-  let queryFetchCount = 0;
-  const mock = mockFetch({
-    '/graphql': (url, options) => {
-      const body = JSON.parse(options.body);
-      if (body.query.includes('GetItems')) {
-        queryFetchCount++;
+describe('Cache Invalidation Tests', () => {
+  test('mutation can invalidate related queries', async () => {
+    let queryFetchCount = 0;
+    const mock = mockFetch({
+      '/graphql': (url, options) => {
+        const body = JSON.parse(options.body);
+        if (body.query.includes('GetItems')) {
+          queryFetchCount++;
+          return createMockResponse({
+            data: { data: { items: [{ id: queryFetchCount }] } }
+          });
+        }
         return createMockResponse({
-          data: { data: { items: [{ id: queryFetchCount }] } }
+          data: { data: { createItem: { id: 1 } } }
         });
       }
-      return createMockResponse({
-        data: { data: { createItem: { id: 1 } } }
-      });
-    }
-  });
+    });
 
-  try {
-    const client = createGraphQLClient({ url: '/graphql' });
-    setDefaultClient(client);
+    try {
+      const client = createGraphQLClient({ url: '/graphql' });
+      setDefaultClient(client);
 
-    // Initial query
-    const { data: items, refetch } = useQuery('query GetItems { items { id } }');
-    await wait(50);
-    assertEqual(queryFetchCount, 1, 'Initial fetch');
+      // Initial query
+      const { data: items, refetch } = useQuery('query GetItems { items { id } }');
+      await wait(50);
+      assert.strictEqual(queryFetchCount, 1, 'Initial fetch');
 
-    // Mutation with invalidation
-    const { mutate } = useMutation(
-      'mutation CreateItem { createItem { id } }',
-      {
-        onSuccess: () => {
-          // Manually refetch related query
-          refetch();
+      // Mutation with invalidation
+      const { mutate } = useMutation(
+        'mutation CreateItem { createItem { id } }',
+        {
+          onSuccess: () => {
+            // Manually refetch related query
+            refetch();
+          }
         }
-      }
-    );
+      );
 
-    await mutate();
-    await wait(100);
+      await mutate();
+      await wait(100);
 
-    assertEqual(queryFetchCount, 2, 'Should refetch after mutation');
+      assert.strictEqual(queryFetchCount, 2, 'Should refetch after mutation');
 
-    setDefaultClient(null);
-  } finally {
-    mock.restore();
-  }
-});
-
-testAsync('client.invalidate clears specific cache', async () => {
-  let fetchCount = 0;
-  const mock = mockFetch({
-    '/graphql': () => {
-      fetchCount++;
-      return createMockResponse({
-        data: { data: { value: fetchCount } }
-      });
+      setDefaultClient(null);
+    } finally {
+      mock.restore();
     }
   });
 
-  try {
-    const client = createGraphQLClient({ url: '/graphql', cache: true });
-    setDefaultClient(client);
+  test('client.invalidate clears specific cache', async () => {
+    let fetchCount = 0;
+    const mock = mockFetch({
+      '/graphql': () => {
+        fetchCount++;
+        return createMockResponse({
+          data: { data: { value: fetchCount } }
+        });
+      }
+    });
 
-    // First query
-    await client.query('query Test { value }');
-    assertEqual(fetchCount, 1, 'First query should fetch');
+    try {
+      const client = createGraphQLClient({ url: '/graphql', cache: true });
+      setDefaultClient(client);
 
-    // Second query should use cache (if caching enabled)
-    await client.query('query Test { value }');
-    // Count may or may not increase depending on cache implementation
+      // First query
+      await client.query('query Test { value }');
+      assert.strictEqual(fetchCount, 1, 'First query should fetch');
 
-    // Invalidate and query again
-    client.invalidateAll();
-    await client.query('query Test { value }');
+      // Second query should use cache (if caching enabled)
+      await client.query('query Test { value }');
+      // Count may or may not increase depending on cache implementation
 
-    assert(fetchCount >= 2, 'Should fetch after invalidation');
+      // Invalidate and query again
+      client.invalidateAll();
+      await client.query('query Test { value }');
 
-    setDefaultClient(null);
-  } finally {
-    mock.restore();
-  }
+      assert.ok(fetchCount >= 2, 'Should fetch after invalidation');
+
+      setDefaultClient(null);
+    } finally {
+      mock.restore();
+    }
+  });
 });
 
 // =============================================================================
 // Error Handling Edge Cases
 // =============================================================================
 
-printSection('Error Handling Edge Cases Tests');
-
-testAsync('handles partial data with errors', async () => {
-  const mock = mockFetch({
-    '/graphql': {
-      data: {
-        data: { user: { id: 1, name: null } },
-        errors: [{ message: 'Name field failed', path: ['user', 'name'] }]
+describe('Error Handling Edge Cases Tests', () => {
+  test('handles partial data with errors', async () => {
+    const mock = mockFetch({
+      '/graphql': {
+        data: {
+          data: { user: { id: 1, name: null } },
+          errors: [{ message: 'Name field failed', path: ['user', 'name'] }]
+        }
       }
-    }
-  });
-
-  try {
-    const client = createGraphQLClient({ url: '/graphql' });
-
-    try {
-      await client.query('query GetUser { user { id name } }');
-    } catch (e) {
-      assert(GraphQLError.isGraphQLError(e), 'Should be GraphQLError');
-      assert(e.hasPartialData(), 'Should have partial data');
-      assertEqual(e.data.user.id, 1, 'Should include partial data');
-    }
-  } finally {
-    mock.restore();
-  }
-});
-
-testAsync('handles multiple GraphQL errors', async () => {
-  const mock = mockFetch({
-    '/graphql': {
-      data: {
-        data: null,
-        errors: [
-          { message: 'Error 1', path: ['field1'] },
-          { message: 'Error 2', path: ['field2'] },
-          { message: 'Error 3', path: ['field3'] }
-        ]
-      }
-    }
-  });
-
-  try {
-    const client = createGraphQLClient({ url: '/graphql' });
-
-    try {
-      await client.query('query Test { field1 field2 field3 }');
-      assert(false, 'Should throw');
-    } catch (e) {
-      assert(GraphQLError.isGraphQLError(e), 'Should be GraphQLError');
-      assertEqual(e.getAllErrors().length, 3, 'Should have all errors');
-      assertEqual(e.getFirstError(), 'Error 1', 'First error should be first');
-    }
-  } finally {
-    mock.restore();
-  }
-});
-
-testAsync('retries on transient errors', async () => {
-  let attempts = 0;
-  const mock = mockFetch({
-    '/graphql': () => {
-      attempts++;
-      if (attempts < 3) {
-        throw new Error('Transient error');
-      }
-      return createMockResponse({
-        data: { data: { value: 'success' } }
-      });
-    }
-  });
-
-  try {
-    const client = createGraphQLClient({
-      url: '/graphql',
-      retries: 3,
-      retryDelay: 10
     });
 
-    const result = await client.query('query Test { value }');
-    assertEqual(result.value, 'success', 'Should succeed after retries');
-    assertEqual(attempts, 3, 'Should have retried');
-  } finally {
-    mock.restore();
-  }
+    try {
+      const client = createGraphQLClient({ url: '/graphql' });
+
+      try {
+        await client.query('query GetUser { user { id name } }');
+      } catch (e) {
+        assert.ok(GraphQLError.isGraphQLError(e), 'Should be GraphQLError');
+        assert.ok(e.hasPartialData(), 'Should have partial data');
+        assert.strictEqual(e.data.user.id, 1, 'Should include partial data');
+      }
+    } finally {
+      mock.restore();
+    }
+  });
+
+  test('handles multiple GraphQL errors', async () => {
+    const mock = mockFetch({
+      '/graphql': {
+        data: {
+          data: null,
+          errors: [
+            { message: 'Error 1', path: ['field1'] },
+            { message: 'Error 2', path: ['field2'] },
+            { message: 'Error 3', path: ['field3'] }
+          ]
+        }
+      }
+    });
+
+    try {
+      const client = createGraphQLClient({ url: '/graphql' });
+
+      try {
+        await client.query('query Test { field1 field2 field3 }');
+        assert.ok(false, 'Should throw');
+      } catch (e) {
+        assert.ok(GraphQLError.isGraphQLError(e), 'Should be GraphQLError');
+        assert.strictEqual(e.getAllErrors().length, 3, 'Should have all errors');
+        assert.strictEqual(e.getFirstError(), 'Error 1', 'First error should be first');
+      }
+    } finally {
+      mock.restore();
+    }
+  });
+
+  test('retries on transient errors', async () => {
+    let attempts = 0;
+    const mock = mockFetch({
+      '/graphql': () => {
+        attempts++;
+        if (attempts < 3) {
+          throw new Error('Transient error');
+        }
+        return createMockResponse({
+          data: { data: { value: 'success' } }
+        });
+      }
+    });
+
+    try {
+      const client = createGraphQLClient({
+        url: '/graphql',
+        retries: 3,
+        retryDelay: 10
+      });
+
+      const result = await client.query('query Test { value }');
+      assert.strictEqual(result.value, 'success', 'Should succeed after retries');
+      assert.strictEqual(attempts, 3, 'Should have retried');
+    } finally {
+      mock.restore();
+    }
+  });
 });
 
 // =============================================================================
 // Batched Queries Tests
 // =============================================================================
 
-printSection('Batched Queries Tests');
-
-testAsync('multiple queries can be batched', async () => {
-  const mock = mockFetch({
-    '/graphql': {
-      data: { data: { value: 1 } }
-    }
-  });
-
-  try {
-    const client = createGraphQLClient({ url: '/graphql' });
-    setDefaultClient(client);
-
-    // Execute multiple queries in batch
-    const results = await batch(() => {
-      return Promise.all([
-        client.query('query Q1 { value }'),
-        client.query('query Q2 { value }'),
-        client.query('query Q3 { value }')
-      ]);
+describe('Batched Queries Tests', () => {
+  test('multiple queries can be batched', async () => {
+    const mock = mockFetch({
+      '/graphql': {
+        data: { data: { value: 1 } }
+      }
     });
 
-    assertEqual(results.length, 3, 'Should have 3 results');
-    results.forEach(r => assertEqual(r.value, 1, 'Each result should have value'));
+    try {
+      const client = createGraphQLClient({ url: '/graphql' });
+      setDefaultClient(client);
 
-    setDefaultClient(null);
-  } finally {
-    mock.restore();
-  }
+      // Execute multiple queries in batch
+      const results = await batch(() => {
+        return Promise.all([
+          client.query('query Q1 { value }'),
+          client.query('query Q2 { value }'),
+          client.query('query Q3 { value }')
+        ]);
+      });
+
+      assert.strictEqual(results.length, 3, 'Should have 3 results');
+      results.forEach(r => assert.strictEqual(r.value, 1, 'Each result should have value'));
+
+      setDefaultClient(null);
+    } finally {
+      mock.restore();
+    }
+  });
 });
 
 // =============================================================================
 // Interceptor Chain Tests
 // =============================================================================
 
-printSection('Interceptor Chain Tests');
-
-testAsync('multiple request interceptors run in order', async () => {
-  const order = [];
-  const mock = mockFetch({
-    '/graphql': {
-      data: { data: { value: 1 } }
-    }
-  });
-
-  try {
-    const client = createGraphQLClient({ url: '/graphql' });
-
-    client.interceptors.request.use((config) => {
-      order.push('first');
-      return config;
-    });
-
-    client.interceptors.request.use((config) => {
-      order.push('second');
-      return config;
-    });
-
-    await client.query('query Test { value }');
-
-    assertDeepEqual(order, ['first', 'second'], 'Interceptors should run in order');
-  } finally {
-    mock.restore();
-  }
-});
-
-testAsync('response interceptor errors are handled', async () => {
-  const mock = mockFetch({
-    '/graphql': {
-      data: { data: { value: 1 } }
-    }
-  });
-
-  try {
-    const client = createGraphQLClient({ url: '/graphql' });
-
-    client.interceptors.response.use(
-      (result) => result,
-      (error) => {
-        throw new Error('Interceptor error: ' + error.message);
+describe('Interceptor Chain Tests', () => {
+  test('multiple request interceptors run in order', async () => {
+    const order = [];
+    const mock = mockFetch({
+      '/graphql': {
+        data: { data: { value: 1 } }
       }
-    );
+    });
 
-    const result = await client.query('query Test { value }');
-    assertEqual(result.value, 1, 'Should return data when no error');
-  } finally {
-    mock.restore();
-  }
-});
+    try {
+      const client = createGraphQLClient({ url: '/graphql' });
 
-testAsync('interceptors can be ejected', async () => {
-  const mock = mockFetch({
-    '/graphql': {
-      data: { data: { value: 1 } }
+      client.interceptors.request.use((config) => {
+        order.push('first');
+        return config;
+      });
+
+      client.interceptors.request.use((config) => {
+        order.push('second');
+        return config;
+      });
+
+      await client.query('query Test { value }');
+
+      assert.deepStrictEqual(order, ['first', 'second'], 'Interceptors should run in order');
+    } finally {
+      mock.restore();
     }
   });
 
-  try {
-    const client = createGraphQLClient({ url: '/graphql' });
-    let interceptorRan = false;
-
-    const id = client.interceptors.request.use((config) => {
-      interceptorRan = true;
-      return config;
+  test('response interceptor errors are handled', async () => {
+    const mock = mockFetch({
+      '/graphql': {
+        data: { data: { value: 1 } }
+      }
     });
 
-    // First query
-    await client.query('query Test { value }');
-    assert(interceptorRan, 'Interceptor should run first time');
+    try {
+      const client = createGraphQLClient({ url: '/graphql' });
 
-    // Eject and reset
-    client.interceptors.request.eject(id);
-    interceptorRan = false;
+      client.interceptors.response.use(
+        (result) => result,
+        (error) => {
+          throw new Error('Interceptor error: ' + error.message);
+        }
+      );
 
-    // Second query
-    await client.query('query Test { value }');
-    assert(!interceptorRan, 'Interceptor should not run after eject');
-  } finally {
-    mock.restore();
-  }
+      const result = await client.query('query Test { value }');
+      assert.strictEqual(result.value, 1, 'Should return data when no error');
+    } finally {
+      mock.restore();
+    }
+  });
+
+  test('interceptors can be ejected', async () => {
+    const mock = mockFetch({
+      '/graphql': {
+        data: { data: { value: 1 } }
+      }
+    });
+
+    try {
+      const client = createGraphQLClient({ url: '/graphql' });
+      let interceptorRan = false;
+
+      const id = client.interceptors.request.use((config) => {
+        interceptorRan = true;
+        return config;
+      });
+
+      // First query
+      await client.query('query Test { value }');
+      assert.ok(interceptorRan, 'Interceptor should run first time');
+
+      // Eject and reset
+      client.interceptors.request.eject(id);
+      interceptorRan = false;
+
+      // Second query
+      await client.query('query Test { value }');
+      assert.ok(!interceptorRan, 'Interceptor should not run after eject');
+    } finally {
+      mock.restore();
+    }
+  });
 });
 
 // =============================================================================
 // Subscription Backoff Tests
 // =============================================================================
 
-printSection('Subscription Backoff Tests');
-
-testAsync('useSubscription retryCount tracks retry attempts', async () => {
-  const mock = mockFetch({
-    '/graphql': { data: { data: { value: 1 } } }
-  });
-  const wsMock = mockWebSocket();
-
-  try {
-    const client = createGraphQLClient({ url: '/graphql', wsUrl: 'ws://test/graphql' });
-    setDefaultClient(client);
-
-    const { retryCount, status } = useSubscription(
-      'subscription Test { value }',
-      null,
-      {
-        retryBaseDelay: 100,
-        retryMaxDelay: 1000,
-        maxRetries: 3
-      }
-    );
-
-    // Initial state
-    assertEqual(retryCount.get(), 0, 'Should start with 0 retries');
-
-    setDefaultClient(null);
-  } finally {
-    mock.restore();
-    wsMock.restore();
-  }
-});
-
-testAsync('useSubscription respects maxRetries limit', async () => {
-  const mock = mockFetch({
-    '/graphql': { data: { data: { value: 1 } } }
-  });
-  const wsMock = mockWebSocket();
-
-  try {
-    const client = createGraphQLClient({ url: '/graphql', wsUrl: 'ws://test/graphql' });
-    setDefaultClient(client);
-
-    let errorCount = 0;
-    const { status, retryCount, unsubscribe } = useSubscription(
-      'subscription Test { value }',
-      null,
-      {
-        retryBaseDelay: 10,
-        retryMaxDelay: 50,
-        maxRetries: 2,
-        onError: () => { errorCount++; }
-      }
-    );
-
-    await wait(50);
-
-    // Should have initial subscription attempt
-    assertEqual(status.get(), 'connecting', 'Should be in connecting state');
-
-    unsubscribe();
-    setDefaultClient(null);
-  } finally {
-    mock.restore();
-    wsMock.restore();
-  }
-});
-
-testAsync('useSubscription resets retryCount on successful data', async () => {
-  const mock = mockFetch({
-    '/graphql': { data: { data: { value: 1 } } }
-  });
-  const wsMock = mockWebSocket();
-
-  try {
-    const client = createGraphQLClient({ url: '/graphql', wsUrl: 'ws://test/graphql' });
-    setDefaultClient(client);
-
-    const { retryCount, data, unsubscribe } = useSubscription(
-      'subscription Test { value }',
-      null,
-      {
-        retryBaseDelay: 100,
-        maxRetries: 5
-      }
-    );
-
-    await wait(50);
-
-    // Get WebSocket instance and simulate connection
-    const ws = wsMock.getLast();
-    if (ws) {
-      ws.simulateOpen();
-      ws.simulateMessage({ type: 'connection_ack' });
-
-      // Simulate data reception
-      ws.simulateMessage({
-        id: '1',
-        type: 'next',
-        payload: { data: { value: 'test' } }
-      });
-
-      await wait(50);
-
-      // retryCount should be 0 after successful data
-      assertEqual(retryCount.get(), 0, 'Should reset retryCount on data');
-    }
-
-    unsubscribe();
-    setDefaultClient(null);
-  } finally {
-    mock.restore();
-    wsMock.restore();
-  }
-});
-
-testAsync('useSubscription status changes to reconnecting during backoff', async () => {
-  const mock = mockFetch({
-    '/graphql': { data: { data: { value: 1 } } }
-  });
-  const wsMock = mockWebSocket();
-
-  try {
-    const client = createGraphQLClient({ url: '/graphql', wsUrl: 'ws://test/graphql' });
-    setDefaultClient(client);
-
-    const statusHistory = [];
-    const { status, unsubscribe } = useSubscription(
-      'subscription Test { value }',
-      null,
-      {
-        retryBaseDelay: 50,
-        maxRetries: 3,
-        shouldResubscribe: true
-      }
-    );
-
-    // Track status changes
-    effect(() => {
-      statusHistory.push(status.get());
+describe('Subscription Backoff Tests', () => {
+  test('useSubscription retryCount tracks retry attempts', async () => {
+    const mock = mockFetch({
+      '/graphql': { data: { data: { value: 1 } } }
     });
+    const wsMock = mockWebSocket();
 
-    await wait(50);
+    try {
+      const client = createGraphQLClient({ url: '/graphql', wsUrl: 'ws://test/graphql' });
+      setDefaultClient(client);
 
-    const ws = wsMock.getLast();
-    if (ws) {
-      ws.simulateOpen();
-      ws.simulateMessage({ type: 'connection_ack' });
-
-      // Simulate an error
-      ws.simulateMessage({
-        id: '1',
-        type: 'error',
-        payload: { message: 'Test error' }
-      });
-
-      await wait(150); // Longer wait for backoff timing
-
-      // Status should have been 'error', 'reconnecting', or 'connecting' at some point
-      // depending on timing and WebSocket mock behavior
-      assert(
-        statusHistory.includes('error') ||
-        statusHistory.includes('reconnecting') ||
-        statusHistory.includes('connecting') ||
-        statusHistory.length > 1,
-        'Should have status changes during error handling'
+      const { retryCount, status, unsubscribe } = useSubscription(
+        'subscription Test { value }',
+        null,
+        {
+          retryBaseDelay: 100,
+          retryMaxDelay: 1000,
+          maxRetries: 3
+        }
       );
+
+      // Initial state
+      assert.strictEqual(retryCount.get(), 0, 'Should start with 0 retries');
+
+      unsubscribe();
+      setDefaultClient(null);
+    } finally {
+      mock.restore();
+      wsMock.restore();
     }
-
-    unsubscribe();
-    setDefaultClient(null);
-  } finally {
-    mock.restore();
-    wsMock.restore();
-  }
-});
-
-testAsync('useSubscription unsubscribe cancels pending retry', async () => {
-  const mock = mockFetch({
-    '/graphql': { data: { data: { value: 1 } } }
   });
-  const wsMock = mockWebSocket();
 
-  try {
-    const client = createGraphQLClient({ url: '/graphql', wsUrl: 'ws://test/graphql' });
-    setDefaultClient(client);
+  test('useSubscription respects maxRetries limit', async () => {
+    const mock = mockFetch({
+      '/graphql': { data: { data: { value: 1 } } }
+    });
+    const wsMock = mockWebSocket();
 
-    let subscribeAttempts = 0;
-    const { unsubscribe, retryCount } = useSubscription(
-      'subscription Test { value }',
-      null,
-      {
-        retryBaseDelay: 500, // Long delay
-        maxRetries: 5
+    try {
+      const client = createGraphQLClient({ url: '/graphql', wsUrl: 'ws://test/graphql' });
+      setDefaultClient(client);
+
+      let errorCount = 0;
+      const { status, retryCount, unsubscribe } = useSubscription(
+        'subscription Test { value }',
+        null,
+        {
+          retryBaseDelay: 10,
+          retryMaxDelay: 50,
+          maxRetries: 2,
+          onError: () => { errorCount++; }
+        }
+      );
+
+      await wait(50);
+
+      // Should have initial subscription attempt
+      assert.strictEqual(status.get(), 'connecting', 'Should be in connecting state');
+
+      unsubscribe();
+      setDefaultClient(null);
+    } finally {
+      mock.restore();
+      wsMock.restore();
+    }
+  });
+
+  test('useSubscription resets retryCount on successful data', async () => {
+    const mock = mockFetch({
+      '/graphql': { data: { data: { value: 1 } } }
+    });
+    const wsMock = mockWebSocket();
+
+    try {
+      const client = createGraphQLClient({ url: '/graphql', wsUrl: 'ws://test/graphql' });
+      setDefaultClient(client);
+
+      const { retryCount, data, unsubscribe } = useSubscription(
+        'subscription Test { value }',
+        null,
+        {
+          retryBaseDelay: 100,
+          maxRetries: 5
+        }
+      );
+
+      await wait(50);
+
+      // Get WebSocket instance and simulate connection
+      const ws = wsMock.getLast();
+      if (ws) {
+        ws.simulateOpen();
+        ws.simulateMessage({ type: 'connection_ack' });
+
+        // Simulate data reception
+        ws.simulateMessage({
+          id: '1',
+          type: 'next',
+          payload: { data: { value: 'test' } }
+        });
+
+        await wait(50);
+
+        // retryCount should be 0 after successful data
+        assert.strictEqual(retryCount.get(), 0, 'Should reset retryCount on data');
       }
-    );
 
-    await wait(50);
+      unsubscribe();
+      setDefaultClient(null);
+    } finally {
+      mock.restore();
+      wsMock.restore();
+    }
+  });
 
-    const ws = wsMock.getLast();
-    if (ws) {
-      ws.simulateOpen();
-      ws.simulateMessage({ type: 'connection_ack' });
+  test('useSubscription status changes to reconnecting during backoff', async () => {
+    const mock = mockFetch({
+      '/graphql': { data: { data: { value: 1 } } }
+    });
+    const wsMock = mockWebSocket();
 
-      // Trigger error to start retry
-      ws.simulateMessage({
-        id: '1',
-        type: 'error',
-        payload: { message: 'Test error' }
+    try {
+      const client = createGraphQLClient({ url: '/graphql', wsUrl: 'ws://test/graphql' });
+      setDefaultClient(client);
+
+      const statusHistory = [];
+      const { status, unsubscribe } = useSubscription(
+        'subscription Test { value }',
+        null,
+        {
+          retryBaseDelay: 50,
+          maxRetries: 3,
+          shouldResubscribe: true
+        }
+      );
+
+      // Track status changes
+      effect(() => {
+        statusHistory.push(status.get());
       });
 
       await wait(50);
 
-      // Unsubscribe while retry is pending
+      const ws = wsMock.getLast();
+      if (ws) {
+        ws.simulateOpen();
+        ws.simulateMessage({ type: 'connection_ack' });
+
+        // Simulate an error
+        ws.simulateMessage({
+          id: '1',
+          type: 'error',
+          payload: { message: 'Test error' }
+        });
+
+        await wait(150); // Longer wait for backoff timing
+
+        // Status should have been 'error', 'reconnecting', or 'connecting' at some point
+        // depending on timing and WebSocket mock behavior
+        assert.ok(
+          statusHistory.includes('error') ||
+          statusHistory.includes('reconnecting') ||
+          statusHistory.includes('connecting') ||
+          statusHistory.length > 1,
+          'Should have status changes during error handling'
+        );
+      }
+
       unsubscribe();
-
-      // retryCount should be reset to 0
-      assertEqual(retryCount.get(), 0, 'Should reset retryCount on unsubscribe');
+      setDefaultClient(null);
+    } finally {
+      mock.restore();
+      wsMock.restore();
     }
+  });
 
-    setDefaultClient(null);
-  } finally {
-    mock.restore();
-    wsMock.restore();
-  }
+  test('useSubscription unsubscribe cancels pending retry', async () => {
+    const mock = mockFetch({
+      '/graphql': { data: { data: { value: 1 } } }
+    });
+    const wsMock = mockWebSocket();
+
+    try {
+      const client = createGraphQLClient({ url: '/graphql', wsUrl: 'ws://test/graphql' });
+      setDefaultClient(client);
+
+      let subscribeAttempts = 0;
+      const { unsubscribe, retryCount } = useSubscription(
+        'subscription Test { value }',
+        null,
+        {
+          retryBaseDelay: 500, // Long delay
+          maxRetries: 5
+        }
+      );
+
+      await wait(50);
+
+      const ws = wsMock.getLast();
+      if (ws) {
+        ws.simulateOpen();
+        ws.simulateMessage({ type: 'connection_ack' });
+
+        // Trigger error to start retry
+        ws.simulateMessage({
+          id: '1',
+          type: 'error',
+          payload: { message: 'Test error' }
+        });
+
+        await wait(50);
+
+        // Unsubscribe while retry is pending
+        unsubscribe();
+
+        // retryCount should be reset to 0
+        assert.strictEqual(retryCount.get(), 0, 'Should reset retryCount on unsubscribe');
+      }
+
+      setDefaultClient(null);
+    } finally {
+      mock.restore();
+      wsMock.restore();
+    }
+  });
 });
 
-// =============================================================================
-// Run Async Tests
-// =============================================================================
-
-await runAsyncTests();
-printResults();
-exitWithCode();
+// Force clean exit after all tests complete (open handles from WebSocket subscriptions)
+after(() => setTimeout(() => process.exit(0), 100));

@@ -523,36 +523,30 @@ export function createPreferences() {
   const forcedColors = pulse(forcedColorsMode());
   const contrast = pulse(prefersContrast());
 
+  const listeners = [];
+
   if (typeof window !== 'undefined') {
-    // Listen for preference changes
-    window.matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', (e) => {
-      reducedMotion.set(e.matches);
-    });
+    const track = (query, handler) => {
+      const mql = window.matchMedia(query);
+      mql.addEventListener('change', handler);
+      listeners.push({ mql, handler });
+    };
 
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-      colorScheme.set(e.matches ? 'dark' : 'light');
-    });
-
-    window.matchMedia('(prefers-contrast: more)').addEventListener('change', (e) => {
-      highContrast.set(e.matches);
-    });
-
-    window.matchMedia('(prefers-reduced-transparency: reduce)').addEventListener('change', (e) => {
-      reducedTransparency.set(e.matches);
-    });
-
-    window.matchMedia('(forced-colors: active)').addEventListener('change', (e) => {
-      forcedColors.set(e.matches ? 'active' : 'none');
-    });
-
-    // More granular contrast detection
-    window.matchMedia('(prefers-contrast: more)').addEventListener('change', () => {
-      contrast.set(prefersContrast());
-    });
-    window.matchMedia('(prefers-contrast: less)').addEventListener('change', () => {
-      contrast.set(prefersContrast());
-    });
+    track('(prefers-reduced-motion: reduce)', (e) => reducedMotion.set(e.matches));
+    track('(prefers-color-scheme: dark)', (e) => colorScheme.set(e.matches ? 'dark' : 'light'));
+    track('(prefers-contrast: more)', (e) => highContrast.set(e.matches));
+    track('(prefers-reduced-transparency: reduce)', (e) => reducedTransparency.set(e.matches));
+    track('(forced-colors: active)', (e) => forcedColors.set(e.matches ? 'active' : 'none'));
+    track('(prefers-contrast: more)', () => contrast.set(prefersContrast()));
+    track('(prefers-contrast: less)', () => contrast.set(prefersContrast()));
   }
+
+  const cleanup = () => {
+    for (const { mql, handler } of listeners) {
+      mql.removeEventListener('change', handler);
+    }
+    listeners.length = 0;
+  };
 
   return {
     reducedMotion,
@@ -560,7 +554,8 @@ export function createPreferences() {
     highContrast,
     reducedTransparency,
     forcedColors,
-    contrast
+    contrast,
+    cleanup
   };
 }
 
@@ -1570,24 +1565,40 @@ export function createAnnouncementQueue(options = {}) {
 
   const queue = [];
   let isProcessing = false;
+  let currentTimerId = null;
+  let aborted = false;
   const queueLength = pulse(0);
 
   const processQueue = async () => {
-    if (isProcessing || queue.length === 0) return;
+    if (isProcessing || queue.length === 0 || aborted) return;
 
     isProcessing = true;
 
-    while (queue.length > 0) {
+    while (queue.length > 0 && !aborted) {
       const { message, priority, clearAfter } = queue.shift();
       queueLength.set(queue.length);
 
       announce(message, { priority, clearAfter });
 
       // Wait for announcement to be read
-      await new Promise(resolve => setTimeout(resolve,
-        Math.max(minDelay, clearAfter || 1000)));
+      await new Promise(resolve => {
+        currentTimerId = setTimeout(resolve,
+          Math.max(minDelay, clearAfter || 1000));
+      });
+      currentTimerId = null;
     }
 
+    isProcessing = false;
+  };
+
+  const dispose = () => {
+    aborted = true;
+    if (currentTimerId !== null) {
+      clearTimeout(currentTimerId);
+      currentTimerId = null;
+    }
+    queue.length = 0;
+    queueLength.set(0);
     isProcessing = false;
   };
 
@@ -1599,6 +1610,7 @@ export function createAnnouncementQueue(options = {}) {
      * @param {object} options - Announcement options (priority, clearAfter)
      */
     add: (message, opts = {}) => {
+      if (aborted) return;
       queue.push({ message, ...opts });
       queueLength.set(queue.length);
       processQueue();
@@ -1614,7 +1626,11 @@ export function createAnnouncementQueue(options = {}) {
      * Check if queue is being processed
      * @returns {boolean}
      */
-    isProcessing: () => isProcessing
+    isProcessing: () => isProcessing,
+    /**
+     * Dispose the queue, cancelling any pending timers
+     */
+    dispose
   };
 }
 

@@ -1,0 +1,89 @@
+/**
+ * Compiler tests for {{NAME}}
+ *
+ * Tests cover lexing, parsing, and code generation for .pulse files.
+ */
+
+import { test, describe } from 'node:test';
+import assert from 'node:assert';
+import { Lexer } from '../compiler/lexer.js';
+import { Parser } from '../compiler/parser.js';
+import { compile } from '../compiler/transformer.js';
+
+describe('{{NAME}} - Compiler', () => {
+  // === Lexer Tests ===
+
+  describe('lexer', () => {
+    test('should tokenize basic .pulse structure', () => {
+      const source = `
+@page {{NAME}}
+
+state {
+  count: 0
+}
+
+view {
+  .container {
+    h1 "Hello"
+  }
+}
+`;
+      const lexer = new Lexer(source);
+      const tokens = lexer.tokenize();
+
+      assert.ok(tokens.length > 0);
+      assert.strictEqual(tokens[0].type, 'AT');
+    });
+
+    test('should handle empty input', () => {
+      const lexer = new Lexer('');
+      const tokens = lexer.tokenize();
+      assert.ok(Array.isArray(tokens));
+    });
+  });
+
+  // === Parser Tests ===
+
+  describe('parser', () => {
+    test('should parse state block', () => {
+      const source = `
+state {
+  count: 0
+  name: ''
+}
+`;
+      const lexer = new Lexer(source);
+      const tokens = lexer.tokenize();
+      const parser = new Parser(tokens, source);
+      const ast = parser.parse();
+
+      assert.ok(ast.state);
+      assert.ok(ast.state.length >= 1);
+    });
+  });
+
+  // === Code Generation Tests ===
+
+  describe('code generation', () => {
+    test('should compile to valid JavaScript', () => {
+      const source = `
+@page {{NAME}}
+
+state {
+  count: 0
+}
+
+view {
+  .wrapper {
+    h1 "Count: {count}"
+  }
+}
+`;
+      const result = compile(source, { filename: '{{NAME}}.pulse' });
+
+      assert.ok(result.code);
+      assert.ok(typeof result.code === 'string');
+      assert.ok(result.code.includes('pulse'));
+    });
+  });
+});

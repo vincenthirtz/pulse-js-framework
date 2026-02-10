@@ -7,218 +7,214 @@
  */
 
 import { tokenize, parse, compile } from '../compiler/index.js';
-import {
-  test,
-  assert,
-  assertEqual,
-  printResults,
-  exitWithCode,
-  printSection
-} from './utils.js';
+import { test, describe } from 'node:test';
+import assert from 'node:assert';
 
 // =============================================================================
 // Lexer Tests
 // =============================================================================
 
-printSection('Lexer Tests');
+describe('Lexer Tests', () => {
 
-test('tokenizes keywords', () => {
-  const tokens = tokenize('state view actions style');
-  assertEqual(tokens[0].type, 'STATE', 'Expected STATE token');
-  assertEqual(tokens[1].type, 'VIEW', 'Expected VIEW token');
-  assertEqual(tokens[2].type, 'ACTIONS', 'Expected ACTIONS token');
-  assertEqual(tokens[3].type, 'STYLE', 'Expected STYLE token');
-});
+  test('tokenizes keywords', () => {
+    const tokens = tokenize('state view actions style');
+    assert.strictEqual(tokens[0].type, 'STATE', 'Expected STATE token');
+    assert.strictEqual(tokens[1].type, 'VIEW', 'Expected VIEW token');
+    assert.strictEqual(tokens[2].type, 'ACTIONS', 'Expected ACTIONS token');
+    assert.strictEqual(tokens[3].type, 'STYLE', 'Expected STYLE token');
+  });
 
-test('tokenizes strings', () => {
-  const tokens = tokenize('"hello world"');
-  assertEqual(tokens[0].type, 'STRING', 'Expected STRING token');
-  assertEqual(tokens[0].value, 'hello world', 'Expected string value');
-});
+  test('tokenizes strings', () => {
+    const tokens = tokenize('"hello world"');
+    assert.strictEqual(tokens[0].type, 'STRING', 'Expected STRING token');
+    assert.strictEqual(tokens[0].value, 'hello world', 'Expected string value');
+  });
 
-test('tokenizes numbers', () => {
-  const tokens = tokenize('42 3.14 1e10');
-  assertEqual(tokens[0].type, 'NUMBER', 'Expected NUMBER token');
-  assertEqual(tokens[0].value, 42, 'Expected 42');
-  assertEqual(tokens[1].value, 3.14, 'Expected 3.14');
-});
+  test('tokenizes numbers', () => {
+    const tokens = tokenize('42 3.14 1e10');
+    assert.strictEqual(tokens[0].type, 'NUMBER', 'Expected NUMBER token');
+    assert.strictEqual(tokens[0].value, 42, 'Expected 42');
+    assert.strictEqual(tokens[1].value, 3.14, 'Expected 3.14');
+  });
 
-test('tokenizes operators', () => {
-  const tokens = tokenize('+ - * / = == != < > <= >= && ||');
-  assertEqual(tokens[0].type, 'PLUS', 'Expected PLUS');
-  assertEqual(tokens[1].type, 'MINUS', 'Expected MINUS');
-  assertEqual(tokens[4].type, 'EQ', 'Expected EQ');
-  assertEqual(tokens[5].type, 'EQEQ', 'Expected EQEQ');
-});
+  test('tokenizes operators', () => {
+    const tokens = tokenize('+ - * / = == != < > <= >= && ||');
+    assert.strictEqual(tokens[0].type, 'PLUS', 'Expected PLUS');
+    assert.strictEqual(tokens[1].type, 'MINUS', 'Expected MINUS');
+    assert.strictEqual(tokens[4].type, 'EQ', 'Expected EQ');
+    assert.strictEqual(tokens[5].type, 'EQEQ', 'Expected EQEQ');
+  });
 
-test('tokenizes punctuation', () => {
-  const tokens = tokenize('{ } ( ) [ ] : , .');
-  assertEqual(tokens[0].type, 'LBRACE', 'Expected LBRACE');
-  assertEqual(tokens[1].type, 'RBRACE', 'Expected RBRACE');
-  assertEqual(tokens[2].type, 'LPAREN', 'Expected LPAREN');
-});
+  test('tokenizes punctuation', () => {
+    const tokens = tokenize('{ } ( ) [ ] : , .');
+    assert.strictEqual(tokens[0].type, 'LBRACE', 'Expected LBRACE');
+    assert.strictEqual(tokens[1].type, 'RBRACE', 'Expected RBRACE');
+    assert.strictEqual(tokens[2].type, 'LPAREN', 'Expected LPAREN');
+  });
 
-test('tokenizes @ symbol', () => {
-  const tokens = tokenize('@page @route @if');
-  assertEqual(tokens[0].type, 'AT', 'Expected AT');
-  assertEqual(tokens[1].type, 'PAGE', 'Expected PAGE');
-});
+  test('tokenizes @ symbol', () => {
+    const tokens = tokenize('@page @route @if');
+    assert.strictEqual(tokens[0].type, 'AT', 'Expected AT');
+    assert.strictEqual(tokens[1].type, 'PAGE', 'Expected PAGE');
+  });
 
-test('tokenizes import keywords', () => {
-  const tokens = tokenize('import from as export slot');
-  assertEqual(tokens[0].type, 'IMPORT', 'Expected IMPORT token');
-  assertEqual(tokens[1].type, 'FROM', 'Expected FROM token');
-  assertEqual(tokens[2].type, 'AS', 'Expected AS token');
-  assertEqual(tokens[3].type, 'EXPORT', 'Expected EXPORT token');
-  assertEqual(tokens[4].type, 'SLOT', 'Expected SLOT token');
+  test('tokenizes import keywords', () => {
+    const tokens = tokenize('import from as export slot');
+    assert.strictEqual(tokens[0].type, 'IMPORT', 'Expected IMPORT token');
+    assert.strictEqual(tokens[1].type, 'FROM', 'Expected FROM token');
+    assert.strictEqual(tokens[2].type, 'AS', 'Expected AS token');
+    assert.strictEqual(tokens[3].type, 'EXPORT', 'Expected EXPORT token');
+    assert.strictEqual(tokens[4].type, 'SLOT', 'Expected SLOT token');
+  });
+
 });
 
 // =============================================================================
 // Parser Tests
 // =============================================================================
 
-printSection('Parser Tests');
+describe('Parser Tests', () => {
 
-test('parses page declaration', () => {
-  const ast = parse('@page MyPage');
-  assert(ast.page !== null, 'Expected page declaration');
-  assertEqual(ast.page.name, 'MyPage', 'Expected page name');
-});
+  test('parses page declaration', () => {
+    const ast = parse('@page MyPage');
+    assert.ok(ast.page !== null, 'Expected page declaration');
+    assert.strictEqual(ast.page.name, 'MyPage', 'Expected page name');
+  });
 
-test('parses route declaration', () => {
-  const ast = parse('@route "/home"');
-  assert(ast.route !== null, 'Expected route declaration');
-  assertEqual(ast.route.path, '/home', 'Expected route path');
-});
+  test('parses route declaration', () => {
+    const ast = parse('@route "/home"');
+    assert.ok(ast.route !== null, 'Expected route declaration');
+    assert.strictEqual(ast.route.path, '/home', 'Expected route path');
+  });
 
-test('parses state block', () => {
-  const ast = parse('state { count: 0 name: "test" }');
-  assert(ast.state !== null, 'Expected state block');
-  assertEqual(ast.state.properties.length, 2, 'Expected 2 properties');
-  assertEqual(ast.state.properties[0].name, 'count', 'Expected count property');
-});
+  test('parses state block', () => {
+    const ast = parse('state { count: 0 name: "test" }');
+    assert.ok(ast.state !== null, 'Expected state block');
+    assert.strictEqual(ast.state.properties.length, 2, 'Expected 2 properties');
+    assert.strictEqual(ast.state.properties[0].name, 'count', 'Expected count property');
+  });
 
-test('parses view block', () => {
-  const source = `
+  test('parses view block', () => {
+    const source = `
 view {
   div {
     span "Hello"
   }
 }`;
-  const ast = parse(source);
-  assert(ast.view !== null, 'Expected view block');
-  assert(ast.view.children.length > 0, 'Expected children');
-});
+    const ast = parse(source);
+    assert.ok(ast.view !== null, 'Expected view block');
+    assert.ok(ast.view.children.length > 0, 'Expected children');
+  });
 
-test('parses actions block', () => {
-  const source = `
+  test('parses actions block', () => {
+    const source = `
 actions {
   increment() {
     count = count + 1
   }
 }`;
-  const ast = parse(source);
-  assert(ast.actions !== null, 'Expected actions block');
-  assertEqual(ast.actions.functions.length, 1, 'Expected 1 function');
-  assertEqual(ast.actions.functions[0].name, 'increment', 'Expected increment function');
-});
+    const ast = parse(source);
+    assert.ok(ast.actions !== null, 'Expected actions block');
+    assert.strictEqual(ast.actions.functions.length, 1, 'Expected 1 function');
+    assert.strictEqual(ast.actions.functions[0].name, 'increment', 'Expected increment function');
+  });
 
-test('parses default import', () => {
-  const source = `import Button from './Button.pulse'`;
-  const ast = parse(source);
-  assertEqual(ast.imports.length, 1, 'Expected 1 import');
-  assertEqual(ast.imports[0].specifiers[0].type, 'default', 'Expected default import');
-  assertEqual(ast.imports[0].specifiers[0].local, 'Button', 'Expected Button');
-  assertEqual(ast.imports[0].source, './Button.pulse', 'Expected source');
-});
+  test('parses default import', () => {
+    const source = `import Button from './Button.pulse'`;
+    const ast = parse(source);
+    assert.strictEqual(ast.imports.length, 1, 'Expected 1 import');
+    assert.strictEqual(ast.imports[0].specifiers[0].type, 'default', 'Expected default import');
+    assert.strictEqual(ast.imports[0].specifiers[0].local, 'Button', 'Expected Button');
+    assert.strictEqual(ast.imports[0].source, './Button.pulse', 'Expected source');
+  });
 
-test('parses named imports', () => {
-  const source = `import { Header, Footer } from './components.pulse'`;
-  const ast = parse(source);
-  assertEqual(ast.imports.length, 1, 'Expected 1 import');
-  assertEqual(ast.imports[0].specifiers.length, 2, 'Expected 2 specifiers');
-  assertEqual(ast.imports[0].specifiers[0].type, 'named', 'Expected named import');
-  assertEqual(ast.imports[0].specifiers[0].local, 'Header', 'Expected Header');
-  assertEqual(ast.imports[0].specifiers[1].local, 'Footer', 'Expected Footer');
-});
+  test('parses named imports', () => {
+    const source = `import { Header, Footer } from './components.pulse'`;
+    const ast = parse(source);
+    assert.strictEqual(ast.imports.length, 1, 'Expected 1 import');
+    assert.strictEqual(ast.imports[0].specifiers.length, 2, 'Expected 2 specifiers');
+    assert.strictEqual(ast.imports[0].specifiers[0].type, 'named', 'Expected named import');
+    assert.strictEqual(ast.imports[0].specifiers[0].local, 'Header', 'Expected Header');
+    assert.strictEqual(ast.imports[0].specifiers[1].local, 'Footer', 'Expected Footer');
+  });
 
-test('parses aliased import', () => {
-  const source = `import { Button as Btn } from './ui.pulse'`;
-  const ast = parse(source);
-  assertEqual(ast.imports[0].specifiers[0].imported, 'Button', 'Expected imported name');
-  assertEqual(ast.imports[0].specifiers[0].local, 'Btn', 'Expected local alias');
-});
+  test('parses aliased import', () => {
+    const source = `import { Button as Btn } from './ui.pulse'`;
+    const ast = parse(source);
+    assert.strictEqual(ast.imports[0].specifiers[0].imported, 'Button', 'Expected imported name');
+    assert.strictEqual(ast.imports[0].specifiers[0].local, 'Btn', 'Expected local alias');
+  });
 
-test('parses namespace import', () => {
-  const source = `import * as Icons from './icons.pulse'`;
-  const ast = parse(source);
-  assertEqual(ast.imports[0].specifiers[0].type, 'namespace', 'Expected namespace import');
-  assertEqual(ast.imports[0].specifiers[0].local, 'Icons', 'Expected Icons');
-});
+  test('parses namespace import', () => {
+    const source = `import * as Icons from './icons.pulse'`;
+    const ast = parse(source);
+    assert.strictEqual(ast.imports[0].specifiers[0].type, 'namespace', 'Expected namespace import');
+    assert.strictEqual(ast.imports[0].specifiers[0].local, 'Icons', 'Expected Icons');
+  });
 
-test('parses slot element', () => {
-  const source = `
+  test('parses slot element', () => {
+    const source = `
 view {
   div {
     slot
     slot "header"
   }
 }`;
-  const ast = parse(source);
-  assert(ast.view !== null, 'Expected view block');
-  const div = ast.view.children[0];
-  assertEqual(div.children.length, 2, 'Expected 2 children');
-  assertEqual(div.children[0].type, 'SlotElement', 'Expected SlotElement');
-  assertEqual(div.children[0].name, 'default', 'Expected default slot');
-  assertEqual(div.children[1].name, 'header', 'Expected named slot');
-});
+    const ast = parse(source);
+    assert.ok(ast.view !== null, 'Expected view block');
+    const div = ast.view.children[0];
+    assert.strictEqual(div.children.length, 2, 'Expected 2 children');
+    assert.strictEqual(div.children[0].type, 'SlotElement', 'Expected SlotElement');
+    assert.strictEqual(div.children[0].name, 'default', 'Expected default slot');
+    assert.strictEqual(div.children[1].name, 'header', 'Expected named slot');
+  });
 
-test('parses slot with fallback', () => {
-  const source = `
+  test('parses slot with fallback', () => {
+    const source = `
 view {
   slot "footer" {
     span "Default footer"
   }
 }`;
-  const ast = parse(source);
-  const slot = ast.view.children[0];
-  assertEqual(slot.type, 'SlotElement', 'Expected SlotElement');
-  assertEqual(slot.name, 'footer', 'Expected footer slot');
-  assertEqual(slot.fallback.length, 1, 'Expected fallback content');
-});
+    const ast = parse(source);
+    const slot = ast.view.children[0];
+    assert.strictEqual(slot.type, 'SlotElement', 'Expected SlotElement');
+    assert.strictEqual(slot.name, 'footer', 'Expected footer slot');
+    assert.strictEqual(slot.fallback.length, 1, 'Expected fallback content');
+  });
 
-test('parses props block', () => {
-  const source = `
+  test('parses props block', () => {
+    const source = `
 props {
   label: "Default"
   disabled: false
   count: 0
 }`;
-  const ast = parse(source);
-  assert(ast.props !== null, 'Expected props block');
-  assertEqual(ast.props.properties.length, 3, 'Expected 3 props');
-  assertEqual(ast.props.properties[0].name, 'label', 'Expected label prop');
-  assertEqual(ast.props.properties[1].name, 'disabled', 'Expected disabled prop');
-  assertEqual(ast.props.properties[2].name, 'count', 'Expected count prop');
-});
+    const ast = parse(source);
+    assert.ok(ast.props !== null, 'Expected props block');
+    assert.strictEqual(ast.props.properties.length, 3, 'Expected 3 props');
+    assert.strictEqual(ast.props.properties[0].name, 'label', 'Expected label prop');
+    assert.strictEqual(ast.props.properties[1].name, 'disabled', 'Expected disabled prop');
+    assert.strictEqual(ast.props.properties[2].name, 'count', 'Expected count prop');
+  });
 
-test('parses component with props', () => {
-  const source = `
+  test('parses component with props', () => {
+    const source = `
 import Button from './Button.pulse'
 
 view {
   Button(label="Click me", disabled=false)
 }`;
-  const ast = parse(source);
-  assert(ast.view !== null, 'Expected view block');
-  const button = ast.view.children[0];
-  assertEqual(button.props.length, 2, 'Expected 2 props');
-  assertEqual(button.props[0].name, 'label', 'Expected label prop');
-  assertEqual(button.props[1].name, 'disabled', 'Expected disabled prop');
-});
+    const ast = parse(source);
+    assert.ok(ast.view !== null, 'Expected view block');
+    const button = ast.view.children[0];
+    assert.strictEqual(button.props.length, 2, 'Expected 2 props');
+    assert.strictEqual(button.props[0].name, 'label', 'Expected label prop');
+    assert.strictEqual(button.props[1].name, 'disabled', 'Expected disabled prop');
+  });
 
-test('parses component props with expressions', () => {
-  const source = `
+  test('parses component props with expressions', () => {
+    const source = `
 import Button from './Button.pulse'
 
 state {
@@ -228,21 +224,23 @@ state {
 view {
   Button(label={myLabel}, count={5 + 3})
 }`;
-  const ast = parse(source);
-  const button = ast.view.children[0];
-  assertEqual(button.props.length, 2, 'Expected 2 props');
-  assertEqual(button.props[0].value.type, 'Identifier', 'Expected Identifier for label');
-  assertEqual(button.props[1].value.type, 'BinaryExpression', 'Expected BinaryExpression for count');
+    const ast = parse(source);
+    const button = ast.view.children[0];
+    assert.strictEqual(button.props.length, 2, 'Expected 2 props');
+    assert.strictEqual(button.props[0].value.type, 'Identifier', 'Expected Identifier for label');
+    assert.strictEqual(button.props[1].value.type, 'BinaryExpression', 'Expected BinaryExpression for count');
+  });
+
 });
 
 // =============================================================================
 // Compiler Integration Tests
 // =============================================================================
 
-printSection('Compiler Tests');
+describe('Compiler Tests', () => {
 
-test('compiles simple component', () => {
-  const source = `
+  test('compiles simple component', () => {
+    const source = `
 @page Counter
 
 state {
@@ -256,14 +254,14 @@ view {
   }
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  assert(result.code.includes('pulse'), 'Expected pulse import');
-  assert(result.code.includes('count'), 'Expected count variable');
-});
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(result.code.includes('pulse'), 'Expected pulse import');
+    assert.ok(result.code.includes('count'), 'Expected count variable');
+  });
 
-test('compiles with style block', () => {
-  const source = `
+  test('compiles with style block', () => {
+    const source = `
 @page Styled
 
 state {
@@ -283,22 +281,22 @@ style {
   }
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  assert(result.code.includes('styles'), 'Expected styles');
-  assert(result.code.includes('.container'), 'Expected .container selector');
-});
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(result.code.includes('styles'), 'Expected styles');
+    assert.ok(result.code.includes('.container'), 'Expected .container selector');
+  });
 
-test('handles compilation errors gracefully', () => {
-  const source = 'invalid { syntax }}}}}';
-  const result = compile(source);
-  // Should not throw, but return error
-  assert(!result.success || result.errors.length > 0 || result.code !== null,
-    'Expected error handling');
-});
+  test('handles compilation errors gracefully', () => {
+    const source = 'invalid { syntax }}}}}';
+    const result = compile(source);
+    // Should not throw, but return error
+    assert.ok(!result.success || result.errors.length > 0 || result.code !== null,
+      'Expected error handling');
+  });
 
-test('compiles with imports', () => {
-  const source = `
+  test('compiles with imports', () => {
+    const source = `
 import Button from './Button.pulse'
 import { Header } from './components.pulse'
 
@@ -311,14 +309,14 @@ view {
   }
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  assert(result.code.includes("import Button from './Button.js'"), 'Expected Button import');
-  assert(result.code.includes("import { Header } from './components.js'"), 'Expected Header import');
-});
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(result.code.includes("import Button from './Button.js'"), 'Expected Button import');
+    assert.ok(result.code.includes("import { Header } from './components.js'"), 'Expected Header import');
+  });
 
-test('compiles slots', () => {
-  const source = `
+  test('compiles slots', () => {
+    const source = `
 @page Card
 
 view {
@@ -328,13 +326,13 @@ view {
   }
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  assert(result.code.includes('slots'), 'Expected slots reference');
-});
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(result.code.includes('slots'), 'Expected slots reference');
+  });
 
-test('compiles with CSS scoping', () => {
-  const source = `
+  test('compiles with CSS scoping', () => {
+    const source = `
 @page Scoped
 
 view {
@@ -352,15 +350,15 @@ style {
   }
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  // Check that scope ID is generated
-  assert(result.code.includes('SCOPE_ID'), 'Expected SCOPE_ID constant');
-  assert(result.code.includes('data-p-scope'), 'Expected scoped style attribute');
-});
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    // Check that scope ID is generated
+    assert.ok(result.code.includes('SCOPE_ID'), 'Expected SCOPE_ID constant');
+    assert.ok(result.code.includes('data-p-scope'), 'Expected scoped style attribute');
+  });
 
-test('compiles without CSS scoping when disabled', () => {
-  const source = `
+  test('compiles without CSS scoping when disabled', () => {
+    const source = `
 @page Unscoped
 
 view {
@@ -371,13 +369,13 @@ style {
   .container { padding: 10px }
 }`;
 
-  const result = compile(source, { scopeStyles: false });
-  assert(result.success, 'Expected successful compilation');
-  assert(!result.code.includes('SCOPE_ID'), 'Should not have SCOPE_ID');
-});
+    const result = compile(source, { scopeStyles: false });
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(!result.code.includes('SCOPE_ID'), 'Should not have SCOPE_ID');
+  });
 
-test('compiles nested CSS with combined selectors', () => {
-  const source = `
+  test('compiles nested CSS with combined selectors', () => {
+    const source = `
 @page NestedCSS
 
 view {
@@ -402,22 +400,22 @@ style {
   }
 }`;
 
-  const result = compile(source, { scopeStyles: false });
-  assert(result.success, 'Expected successful compilation');
+    const result = compile(source, { scopeStyles: false });
+    assert.ok(result.success, 'Expected successful compilation');
 
-  // Check that nested selectors are combined with parent
-  assert(result.code.includes('.counter p'), 'Expected .counter p combined selector');
-  assert(result.code.includes('.counter .buttons'), 'Expected .counter .buttons combined selector');
-  assert(result.code.includes('.counter .buttons button'), 'Expected .counter .buttons button combined selector');
+    // Check that nested selectors are combined with parent
+    assert.ok(result.code.includes('.counter p'), 'Expected .counter p combined selector');
+    assert.ok(result.code.includes('.counter .buttons'), 'Expected .counter .buttons combined selector');
+    assert.ok(result.code.includes('.counter .buttons button'), 'Expected .counter .buttons button combined selector');
 
-  // Ensure properties are in correct rules
-  assert(result.code.includes('padding: 20px'), 'Expected padding in .counter');
-  assert(result.code.includes('margin: 0'), 'Expected margin in .counter p');
-  assert(result.code.includes('display: flex'), 'Expected display in .counter .buttons');
-});
+    // Ensure properties are in correct rules
+    assert.ok(result.code.includes('padding: 20px'), 'Expected padding in .counter');
+    assert.ok(result.code.includes('margin: 0'), 'Expected margin in .counter p');
+    assert.ok(result.code.includes('display: flex'), 'Expected display in .counter .buttons');
+  });
 
-test('compiles nested CSS with & parent selector', () => {
-  const source = `
+  test('compiles nested CSS with & parent selector', () => {
+    const source = `
 @page ParentSelector
 
 view {
@@ -438,16 +436,16 @@ style {
   }
 }`;
 
-  const result = compile(source, { scopeStyles: false });
-  assert(result.success, 'Expected successful compilation');
+    const result = compile(source, { scopeStyles: false });
+    assert.ok(result.success, 'Expected successful compilation');
 
-  // Check that & is replaced with parent selector
-  assert(result.code.includes('.btn:hover'), 'Expected .btn:hover (& replaced)');
-  assert(result.code.includes('.btn.active'), 'Expected .btn.active (& replaced)');
-});
+    // Check that & is replaced with parent selector
+    assert.ok(result.code.includes('.btn:hover'), 'Expected .btn:hover (& replaced)');
+    assert.ok(result.code.includes('.btn.active'), 'Expected .btn.active (& replaced)');
+  });
 
-test('compiles deeply nested CSS', () => {
-  const source = `
+  test('compiles deeply nested CSS', () => {
+    const source = `
 @page DeepNesting
 
 view {
@@ -472,17 +470,17 @@ style {
   }
 }`;
 
-  const result = compile(source, { scopeStyles: false });
-  assert(result.success, 'Expected successful compilation');
+    const result = compile(source, { scopeStyles: false });
+    assert.ok(result.success, 'Expected successful compilation');
 
-  // Check deeply nested selectors are combined correctly
-  assert(result.code.includes('.app .header'), 'Expected .app .header');
-  assert(result.code.includes('.app .header .nav'), 'Expected .app .header .nav');
-  assert(result.code.includes('.app .header .nav .link'), 'Expected .app .header .nav .link');
-});
+    // Check deeply nested selectors are combined correctly
+    assert.ok(result.code.includes('.app .header'), 'Expected .app .header');
+    assert.ok(result.code.includes('.app .header .nav'), 'Expected .app .header .nav');
+    assert.ok(result.code.includes('.app .header .nav .link'), 'Expected .app .header .nav .link');
+  });
 
-test('error messages include line numbers', () => {
-  const source = `
+  test('error messages include line numbers', () => {
+    const source = `
 @page Test
 
 state {
@@ -493,15 +491,15 @@ view {
   invalid syntax here
 }`;
 
-  const result = compile(source);
-  // Should capture error with line info
-  if (!result.success && result.errors.length > 0) {
-    assert(result.errors[0].line !== undefined, 'Expected line number in error');
-  }
-});
+    const result = compile(source);
+    // Should capture error with line info
+    if (!result.success && result.errors.length > 0) {
+      assert.ok(result.errors[0].line !== undefined, 'Expected line number in error');
+    }
+  });
 
-test('compiles component with props', () => {
-  const source = `
+  test('compiles component with props', () => {
+    const source = `
 @page Button
 
 props {
@@ -513,16 +511,16 @@ view {
   button "{label}"
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  assert(result.code.includes('props'), 'Expected props parameter');
-  // Props are now extracted via useProp() for reactive prop support
-  assert(result.code.includes('useProp(props, \'label\', "Click")'), 'Expected useProp for label');
-  assert(result.code.includes('useProp(props, \'disabled\', false)'), 'Expected useProp for disabled');
-});
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(result.code.includes('props'), 'Expected props parameter');
+    // Props are now extracted via useProp() for reactive prop support
+    assert.ok(result.code.includes('useProp(props, \'label\', "Click")'), 'Expected useProp for label');
+    assert.ok(result.code.includes('useProp(props, \'disabled\', false)'), 'Expected useProp for disabled');
+  });
 
-test('compiles component call with props', () => {
-  const source = `
+  test('compiles component call with props', () => {
+    const source = `
 import Button from './Button.pulse'
 
 @page App
@@ -531,32 +529,34 @@ view {
   Button(label="Submit", disabled=true)
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  assert(result.code.includes('Button.render'), 'Expected Button.render call');
-  assert(result.code.includes('props:'), 'Expected props in render call');
-  assert(result.code.includes('label: "Submit"'), 'Expected label prop');
-  assert(result.code.includes('disabled: true'), 'Expected disabled prop');
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(result.code.includes('Button.render'), 'Expected Button.render call');
+    assert.ok(result.code.includes('props:'), 'Expected props in render call');
+    assert.ok(result.code.includes('label: "Submit"'), 'Expected label prop');
+    assert.ok(result.code.includes('disabled: true'), 'Expected disabled prop');
+  });
+
 });
 
 // =============================================================================
 // Router Tests
 // =============================================================================
 
-printSection('Router Tests');
+describe('Router Tests', () => {
 
-test('tokenizes router keywords', () => {
-  const tokens = tokenize('router routes mode base beforeEach afterEach');
-  assertEqual(tokens[0].type, 'ROUTER', 'Expected ROUTER token');
-  assertEqual(tokens[1].type, 'ROUTES', 'Expected ROUTES token');
-  assertEqual(tokens[2].type, 'MODE', 'Expected MODE token');
-  assertEqual(tokens[3].type, 'BASE', 'Expected BASE token');
-  assertEqual(tokens[4].type, 'BEFORE_EACH', 'Expected BEFORE_EACH token');
-  assertEqual(tokens[5].type, 'AFTER_EACH', 'Expected AFTER_EACH token');
-});
+  test('tokenizes router keywords', () => {
+    const tokens = tokenize('router routes mode base beforeEach afterEach');
+    assert.strictEqual(tokens[0].type, 'ROUTER', 'Expected ROUTER token');
+    assert.strictEqual(tokens[1].type, 'ROUTES', 'Expected ROUTES token');
+    assert.strictEqual(tokens[2].type, 'MODE', 'Expected MODE token');
+    assert.strictEqual(tokens[3].type, 'BASE', 'Expected BASE token');
+    assert.strictEqual(tokens[4].type, 'BEFORE_EACH', 'Expected BEFORE_EACH token');
+    assert.strictEqual(tokens[5].type, 'AFTER_EACH', 'Expected AFTER_EACH token');
+  });
 
-test('parses router block', () => {
-  const source = `
+  test('parses router block', () => {
+    const source = `
 @page App
 
 router {
@@ -566,16 +566,16 @@ router {
     "/about": AboutPage
   }
 }`;
-  const ast = parse(source);
-  assert(ast.router !== null, 'Expected router block');
-  assertEqual(ast.router.mode, 'hash', 'Expected hash mode');
-  assertEqual(ast.router.routes.length, 2, 'Expected 2 routes');
-  assertEqual(ast.router.routes[0].path, '/', 'Expected / path');
-  assertEqual(ast.router.routes[0].handler, 'HomePage', 'Expected HomePage handler');
-});
+    const ast = parse(source);
+    assert.ok(ast.router !== null, 'Expected router block');
+    assert.strictEqual(ast.router.mode, 'hash', 'Expected hash mode');
+    assert.strictEqual(ast.router.routes.length, 2, 'Expected 2 routes');
+    assert.strictEqual(ast.router.routes[0].path, '/', 'Expected / path');
+    assert.strictEqual(ast.router.routes[0].handler, 'HomePage', 'Expected HomePage handler');
+  });
 
-test('parses router with guards', () => {
-  const source = `
+  test('parses router with guards', () => {
+    const source = `
 @page App
 
 router {
@@ -587,15 +587,15 @@ router {
     console.log(to.path)
   }
 }`;
-  const ast = parse(source);
-  assert(ast.router.beforeEach !== null, 'Expected beforeEach guard');
-  assertEqual(ast.router.beforeEach.params.length, 2, 'Expected 2 params');
-  assertEqual(ast.router.beforeEach.params[0], 'to', 'Expected to param');
-  assertEqual(ast.router.beforeEach.params[1], 'from', 'Expected from param');
-});
+    const ast = parse(source);
+    assert.ok(ast.router.beforeEach !== null, 'Expected beforeEach guard');
+    assert.strictEqual(ast.router.beforeEach.params.length, 2, 'Expected 2 params');
+    assert.strictEqual(ast.router.beforeEach.params[0], 'to', 'Expected to param');
+    assert.strictEqual(ast.router.beforeEach.params[1], 'from', 'Expected from param');
+  });
 
-test('compiles router block', () => {
-  const source = `
+  test('compiles router block', () => {
+    const source = `
 @page App
 
 router {
@@ -609,30 +609,32 @@ view {
   div "Hello"
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  assert(result.code.includes('createRouter'), 'Expected createRouter import');
-  assert(result.code.includes("mode: 'hash'"), 'Expected hash mode');
-  assert(result.code.includes('router.start()'), 'Expected router start');
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(result.code.includes('createRouter'), 'Expected createRouter import');
+    assert.ok(result.code.includes("mode: 'hash'"), 'Expected hash mode');
+    assert.ok(result.code.includes('router.start()'), 'Expected router start');
+  });
+
 });
 
 // =============================================================================
 // Store Tests
 // =============================================================================
 
-printSection('Store Tests');
+describe('Store Tests', () => {
 
-test('tokenizes store keywords', () => {
-  const tokens = tokenize('store getters persist storageKey plugins');
-  assertEqual(tokens[0].type, 'STORE', 'Expected STORE token');
-  assertEqual(tokens[1].type, 'GETTERS', 'Expected GETTERS token');
-  assertEqual(tokens[2].type, 'PERSIST', 'Expected PERSIST token');
-  assertEqual(tokens[3].type, 'STORAGE_KEY', 'Expected STORAGE_KEY token');
-  assertEqual(tokens[4].type, 'PLUGINS', 'Expected PLUGINS token');
-});
+  test('tokenizes store keywords', () => {
+    const tokens = tokenize('store getters persist storageKey plugins');
+    assert.strictEqual(tokens[0].type, 'STORE', 'Expected STORE token');
+    assert.strictEqual(tokens[1].type, 'GETTERS', 'Expected GETTERS token');
+    assert.strictEqual(tokens[2].type, 'PERSIST', 'Expected PERSIST token');
+    assert.strictEqual(tokens[3].type, 'STORAGE_KEY', 'Expected STORAGE_KEY token');
+    assert.strictEqual(tokens[4].type, 'PLUGINS', 'Expected PLUGINS token');
+  });
 
-test('parses store block', () => {
-  const source = `
+  test('parses store block', () => {
+    const source = `
 @page App
 
 store {
@@ -643,15 +645,15 @@ store {
   persist: true
   storageKey: "my-store"
 }`;
-  const ast = parse(source);
-  assert(ast.store !== null, 'Expected store block');
-  assertEqual(ast.store.state.properties.length, 2, 'Expected 2 state properties');
-  assertEqual(ast.store.persist, true, 'Expected persist true');
-  assertEqual(ast.store.storageKey, 'my-store', 'Expected storageKey');
-});
+    const ast = parse(source);
+    assert.ok(ast.store !== null, 'Expected store block');
+    assert.strictEqual(ast.store.state.properties.length, 2, 'Expected 2 state properties');
+    assert.strictEqual(ast.store.persist, true, 'Expected persist true');
+    assert.strictEqual(ast.store.storageKey, 'my-store', 'Expected storageKey');
+  });
 
-test('parses store with getters and actions', () => {
-  const source = `
+  test('parses store with getters and actions', () => {
+    const source = `
 @page App
 
 store {
@@ -665,15 +667,15 @@ store {
     increment() { this.count = this.count + 1 }
   }
 }`;
-  const ast = parse(source);
-  assertEqual(ast.store.getters.getters.length, 1, 'Expected 1 getter');
-  assertEqual(ast.store.getters.getters[0].name, 'doubled', 'Expected doubled getter');
-  assertEqual(ast.store.actions.functions.length, 1, 'Expected 1 action');
-  assertEqual(ast.store.actions.functions[0].name, 'increment', 'Expected increment action');
-});
+    const ast = parse(source);
+    assert.strictEqual(ast.store.getters.getters.length, 1, 'Expected 1 getter');
+    assert.strictEqual(ast.store.getters.getters[0].name, 'doubled', 'Expected doubled getter');
+    assert.strictEqual(ast.store.actions.functions.length, 1, 'Expected 1 action');
+    assert.strictEqual(ast.store.actions.functions[0].name, 'increment', 'Expected increment action');
+  });
 
-test('compiles store block', () => {
-  const source = `
+  test('compiles store block', () => {
+    const source = `
 @page App
 
 store {
@@ -690,32 +692,34 @@ view {
   div "Hello"
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  assert(result.code.includes('createStore'), 'Expected createStore import');
-  assert(result.code.includes('createActions'), 'Expected createActions import');
-  assert(result.code.includes("persist: true"), 'Expected persist option');
-  assert(result.code.includes('$store'), 'Expected $store combined object');
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(result.code.includes('createStore'), 'Expected createStore import');
+    assert.ok(result.code.includes('createActions'), 'Expected createActions import');
+    assert.ok(result.code.includes("persist: true"), 'Expected persist option');
+    assert.ok(result.code.includes('$store'), 'Expected $store combined object');
+  });
+
 });
 
 // =============================================================================
 // Router Directive Tests
 // =============================================================================
 
-printSection('Router Directive Tests');
+describe('Router Directive Tests', () => {
 
-test('tokenizes view directives', () => {
-  const tokens = tokenize('@link @outlet @navigate @back @forward');
-  assertEqual(tokens[0].type, 'AT', 'Expected AT');
-  assertEqual(tokens[1].type, 'LINK', 'Expected LINK');
-  assertEqual(tokens[2].type, 'AT', 'Expected AT');
-  assertEqual(tokens[3].type, 'OUTLET', 'Expected OUTLET');
-  assertEqual(tokens[4].type, 'AT', 'Expected AT');
-  assertEqual(tokens[5].type, 'NAVIGATE', 'Expected NAVIGATE');
-});
+  test('tokenizes view directives', () => {
+    const tokens = tokenize('@link @outlet @navigate @back @forward');
+    assert.strictEqual(tokens[0].type, 'AT', 'Expected AT');
+    assert.strictEqual(tokens[1].type, 'LINK', 'Expected LINK');
+    assert.strictEqual(tokens[2].type, 'AT', 'Expected AT');
+    assert.strictEqual(tokens[3].type, 'OUTLET', 'Expected OUTLET');
+    assert.strictEqual(tokens[4].type, 'AT', 'Expected AT');
+    assert.strictEqual(tokens[5].type, 'NAVIGATE', 'Expected NAVIGATE');
+  });
 
-test('parses @outlet directive', () => {
-  const source = `
+  test('parses @outlet directive', () => {
+    const source = `
 @page App
 
 view {
@@ -723,16 +727,16 @@ view {
     @outlet
   }
 }`;
-  const ast = parse(source);
-  assert(ast.view !== null, 'Expected view block');
-  // Find the outlet directive in the tree
-  const div = ast.view.children[0];
-  assert(div.children.length > 0, 'Expected children');
-  assertEqual(div.children[0].type, 'OutletDirective', 'Expected OutletDirective');
-});
+    const ast = parse(source);
+    assert.ok(ast.view !== null, 'Expected view block');
+    // Find the outlet directive in the tree
+    const div = ast.view.children[0];
+    assert.ok(div.children.length > 0, 'Expected children');
+    assert.strictEqual(div.children[0].type, 'OutletDirective', 'Expected OutletDirective');
+  });
 
-test('compiles @outlet directive', () => {
-  const source = `
+  test('compiles @outlet directive', () => {
+    const source = `
 @page App
 
 router {
@@ -748,29 +752,31 @@ view {
   }
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  assert(result.code.includes('router.outlet'), 'Expected router.outlet call');
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(result.code.includes('router.outlet'), 'Expected router.outlet call');
+  });
+
 });
 
 // =============================================================================
 // A11y Directive Tests
 // =============================================================================
 
-printSection('A11y Directive Tests');
+describe('A11y Directive Tests', () => {
 
-test('tokenizes a11y keywords', () => {
-  const tokens = tokenize('@a11y @live @focusTrap @srOnly');
-  assertEqual(tokens[0].type, 'AT', 'Expected AT');
-  assertEqual(tokens[1].type, 'IDENT', 'Expected IDENT (a11y)');
-  assertEqual(tokens[1].value, 'a11y', 'Expected a11y value');
-  assertEqual(tokens[2].type, 'AT', 'Expected AT');
-  assertEqual(tokens[3].type, 'IDENT', 'Expected IDENT (live)');
-  assertEqual(tokens[3].value, 'live', 'Expected live value');
-});
+  test('tokenizes a11y keywords', () => {
+    const tokens = tokenize('@a11y @live @focusTrap @srOnly');
+    assert.strictEqual(tokens[0].type, 'AT', 'Expected AT');
+    assert.strictEqual(tokens[1].type, 'IDENT', 'Expected IDENT (a11y)');
+    assert.strictEqual(tokens[1].value, 'a11y', 'Expected a11y value');
+    assert.strictEqual(tokens[2].type, 'AT', 'Expected AT');
+    assert.strictEqual(tokens[3].type, 'IDENT', 'Expected IDENT (live)');
+    assert.strictEqual(tokens[3].value, 'live', 'Expected live value');
+  });
 
-test('parses @a11y directive', () => {
-  const source = `
+  test('parses @a11y directive', () => {
+    const source = `
 @page App
 
 view {
@@ -778,17 +784,17 @@ view {
     span "Content"
   }
 }`;
-  const ast = parse(source);
-  assert(ast.view !== null, 'Expected view block');
-  const div = ast.view.children[0];
-  const a11yDirective = div.directives.find(d => d.type === 'A11yDirective');
-  assert(a11yDirective !== undefined, 'Expected A11yDirective');
-  assertEqual(a11yDirective.attrs.role, 'dialog', 'Expected role=dialog');
-  assertEqual(a11yDirective.attrs.label, 'Modal window', 'Expected label');
-});
+    const ast = parse(source);
+    assert.ok(ast.view !== null, 'Expected view block');
+    const div = ast.view.children[0];
+    const a11yDirective = div.directives.find(d => d.type === 'A11yDirective');
+    assert.ok(a11yDirective !== undefined, 'Expected A11yDirective');
+    assert.strictEqual(a11yDirective.attrs.role, 'dialog', 'Expected role=dialog');
+    assert.strictEqual(a11yDirective.attrs.label, 'Modal window', 'Expected label');
+  });
 
-test('parses @live directive', () => {
-  const source = `
+  test('parses @live directive', () => {
+    const source = `
 @page App
 
 view {
@@ -796,15 +802,15 @@ view {
     span "Status: OK"
   }
 }`;
-  const ast = parse(source);
-  const div = ast.view.children[0];
-  const liveDirective = div.directives.find(d => d.type === 'LiveDirective');
-  assert(liveDirective !== undefined, 'Expected LiveDirective');
-  assertEqual(liveDirective.priority, 'polite', 'Expected polite priority');
-});
+    const ast = parse(source);
+    const div = ast.view.children[0];
+    const liveDirective = div.directives.find(d => d.type === 'LiveDirective');
+    assert.ok(liveDirective !== undefined, 'Expected LiveDirective');
+    assert.strictEqual(liveDirective.priority, 'polite', 'Expected polite priority');
+  });
 
-test('parses @live assertive', () => {
-  const source = `
+  test('parses @live assertive', () => {
+    const source = `
 @page App
 
 view {
@@ -812,14 +818,14 @@ view {
     span "Error!"
   }
 }`;
-  const ast = parse(source);
-  const div = ast.view.children[0];
-  const liveDirective = div.directives.find(d => d.type === 'LiveDirective');
-  assertEqual(liveDirective.priority, 'assertive', 'Expected assertive priority');
-});
+    const ast = parse(source);
+    const div = ast.view.children[0];
+    const liveDirective = div.directives.find(d => d.type === 'LiveDirective');
+    assert.strictEqual(liveDirective.priority, 'assertive', 'Expected assertive priority');
+  });
 
-test('parses @focusTrap directive', () => {
-  const source = `
+  test('parses @focusTrap directive', () => {
+    const source = `
 @page App
 
 view {
@@ -828,14 +834,14 @@ view {
     button "Submit"
   }
 }`;
-  const ast = parse(source);
-  const div = ast.view.children[0];
-  const focusTrapDirective = div.directives.find(d => d.type === 'FocusTrapDirective');
-  assert(focusTrapDirective !== undefined, 'Expected FocusTrapDirective');
-});
+    const ast = parse(source);
+    const div = ast.view.children[0];
+    const focusTrapDirective = div.directives.find(d => d.type === 'FocusTrapDirective');
+    assert.ok(focusTrapDirective !== undefined, 'Expected FocusTrapDirective');
+  });
 
-test('parses @focusTrap with options', () => {
-  const source = `
+  test('parses @focusTrap with options', () => {
+    const source = `
 @page App
 
 view {
@@ -843,30 +849,30 @@ view {
     input
   }
 }`;
-  const ast = parse(source);
-  const div = ast.view.children[0];
-  const focusTrapDirective = div.directives.find(d => d.type === 'FocusTrapDirective');
-  assert(focusTrapDirective !== undefined, 'Expected FocusTrapDirective');
-  assertEqual(focusTrapDirective.options.autoFocus, true, 'Expected autoFocus=true');
-  assertEqual(focusTrapDirective.options.returnFocus, true, 'Expected returnFocus=true');
-});
+    const ast = parse(source);
+    const div = ast.view.children[0];
+    const focusTrapDirective = div.directives.find(d => d.type === 'FocusTrapDirective');
+    assert.ok(focusTrapDirective !== undefined, 'Expected FocusTrapDirective');
+    assert.strictEqual(focusTrapDirective.options.autoFocus, true, 'Expected autoFocus=true');
+    assert.strictEqual(focusTrapDirective.options.returnFocus, true, 'Expected returnFocus=true');
+  });
 
-test('parses @srOnly directive', () => {
-  const source = `
+  test('parses @srOnly directive', () => {
+    const source = `
 @page App
 
 view {
   span @srOnly "Screen reader only text"
 }`;
-  const ast = parse(source);
-  const span = ast.view.children[0];
-  const a11yDirective = span.directives.find(d => d.type === 'A11yDirective');
-  assert(a11yDirective !== undefined, 'Expected A11yDirective (srOnly)');
-  assertEqual(a11yDirective.attrs.srOnly, true, 'Expected srOnly=true');
-});
+    const ast = parse(source);
+    const span = ast.view.children[0];
+    const a11yDirective = span.directives.find(d => d.type === 'A11yDirective');
+    assert.ok(a11yDirective !== undefined, 'Expected A11yDirective (srOnly)');
+    assert.strictEqual(a11yDirective.attrs.srOnly, true, 'Expected srOnly=true');
+  });
 
-test('compiles @a11y directive to aria attributes', () => {
-  const source = `
+  test('compiles @a11y directive to aria attributes', () => {
+    const source = `
 @page App
 
 view {
@@ -875,21 +881,21 @@ view {
   }
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  // Should add aria attributes to selector
-  assert(
-    result.code.includes('[role=dialog]') || result.code.includes("'role': 'dialog'"),
-    'Expected role attribute'
-  );
-  assert(
-    result.code.includes('[aria-label=Modal]') || result.code.includes("'aria-label': 'Modal'"),
-    'Expected aria-label attribute'
-  );
-});
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    // Should add aria attributes to selector
+    assert.ok(
+      result.code.includes('[role=dialog]') || result.code.includes("'role': 'dialog'"),
+      'Expected role attribute'
+    );
+    assert.ok(
+      result.code.includes('[aria-label=Modal]') || result.code.includes("'aria-label': 'Modal'"),
+      'Expected aria-label attribute'
+    );
+  });
 
-test('compiles @live directive to aria-live', () => {
-  const source = `
+  test('compiles @live directive to aria-live', () => {
+    const source = `
 @page App
 
 view {
@@ -898,15 +904,15 @@ view {
   }
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  // Should add aria-live attribute in attrs object
-  assert(result.code.includes("'aria-live': 'polite'"), 'Expected aria-live=polite');
-  assert(result.code.includes("'aria-atomic': 'true'"), 'Expected aria-atomic=true');
-});
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    // Should add aria-live attribute in attrs object
+    assert.ok(result.code.includes("'aria-live': 'polite'"), 'Expected aria-live=polite');
+    assert.ok(result.code.includes("'aria-atomic': 'true'"), 'Expected aria-atomic=true');
+  });
 
-test('compiles @focusTrap directive', () => {
-  const source = `
+  test('compiles @focusTrap directive', () => {
+    const source = `
 @page App
 
 view {
@@ -916,32 +922,32 @@ view {
   }
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  // Should wrap with trapFocus
-  assert(result.code.includes('trapFocus'), 'Expected trapFocus call');
-  // Should import trapFocus from a11y
-  assert(result.code.includes("from 'pulse-js-framework/runtime/a11y'"), 'Expected a11y import');
-});
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    // Should wrap with trapFocus
+    assert.ok(result.code.includes('trapFocus'), 'Expected trapFocus call');
+    // Should import trapFocus from a11y
+    assert.ok(result.code.includes("from 'pulse-js-framework/runtime/a11y'"), 'Expected a11y import');
+  });
 
-test('compiles @srOnly directive', () => {
-  const source = `
+  test('compiles @srOnly directive', () => {
+    const source = `
 @page App
 
 view {
   span @srOnly "Skip to content"
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  // Should wrap with srOnly
-  assert(result.code.includes('srOnly('), 'Expected srOnly call');
-  // Should import srOnly from a11y
-  assert(result.code.includes("from 'pulse-js-framework/runtime/a11y'"), 'Expected a11y import');
-});
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    // Should wrap with srOnly
+    assert.ok(result.code.includes('srOnly('), 'Expected srOnly call');
+    // Should import srOnly from a11y
+    assert.ok(result.code.includes("from 'pulse-js-framework/runtime/a11y'"), 'Expected a11y import');
+  });
 
-test('compiles combined a11y directives', () => {
-  const source = `
+  test('compiles combined a11y directives', () => {
+    const source = `
 @page Modal
 
 view {
@@ -952,92 +958,96 @@ view {
   }
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  // Attributes now in attrs object, not selector
-  assert(result.code.includes("'role': 'dialog'"), 'Expected role=dialog');
-  assert(result.code.includes("'aria-modal': 'true'"), 'Expected aria-modal=true');
-  assert(result.code.includes('trapFocus'), 'Expected trapFocus');
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    // Attributes now in attrs object, not selector
+    assert.ok(result.code.includes("'role': 'dialog'"), 'Expected role=dialog');
+    assert.ok(result.code.includes("'aria-modal': 'true'"), 'Expected aria-modal=true');
+    assert.ok(result.code.includes('trapFocus'), 'Expected trapFocus');
+  });
+
 });
 
 // =============================================================================
 // Event Modifier Tests
 // =============================================================================
 
-printSection('Event Modifier Tests');
+describe('Event Modifier Tests', () => {
 
-test('tokenizes event modifiers', () => {
-  const tokens = tokenize('@click.prevent.stop');
-  assertEqual(tokens[0].type, 'AT', 'Expected AT');
-  assertEqual(tokens[1].type, 'IDENT', 'Expected IDENT (click)');
-  assertEqual(tokens[1].value, 'click', 'Expected click');
-  assertEqual(tokens[2].type, 'DIRECTIVE_MOD', 'Expected DIRECTIVE_MOD');
-  assertEqual(tokens[2].value, 'prevent', 'Expected prevent');
-  assertEqual(tokens[3].type, 'DIRECTIVE_MOD', 'Expected DIRECTIVE_MOD');
-  assertEqual(tokens[3].value, 'stop', 'Expected stop');
-});
+  test('tokenizes event modifiers', () => {
+    const tokens = tokenize('@click.prevent.stop');
+    assert.strictEqual(tokens[0].type, 'AT', 'Expected AT');
+    assert.strictEqual(tokens[1].type, 'IDENT', 'Expected IDENT (click)');
+    assert.strictEqual(tokens[1].value, 'click', 'Expected click');
+    assert.strictEqual(tokens[2].type, 'DIRECTIVE_MOD', 'Expected DIRECTIVE_MOD');
+    assert.strictEqual(tokens[2].value, 'prevent', 'Expected prevent');
+    assert.strictEqual(tokens[3].type, 'DIRECTIVE_MOD', 'Expected DIRECTIVE_MOD');
+    assert.strictEqual(tokens[3].value, 'stop', 'Expected stop');
+  });
 
-test('parses event directive with modifiers', () => {
-  const source = `
+  test('parses event directive with modifiers', () => {
+    const source = `
 @page App
 
 view {
   button @click.prevent.stop(handleClick) "Submit"
 }`;
-  const ast = parse(source);
-  const button = ast.view.children[0];
-  const clickDirective = button.directives.find(d => d.type === 'EventDirective');
-  assert(clickDirective !== undefined, 'Expected EventDirective');
-  assertEqual(clickDirective.event, 'click', 'Expected click event');
-  assertEqual(clickDirective.modifiers.length, 2, 'Expected 2 modifiers');
-  assertEqual(clickDirective.modifiers[0], 'prevent', 'Expected prevent modifier');
-  assertEqual(clickDirective.modifiers[1], 'stop', 'Expected stop modifier');
-});
+    const ast = parse(source);
+    const button = ast.view.children[0];
+    const clickDirective = button.directives.find(d => d.type === 'EventDirective');
+    assert.ok(clickDirective !== undefined, 'Expected EventDirective');
+    assert.strictEqual(clickDirective.event, 'click', 'Expected click event');
+    assert.strictEqual(clickDirective.modifiers.length, 2, 'Expected 2 modifiers');
+    assert.strictEqual(clickDirective.modifiers[0], 'prevent', 'Expected prevent modifier');
+    assert.strictEqual(clickDirective.modifiers[1], 'stop', 'Expected stop modifier');
+  });
 
-test('compiles event directive with modifiers', () => {
-  const source = `
+  test('compiles event directive with modifiers', () => {
+    const source = `
 @page App
 
 view {
   button @click.prevent(handleClick) "Submit"
 }`;
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  assert(result.code.includes('event.preventDefault()'), 'Expected preventDefault call');
-});
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(result.code.includes('event.preventDefault()'), 'Expected preventDefault call');
+  });
 
-test('compiles keydown with key modifier', () => {
-  const source = `
+  test('compiles keydown with key modifier', () => {
+    const source = `
 @page App
 
 view {
   input @keydown.enter(submit)
 }`;
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  assert(result.code.includes("event.key !== 'Enter'"), 'Expected Enter key check');
-});
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(result.code.includes("event.key !== 'Enter'"), 'Expected Enter key check');
+  });
 
-test('compiles event with system modifier', () => {
-  const source = `
+  test('compiles event with system modifier', () => {
+    const source = `
 @page App
 
 view {
   input @keydown.ctrl.s(save)
 }`;
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  assert(result.code.includes('event.ctrlKey'), 'Expected ctrlKey check');
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(result.code.includes('event.ctrlKey'), 'Expected ctrlKey check');
+  });
+
 });
 
 // =============================================================================
 // @model Directive Tests
 // =============================================================================
 
-printSection('@model Directive Tests');
+describe('@model Directive Tests', () => {
 
-test('parses @model directive', () => {
-  const source = `
+  test('parses @model directive', () => {
+    const source = `
 @page App
 
 state {
@@ -1047,14 +1057,14 @@ state {
 view {
   input @model(name)
 }`;
-  const ast = parse(source);
-  const input = ast.view.children[0];
-  const modelDirective = input.directives.find(d => d.type === 'ModelDirective');
-  assert(modelDirective !== undefined, 'Expected ModelDirective');
-});
+    const ast = parse(source);
+    const input = ast.view.children[0];
+    const modelDirective = input.directives.find(d => d.type === 'ModelDirective');
+    assert.ok(modelDirective !== undefined, 'Expected ModelDirective');
+  });
 
-test('parses @model with modifiers', () => {
-  const source = `
+  test('parses @model with modifiers', () => {
+    const source = `
 @page App
 
 state {
@@ -1064,17 +1074,17 @@ state {
 view {
   input @model.lazy.trim(name)
 }`;
-  const ast = parse(source);
-  const input = ast.view.children[0];
-  const modelDirective = input.directives.find(d => d.type === 'ModelDirective');
-  assert(modelDirective !== undefined, 'Expected ModelDirective');
-  assertEqual(modelDirective.modifiers.length, 2, 'Expected 2 modifiers');
-  assert(modelDirective.modifiers.includes('lazy'), 'Expected lazy modifier');
-  assert(modelDirective.modifiers.includes('trim'), 'Expected trim modifier');
-});
+    const ast = parse(source);
+    const input = ast.view.children[0];
+    const modelDirective = input.directives.find(d => d.type === 'ModelDirective');
+    assert.ok(modelDirective !== undefined, 'Expected ModelDirective');
+    assert.strictEqual(modelDirective.modifiers.length, 2, 'Expected 2 modifiers');
+    assert.ok(modelDirective.modifiers.includes('lazy'), 'Expected lazy modifier');
+    assert.ok(modelDirective.modifiers.includes('trim'), 'Expected trim modifier');
+  });
 
-test('compiles @model directive', () => {
-  const source = `
+  test('compiles @model directive', () => {
+    const source = `
 @page App
 
 state {
@@ -1084,13 +1094,13 @@ state {
 view {
   input @model(name)
 }`;
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  assert(result.code.includes('model('), 'Expected model call');
-});
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(result.code.includes('model('), 'Expected model call');
+  });
 
-test('compiles @model with options', () => {
-  const source = `
+  test('compiles @model with options', () => {
+    const source = `
 @page App
 
 state {
@@ -1100,20 +1110,22 @@ state {
 view {
   input @model.lazy.trim(name)
 }`;
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  assert(result.code.includes('lazy: true'), 'Expected lazy option');
-  assert(result.code.includes('trim: true'), 'Expected trim option');
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(result.code.includes('lazy: true'), 'Expected lazy option');
+    assert.ok(result.code.includes('trim: true'), 'Expected trim option');
+  });
+
 });
 
 // =============================================================================
 // Key Function Tests (@for with key)
 // =============================================================================
 
-printSection('Key Function Tests');
+describe('Key Function Tests', () => {
 
-test('parses @for with key function', () => {
-  const source = `
+  test('parses @for with key function', () => {
+    const source = `
 @page App
 
 state {
@@ -1127,15 +1139,15 @@ view {
     }
   }
 }`;
-  const ast = parse(source);
-  const ul = ast.view.children[0];
-  const forDirective = ul.children[0];
-  assertEqual(forDirective.type, 'EachDirective', 'Expected EachDirective');
-  assert(forDirective.keyExpr !== null, 'Expected keyExpr');
-});
+    const ast = parse(source);
+    const ul = ast.view.children[0];
+    const forDirective = ul.children[0];
+    assert.strictEqual(forDirective.type, 'EachDirective', 'Expected EachDirective');
+    assert.ok(forDirective.keyExpr !== null, 'Expected keyExpr');
+  });
 
-test('compiles @for with key function', () => {
-  const source = `
+  test('compiles @for with key function', () => {
+    const source = `
 @page App
 
 state {
@@ -1147,13 +1159,13 @@ view {
     div "{item.name}"
   }
 }`;
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  assert(result.code.includes('(item) => item.id'), 'Expected key function in list call');
-});
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(result.code.includes('(item) => item.id'), 'Expected key function in list call');
+  });
 
-test('compiles @for without key function', () => {
-  const source = `
+  test('compiles @for without key function', () => {
+    const source = `
 @page App
 
 state {
@@ -1165,21 +1177,23 @@ view {
     div "{item.name}"
   }
 }`;
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  // Should not have key function
-  const listMatch = result.code.match(/list\([^)]+\)/g);
-  assert(listMatch, 'Expected list call');
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    // Should not have key function
+    const listMatch = result.code.match(/list\([^)]+\)/g);
+    assert.ok(listMatch, 'Expected list call');
+  });
+
 });
 
 // =============================================================================
 // @else-if Tests
 // =============================================================================
 
-printSection('@else-if Tests');
+describe('@else-if Tests', () => {
 
-test('parses @if with @else-if', () => {
-  const source = `
+  test('parses @if with @else-if', () => {
+    const source = `
 @page App
 
 state {
@@ -1195,15 +1209,15 @@ view {
     div "Done"
   }
 }`;
-  const ast = parse(source);
-  const ifDirective = ast.view.children[0];
-  assertEqual(ifDirective.type, 'IfDirective', 'Expected IfDirective');
-  assert(ifDirective.elseIfBranches.length === 1, 'Expected 1 else-if branch');
-  assert(ifDirective.alternate !== null, 'Expected alternate');
-});
+    const ast = parse(source);
+    const ifDirective = ast.view.children[0];
+    assert.strictEqual(ifDirective.type, 'IfDirective', 'Expected IfDirective');
+    assert.ok(ifDirective.elseIfBranches.length === 1, 'Expected 1 else-if branch');
+    assert.ok(ifDirective.alternate !== null, 'Expected alternate');
+  });
 
-test('parses multiple @else-if', () => {
-  const source = `
+  test('parses multiple @else-if', () => {
+    const source = `
 @page App
 
 state {
@@ -1221,13 +1235,13 @@ view {
     div "D"
   }
 }`;
-  const ast = parse(source);
-  const ifDirective = ast.view.children[0];
-  assertEqual(ifDirective.elseIfBranches.length, 2, 'Expected 2 else-if branches');
-});
+    const ast = parse(source);
+    const ifDirective = ast.view.children[0];
+    assert.strictEqual(ifDirective.elseIfBranches.length, 2, 'Expected 2 else-if branches');
+  });
 
-test('compiles @else-if to nested when()', () => {
-  const source = `
+  test('compiles @else-if to nested when()', () => {
+    const source = `
 @page App
 
 state {
@@ -1243,15 +1257,15 @@ view {
     div "Done"
   }
 }`;
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  // Should have nested when() calls
-  const whenCount = (result.code.match(/when\(/g) || []).length;
-  assertEqual(whenCount, 2, 'Expected 2 when() calls for if + else-if');
-});
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    // Should have nested when() calls
+    const whenCount = (result.code.match(/when\(/g) || []).length;
+    assert.strictEqual(whenCount, 2, 'Expected 2 when() calls for if + else-if');
+  });
 
-test('parses @else @if syntax', () => {
-  const source = `
+  test('parses @else @if syntax', () => {
+    const source = `
 @page App
 
 state {
@@ -1267,20 +1281,22 @@ view {
     div "C"
   }
 }`;
-  const ast = parse(source);
-  const ifDirective = ast.view.children[0];
-  assertEqual(ifDirective.type, 'IfDirective', 'Expected IfDirective');
-  assert(ifDirective.elseIfBranches.length === 1, 'Expected 1 else-if branch');
+    const ast = parse(source);
+    const ifDirective = ast.view.children[0];
+    assert.strictEqual(ifDirective.type, 'IfDirective', 'Expected IfDirective');
+    assert.ok(ifDirective.elseIfBranches.length === 1, 'Expected 1 else-if branch');
+  });
+
 });
 
 // =============================================================================
 // Dynamic Attributes Tests
 // =============================================================================
 
-printSection('Dynamic Attributes Tests');
+describe('Dynamic Attributes Tests', () => {
 
-test('compiles simple dynamic attribute', () => {
-  const source = `
+  test('compiles simple dynamic attribute', () => {
+    const source = `
 @page App
 
 state {
@@ -1291,14 +1307,14 @@ view {
   input[value={searchQuery}]
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  assert(result.code.includes('bind'), 'Expected bind call for dynamic attribute');
-  assert(result.code.includes('searchQuery.get()'), 'Expected reactive getter');
-});
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(result.code.includes('bind'), 'Expected bind call for dynamic attribute');
+    assert.ok(result.code.includes('searchQuery.get()'), 'Expected reactive getter');
+  });
 
-test('compiles dynamic class with ternary expression', () => {
-  const source = `
+  test('compiles dynamic class with ternary expression', () => {
+    const source = `
 @page App
 
 state {
@@ -1309,16 +1325,16 @@ view {
   div[class={darkMode ? "cv dark-mode" : "cv"}] "Content"
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  assert(result.code.includes('bind'), 'Expected bind call for dynamic class');
-  assert(result.code.includes('darkMode.get()'), 'Expected reactive getter');
-  assert(result.code.includes('cv dark-mode'), 'Expected dark-mode class string');
-  assert(result.code.includes('"cv"'), 'Expected cv class string');
-});
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(result.code.includes('bind'), 'Expected bind call for dynamic class');
+    assert.ok(result.code.includes('darkMode.get()'), 'Expected reactive getter');
+    assert.ok(result.code.includes('cv dark-mode'), 'Expected dark-mode class string');
+    assert.ok(result.code.includes('"cv"'), 'Expected cv class string');
+  });
 
-test('compiles dynamic class with complex ternary', () => {
-  const source = `
+  test('compiles dynamic class with complex ternary', () => {
+    const source = `
 @page App
 
 state {
@@ -1329,15 +1345,15 @@ view {
   button.category-btn[class={selected === "test" ? "active" : ""}] "Test"
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  assert(result.code.includes('bind'), 'Expected bind call');
-  assert(result.code.includes('selected.get()'), 'Expected reactive getter');
-  assert(result.code.includes('"active"'), 'Expected active class');
-});
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(result.code.includes('bind'), 'Expected bind call');
+    assert.ok(result.code.includes('selected.get()'), 'Expected reactive getter');
+    assert.ok(result.code.includes('"active"'), 'Expected active class');
+  });
 
-test('compiles multiple dynamic attributes', () => {
-  const source = `
+  test('compiles multiple dynamic attributes', () => {
+    const source = `
 @page App
 
 state {
@@ -1349,15 +1365,15 @@ view {
   input[value={inputValue}][disabled={isDisabled}]
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  // Should have two bind calls
-  const bindCount = (result.code.match(/bind\(/g) || []).length;
-  assert(bindCount >= 2, 'Expected at least 2 bind calls');
-});
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    // Should have two bind calls
+    const bindCount = (result.code.match(/bind\(/g) || []).length;
+    assert.ok(bindCount >= 2, 'Expected at least 2 bind calls');
+  });
 
-test('compiles dynamic attribute with nested object access', () => {
-  const source = `
+  test('compiles dynamic attribute with nested object access', () => {
+    const source = `
 @page App
 
 state {
@@ -1368,13 +1384,13 @@ view {
   span[data-name={user.name}] "Hello"
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  assert(result.code.includes('bind'), 'Expected bind call');
-});
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(result.code.includes('bind'), 'Expected bind call');
+  });
 
-test('compiles dynamic class with static classes preserved', () => {
-  const source = `
+  test('compiles dynamic class with static classes preserved', () => {
+    const source = `
 @page App
 
 state {
@@ -1385,14 +1401,14 @@ view {
   div.static-class[class={isActive ? "active" : ""}] "Content"
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  assert(result.code.includes('static-class'), 'Expected static class preserved');
-  assert(result.code.includes('bind'), 'Expected bind for dynamic class');
-});
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(result.code.includes('static-class'), 'Expected static class preserved');
+    assert.ok(result.code.includes('bind'), 'Expected bind for dynamic class');
+  });
 
-test('compiles quoted dynamic attribute syntax', () => {
-  const source = `
+  test('compiles quoted dynamic attribute syntax', () => {
+    const source = `
 @page App
 
 state {
@@ -1403,13 +1419,13 @@ view {
   div[title="{title}"] "Content"
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  assert(result.code.includes('bind'), 'Expected bind call');
-});
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(result.code.includes('bind'), 'Expected bind call');
+  });
 
-test('compiles dynamic attribute with function call', () => {
-  const source = `
+  test('compiles dynamic attribute with function call', () => {
+    const source = `
 @page App
 
 state {
@@ -1420,77 +1436,79 @@ view {
   span[data-count={items.length}] "Items"
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  assert(result.code.includes('bind'), 'Expected bind call');
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(result.code.includes('bind'), 'Expected bind call');
+  });
+
 });
 
 // =============================================================================
 // Static Attributes Tests (href, src, placeholder, etc.)
 // =============================================================================
 
-printSection('Static Attributes Tests');
+describe('Static Attributes Tests', () => {
 
-test('compiles href attribute with URL', () => {
-  const source = `
+  test('compiles href attribute with URL', () => {
+    const source = `
 @page App
 
 view {
   a[href="https://github.com/vincenthirtz"][target="_blank"] "GitHub"
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  // Attributes should be in attrs object, not selector
-  assert(result.code.includes("'href': 'https://github.com/vincenthirtz'"), 'Expected href as attribute');
-  assert(result.code.includes("'target': '_blank'"), 'Expected target as attribute');
-  // URL should NOT appear in selector
-  assert(!result.code.includes("el('a[https"), 'URL should not be in selector');
-});
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    // Attributes should be in attrs object, not selector
+    assert.ok(result.code.includes("'href': 'https://github.com/vincenthirtz'"), 'Expected href as attribute');
+    assert.ok(result.code.includes("'target': '_blank'"), 'Expected target as attribute');
+    // URL should NOT appear in selector
+    assert.ok(!result.code.includes("el('a[https"), 'URL should not be in selector');
+  });
 
-test('compiles src and alt attributes on img', () => {
-  const source = `
+  test('compiles src and alt attributes on img', () => {
+    const source = `
 @page App
 
 view {
   img[src="https://example.com/image.png"][alt="Example image"]
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  assert(result.code.includes("'src': 'https://example.com/image.png'"), 'Expected src as attribute');
-  assert(result.code.includes("'alt': 'Example image'"), 'Expected alt as attribute');
-});
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(result.code.includes("'src': 'https://example.com/image.png'"), 'Expected src as attribute');
+    assert.ok(result.code.includes("'alt': 'Example image'"), 'Expected alt as attribute');
+  });
 
-test('compiles input with type and placeholder', () => {
-  const source = `
+  test('compiles input with type and placeholder', () => {
+    const source = `
 @page App
 
 view {
   input[type="text"][placeholder="Enter your name"]
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  assert(result.code.includes("'type': 'text'"), 'Expected type as attribute');
-  assert(result.code.includes("'placeholder': 'Enter your name'"), 'Expected placeholder as attribute');
-});
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(result.code.includes("'type': 'text'"), 'Expected type as attribute');
+    assert.ok(result.code.includes("'placeholder': 'Enter your name'"), 'Expected placeholder as attribute');
+  });
 
-test('compiles label with for attribute', () => {
-  const source = `
+  test('compiles label with for attribute', () => {
+    const source = `
 @page App
 
 view {
   label[for="email-input"] "Email"
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  assert(result.code.includes("'for': 'email-input'"), 'Expected for as attribute');
-});
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(result.code.includes("'for': 'email-input'"), 'Expected for as attribute');
+  });
 
-test('compiles boolean attribute without value', () => {
-  const source = `
+  test('compiles boolean attribute without value', () => {
+    const source = `
 @page App
 
 view {
@@ -1498,14 +1516,14 @@ view {
   button[autofocus] "Submit"
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  assert(result.code.includes("'disabled': true"), 'Expected disabled as boolean attribute');
-  assert(result.code.includes("'autofocus': true"), 'Expected autofocus as boolean attribute');
-});
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(result.code.includes("'disabled': true"), 'Expected disabled as boolean attribute');
+    assert.ok(result.code.includes("'autofocus': true"), 'Expected autofocus as boolean attribute');
+  });
 
-test('compiles mixed static and dynamic attributes', () => {
-  const source = `
+  test('compiles mixed static and dynamic attributes', () => {
+    const source = `
 @page App
 
 state {
@@ -1516,51 +1534,53 @@ view {
   input[type="text"][placeholder="Name"][disabled={isDisabled}]
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  // Static attributes in attrs object
-  assert(result.code.includes("'type': 'text'"), 'Expected type as static attribute');
-  assert(result.code.includes("'placeholder': 'Name'"), 'Expected placeholder as static attribute');
-  // Dynamic attribute should use bind
-  assert(result.code.includes('bind'), 'Expected bind for dynamic attribute');
-  assert(result.code.includes("'disabled'"), 'Expected disabled in bind call');
-});
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    // Static attributes in attrs object
+    assert.ok(result.code.includes("'type': 'text'"), 'Expected type as static attribute');
+    assert.ok(result.code.includes("'placeholder': 'Name'"), 'Expected placeholder as static attribute');
+    // Dynamic attribute should use bind
+    assert.ok(result.code.includes('bind'), 'Expected bind for dynamic attribute');
+    assert.ok(result.code.includes("'disabled'"), 'Expected disabled in bind call');
+  });
 
-test('compiles textarea with placeholder', () => {
-  const source = `
+  test('compiles textarea with placeholder', () => {
+    const source = `
 @page App
 
 view {
   textarea[placeholder="Enter message here"]
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  assert(result.code.includes("'placeholder': 'Enter message here'"), 'Expected placeholder as attribute');
-});
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(result.code.includes("'placeholder': 'Enter message here'"), 'Expected placeholder as attribute');
+  });
 
-test('compiles attributes with special characters in values', () => {
-  const source = `
+  test('compiles attributes with special characters in values', () => {
+    const source = `
 @page App
 
 view {
   a[href="https://example.com/path?query=value&other=123"][title="Click here!"]
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  assert(result.code.includes("'href': 'https://example.com/path?query=value&other=123'"), 'Expected href with query params');
-  assert(result.code.includes("'title': 'Click here!'"), 'Expected title as attribute');
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(result.code.includes("'href': 'https://example.com/path?query=value&other=123'"), 'Expected href with query params');
+    assert.ok(result.code.includes("'title': 'Click here!'"), 'Expected title as attribute');
+  });
+
 });
 
 // =============================================================================
 // Complex Dynamic Attributes Tests
 // =============================================================================
 
-printSection('Complex Dynamic Attributes Tests');
+describe('Complex Dynamic Attributes Tests', () => {
 
-test('compiles nested ternary expressions', () => {
-  const source = `
+  test('compiles nested ternary expressions', () => {
+    const source = `
 @page App
 
 state {
@@ -1571,17 +1591,17 @@ view {
   div[class={status === "loading" ? "spinner" : status === "error" ? "error-box" : "content"}] "Status"
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  assert(result.code.includes('bind'), 'Expected bind call');
-  assert(result.code.includes('status.get()'), 'Expected reactive getter');
-  assert(result.code.includes('"spinner"'), 'Expected spinner class');
-  assert(result.code.includes('"error-box"'), 'Expected error-box class');
-  assert(result.code.includes('"content"'), 'Expected content class');
-});
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(result.code.includes('bind'), 'Expected bind call');
+    assert.ok(result.code.includes('status.get()'), 'Expected reactive getter');
+    assert.ok(result.code.includes('"spinner"'), 'Expected spinner class');
+    assert.ok(result.code.includes('"error-box"'), 'Expected error-box class');
+    assert.ok(result.code.includes('"content"'), 'Expected content class');
+  });
 
-test('compiles ternary with template literals in strings', () => {
-  const source = `
+  test('compiles ternary with template literals in strings', () => {
+    const source = `
 @page App
 
 state {
@@ -1593,14 +1613,14 @@ view {
   div[data-info={count > max ? "over-limit" : "within-limit"}] "Info"
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  assert(result.code.includes('count.get()'), 'Expected count getter');
-  assert(result.code.includes('max.get()'), 'Expected max getter');
-});
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(result.code.includes('count.get()'), 'Expected count getter');
+    assert.ok(result.code.includes('max.get()'), 'Expected max getter');
+  });
 
-test('compiles complex boolean expressions in attributes', () => {
-  const source = `
+  test('compiles complex boolean expressions in attributes', () => {
+    const source = `
 @page App
 
 state {
@@ -1613,15 +1633,15 @@ view {
   button[disabled={!isLoggedIn || (!isAdmin && !hasPermission)}] "Action"
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  assert(result.code.includes('bind'), 'Expected bind call');
-  assert(result.code.includes('isLoggedIn.get()'), 'Expected isLoggedIn getter');
-  assert(result.code.includes('isAdmin.get()'), 'Expected isAdmin getter');
-});
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(result.code.includes('bind'), 'Expected bind call');
+    assert.ok(result.code.includes('isLoggedIn.get()'), 'Expected isLoggedIn getter');
+    assert.ok(result.code.includes('isAdmin.get()'), 'Expected isAdmin getter');
+  });
 
-test('compiles dynamic attributes with array methods', () => {
-  const source = `
+  test('compiles dynamic attributes with array methods', () => {
+    const source = `
 @page App
 
 state {
@@ -1632,14 +1652,14 @@ view {
   div[data-active-count={items.filter(i => i.active).length}] "Active items"
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  assert(result.code.includes('bind'), 'Expected bind call');
-  assert(result.code.includes('items.get()'), 'Expected items getter');
-});
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(result.code.includes('bind'), 'Expected bind call');
+    assert.ok(result.code.includes('items.get()'), 'Expected items getter');
+  });
 
-test('compiles multiple dynamic attributes with complex expressions', () => {
-  const source = `
+  test('compiles multiple dynamic attributes with complex expressions', () => {
+    const source = `
 @page App
 
 state {
@@ -1652,14 +1672,14 @@ view {
   button[class={theme === "dark" ? "btn-dark" : "btn-light"}][data-size={size}][aria-pressed={variant === "primary" ? "true" : "false"}] "Button"
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  const bindCount = (result.code.match(/bind\(/g) || []).length;
-  assert(bindCount >= 3, 'Expected at least 3 bind calls for 3 dynamic attributes');
-});
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    const bindCount = (result.code.match(/bind\(/g) || []).length;
+    assert.ok(bindCount >= 3, 'Expected at least 3 bind calls for 3 dynamic attributes');
+  });
 
-test('compiles expressions with string concatenation', () => {
-  const source = `
+  test('compiles expressions with string concatenation', () => {
+    const source = `
 @page App
 
 state {
@@ -1671,15 +1691,15 @@ view {
   div[data-id={prefix + "-" + id}] "Item"
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  assert(result.code.includes('bind'), 'Expected bind call');
-  assert(result.code.includes('prefix.get()'), 'Expected prefix getter');
-  assert(result.code.includes('id.get()'), 'Expected id getter');
-});
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(result.code.includes('bind'), 'Expected bind call');
+    assert.ok(result.code.includes('prefix.get()'), 'Expected prefix getter');
+    assert.ok(result.code.includes('id.get()'), 'Expected id getter');
+  });
 
-test('compiles ternary with object property access', () => {
-  const source = `
+  test('compiles ternary with object property access', () => {
+    const source = `
 @page App
 
 state {
@@ -1690,14 +1710,14 @@ view {
   span[class={user.role === "admin" ? "badge-admin" : "badge-user"}] "{user.name}"
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  assert(result.code.includes('bind'), 'Expected bind call');
-  assert(result.code.includes('"badge-admin"'), 'Expected badge-admin class');
-});
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(result.code.includes('bind'), 'Expected bind call');
+    assert.ok(result.code.includes('"badge-admin"'), 'Expected badge-admin class');
+  });
 
-test('compiles complex dashboard component', () => {
-  const source = `
+  test('compiles complex dashboard component', () => {
+    const source = `
 @page Dashboard
 
 state {
@@ -1725,7 +1745,7 @@ view {
       header {
         h1 "Dashboard"
         div[class={notifications.length > 0 ? "notifications has-new" : "notifications"}] {
-          span[data-count={notifications.length}] "🔔"
+          span[data-count={notifications.length}] "\uD83D\uDD14"
         }
       }
 
@@ -1746,21 +1766,21 @@ view {
   }
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
 
-  // Verify multiple dynamic attributes are compiled
-  const bindCount = (result.code.match(/bind\(/g) || []).length;
-  assert(bindCount >= 5, 'Expected multiple bind calls for dynamic attributes');
+    // Verify multiple dynamic attributes are compiled
+    const bindCount = (result.code.match(/bind\(/g) || []).length;
+    assert.ok(bindCount >= 5, 'Expected multiple bind calls for dynamic attributes');
 
-  // Verify state variables
-  assert(result.code.includes('theme.get()'), 'Expected theme getter');
-  assert(result.code.includes('sidebarCollapsed.get()'), 'Expected sidebarCollapsed getter');
-  assert(result.code.includes('selectedTab.get()'), 'Expected selectedTab getter');
-});
+    // Verify state variables
+    assert.ok(result.code.includes('theme.get()'), 'Expected theme getter');
+    assert.ok(result.code.includes('sidebarCollapsed.get()'), 'Expected sidebarCollapsed getter');
+    assert.ok(result.code.includes('selectedTab.get()'), 'Expected selectedTab getter');
+  });
 
-test('compiles form with dynamic validation classes', () => {
-  const source = `
+  test('compiles form with dynamic validation classes', () => {
+    const source = `
 @page Form
 
 state {
@@ -1793,16 +1813,16 @@ view {
   }
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  assert(result.code.includes('emailTouched.get()'), 'Expected emailTouched getter');
-  assert(result.code.includes('passwordTouched.get()'), 'Expected passwordTouched getter');
-  assert(result.code.includes('"field error"'), 'Expected field error class');
-  assert(result.code.includes('"field valid"'), 'Expected field valid class');
-});
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(result.code.includes('emailTouched.get()'), 'Expected emailTouched getter');
+    assert.ok(result.code.includes('passwordTouched.get()'), 'Expected passwordTouched getter');
+    assert.ok(result.code.includes('"field error"'), 'Expected field error class');
+    assert.ok(result.code.includes('"field valid"'), 'Expected field valid class');
+  });
 
-test('compiles expressions with special characters in strings', () => {
-  const source = `
+  test('compiles expressions with special characters in strings', () => {
+    const source = `
 @page App
 
 state {
@@ -1810,16 +1830,16 @@ state {
 }
 
 view {
-  div[class={type === "warning" ? "alert alert-warning ⚠️" : type === "error" ? "alert alert-error ❌" : "alert alert-info ℹ️"}] "Message"
+  div[class={type === "warning" ? "alert alert-warning \u26A0\uFE0F" : type === "error" ? "alert alert-error \u274C" : "alert alert-info \u2139\uFE0F"}] "Message"
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  assert(result.code.includes('type.get()'), 'Expected type getter');
-});
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(result.code.includes('type.get()'), 'Expected type getter');
+  });
 
-test('compiles deeply nested object access in ternary', () => {
-  const source = `
+  test('compiles deeply nested object access in ternary', () => {
+    const source = `
 @page App
 
 state {
@@ -1837,13 +1857,13 @@ view {
   div[class={config.ui.theme.variant === "dark" ? "container dark" : "container light"}][data-accent={config.ui.theme.accent}] "Content"
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  assert(result.code.includes('bind'), 'Expected bind calls');
-});
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(result.code.includes('bind'), 'Expected bind calls');
+  });
 
-test('compiles ternary with numeric comparisons', () => {
-  const source = `
+  test('compiles ternary with numeric comparisons', () => {
+    const source = `
 @page App
 
 state {
@@ -1857,14 +1877,14 @@ view {
   }
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  assert(result.code.includes('progress.get()'), 'Expected progress getter');
-  assert(result.code.includes('maxProgress.get()'), 'Expected maxProgress getter');
-});
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(result.code.includes('progress.get()'), 'Expected progress getter');
+    assert.ok(result.code.includes('maxProgress.get()'), 'Expected maxProgress getter');
+  });
 
-test('compiles computed class with logical AND/OR', () => {
-  const source = `
+  test('compiles computed class with logical AND/OR', () => {
+    const source = `
 @page App
 
 state {
@@ -1877,15 +1897,15 @@ view {
   div[class={(isVisible && !isPaused) ? (isAnimating ? "box visible animating" : "box visible") : "box hidden"}] "Box"
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  assert(result.code.includes('isVisible.get()'), 'Expected isVisible getter');
-  assert(result.code.includes('isAnimating.get()'), 'Expected isAnimating getter');
-  assert(result.code.includes('isPaused.get()'), 'Expected isPaused getter');
-});
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(result.code.includes('isVisible.get()'), 'Expected isVisible getter');
+    assert.ok(result.code.includes('isAnimating.get()'), 'Expected isAnimating getter');
+    assert.ok(result.code.includes('isPaused.get()'), 'Expected isPaused getter');
+  });
 
-test('compiles data table with dynamic row classes', () => {
-  const source = `
+  test('compiles data table with dynamic row classes', () => {
+    const source = `
 @page DataTable
 
 state {
@@ -1920,21 +1940,23 @@ view {
   }
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  assert(result.code.includes('sortColumn.get()'), 'Expected sortColumn getter');
-  assert(result.code.includes('sortDirection.get()'), 'Expected sortDirection getter');
-  assert(result.code.includes('"sortable sorted-asc"'), 'Expected sorted-asc class');
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(result.code.includes('sortColumn.get()'), 'Expected sortColumn getter');
+    assert.ok(result.code.includes('sortDirection.get()'), 'Expected sortDirection getter');
+    assert.ok(result.code.includes('"sortable sorted-asc"'), 'Expected sorted-asc class');
+  });
+
 });
 
 // =============================================================================
 // Props Tests
 // =============================================================================
 
-printSection('Props Tests');
+describe('Props Tests', () => {
 
-test('compiles component with props definition', () => {
-  const source = `
+  test('compiles component with props definition', () => {
+    const source = `
 @page Button
 
 props {
@@ -1947,19 +1969,19 @@ view {
   button[disabled={disabled}] "{label}"
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  // Props are now extracted via useProp() for reactive prop support
-  assert(result.code.includes('useProp(props, \'label\', "Click")'), 'Expected useProp for label');
-  assert(result.code.includes('useProp(props, \'disabled\', false)'), 'Expected useProp for disabled');
-  assert(result.code.includes('useProp(props, \'onClick\', null)'), 'Expected useProp for onClick');
-  // Props may return computed (reactive) or static values
-  // useProp returns the value (or computed) that can be used directly
-  assert(result.code.includes('useProp'), 'Expected useProp import');
-});
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    // Props are now extracted via useProp() for reactive prop support
+    assert.ok(result.code.includes('useProp(props, \'label\', "Click")'), 'Expected useProp for label');
+    assert.ok(result.code.includes('useProp(props, \'disabled\', false)'), 'Expected useProp for disabled');
+    assert.ok(result.code.includes('useProp(props, \'onClick\', null)'), 'Expected useProp for onClick');
+    // Props may return computed (reactive) or static values
+    // useProp returns the value (or computed) that can be used directly
+    assert.ok(result.code.includes('useProp'), 'Expected useProp import');
+  });
 
-test('compiles passing props to child component', () => {
-  const source = `
+  test('compiles passing props to child component', () => {
+    const source = `
 import Button from './Button.pulse'
 
 @page App
@@ -1976,16 +1998,16 @@ view {
   }
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  assert(result.code.includes('Button.render'), 'Expected Button.render call');
-  assert(result.code.includes('label: buttonLabel.get()'), 'Expected state var getter in props');
-  assert(result.code.includes('disabled: isDisabled.get()'), 'Expected state var getter in props');
-  assert(result.code.includes('label: "Static"'), 'Expected static prop value');
-});
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(result.code.includes('Button.render'), 'Expected Button.render call');
+    assert.ok(result.code.includes('label: buttonLabel.get()'), 'Expected state var getter in props');
+    assert.ok(result.code.includes('disabled: isDisabled.get()'), 'Expected state var getter in props');
+    assert.ok(result.code.includes('label: "Static"'), 'Expected static prop value');
+  });
 
-test('compiles props with complex expressions', () => {
-  const source = `
+  test('compiles props with complex expressions', () => {
+    const source = `
 import Badge from './Badge.pulse'
 
 @page App
@@ -1999,15 +2021,15 @@ view {
   Badge(type={status === "error" ? "danger" : "info"}, label={count > 0 ? count + " items" : "No items"})
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  assert(result.code.includes('Badge.render'), 'Expected Badge.render call');
-  assert(result.code.includes('status.get()'), 'Expected status getter in ternary');
-  assert(result.code.includes('count.get()'), 'Expected count getter in ternary');
-});
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(result.code.includes('Badge.render'), 'Expected Badge.render call');
+    assert.ok(result.code.includes('status.get()'), 'Expected status getter in ternary');
+    assert.ok(result.code.includes('count.get()'), 'Expected count getter in ternary');
+  });
 
-test('compiles props/state collision correctly (props take precedence)', () => {
-  const source = `
+  test('compiles props/state collision correctly (props take precedence)', () => {
+    const source = `
 @page Component
 
 props {
@@ -2022,18 +2044,18 @@ view {
   span "Count: {count}"
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  // Props are now extracted via useProp()
-  assert(result.code.includes('useProp(props, \'count\', 0)'), 'Expected useProp for count');
-  // With useProp, count becomes a computed (reactive) value that needs .get()
-  // OR it can be a plain value - useProp handles both cases
-  // The text interpolation uses the prop directly
-  assert(result.code.includes('count'), 'Expected count in text interpolation');
-});
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    // Props are now extracted via useProp()
+    assert.ok(result.code.includes('useProp(props, \'count\', 0)'), 'Expected useProp for count');
+    // With useProp, count becomes a computed (reactive) value that needs .get()
+    // OR it can be a plain value - useProp handles both cases
+    // The text interpolation uses the prop directly
+    assert.ok(result.code.includes('count'), 'Expected count in text interpolation');
+  });
 
-test('compiles props with object and array values', () => {
-  const source = `
+  test('compiles props with object and array values', () => {
+    const source = `
 import Card from './Card.pulse'
 
 @page App
@@ -2047,14 +2069,14 @@ view {
   Card(data={user}, items={items})
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  assert(result.code.includes('data: user.get()'), 'Expected user getter');
-  assert(result.code.includes('items: items.get()'), 'Expected items getter');
-});
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(result.code.includes('data: user.get()'), 'Expected user getter');
+    assert.ok(result.code.includes('items: items.get()'), 'Expected items getter');
+  });
 
-test('compiles action passed as prop callback', () => {
-  const source = `
+  test('compiles action passed as prop callback', () => {
+    const source = `
 import SearchInput from './SearchInput.pulse'
 
 @page App
@@ -2073,13 +2095,13 @@ actions {
   }
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  assert(result.code.includes('onSearch: handleSearch'), 'Expected action passed as prop');
-});
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(result.code.includes('onSearch: handleSearch'), 'Expected action passed as prop');
+  });
 
-test('compiles nested components with slots and props', () => {
-  const source = `
+  test('compiles nested components with slots and props', () => {
+    const source = `
 import Header from './Header.pulse'
 import SearchInput from './SearchInput.pulse'
 
@@ -2095,16 +2117,16 @@ view {
   }
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  assert(result.code.includes('Header.render'), 'Expected Header.render call');
-  assert(result.code.includes('props: { title: "My App" }'), 'Expected Header props');
-  assert(result.code.includes('slots:'), 'Expected slots in Header call');
-  assert(result.code.includes('SearchInput.render'), 'Expected SearchInput in slot');
-});
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(result.code.includes('Header.render'), 'Expected Header.render call');
+    assert.ok(result.code.includes('props: { title: "My App" }'), 'Expected Header props');
+    assert.ok(result.code.includes('slots:'), 'Expected slots in Header call');
+    assert.ok(result.code.includes('SearchInput.render'), 'Expected SearchInput in slot');
+  });
 
-test('compiles props with method calls (filter, map, etc.)', () => {
-  const source = `
+  test('compiles props with method calls (filter, map, etc.)', () => {
+    const source = `
 import List from './List.pulse'
 
 @page App
@@ -2117,14 +2139,14 @@ view {
   List(activeItems={items.filter(i => i.active)}, total={items.length})
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  assert(result.code.includes('items.get().filter'), 'Expected filter on state getter');
-  assert(result.code.includes('items.get().length'), 'Expected length on state getter');
-});
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(result.code.includes('items.get().filter'), 'Expected filter on state getter');
+    assert.ok(result.code.includes('items.get().length'), 'Expected length on state getter');
+  });
 
-test('compiles text interpolation correctly (no extra quotes)', () => {
-  const source = `
+  test('compiles text interpolation correctly (no extra quotes)', () => {
+    const source = `
 @page Test
 
 state {
@@ -2136,16 +2158,16 @@ view {
   span "Hello {name}, you have {count} items"
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  // Should be: text(() => \`Hello ${name.get()}, you have ${count.get()} items\`)
-  // NOT: text(() => \`"Hello "${name.get()}", you have "${count.get()}" items"\`)
-  assert(result.code.includes('`Hello ${name.get()}, you have ${count.get()} items`'), 'Expected clean text interpolation without extra quotes');
-  assert(!result.code.includes('"Hello "'), 'Should not have quoted string parts');
-});
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    // Should be: text(() => \`Hello ${name.get()}, you have ${count.get()} items\`)
+    // NOT: text(() => \`"Hello "${name.get()}", you have "${count.get()}" items"\`)
+    assert.ok(result.code.includes('`Hello ${name.get()}, you have ${count.get()} items`'), 'Expected clean text interpolation without extra quotes');
+    assert.ok(!result.code.includes('"Hello "'), 'Should not have quoted string parts');
+  });
 
-test('compiles props in child component expressions', () => {
-  const source = `
+  test('compiles props in child component expressions', () => {
+    const source = `
 @page ChildComponent
 
 props {
@@ -2161,116 +2183,118 @@ view {
   }
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  // Props are now reactive via useProp() and use .get() like state
-  assert(result.code.includes('value.get()'), 'Props should use .get() (via useProp computed)');
-  assert(result.code.includes('`Current: ${value.get()}`'), 'Expected value.get() prop in text');
-  // Callbacks (onChange) are also accessed via .get() but called as functions
-  assert(result.code.includes('onChange.get()'), 'Callback props also use .get()');
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    // Props are now reactive via useProp() and use .get() like state
+    assert.ok(result.code.includes('value.get()'), 'Props should use .get() (via useProp computed)');
+    assert.ok(result.code.includes('`Current: ${value.get()}`'), 'Expected value.get() prop in text');
+    // Callbacks (onChange) are also accessed via .get() but called as functions
+    assert.ok(result.code.includes('onChange.get()'), 'Callback props also use .get()');
+  });
+
 });
 
 // =============================================================================
 // Modern JavaScript Operators Tests
 // =============================================================================
 
-printSection('Modern JavaScript Operators Tests');
+describe('Modern JavaScript Operators Tests', () => {
 
-test('tokenizes nullish coalescing operator (??)', () => {
-  const tokens = tokenize('a ?? b');
-  assertEqual(tokens[0].type, 'IDENT', 'Expected IDENT for a');
-  assertEqual(tokens[1].type, 'NULLISH', 'Expected NULLISH for ??');
-  assertEqual(tokens[2].type, 'IDENT', 'Expected IDENT for b');
-});
+  test('tokenizes nullish coalescing operator (??)', () => {
+    const tokens = tokenize('a ?? b');
+    assert.strictEqual(tokens[0].type, 'IDENT', 'Expected IDENT for a');
+    assert.strictEqual(tokens[1].type, 'NULLISH', 'Expected NULLISH for ??');
+    assert.strictEqual(tokens[2].type, 'IDENT', 'Expected IDENT for b');
+  });
 
-test('tokenizes optional chaining operator (?.)', () => {
-  const tokens = tokenize('obj?.prop');
-  assertEqual(tokens[0].type, 'IDENT', 'Expected IDENT for obj');
-  assertEqual(tokens[1].type, 'OPTIONAL_CHAIN', 'Expected OPTIONAL_CHAIN for ?.');
-  assertEqual(tokens[2].type, 'IDENT', 'Expected IDENT for prop');
-});
+  test('tokenizes optional chaining operator (?.)', () => {
+    const tokens = tokenize('obj?.prop');
+    assert.strictEqual(tokens[0].type, 'IDENT', 'Expected IDENT for obj');
+    assert.strictEqual(tokens[1].type, 'OPTIONAL_CHAIN', 'Expected OPTIONAL_CHAIN for ?.');
+    assert.strictEqual(tokens[2].type, 'IDENT', 'Expected IDENT for prop');
+  });
 
-test('tokenizes nullish assignment operator (??=)', () => {
-  const tokens = tokenize('a ??= b');
-  assertEqual(tokens[0].type, 'IDENT', 'Expected IDENT for a');
-  assertEqual(tokens[1].type, 'NULLISH_ASSIGN', 'Expected NULLISH_ASSIGN for ??=');
-  assertEqual(tokens[2].type, 'IDENT', 'Expected IDENT for b');
-});
+  test('tokenizes nullish assignment operator (??=)', () => {
+    const tokens = tokenize('a ??= b');
+    assert.strictEqual(tokens[0].type, 'IDENT', 'Expected IDENT for a');
+    assert.strictEqual(tokens[1].type, 'NULLISH_ASSIGN', 'Expected NULLISH_ASSIGN for ??=');
+    assert.strictEqual(tokens[2].type, 'IDENT', 'Expected IDENT for b');
+  });
 
-test('tokenizes logical OR assignment (||=)', () => {
-  const tokens = tokenize('a ||= b');
-  assertEqual(tokens[0].type, 'IDENT', 'Expected IDENT for a');
-  assertEqual(tokens[1].type, 'OR_ASSIGN', 'Expected OR_ASSIGN for ||=');
-  assertEqual(tokens[2].type, 'IDENT', 'Expected IDENT for b');
-});
+  test('tokenizes logical OR assignment (||=)', () => {
+    const tokens = tokenize('a ||= b');
+    assert.strictEqual(tokens[0].type, 'IDENT', 'Expected IDENT for a');
+    assert.strictEqual(tokens[1].type, 'OR_ASSIGN', 'Expected OR_ASSIGN for ||=');
+    assert.strictEqual(tokens[2].type, 'IDENT', 'Expected IDENT for b');
+  });
 
-test('tokenizes logical AND assignment (&&=)', () => {
-  const tokens = tokenize('a &&= b');
-  assertEqual(tokens[0].type, 'IDENT', 'Expected IDENT for a');
-  assertEqual(tokens[1].type, 'AND_ASSIGN', 'Expected AND_ASSIGN for &&=');
-  assertEqual(tokens[2].type, 'IDENT', 'Expected IDENT for b');
-});
+  test('tokenizes logical AND assignment (&&=)', () => {
+    const tokens = tokenize('a &&= b');
+    assert.strictEqual(tokens[0].type, 'IDENT', 'Expected IDENT for a');
+    assert.strictEqual(tokens[1].type, 'AND_ASSIGN', 'Expected AND_ASSIGN for &&=');
+    assert.strictEqual(tokens[2].type, 'IDENT', 'Expected IDENT for b');
+  });
 
-test('tokenizes compound assignment operators (+=, -=, *=, /=)', () => {
-  const tokens = tokenize('a += 1 b -= 2 c *= 3 d /= 4');
-  assertEqual(tokens[1].type, 'PLUS_ASSIGN', 'Expected PLUS_ASSIGN for +=');
-  assertEqual(tokens[4].type, 'MINUS_ASSIGN', 'Expected MINUS_ASSIGN for -=');
-  assertEqual(tokens[7].type, 'STAR_ASSIGN', 'Expected STAR_ASSIGN for *=');
-  assertEqual(tokens[10].type, 'SLASH_ASSIGN', 'Expected SLASH_ASSIGN for /=');
-});
+  test('tokenizes compound assignment operators (+=, -=, *=, /=)', () => {
+    const tokens = tokenize('a += 1 b -= 2 c *= 3 d /= 4');
+    assert.strictEqual(tokens[1].type, 'PLUS_ASSIGN', 'Expected PLUS_ASSIGN for +=');
+    assert.strictEqual(tokens[4].type, 'MINUS_ASSIGN', 'Expected MINUS_ASSIGN for -=');
+    assert.strictEqual(tokens[7].type, 'STAR_ASSIGN', 'Expected STAR_ASSIGN for *=');
+    assert.strictEqual(tokens[10].type, 'SLASH_ASSIGN', 'Expected SLASH_ASSIGN for /=');
+  });
 
-test('tokenizes BigInt literals', () => {
-  const tokens = tokenize('123n 456n 0n');
-  assertEqual(tokens[0].type, 'BIGINT', 'Expected BIGINT for 123n');
-  assertEqual(tokens[0].value, '123n', 'Expected value 123n');
-  assertEqual(tokens[1].type, 'BIGINT', 'Expected BIGINT for 456n');
-  assertEqual(tokens[2].type, 'BIGINT', 'Expected BIGINT for 0n');
-});
+  test('tokenizes BigInt literals', () => {
+    const tokens = tokenize('123n 456n 0n');
+    assert.strictEqual(tokens[0].type, 'BIGINT', 'Expected BIGINT for 123n');
+    assert.strictEqual(tokens[0].value, '123n', 'Expected value 123n');
+    assert.strictEqual(tokens[1].type, 'BIGINT', 'Expected BIGINT for 456n');
+    assert.strictEqual(tokens[2].type, 'BIGINT', 'Expected BIGINT for 0n');
+  });
 
-test('tokenizes numeric separators', () => {
-  const tokens = tokenize('1_000_000 3.14_159 0xFF_FF');
-  assertEqual(tokens[0].type, 'NUMBER', 'Expected NUMBER');
-  assertEqual(tokens[0].value, 1000000, 'Expected 1000000 (underscores removed)');
-  assertEqual(tokens[1].type, 'NUMBER', 'Expected NUMBER');
-  assertEqual(tokens[1].value, 3.14159, 'Expected 3.14159');
-  assertEqual(tokens[2].type, 'NUMBER', 'Expected NUMBER');
-  assertEqual(tokens[2].value, 0xFFFF, 'Expected 65535 (hex FFFF)');
-});
+  test('tokenizes numeric separators', () => {
+    const tokens = tokenize('1_000_000 3.14_159 0xFF_FF');
+    assert.strictEqual(tokens[0].type, 'NUMBER', 'Expected NUMBER');
+    assert.strictEqual(tokens[0].value, 1000000, 'Expected 1000000 (underscores removed)');
+    assert.strictEqual(tokens[1].type, 'NUMBER', 'Expected NUMBER');
+    assert.strictEqual(tokens[1].value, 3.14159, 'Expected 3.14159');
+    assert.strictEqual(tokens[2].type, 'NUMBER', 'Expected NUMBER');
+    assert.strictEqual(tokens[2].value, 0xFFFF, 'Expected 65535 (hex FFFF)');
+  });
 
-test('tokenizes hex, binary, and octal literals', () => {
-  const tokens = tokenize('0xFF 0b1010 0o777');
-  assertEqual(tokens[0].type, 'NUMBER', 'Expected NUMBER for hex');
-  assertEqual(tokens[0].value, 255, 'Expected 255 for 0xFF');
-  assertEqual(tokens[1].type, 'NUMBER', 'Expected NUMBER for binary');
-  assertEqual(tokens[1].value, 10, 'Expected 10 for 0b1010');
-  assertEqual(tokens[2].type, 'NUMBER', 'Expected NUMBER for octal');
-  assertEqual(tokens[2].value, 511, 'Expected 511 for 0o777');
-});
+  test('tokenizes hex, binary, and octal literals', () => {
+    const tokens = tokenize('0xFF 0b1010 0o777');
+    assert.strictEqual(tokens[0].type, 'NUMBER', 'Expected NUMBER for hex');
+    assert.strictEqual(tokens[0].value, 255, 'Expected 255 for 0xFF');
+    assert.strictEqual(tokens[1].type, 'NUMBER', 'Expected NUMBER for binary');
+    assert.strictEqual(tokens[1].value, 10, 'Expected 10 for 0b1010');
+    assert.strictEqual(tokens[2].type, 'NUMBER', 'Expected NUMBER for octal');
+    assert.strictEqual(tokens[2].value, 511, 'Expected 511 for 0o777');
+  });
 
-test('tokenizes BigInt with hex/binary/octal', () => {
-  const tokens = tokenize('0xFFn 0b1010n 0o777n');
-  assertEqual(tokens[0].type, 'BIGINT', 'Expected BIGINT for hex BigInt');
-  assertEqual(tokens[1].type, 'BIGINT', 'Expected BIGINT for binary BigInt');
-  assertEqual(tokens[2].type, 'BIGINT', 'Expected BIGINT for octal BigInt');
-});
+  test('tokenizes BigInt with hex/binary/octal', () => {
+    const tokens = tokenize('0xFFn 0b1010n 0o777n');
+    assert.strictEqual(tokens[0].type, 'BIGINT', 'Expected BIGINT for hex BigInt');
+    assert.strictEqual(tokens[1].type, 'BIGINT', 'Expected BIGINT for binary BigInt');
+    assert.strictEqual(tokens[2].type, 'BIGINT', 'Expected BIGINT for octal BigInt');
+  });
 
-test('distinguishes ?. from ternary + decimal', () => {
-  // ?. should be optional chaining when followed by identifier
-  const tokens = tokenize('x?.prop');
-  assertEqual(tokens[1].type, 'OPTIONAL_CHAIN', 'Expected OPTIONAL_CHAIN');
-  assertEqual(tokens[2].type, 'IDENT', 'Expected IDENT prop');
+  test('distinguishes ?. from ternary + decimal', () => {
+    // ?. should be optional chaining when followed by identifier
+    const tokens = tokenize('x?.prop');
+    assert.strictEqual(tokens[1].type, 'OPTIONAL_CHAIN', 'Expected OPTIONAL_CHAIN');
+    assert.strictEqual(tokens[2].type, 'IDENT', 'Expected IDENT prop');
 
-  // ?.5 should NOT be optional chaining (it's ternary ? followed by . and 5)
-  // This tests that we don't incorrectly treat ?.5 as optional chaining
-  const tokens2 = tokenize('x?.5:y');
-  assertEqual(tokens2[1].type, 'QUESTION', 'Expected QUESTION for ternary');
-  // Note: .5 is tokenized as DOT + NUMBER (not as decimal 0.5)
-  assertEqual(tokens2[2].type, 'DOT', 'Expected DOT after ?');
-  assertEqual(tokens2[3].type, 'NUMBER', 'Expected NUMBER 5');
-});
+    // ?.5 should NOT be optional chaining (it's ternary ? followed by . and 5)
+    // This tests that we don't incorrectly treat ?.5 as optional chaining
+    const tokens2 = tokenize('x?.5:y');
+    assert.strictEqual(tokens2[1].type, 'QUESTION', 'Expected QUESTION for ternary');
+    // Note: .5 is tokenized as DOT + NUMBER (not as decimal 0.5)
+    assert.strictEqual(tokens2[2].type, 'DOT', 'Expected DOT after ?');
+    assert.strictEqual(tokens2[3].type, 'NUMBER', 'Expected NUMBER 5');
+  });
 
-test('compiles code with nullish coalescing', () => {
-  const source = `
+  test('compiles code with nullish coalescing', () => {
+    const source = `
 @page App
 
 state {
@@ -2281,13 +2305,13 @@ view {
   span "{name ?? 'Anonymous'}"
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  assert(result.code.includes('??'), 'Expected ?? operator to be preserved');
-});
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(result.code.includes('??'), 'Expected ?? operator to be preserved');
+  });
 
-test('compiles code with optional chaining', () => {
-  const source = `
+  test('compiles code with optional chaining', () => {
+    const source = `
 @page App
 
 state {
@@ -2298,19 +2322,21 @@ view {
   span "{user?.name}"
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  assert(result.code.includes('?.'), 'Expected ?. operator to be preserved');
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(result.code.includes('?.'), 'Expected ?. operator to be preserved');
+  });
+
 });
 
 // =============================================================================
 // Modern CSS Features Tests
 // =============================================================================
 
-printSection('Modern CSS Features Tests');
+describe('Modern CSS Features Tests', () => {
 
-test('compiles @supports feature queries', () => {
-  const source = `
+  test('compiles @supports feature queries', () => {
+    const source = `
 @page App
 
 view {
@@ -2329,15 +2355,15 @@ style {
   }
 }`;
 
-  const result = compile(source, { scopeStyles: false });
-  assert(result.success, 'Expected successful compilation');
-  // Note: The CSS parser may normalize spacing (e.g., 'display:grid' without space)
-  assert(result.code.includes('@supports'), 'Expected @supports rule');
-  assert(result.code.includes('display') && result.code.includes('grid'), 'Expected display: grid inside @supports');
-});
+    const result = compile(source, { scopeStyles: false });
+    assert.ok(result.success, 'Expected successful compilation');
+    // Note: The CSS parser may normalize spacing (e.g., 'display:grid' without space)
+    assert.ok(result.code.includes('@supports'), 'Expected @supports rule');
+    assert.ok(result.code.includes('display') && result.code.includes('grid'), 'Expected display: grid inside @supports');
+  });
 
-test('compiles @container queries', () => {
-  const source = `
+  test('compiles @container queries', () => {
+    const source = `
 @page App
 
 view {
@@ -2356,15 +2382,15 @@ style {
   }
 }`;
 
-  const result = compile(source, { scopeStyles: false });
-  assert(result.success, 'Expected successful compilation');
-  // Note: The CSS parser may normalize spacing
-  assert(result.code.includes('@container'), 'Expected @container rule');
-  assert(result.code.includes('padding'), 'Expected padding inside @container');
-});
+    const result = compile(source, { scopeStyles: false });
+    assert.ok(result.success, 'Expected successful compilation');
+    // Note: The CSS parser may normalize spacing
+    assert.ok(result.code.includes('@container'), 'Expected @container rule');
+    assert.ok(result.code.includes('padding'), 'Expected padding inside @container');
+  });
 
-test('compiles @layer cascade layers', () => {
-  const source = `
+  test('compiles @layer cascade layers', () => {
+    const source = `
 @page App
 
 view {
@@ -2385,14 +2411,14 @@ style {
   }
 }`;
 
-  const result = compile(source, { scopeStyles: false });
-  assert(result.success, 'Expected successful compilation');
-  assert(result.code.includes('@layer base'), 'Expected @layer base');
-  assert(result.code.includes('@layer components'), 'Expected @layer components');
-});
+    const result = compile(source, { scopeStyles: false });
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(result.code.includes('@layer base'), 'Expected @layer base');
+    assert.ok(result.code.includes('@layer components'), 'Expected @layer components');
+  });
 
-test('compiles nested @media with @supports', () => {
-  const source = `
+  test('compiles nested @media with @supports', () => {
+    const source = `
 @page App
 
 view {
@@ -2417,14 +2443,14 @@ style {
   }
 }`;
 
-  const result = compile(source, { scopeStyles: false });
-  assert(result.success, 'Expected successful compilation');
-  assert(result.code.includes('@media'), 'Expected @media rule');
-  assert(result.code.includes('@supports'), 'Expected @supports rule');
-});
+    const result = compile(source, { scopeStyles: false });
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(result.code.includes('@media'), 'Expected @media rule');
+    assert.ok(result.code.includes('@supports'), 'Expected @supports rule');
+  });
 
-test('compiles CSS with > child combinator', () => {
-  const source = `
+  test('compiles CSS with > child combinator', () => {
+    const source = `
 @page App
 
 view {
@@ -2437,16 +2463,16 @@ style {
   }
 }`;
 
-  const result = compile(source, { scopeStyles: false });
-  assert(result.success, 'Expected successful compilation');
-  // The combinator may have different spacing but should be present
-  assert(result.code.includes('>'), 'Expected child combinator preserved');
-  assert(result.code.includes('.parent'), 'Expected .parent selector');
-  assert(result.code.includes('.child'), 'Expected .child selector');
-});
+    const result = compile(source, { scopeStyles: false });
+    assert.ok(result.success, 'Expected successful compilation');
+    // The combinator may have different spacing but should be present
+    assert.ok(result.code.includes('>'), 'Expected child combinator preserved');
+    assert.ok(result.code.includes('.parent'), 'Expected .parent selector');
+    assert.ok(result.code.includes('.child'), 'Expected .child selector');
+  });
 
-test('compiles CSS with + adjacent sibling combinator', () => {
-  const source = `
+  test('compiles CSS with + adjacent sibling combinator', () => {
+    const source = `
 @page App
 
 view {
@@ -2459,13 +2485,13 @@ style {
   }
 }`;
 
-  const result = compile(source, { scopeStyles: false });
-  assert(result.success, 'Expected successful compilation');
-  assert(result.code.includes('h2 + p') || result.code.includes('h2+ p') || result.code.includes('h2 +p'), 'Expected adjacent sibling combinator');
-});
+    const result = compile(source, { scopeStyles: false });
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(result.code.includes('h2 + p') || result.code.includes('h2+ p') || result.code.includes('h2 +p'), 'Expected adjacent sibling combinator');
+  });
 
-test('compiles CSS with ~ general sibling combinator', () => {
-  const source = `
+  test('compiles CSS with ~ general sibling combinator', () => {
+    const source = `
 @page App
 
 view {
@@ -2478,13 +2504,13 @@ style {
   }
 }`;
 
-  const result = compile(source, { scopeStyles: false });
-  assert(result.success, 'Expected successful compilation');
-  assert(result.code.includes('~'), 'Expected general sibling combinator');
-});
+    const result = compile(source, { scopeStyles: false });
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(result.code.includes('~'), 'Expected general sibling combinator');
+  });
 
-test('CSS scoping preserves combinators', () => {
-  const source = `
+  test('CSS scoping preserves combinators', () => {
+    const source = `
 @page App
 
 view {
@@ -2505,16 +2531,16 @@ style {
   }
 }`;
 
-  const result = compile(source); // With scoping enabled
-  assert(result.success, 'Expected successful compilation');
-  // Verify combinators are preserved in scoped output
-  assert(result.code.includes('>'), 'Expected > combinator preserved with scoping');
-  assert(result.code.includes('+'), 'Expected + combinator preserved with scoping');
-  assert(result.code.includes('~'), 'Expected ~ combinator preserved with scoping');
-});
+    const result = compile(source); // With scoping enabled
+    assert.ok(result.success, 'Expected successful compilation');
+    // Verify combinators are preserved in scoped output
+    assert.ok(result.code.includes('>'), 'Expected > combinator preserved with scoping');
+    assert.ok(result.code.includes('+'), 'Expected + combinator preserved with scoping');
+    assert.ok(result.code.includes('~'), 'Expected ~ combinator preserved with scoping');
+  });
 
-test('compiles CSS :has() selector', () => {
-  const source = `
+  test('compiles CSS :has() selector', () => {
+    const source = `
 @page App
 
 view {
@@ -2527,14 +2553,14 @@ style {
   }
 }`;
 
-  const result = compile(source, { scopeStyles: false });
-  assert(result.success, 'Expected successful compilation');
-  // Note: parser may add space before parentheses
-  assert(result.code.includes(':has'), 'Expected :has selector');
-});
+    const result = compile(source, { scopeStyles: false });
+    assert.ok(result.success, 'Expected successful compilation');
+    // Note: parser may add space before parentheses
+    assert.ok(result.code.includes(':has'), 'Expected :has selector');
+  });
 
-test('compiles CSS :is() selector', () => {
-  const source = `
+  test('compiles CSS :is() selector', () => {
+    const source = `
 @page App
 
 view {
@@ -2547,14 +2573,14 @@ style {
   }
 }`;
 
-  const result = compile(source, { scopeStyles: false });
-  assert(result.success, 'Expected successful compilation');
-  // Note: parser may add space before parentheses
-  assert(result.code.includes(':is'), 'Expected :is selector');
-});
+    const result = compile(source, { scopeStyles: false });
+    assert.ok(result.success, 'Expected successful compilation');
+    // Note: parser may add space before parentheses
+    assert.ok(result.code.includes(':is'), 'Expected :is selector');
+  });
 
-test('compiles CSS :where() selector', () => {
-  const source = `
+  test('compiles CSS :where() selector', () => {
+    const source = `
 @page App
 
 view {
@@ -2567,14 +2593,14 @@ style {
   }
 }`;
 
-  const result = compile(source, { scopeStyles: false });
-  assert(result.success, 'Expected successful compilation');
-  // Note: parser may add space before parentheses
-  assert(result.code.includes(':where'), 'Expected :where selector');
-});
+    const result = compile(source, { scopeStyles: false });
+    assert.ok(result.success, 'Expected successful compilation');
+    // Note: parser may add space before parentheses
+    assert.ok(result.code.includes(':where'), 'Expected :where selector');
+  });
 
-test('compiles modern CSS custom properties', () => {
-  const source = `
+  test('compiles modern CSS custom properties', () => {
+    const source = `
 @page App
 
 view {
@@ -2588,14 +2614,14 @@ style {
   }
 }`;
 
-  const result = compile(source, { scopeStyles: false });
-  assert(result.success, 'Expected successful compilation');
-  assert(result.code.includes('--primary-color'), 'Expected custom property');
-  assert(result.code.includes('var(--primary-color)'), 'Expected var() function');
-});
+    const result = compile(source, { scopeStyles: false });
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(result.code.includes('--primary-color'), 'Expected custom property');
+    assert.ok(result.code.includes('var(--primary-color)'), 'Expected var() function');
+  });
 
-test('compiles clamp(), min(), max() CSS functions', () => {
-  const source = `
+  test('compiles clamp(), min(), max() CSS functions', () => {
+    const source = `
 @page App
 
 view {
@@ -2610,21 +2636,23 @@ style {
   }
 }`;
 
-  const result = compile(source, { scopeStyles: false });
-  assert(result.success, 'Expected successful compilation');
-  assert(result.code.includes('clamp('), 'Expected clamp() function');
-  assert(result.code.includes('min('), 'Expected min() function');
-  assert(result.code.includes('max('), 'Expected max() function');
+    const result = compile(source, { scopeStyles: false });
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(result.code.includes('clamp('), 'Expected clamp() function');
+    assert.ok(result.code.includes('min('), 'Expected min() function');
+    assert.ok(result.code.includes('max('), 'Expected max() function');
+  });
+
 });
 
 // =============================================================================
 // Edge Cases and Error Recovery Tests
 // =============================================================================
 
-printSection('Edge Cases Tests');
+describe('Edge Cases Tests', () => {
 
-test('handles complex nested expressions with modern operators', () => {
-  const source = `
+  test('handles complex nested expressions with modern operators', () => {
+    const source = `
 @page App
 
 state {
@@ -2636,14 +2664,14 @@ view {
   span "{user?.profile?.name ?? settings?.theme ?? 'default'}"
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  assert(result.code.includes('?.'), 'Expected optional chaining');
-  assert(result.code.includes('??'), 'Expected nullish coalescing');
-});
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(result.code.includes('?.'), 'Expected optional chaining');
+    assert.ok(result.code.includes('??'), 'Expected nullish coalescing');
+  });
 
-test('handles deeply nested CSS rules', () => {
-  const source = `
+  test('handles deeply nested CSS rules', () => {
+    const source = `
 @page App
 
 view {
@@ -2672,37 +2700,39 @@ style {
   }
 }`;
 
-  const result = compile(source, { scopeStyles: false });
-  assert(result.success, 'Expected successful compilation');
-  assert(result.code.includes('.app .header'), 'Expected nested selector .app .header');
-  assert(result.code.includes('.app .header .nav'), 'Expected nested selector .app .header .nav');
-  assert(result.code.includes('.app .header .nav .link'), 'Expected deeply nested selector');
-  assert(result.code.includes('.app .header .nav .link:hover'), 'Expected & replaced with parent');
-});
+    const result = compile(source, { scopeStyles: false });
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(result.code.includes('.app .header'), 'Expected nested selector .app .header');
+    assert.ok(result.code.includes('.app .header .nav'), 'Expected nested selector .app .header .nav');
+    assert.ok(result.code.includes('.app .header .nav .link'), 'Expected deeply nested selector');
+    assert.ok(result.code.includes('.app .header .nav .link:hover'), 'Expected & replaced with parent');
+  });
 
-test('preserves string literals without adding optional chaining', () => {
-  const source = `
+  test('preserves string literals without adding optional chaining', () => {
+    const source = `
 @page App
 
 view {
   span "User.name is a valid property path"
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  // The string should NOT have ?. inserted
-  assert(result.code.includes('User.name'), 'Expected User.name preserved');
-  assert(!result.code.includes('User?.name'), 'Should NOT add ?. inside string literals');
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    // The string should NOT have ?. inserted
+    assert.ok(result.code.includes('User.name'), 'Expected User.name preserved');
+    assert.ok(!result.code.includes('User?.name'), 'Should NOT add ?. inside string literals');
+  });
+
 });
 
 // =============================================================================
 // Switch Statement Tests (break/case semicolons)
 // =============================================================================
 
-printSection('Switch Statement Tests');
+describe('Switch Statement Tests', () => {
 
-test('compiles switch with break statements correctly', () => {
-  const source = `
+  test('compiles switch with break statements correctly', () => {
+    const source = `
 @page TestSwitch
 
 state {
@@ -2727,16 +2757,16 @@ actions {
 }
 `;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  // break should have proper semicolons (either explicit or ASI-valid positioning)
-  // The key is that the code is syntactically valid JavaScript
-  assert(!result.code.includes('break case'), 'break should be properly separated from case');
-  assert(!result.code.includes('break default'), 'break should be properly separated from default');
-});
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    // break should have proper semicolons (either explicit or ASI-valid positioning)
+    // The key is that the code is syntactically valid JavaScript
+    assert.ok(!result.code.includes('break case'), 'break should be properly separated from case');
+    assert.ok(!result.code.includes('break default'), 'break should be properly separated from default');
+  });
 
-test('compiles state var in object key position correctly', () => {
-  const source = `
+  test('compiles state var in object key position correctly', () => {
+    const source = `
 @page TestObjectKey
 
 state {
@@ -2758,21 +2788,25 @@ actions {
 }
 `;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  // 'category' as an object key should NOT be transformed to category.get()
-  assert(!result.code.includes('category.get() :'), 'Object key should not be transformed to .get()');
-  assert(!result.code.includes('category.get(): '), 'Object key should not be transformed to .get()');
-  // But category used elsewhere (reading state) should be transformed
-  assert(result.code.includes('category.get()'), 'State var reads should still be transformed');
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    // 'category' as an object key should NOT be transformed to category.get()
+    assert.ok(!result.code.includes('category.get() :'), 'Object key should not be transformed to .get()');
+    assert.ok(!result.code.includes('category.get(): '), 'Object key should not be transformed to .get()');
+    // But category used elsewhere (reading state) should be transformed
+    assert.ok(result.code.includes('category.get()'), 'State var reads should still be transformed');
+  });
+
 });
 
 // =============================================================================
 // State assignment in text interpolation (transformExpressionString bug fix)
 // =============================================================================
 
-test('compiles state assignment in text interpolation to .set() not .get() =', () => {
-  const source = `
+describe('State assignment in text interpolation', () => {
+
+  test('compiles state assignment in text interpolation to .set() not .get() =', () => {
+    const source = `
 @page Test
 
 state {
@@ -2783,15 +2817,15 @@ view {
   p "{show = !show}"
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  // Should generate show.set(!show.get()), NOT show.get() = !show.get()
-  assert(!result.code.includes('.get() ='), 'Assignment should not produce .get() on left side');
-  assert(result.code.includes('show.set('), 'Assignment should use .set()');
-});
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    // Should generate show.set(!show.get()), NOT show.get() = !show.get()
+    assert.ok(!result.code.includes('.get() ='), 'Assignment should not produce .get() on left side');
+    assert.ok(result.code.includes('show.set('), 'Assignment should use .set()');
+  });
 
-test('compiles compound assignment in text interpolation to .update()', () => {
-  const source = `
+  test('compiles compound assignment in text interpolation to .update()', () => {
+    const source = `
 @page Test
 
 state {
@@ -2802,14 +2836,14 @@ view {
   p "Value: {count += 1}"
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  assert(!result.code.includes('.get() +'), 'Compound assignment should not produce .get() +=');
-  assert(result.code.includes('count.update('), 'Compound assignment should use .update()');
-});
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(!result.code.includes('.get() +'), 'Compound assignment should not produce .get() +=');
+    assert.ok(result.code.includes('count.update('), 'Compound assignment should use .update()');
+  });
 
-test('does not treat == as assignment in text interpolation', () => {
-  const source = `
+  test('does not treat == as assignment in text interpolation', () => {
+    const source = `
 @page Test
 
 state {
@@ -2820,15 +2854,10 @@ view {
   p "{count == 0 ? 'zero' : 'nonzero'}"
 }`;
 
-  const result = compile(source);
-  assert(result.success, 'Expected successful compilation');
-  assert(!result.code.includes('.set('), 'Equality check should not produce .set()');
-  assert(result.code.includes('count.get() == 0'), 'Equality check should use .get()');
+    const result = compile(source);
+    assert.ok(result.success, 'Expected successful compilation');
+    assert.ok(!result.code.includes('.set('), 'Equality check should not produce .set()');
+    assert.ok(result.code.includes('count.get() == 0'), 'Equality check should use .get()');
+  });
+
 });
-
-// =============================================================================
-// Results
-// =============================================================================
-
-printResults();
-exitWithCode();

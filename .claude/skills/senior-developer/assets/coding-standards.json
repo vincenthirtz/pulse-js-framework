@@ -1,0 +1,97 @@
+{
+  "description": "Pulse framework coding standards - machine-readable rules for convention checking",
+  "naming": {
+    "exportedFunctions": {
+      "factories": { "prefix": "create", "example": "createRouter(options)" },
+      "hooks": { "prefix": "use", "example": "useAsync(fetcher, options)" },
+      "enablers": { "prefix": "enable", "example": "enableDevTools(options)" },
+      "disablers": { "prefix": "disable", "example": "disableAutoTimeline()" },
+      "configurators": { "prefix": "configure", "example": "configureA11y(options)" },
+      "predicates": { "prefix": "is", "example": "isSSR()" },
+      "getters": { "prefix": "get", "example": "getAdapter()" },
+      "setters": { "prefix": "set", "example": "setAdapter(adapter)" },
+      "detectors": { "prefix": "has|detect", "example": "hasSassSyntax(css)" },
+      "compilers": { "prefix": "compile", "example": "compileSass(scss, options)" }
+    },
+    "variables": {
+      "reactiveState": "camelCase with pulse()",
+      "computedValues": "camelCase with computed()",
+      "constants": "UPPER_SNAKE_CASE",
+      "privateFields": "#prefixed",
+      "internalHelpers": "_prefixed (not exported)"
+    },
+    "files": {
+      "runtimeModule": "kebab-case.js",
+      "testFile": "kebab-case.test.js",
+      "template": "kebab-case.template"
+    }
+  },
+  "structure": {
+    "moduleFileOrder": [
+      "JSDoc module header",
+      "Imports (framework → local → types)",
+      "Constants & Configuration",
+      "Internal helpers",
+      "Classes (if needed)",
+      "Exported functions (public API)"
+    ],
+    "importOrder": [
+      "Node.js built-ins (CLI/compiler only)",
+      "Framework imports (pulse.js, dom.js, errors.js)",
+      "Local module imports"
+    ]
+  },
+  "layerRules": {
+    "runtime": {
+      "canImport": ["runtime"],
+      "cannotImport": ["cli", "compiler", "loader", "node:*"],
+      "mustBe": "browser-safe"
+    },
+    "compiler": {
+      "canImport": ["compiler", "runtime/errors.js"],
+      "cannotImport": ["cli", "loader"],
+      "mustBe": "Node.js compatible"
+    },
+    "cli": {
+      "canImport": ["cli", "compiler", "node:*"],
+      "cannotImport": ["loader"],
+      "mustBe": "Node.js only"
+    },
+    "loader": {
+      "canImport": ["loader", "compiler"],
+      "cannotImport": ["cli"],
+      "mustBe": "build-tool compatible"
+    }
+  },
+  "patterns": {
+    "hookReturn": {
+      "required": ["data (Pulse)", "loading (Pulse)", "error (Pulse)"],
+      "optional": ["execute (Function)", "abort (Function)", "reset (Function)", "dispose (Function)"]
+    },
+    "factoryReturn": {
+      "required": ["methods", "dispose (Function)"],
+      "optional": ["reactive state (Pulse)", "interceptors"]
+    },
+    "subscriptionReturn": "disposer/cleanup function",
+    "componentReturn": "DOM node(s)"
+  },
+  "errorHandling": {
+    "required": "PulseError subclasses (never raw Error)",
+    "hierarchy": ["PulseError", "CompileError", "RuntimeError", "CLIError"],
+    "fields": ["code", "message", "context", "suggestion"],
+    "preBuilt": "Errors.xxx() from runtime/errors.js"
+  },
+  "exports": {
+    "style": "named only (no default exports)",
+    "reason": "tree-shaking support",
+    "noNamespaceReexport": true,
+    "noModuleLevelSideEffects": true
+  },
+  "formatting": {
+    "indentation": "2 spaces",
+    "semicolons": true,
+    "quotes": "single",
+    "trailingCommas": true,
+    "maxLineLength": 100
+  }
+}

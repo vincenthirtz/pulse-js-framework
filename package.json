@@ -181,6 +181,9 @@
     "test:swc-plugin": "node test/swc-plugin.test.js",
     "test:dom-binding": "node test/dom-binding.test.js",
     "test:interceptor-manager": "node test/interceptor-manager.test.js",
+    "test:vite-plugin": "node --test test/vite-plugin.test.js",
+    "test:memory-cleanup": "node --test test/memory-cleanup.test.js",
+    "test:dev-server": "node --test test/dev-server.test.js",
     "build:netlify": "node scripts/build-netlify.js",
     "version": "node scripts/sync-version.js",
     "docs": "node cli/index.js dev docs"

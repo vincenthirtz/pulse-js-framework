@@ -80,6 +80,9 @@ function globMatch(base, pattern, extensions) {
         match(dir, partIndex + 1);
         try {
           for (const entry of readdirSync(dir)) {
+            // Skip hidden files and node_modules
+            if (entry.startsWith('.') || entry === 'node_modules') continue;
+
             const full = join(dir, entry);
             try {
               if (statSync(full).isDirectory()) {
@@ -153,6 +156,9 @@ function matchFilesInDirRecursive(dir, pattern, extensions, results) {
   function walk(currentDir) {
     try {
       for (const entry of readdirSync(currentDir)) {
+        // Skip hidden files and node_modules
+        if (entry.startsWith('.') || entry === 'node_modules') continue;
+
         const full = join(currentDir, entry);
         try {
           const stat = statSync(full);

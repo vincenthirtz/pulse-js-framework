@@ -6,7 +6,7 @@
  * and touched state tracking.
  */
 
-import { pulse, effect, computed, batch } from './pulse.js';
+import { pulse, effect, computed, batch, onCleanup } from './pulse.js';
 
 /**
  * @typedef {Object} FieldState
@@ -698,6 +698,19 @@ export function useForm(initialValues, validationSchema = {}, options = {}) {
     });
   }
 
+  const dispose = () => {
+    for (const name of fieldNames) {
+      const timers = debounceTimers[name];
+      if (timers) {
+        for (const timerId of timers.values()) {
+          clearTimeout(timerId);
+        }
+        timers.clear();
+      }
+    }
+  };
+  onCleanup(dispose);
+
   return {
     fields,
     isValid,
@@ -715,7 +728,8 @@ export function useForm(initialValues, validationSchema = {}, options = {}) {
     reset,
     handleSubmit,
     setErrors,
-    clearErrors
+    clearErrors,
+    dispose
   };
 }
 
@@ -905,6 +919,14 @@ export function useField(initialValue, rules = [], options = {}) {
     });
   };
 
+  const dispose = () => {
+    for (const timerId of debounceTimers.values()) {
+      clearTimeout(timerId);
+    }
+    debounceTimers.clear();
+  };
+  onCleanup(dispose);
+
   return {
     value,
     error,
@@ -918,7 +940,8 @@ export function useField(initialValue, rules = [], options = {}) {
     onBlur,
     reset,
     setError: (msg) => error.set(msg),
-    clearError: () => error.set(null)
+    clearError: () => error.set(null),
+    dispose
   };
 }
 
@@ -1028,6 +1051,13 @@ export function useFieldArray(initialValues = [], itemRules = []) {
     return asyncResults.every(r => r === true);
   };
 
+  const dispose = () => {
+    for (const field of fieldsArray.get()) {
+      field.dispose?.();
+    }
+  };
+  onCleanup(dispose);
+
   return {
     fields: fieldsArray,
     values,
@@ -1042,7 +1072,8 @@ export function useFieldArray(initialValues = [], itemRules = []) {
     replace,
     reset,
     validateAll,
-    validateAllSync
+    validateAllSync,
+    dispose
   };
 }
 

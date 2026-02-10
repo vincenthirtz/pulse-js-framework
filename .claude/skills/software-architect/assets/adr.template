@@ -1,0 +1,68 @@
+# ADR-{{NUMBER}}: {{TITLE}}
+
+## Status
+
+{{STATUS}}
+
+## Date
+
+{{DATE}}
+
+## Context
+
+<!-- What is the issue motivating this decision? What forces are at play? -->
+<!-- Include relevant background, constraints, and requirements. -->
+
+
+
+## Decision
+
+<!-- What is the change that we're proposing and/or doing? -->
+<!-- Be specific about what will change in the codebase. -->
+
+
+
+## Consequences
+
+### Positive
+
+-
+
+### Negative
+
+-
+
+### Neutral
+
+-
+
+## Alternatives Considered
+
+### Alternative 1
+
+<!-- Description of the alternative and why it was not chosen. -->
+
+### Alternative 2
+
+<!-- Description of the alternative and why it was not chosen. -->
+
+## Implementation Notes
+
+<!-- Key files affected, migration steps, or implementation order. -->
+
+| File | Change |
+|------|--------|
+| | |
+
+## Principles Applied
+
+<!-- Which design principles (P1-P12) influenced this decision? -->
+<!-- See references/design-principles.md -->
+
+-
+
+## Related
+
+<!-- Links to related ADRs, GitHub issues, PRs, or documentation. -->
+
+-
