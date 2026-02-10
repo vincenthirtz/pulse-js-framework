@@ -28,11 +28,62 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Security audit - runs in parallel (advisory only)
+  # Detect what changed to skip unnecessary jobs
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      src: ${{ steps.filter.outputs.src }}
+      tests: ${{ steps.filter.outputs.tests }}
+      deps: ${{ steps.filter.outputs.deps }}
+      docs: ${{ steps.filter.outputs.docs }}
+      ci: ${{ steps.filter.outputs.ci }}
+      src_hash: ${{ steps.hash.outputs.src_hash }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed paths
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            src:
+              - 'runtime/**'
+              - 'compiler/**'
+              - 'cli/**'
+              - 'loader/**'
+              - 'mobile/**'
+            tests:
+              - 'test/**'
+              - 'scripts/run-all-tests.js'
+            deps:
+              - 'package.json'
+              - 'package-lock.json'
+            docs:
+              - 'docs/**'
+              - 'examples/**'
+              - '*.md'
+            ci:
+              - '.github/workflows/**'
+
+      - name: Compute source hash
+        id: hash
+        run: |
+          SRC_HASH=$(find runtime compiler cli loader test scripts mobile -name "*.js" -type f 2>/dev/null | sort | xargs cat 2>/dev/null | sha256sum | cut -d' ' -f1)
+          echo "src_hash=$SRC_HASH" >> $GITHUB_OUTPUT
+          echo "Source hash: $SRC_HASH"
+
+  # Security audit - runs only when deps change
   security:
     name: Security Audit
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    needs: [changes]
+    if: needs.changes.outputs.deps == 'true' || github.event_name == 'workflow_dispatch'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -63,6 +114,8 @@ jobs:
     name: Syntax Check
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    needs: [changes]
+    if: needs.changes.outputs.src == 'true' || needs.changes.outputs.ci == 'true' || github.event_name == 'workflow_dispatch'
 
     steps:
       - name: Checkout repository
@@ -82,6 +135,13 @@ jobs:
     name: Test (Node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    needs: [changes]
+    if: >-
+      needs.changes.outputs.src == 'true' ||
+      needs.changes.outputs.tests == 'true' ||
+      needs.changes.outputs.deps == 'true' ||
+      needs.changes.outputs.ci == 'true' ||
+      github.event_name == 'workflow_dispatch'
 
     strategy:
       fail-fast: false
@@ -98,16 +158,38 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
 
+      - name: Cache test results
+        uses: actions/cache@v4
+        id: test-cache
+        with:
+          path: .test-results
+          key: test-node${{ matrix.node-version }}-${{ needs.changes.outputs.src_hash }}
+
       - name: Install dependencies
+        if: steps.test-cache.outputs.cache-hit != 'true'
         run: npm ci
 
       - name: Run all tests
-        run: npm test
+        if: steps.test-cache.outputs.cache-hit != 'true'
+        run: |
+          npm test
+          mkdir -p .test-results
+          echo "${{ needs.changes.outputs.src_hash }}" > .test-results/last-pass
+
+      - name: Skip tests (cache hit)
+        if: steps.test-cache.outputs.cache-hit == 'true'
+        run: echo "Tests already passed for this source hash, skipping."
 
   coverage:
     name: Coverage
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    needs: [changes]
+    if: >-
+      needs.changes.outputs.src == 'true' ||
+      needs.changes.outputs.tests == 'true' ||
+      needs.changes.outputs.deps == 'true' ||
+      github.event_name == 'workflow_dispatch'
 
     steps:
       - name: Checkout repository
@@ -119,13 +201,23 @@ jobs:
           node-version: 20
           cache: 'npm'
 
+      - name: Cache coverage results
+        uses: actions/cache@v4
+        id: cov-cache
+        with:
+          path: coverage
+          key: coverage-${{ needs.changes.outputs.src_hash }}
+
       - name: Install dependencies
+        if: steps.cov-cache.outputs.cache-hit != 'true'
         run: npm ci
 
       - name: Run tests with coverage
+        if: steps.cov-cache.outputs.cache-hit != 'true'
         run: npx c8 --reporter=lcov --reporter=text --reporter=json-summary npm test
 
       - name: Upload coverage to Codecov
+        if: steps.cov-cache.outputs.cache-hit != 'true'
         uses: codecov/codecov-action@v4
         with:
           files: ./coverage/lcov.info
@@ -148,7 +240,11 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    needs: [test, lint]
+    needs: [changes, test, lint]
+    if: |
+      always() &&
+      (needs.test.result == 'success' || needs.test.result == 'skipped') &&
+      (needs.lint.result == 'success' || needs.lint.result == 'skipped')
 
     steps:
       - name: Checkout repository
@@ -160,10 +256,19 @@ jobs:
           node-version: 20
           cache: 'npm'
 
+      - name: Cache build output
+        uses: actions/cache@v4
+        id: build-cache
+        with:
+          path: dist
+          key: build-${{ needs.changes.outputs.src_hash }}
+
       - name: Install dependencies
+        if: steps.build-cache.outputs.cache-hit != 'true'
         run: npm ci
 
       - name: Build for Netlify
+        if: steps.build-cache.outputs.cache-hit != 'true'
         run: npm run build:netlify
 
       - name: Verify build output
@@ -207,7 +312,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: [build]
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    if: |
+      always() &&
+      needs.build.result == 'success' &&
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     permissions:
       contents: read
       deployments: write
@@ -262,7 +371,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     needs: [test, lint, build, coverage]
-    if: >-
+    if: |
+      always() &&
+      (needs.test.result == 'success' || needs.test.result == 'skipped') &&
+      (needs.lint.result == 'success' || needs.lint.result == 'skipped') &&
+      needs.build.result == 'success' &&
+      (needs.coverage.result == 'success' || needs.coverage.result == 'skipped') &&
       github.ref == 'refs/heads/main' &&
       github.event_name == 'workflow_dispatch' &&
       inputs.release_type != 'none'
