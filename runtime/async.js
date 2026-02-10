@@ -462,6 +462,11 @@ export function useAsync(asyncFn, options = {}) {
     }
   }
 
+  const dispose = () => {
+    versionController.cleanup();
+  };
+  onCleanup(dispose);
+
   // Execute immediately if requested
   if (immediate) {
     execute();
@@ -474,7 +479,8 @@ export function useAsync(asyncFn, options = {}) {
     status,
     execute,
     reset,
-    abort
+    abort,
+    dispose
   };
 }
 
@@ -727,6 +733,13 @@ export function useResource(key, fetcher, options = {}) {
     fetch();
   }
 
+  const dispose = () => {
+    if (intervalId) {
+      clearInterval(intervalId);
+      intervalId = null;
+    }
+  };
+
   return {
     data,
     error,
@@ -737,7 +750,8 @@ export function useResource(key, fetcher, options = {}) {
     fetch,
     refresh,
     mutate,
-    invalidate
+    invalidate,
+    dispose
   };
 }
 

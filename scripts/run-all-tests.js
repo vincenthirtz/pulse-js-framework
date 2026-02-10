@@ -73,6 +73,7 @@ const testScripts = [
   'test:swc-plugin',
   'test:dom-binding',
   'test:interceptor-manager',
+  'test:memory-cleanup',
   'test:vite-plugin',
   'test:dev-server',
 ];

@@ -878,16 +878,18 @@ export function createRouter(options = {}) {
     const a = el('a', content);
     a.href = href;
 
-    a.addEventListener('click', (e) => {
+    const handleClick = (e) => {
       // Allow ctrl/cmd+click for new tab
       if (e.ctrlKey || e.metaKey) return;
 
       e.preventDefault();
       navigate(path, options);
-    });
+    };
+
+    a.addEventListener('click', handleClick);
 
     // Add active class when route matches
-    effect(() => {
+    const disposeEffect = effect(() => {
       const current = currentPath.get();
       if (current === path || (options.exact === false && current.startsWith(path))) {
         a.classList.add(options.activeClass || 'active');
@@ -895,6 +897,11 @@ export function createRouter(options = {}) {
         a.classList.remove(options.activeClass || 'active');
       }
     });
+
+    a.cleanup = () => {
+      a.removeEventListener('click', handleClick);
+      disposeEffect();
+    };
 
     return a;
   }
