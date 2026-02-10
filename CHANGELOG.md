@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.7.38] - 2026-02-10
+
+### Changes
+
+- fix(runtime): add cleanup/dispose to all create*/use* functions (#31, #33, #35, #37)
+- fix(test): debug and fix all 7 failing/hanging test suites (66/66 pass)
+
+---
+
+
 ## [1.7.37] - 2026-02-09
 
 ### Changes
