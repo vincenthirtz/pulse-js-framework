@@ -524,16 +524,21 @@ describe('resetElement edge cases', () => {
     adapter.setAttribute(el, 'data-x', '1');
     adapter.setAttribute(el, 'data-y', '2');
 
-    // Simulate browser-style NamedNodeMap on `attributes`
+    // Simulate browser-style live NamedNodeMap on `attributes`
     // This triggers the `while (attrs.length > 0)` path (line 44-48)
-    Object.defineProperty(el, 'attributes', {
-      get() {
+    // The returned object must be live (like real NamedNodeMap) since
+    // resetElement captures it once with `const attrs = element.attributes`
+    const liveAttrs = new Proxy({}, {
+      get(_, prop) {
         const names = Array.from(el._attributes.keys());
-        return {
-          length: names.length,
-          0: names.length > 0 ? { name: names[0] } : undefined
-        };
-      },
+        if (prop === 'length') return names.length;
+        const idx = Number(prop);
+        if (!isNaN(idx) && idx < names.length) return { name: names[idx] };
+        return undefined;
+      }
+    });
+    Object.defineProperty(el, 'attributes', {
+      get: () => liveAttrs,
       configurable: true
     });
     // Remove getAttributeNames so the first branch is taken
