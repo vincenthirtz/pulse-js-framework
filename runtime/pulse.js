@@ -142,6 +142,8 @@ export class ReactiveContext {
     this.batchDepth = 0;
     this.pendingEffects = new Set();
     this.isRunningEffects = false;
+    // Generation counter for dependency tracking optimization (#58)
+    this.generation = 0;
     // HMR support
     this.currentModuleId = null;
     this.effectRegistry = new Map();
@@ -155,6 +157,7 @@ export class ReactiveContext {
     this.batchDepth = 0;
     this.pendingEffects.clear();
     this.isRunningEffects = false;
+    this.generation = 0;
     this.currentModuleId = null;
     this.effectRegistry.clear();
   }
@@ -472,9 +475,16 @@ export class Pulse {
    * });
    */
   get() {
-    if (activeContext.currentEffect) {
-      this.#subscribers.add(activeContext.currentEffect);
-      activeContext.currentEffect.dependencies.add(this);
+    const current = activeContext.currentEffect;
+    if (current) {
+      // Optimization (#58): Skip redundant Set.add() if already tracked in this cycle.
+      // When an effect re-runs, generation increments and dependencies are cleared,
+      // so _generation won't match and we'll re-track. Within the same cycle,
+      // dependencies.has() avoids duplicate additions for repeated reads.
+      if (current._generation !== activeContext.generation || !current.dependencies.has(this)) {
+        this.#subscribers.add(current);
+        current.dependencies.add(this);
+      }
     }
     return this.#value;
   }
@@ -948,6 +958,10 @@ export function effect(fn, options = {}) {
       }
       effectFn.dependencies.clear();
 
+      // Stamp generation for dependency tracking optimization (#58)
+      activeContext.generation++;
+      effectFn._generation = activeContext.generation;
+
       // Set as current effect for dependency tracking
       const prevEffect = activeContext.currentEffect;
       activeContext.currentEffect = effectFn;
@@ -961,7 +975,8 @@ export function effect(fn, options = {}) {
       }
     },
     dependencies: new Set(),
-    cleanups: []
+    cleanups: [],
+    _generation: 0
   };
 
   // HMR: Register effect with current module

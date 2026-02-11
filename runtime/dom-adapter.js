@@ -537,6 +537,10 @@ export class MockElement extends MockNode {
   hasAttribute(name) {
     return this._attributes.has(name);
   }
+
+  getAttributeNames() {
+    return Array.from(this._attributes.keys());
+  }
 }
 
 /**
