@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.9.0] - 2026-02-11
+
+### Changes
+
+- test(form): add 65 tests to cover missing lines from Codecov report
+- feat(form): implement milestone v1.9.0 Form System v2 (#29, #30, #32, #34, #36)
+
+---
+
+
 ## [1.8.3] - 2026-02-11
 
 ### Changes
