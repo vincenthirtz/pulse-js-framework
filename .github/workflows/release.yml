@@ -8,6 +8,7 @@ on:
 permissions:
   contents: write
   packages: write
+  issues: write
 
 jobs:
   test:
@@ -174,6 +175,61 @@ jobs:
             pulse-${{ steps.version.outputs.VERSION }}.zip
           draft: false
           prerelease: ${{ steps.prerelease.outputs.IS_PRERELEASE }}
+
+  close-milestone:
+    name: Close Milestone Issues
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: release
+    continue-on-error: true
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Close milestone issues
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/v}"
+          echo "Looking for milestone matching version v${VERSION}..."
+
+          # Find milestone whose title contains (vX.Y.Z)
+          MILESTONE=$(gh api repos/${{ github.repository }}/milestones --jq ".[] | select(.title | test(\"\\(v${VERSION}\\)\")) | .number")
+
+          if [ -z "$MILESTONE" ]; then
+            echo "::notice::No milestone found for v${VERSION}, skipping"
+            exit 0
+          fi
+
+          MILESTONE_TITLE=$(gh api repos/${{ github.repository }}/milestones/${MILESTONE} --jq '.title')
+          echo "Found milestone #${MILESTONE}: ${MILESTONE_TITLE}"
+
+          # Close all open issues in this milestone
+          ISSUES=$(gh api "repos/${{ github.repository }}/issues?milestone=${MILESTONE}&state=open&per_page=100" --jq '.[].number')
+          CLOSED_COUNT=0
+
+          for ISSUE in $ISSUES; do
+            echo "Closing issue #${ISSUE}..."
+            gh issue close "$ISSUE" --repo "${{ github.repository }}" --comment "Closed automatically by release v${VERSION}."
+            CLOSED_COUNT=$((CLOSED_COUNT + 1))
+          done
+
+          echo "Closed ${CLOSED_COUNT} issue(s) from milestone '${MILESTONE_TITLE}'"
+
+          # Close the milestone itself
+          if [ "$CLOSED_COUNT" -gt 0 ] || [ "$(gh api repos/${{ github.repository }}/milestones/${MILESTONE} --jq '.open_issues')" = "0" ]; then
+            echo "Closing milestone '${MILESTONE_TITLE}'..."
+            gh api --method PATCH "repos/${{ github.repository }}/milestones/${MILESTONE}" -f state=closed
+            echo "Milestone closed"
+          fi
+
+      - name: Summary
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/v}"
+          echo "## Milestone Cleanup" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Issues from the v${VERSION} milestone have been closed automatically." >> $GITHUB_STEP_SUMMARY
 
   publish:
     name: Publish to npm
