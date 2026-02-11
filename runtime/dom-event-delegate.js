@@ -145,22 +145,50 @@ export function delegatedList(getItems, template, keyFn, options = {}) {
   // Internal map: key -> { item, index }
   const itemMap = new Map();
 
+  // Track active keys per render cycle to clean stale itemMap entries
+  let activeKeys = new Set();
+
   // Wrap template to add data-pulse-key attribute
   const wrappedTemplate = (item, index) => {
-    const key = keyFn(item, index);
+    const rawKey = keyFn(item, index);
+    // Security: ensure key is a string or number to prevent collisions
+    // Objects would all stringify to "[object Object]"
+    const key = (typeof rawKey === 'string' || typeof rawKey === 'number')
+      ? String(rawKey)
+      : String(index);
     const node = template(item, index);
     const root = Array.isArray(node) ? node[0] : node;
 
     if (root && dom.isElement(root)) {
-      dom.setAttribute(root, KEY_ATTR, String(key));
+      dom.setAttribute(root, KEY_ATTR, key);
     }
 
-    itemMap.set(String(key), { item, index });
+    itemMap.set(key, { item, index });
+    activeKeys.add(key);
     return node;
   };
 
+  // Wrap getItems to track render cycles and prune stale entries
+  const wrappedGetItems = typeof getItems === 'function'
+    ? () => {
+        activeKeys = new Set();
+        const result = getItems();
+        // Schedule cleanup after current effect cycle completes
+        if (typeof queueMicrotask === 'function') {
+          queueMicrotask(() => {
+            for (const key of itemMap.keys()) {
+              if (!activeKeys.has(key)) {
+                itemMap.delete(key);
+              }
+            }
+          });
+        }
+        return result;
+      }
+    : getItems; // Pulse source — template calls track keys directly
+
   // Create list with wrapped template
-  const fragment = list(getItems, wrappedTemplate, keyFn, listOptions);
+  const fragment = list(wrappedGetItems, wrappedTemplate, keyFn, listOptions);
 
   // Set up delegation on the fragment's parent when it's mounted
   const cleanups = [];

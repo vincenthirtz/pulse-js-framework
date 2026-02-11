@@ -776,3 +776,288 @@ describe('virtualList() viewport positioning', () => {
     assert.strictEqual(viewport.style.right, '0');
   });
 });
+
+// =============================================================================
+// scrollToIndex() (v1.8.1)
+// =============================================================================
+
+describe('virtualList() scrollToIndex', () => {
+  test('scrollToIndex sets correct scrollTop for align=start', () => {
+    const items = pulse(generateItems(100));
+    const container = virtualList(
+      () => items.get(),
+      (item) => adapter.createElement('li'),
+      (item) => item.id,
+      { itemHeight: 40, containerHeight: 400 }
+    );
+
+    container.scrollToIndex(10);
+    // align=start: scrollTop = index * itemHeight = 10 * 40 = 400
+    assert.strictEqual(container.scrollTop, 400);
+  });
+
+  test('scrollToIndex with align=center calculates centered position', () => {
+    const items = pulse(generateItems(100));
+    const container = virtualList(
+      () => items.get(),
+      (item) => adapter.createElement('li'),
+      (item) => item.id,
+      { itemHeight: 40, containerHeight: 400 }
+    );
+
+    container.scrollToIndex(50, { align: 'center' });
+    // align=center: scrollTop = index * itemHeight - height/2 + itemHeight/2
+    // = 50 * 40 - 200 + 20 = 1820
+    assert.strictEqual(container.scrollTop, 1820);
+  });
+
+  test('scrollToIndex with align=end calculates end position', () => {
+    const items = pulse(generateItems(100));
+    const container = virtualList(
+      () => items.get(),
+      (item) => adapter.createElement('li'),
+      (item) => item.id,
+      { itemHeight: 40, containerHeight: 400 }
+    );
+
+    container.scrollToIndex(50, { align: 'end' });
+    // align=end: scrollTop = (index + 1) * itemHeight - height
+    // = 51 * 40 - 400 = 1640
+    assert.strictEqual(container.scrollTop, 1640);
+  });
+
+  test('scrollToIndex clamps to valid range (negative)', () => {
+    const items = pulse(generateItems(100));
+    const container = virtualList(
+      () => items.get(),
+      (item) => adapter.createElement('li'),
+      (item) => item.id,
+      { itemHeight: 40, containerHeight: 400 }
+    );
+
+    container.scrollToIndex(-5);
+    // Should clamp to 0: scrollTop = 0 * 40 = 0
+    assert.strictEqual(container.scrollTop, 0);
+  });
+
+  test('scrollToIndex clamps to valid range (beyond end)', () => {
+    const items = pulse(generateItems(10));
+    const container = virtualList(
+      () => items.get(),
+      (item) => adapter.createElement('li'),
+      (item) => item.id,
+      { itemHeight: 40, containerHeight: 400 }
+    );
+
+    container.scrollToIndex(999);
+    // Should clamp to last index (9): scrollTop = 9 * 40 = 360
+    assert.strictEqual(container.scrollTop, 360);
+  });
+
+  test('scrollToIndex defaults to align=start', () => {
+    const items = pulse(generateItems(50));
+    const container = virtualList(
+      () => items.get(),
+      (item) => adapter.createElement('li'),
+      (item) => item.id,
+      { itemHeight: 40, containerHeight: 400 }
+    );
+
+    container.scrollToIndex(5);
+    assert.strictEqual(container.scrollTop, 200);
+
+    container.scrollToIndex(5, {});
+    assert.strictEqual(container.scrollTop, 200);
+  });
+});
+
+// =============================================================================
+// aria-rowindex (v1.8.1)
+// =============================================================================
+
+describe('virtualList() aria-rowindex', () => {
+  test('visible items have aria-rowindex attribute (1-based)', () => {
+    const items = pulse(generateItems(100));
+    const container = virtualList(
+      () => items.get(),
+      (item) => {
+        const el = adapter.createElement('li');
+        adapter.setTextContent(el, item.name);
+        return el;
+      },
+      (item) => item.id,
+      { itemHeight: 40, containerHeight: 400, overscan: 0 }
+    );
+
+    // With containerHeight=400 and itemHeight=40, visible = 10 items
+    // At scrollTop=0, visible items are 0-9
+    const spacer = container.childNodes[0];
+    const viewport = spacer.childNodes[0];
+
+    // Check rendered items have aria-rowindex
+    let foundRowIndex = false;
+    function walkNodes(node) {
+      if (node && typeof node.getAttribute === 'function') {
+        const rowIdx = node.getAttribute('aria-rowindex');
+        if (rowIdx) {
+          foundRowIndex = true;
+          // Should be 1-based
+          const num = parseInt(rowIdx, 10);
+          assert.ok(num >= 1, 'aria-rowindex should be 1-based');
+        }
+      }
+      if (node && node.childNodes) {
+        for (const child of node.childNodes) {
+          walkNodes(child);
+        }
+      }
+    }
+    walkNodes(viewport);
+
+    assert.ok(foundRowIndex, 'At least one item should have aria-rowindex');
+  });
+});
+
+// =============================================================================
+// virtualList() event delegation via `on` option (v1.8.1)
+// =============================================================================
+
+describe('virtualList() event delegation', () => {
+  test('on option does not throw during creation', () => {
+    const items = pulse(generateItems(50));
+
+    assert.doesNotThrow(() => {
+      virtualList(
+        () => items.get(),
+        (item) => {
+          const el = adapter.createElement('li');
+          adapter.setTextContent(el, item.name);
+          return el;
+        },
+        (item) => item.id,
+        {
+          itemHeight: 40,
+          containerHeight: 400,
+          on: {
+            click: (event, item, index) => {}
+          }
+        }
+      );
+    });
+  });
+
+  test('items have data-pulse-key when on handlers are provided', () => {
+    const items = pulse(generateItems(20));
+    const container = virtualList(
+      () => items.get(),
+      (item) => {
+        const el = adapter.createElement('li');
+        adapter.setTextContent(el, item.name);
+        return el;
+      },
+      (item) => item.id,
+      {
+        itemHeight: 40,
+        containerHeight: 400,
+        overscan: 0,
+        on: { click: () => {} }
+      }
+    );
+
+    const spacer = container.childNodes[0];
+    const viewport = spacer.childNodes[0];
+
+    // Walk viewport children to find data-pulse-key
+    let foundKey = false;
+    function walkNodes(node) {
+      if (node && typeof node.getAttribute === 'function') {
+        const key = node.getAttribute('data-pulse-key');
+        if (key !== null) {
+          foundKey = true;
+        }
+      }
+      if (node && node.childNodes) {
+        for (const child of node.childNodes) {
+          walkNodes(child);
+        }
+      }
+    }
+    walkNodes(viewport);
+
+    assert.ok(foundKey, 'Items should have data-pulse-key when on handlers provided');
+  });
+
+  test('items do NOT have data-pulse-key when no on handlers', () => {
+    const items = pulse(generateItems(20));
+    const container = virtualList(
+      () => items.get(),
+      (item) => {
+        const el = adapter.createElement('li');
+        adapter.setTextContent(el, item.name);
+        return el;
+      },
+      (item) => item.id,
+      { itemHeight: 40, containerHeight: 400, overscan: 0 }
+    );
+
+    const spacer = container.childNodes[0];
+    const viewport = spacer.childNodes[0];
+
+    let foundKey = false;
+    function walkNodes(node) {
+      if (node && typeof node.getAttribute === 'function') {
+        const key = node.getAttribute('data-pulse-key');
+        if (key !== null) foundKey = true;
+      }
+      if (node && node.childNodes) {
+        for (const child of node.childNodes) walkNodes(child);
+      }
+    }
+    walkNodes(viewport);
+
+    assert.ok(!foundKey, 'Items should NOT have data-pulse-key without on handlers');
+  });
+});
+
+// =============================================================================
+// virtualList() _dispose() cleanup (v1.8.1)
+// =============================================================================
+
+describe('virtualList() dispose with delegation', () => {
+  test('_dispose() can be called with event delegation active', () => {
+    const items = pulse(generateItems(20));
+    const container = virtualList(
+      () => items.get(),
+      (item) => adapter.createElement('li'),
+      (item) => item.id,
+      {
+        itemHeight: 40,
+        containerHeight: 400,
+        on: { click: () => {} }
+      }
+    );
+
+    assert.doesNotThrow(() => {
+      container._dispose();
+    });
+  });
+
+  test('_dispose() can be called multiple times with delegation', () => {
+    const items = pulse(generateItems(20));
+    const container = virtualList(
+      () => items.get(),
+      (item) => adapter.createElement('li'),
+      (item) => item.id,
+      {
+        itemHeight: 40,
+        containerHeight: 400,
+        on: { click: () => {}, dblclick: () => {} }
+      }
+    );
+
+    assert.doesNotThrow(() => {
+      container._dispose();
+      container._dispose();
+    });
+  });
+});

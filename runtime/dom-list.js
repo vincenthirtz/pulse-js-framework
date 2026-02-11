@@ -142,10 +142,60 @@ export function list(getItems, template, keyFn = (item, i) => i, options = {}) {
     });
 
     // Phase 2: Batch create new nodes using DocumentFragment
+    // When recycling is enabled, try to acquire root elements from the pool
+    // before falling back to createElement
     if (newItems.length > 0) {
       for (const { key, item, index } of newItems) {
         const result = template(item, index);
         const nodes = Array.isArray(result) ? result : [result];
+
+        // Pool acquire: if the root node is an element and pool has a matching
+        // tag, transfer children/attributes from template result to recycled element
+        if (pool && nodes.length === 1 && dom.isElement(nodes[0])) {
+          const original = nodes[0];
+          const tagName = (original.tagName || original.nodeName || '').toLowerCase();
+          if (tagName) {
+            const recycled = pool.acquire(tagName);
+            // Only use recycled element if it came from the pool (not freshly created)
+            // Pool.acquire creates new if empty, so always returns a valid element
+            if (recycled !== original) {
+              // Transfer attributes (skip event handler attributes for security)
+              if (original.attributes) {
+                const attrs = original.attributes;
+                for (let a = 0; a < attrs.length; a++) {
+                  const attrName = attrs[a].name;
+                  // Security: skip inline event handlers (onclick, onerror, etc.)
+                  if (attrName.length > 2 && attrName.charCodeAt(0) === 111 &&
+                      attrName.charCodeAt(1) === 110 && attrName.charCodeAt(2) > 96) {
+                    continue;
+                  }
+                  dom.setAttribute(recycled, attrName, attrs[a].value);
+                }
+              }
+              // Transfer children
+              let child = dom.getFirstChild(original);
+              while (child) {
+                const next = dom.getNextSibling(child);
+                dom.appendChild(recycled, child);
+                child = next;
+              }
+              // Transfer event listeners if tracked
+              if (original._eventListeners) {
+                recycled._eventListeners = original._eventListeners;
+              }
+              // Transfer inline styles
+              if (original.style && original.style.cssText) {
+                recycled.style.cssText = original.style.cssText;
+              }
+              // Transfer className
+              if (original.className) {
+                recycled.className = original.className;
+              }
+              nodes[0] = recycled;
+            }
+          }
+        }
+
         newItemNodes.set(key, { nodes, cleanup: null, item });
       }
     }

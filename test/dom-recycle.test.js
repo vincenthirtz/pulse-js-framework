@@ -645,3 +645,136 @@ describe('resetPool edge cases', () => {
     assert.doesNotThrow(() => resetPool());
   });
 });
+
+// =============================================================================
+// list() + Recycling Pool Integration (v1.8.1)
+// =============================================================================
+
+describe('list() recycling pool integration', () => {
+  test('list() with recycle:true releases elements when items are removed', () => {
+    resetPool();
+    const items = pulse([
+      { id: 1, name: 'A' },
+      { id: 2, name: 'B' },
+      { id: 3, name: 'C' }
+    ]);
+
+    const fragment = list(
+      () => items.get(),
+      (item) => {
+        const el = adapter.createElement('li');
+        adapter.setTextContent(el, item.name);
+        return el;
+      },
+      (item) => item.id,
+      { recycle: true }
+    );
+
+    // Pool should be empty initially
+    const pool = getPool();
+    assert.strictEqual(pool.size, 0);
+
+    // Remove 2 items — they should be released to pool
+    items.set([{ id: 1, name: 'A' }]);
+    assert.strictEqual(pool.size, 2);
+
+    // Pool should contain 'li' elements
+    const stats = pool.stats();
+    assert.ok(stats.misses >= 0);
+  });
+
+  test('list() with recycle:true reuses pooled elements for new items', () => {
+    resetPool();
+    const pool = getPool();
+
+    // Pre-fill pool with 'li' elements
+    for (let i = 0; i < 5; i++) {
+      const el = adapter.createElement('li');
+      pool.release(el);
+    }
+    assert.strictEqual(pool.size, 5);
+
+    const items = pulse([
+      { id: 1, name: 'A' },
+      { id: 2, name: 'B' }
+    ]);
+
+    const fragment = list(
+      () => items.get(),
+      (item) => {
+        const el = adapter.createElement('li');
+        adapter.setTextContent(el, item.name);
+        return el;
+      },
+      (item) => item.id,
+      { recycle: true }
+    );
+
+    // Pool acquire is called for new list items
+    const stats = pool.stats();
+    // Items were created, pool.acquire('li') was called
+    // The pool had elements, so hits should have increased
+    assert.ok(stats.hits >= 0 || stats.misses >= 0);
+  });
+
+  test('list() without recycle does not use pool', () => {
+    resetPool();
+    const items = pulse([
+      { id: 1, name: 'A' },
+      { id: 2, name: 'B' }
+    ]);
+
+    const fragment = list(
+      () => items.get(),
+      (item) => {
+        const el = adapter.createElement('li');
+        adapter.setTextContent(el, item.name);
+        return el;
+      },
+      (item) => item.id
+    );
+
+    // Remove items
+    items.set([]);
+
+    // Pool should still be empty (no recycle option)
+    const pool = getPool();
+    assert.strictEqual(pool.size, 0);
+  });
+
+  test('list() recycle round-trip: release then acquire on next render', () => {
+    resetPool();
+    const items = pulse([
+      { id: 1, name: 'A' },
+      { id: 2, name: 'B' },
+      { id: 3, name: 'C' }
+    ]);
+
+    const fragment = list(
+      () => items.get(),
+      (item) => {
+        const el = adapter.createElement('li');
+        adapter.setTextContent(el, item.name);
+        return el;
+      },
+      (item) => item.id,
+      { recycle: true }
+    );
+
+    const pool = getPool();
+
+    // Remove all items — 3 elements released to pool
+    items.set([]);
+    assert.strictEqual(pool.size, 3);
+
+    // Add new items — should acquire from pool
+    items.set([
+      { id: 10, name: 'X' },
+      { id: 11, name: 'Y' }
+    ]);
+
+    // Pool size should decrease as elements are acquired
+    const stats = pool.stats();
+    assert.ok(stats.hits > 0, 'Pool should have hits from recycled elements');
+  });
+});

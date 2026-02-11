@@ -349,3 +349,136 @@ export declare function configureA11y(options: {
  * Compute the Longest Increasing Subsequence (used internally by list())
  */
 export declare function computeLIS(arr: number[]): number[];
+
+// =============================================================================
+// Event Delegation
+// =============================================================================
+
+/**
+ * Attach a delegated event listener to a parent element.
+ * Events from descendants matching the selector bubble up to the parent.
+ * @returns Cleanup function to remove the listener
+ */
+export declare function delegate(
+  parent: HTMLElement,
+  eventType: string,
+  selector: string,
+  handler: (event: Event, matchedElement: HTMLElement) => void
+): () => void;
+
+/** Delegated list event handlers */
+export interface DelegatedListHandlers<T> {
+  [eventType: string]: (event: Event, item: T, index: number) => void;
+}
+
+/** Options for delegatedList */
+export interface DelegatedListOptions<T> {
+  on?: DelegatedListHandlers<T>;
+  recycle?: boolean;
+}
+
+/**
+ * Create a reactive list with delegated event handlers.
+ * A single listener is placed on the parent container for each event type.
+ */
+export declare function delegatedList<T>(
+  getItems: Reactive<T[]>,
+  template: ListTemplate<T>,
+  keyFn: KeyFn<T>,
+  options?: DelegatedListOptions<T>
+): DocumentFragment;
+
+// =============================================================================
+// Virtual Scrolling
+// =============================================================================
+
+/** Options for virtualList */
+export interface VirtualListOptions<T> {
+  /** Fixed row height in pixels (required) */
+  itemHeight: number;
+  /** Extra items above/below viewport (default: 5) */
+  overscan?: number;
+  /** Viewport height in px or 'auto' (default: 400) */
+  containerHeight?: number | 'auto';
+  /** Enable element recycling (default: false) */
+  recycle?: boolean;
+  /** Delegated event handlers */
+  on?: DelegatedListHandlers<T>;
+}
+
+/** Scroll alignment options */
+export interface ScrollToIndexOptions {
+  /** Alignment in viewport (default: 'start') */
+  align?: 'start' | 'center' | 'end';
+}
+
+/** Virtual list container element with extra methods */
+export interface VirtualListElement extends HTMLElement {
+  /** Scroll to bring a specific item index into view */
+  scrollToIndex(index: number, options?: ScrollToIndexOptions): void;
+  /** Dispose scroll listeners and cleanup */
+  _dispose(): void;
+}
+
+/**
+ * Create a virtual scrolling list that renders only visible items.
+ */
+export declare function virtualList<T>(
+  getItems: Reactive<T[]>,
+  template: ListTemplate<T>,
+  keyFn: KeyFn<T>,
+  options: VirtualListOptions<T>
+): VirtualListElement;
+
+// =============================================================================
+// Element Recycling Pool
+// =============================================================================
+
+/** Options for createElementPool */
+export interface ElementPoolOptions {
+  /** Max recycled elements per tag name (default: 50) */
+  maxPerTag?: number;
+  /** Max total recycled elements (default: 200) */
+  maxTotal?: number;
+  /** Reset attributes/styles on release (default: true) */
+  resetOnRecycle?: boolean;
+}
+
+/** Pool statistics */
+export interface PoolStats {
+  size: number;
+  hits: number;
+  misses: number;
+  hitRate: number;
+}
+
+/** Element recycling pool */
+export interface ElementPool {
+  /** Acquire an element from the pool or create a new one */
+  acquire(tagName: string): HTMLElement;
+  /** Release an element back to the pool for reuse */
+  release(element: HTMLElement): boolean;
+  /** Get pool statistics */
+  stats(): PoolStats;
+  /** Clear all pooled elements */
+  clear(): void;
+  /** Reset statistics counters */
+  resetStats(): void;
+  /** Current number of pooled elements */
+  readonly size: number;
+}
+
+/**
+ * Create an element recycling pool
+ */
+export declare function createElementPool(options?: ElementPoolOptions): ElementPool;
+
+/**
+ * Get the default global element pool (lazy singleton)
+ */
+export declare function getPool(): ElementPool;
+
+/**
+ * Reset and clear the default pool
+ */
+export declare function resetPool(): void;

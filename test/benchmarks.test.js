@@ -173,3 +173,72 @@ describe('formatResults()', () => {
     assert.ok(output.includes('Ops/s'), 'Should include Ops/s header');
   });
 });
+
+// =============================================================================
+// Benchmark Runner Features (v1.8.1)
+// =============================================================================
+
+import fs from 'fs';
+import path from 'path';
+import { execSync } from 'child_process';
+
+const benchDir = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..', 'benchmarks');
+const projectRoot = path.resolve(benchDir, '..');
+
+describe('Benchmark Runner', () => {
+  test('benchmark runner auto-discovers .bench.js files', () => {
+    const files = fs.readdirSync(benchDir).filter(f => f.endsWith('.bench.js'));
+    assert.ok(files.length >= 4, `Should discover at least 4 bench files, found ${files.length}`);
+    assert.ok(files.includes('reactivity.bench.js'));
+    assert.ok(files.includes('dom-creation.bench.js'));
+    assert.ok(files.includes('list-reconciliation.bench.js'));
+    assert.ok(files.includes('dom-list.bench.js'));
+  });
+
+  test('--filter flag filters suites by name (JSON output)', () => {
+    const output = execSync('node benchmarks/index.js --filter dom-list --json', {
+      cwd: projectRoot,
+      timeout: 60000
+    }).toString();
+
+    const result = JSON.parse(output);
+    assert.ok(result.suites.length >= 1, 'Should have at least 1 suite');
+    assert.strictEqual(result.framework, 'pulse-js-framework');
+  });
+
+  test('--save writes baseline file', () => {
+    const baselinePath = path.join(benchDir, 'results', 'baseline.json');
+
+    // Clean up any existing baseline
+    try { fs.unlinkSync(baselinePath); } catch {}
+
+    execSync('node benchmarks/index.js --filter dom-list --save', {
+      cwd: projectRoot,
+      timeout: 60000
+    });
+
+    assert.ok(fs.existsSync(baselinePath), 'Baseline file should exist after --save');
+
+    const baseline = JSON.parse(fs.readFileSync(baselinePath, 'utf8'));
+    assert.strictEqual(baseline.framework, 'pulse-js-framework');
+    assert.ok(baseline.suites.length >= 1, 'Baseline should have suites');
+    assert.ok(baseline.timestamp, 'Baseline should have timestamp');
+
+    // Clean up
+    try { fs.unlinkSync(baselinePath); } catch {}
+  });
+
+  test('--json output has correct structure', () => {
+    const output = execSync('node benchmarks/index.js --filter dom-list --json', {
+      cwd: projectRoot,
+      timeout: 60000
+    }).toString();
+
+    const result = JSON.parse(output);
+    assert.strictEqual(result.framework, 'pulse-js-framework');
+    assert.ok(result.timestamp);
+    assert.ok(result.node);
+    assert.ok(result.platform);
+    assert.ok(Array.isArray(result.suites));
+  });
+});

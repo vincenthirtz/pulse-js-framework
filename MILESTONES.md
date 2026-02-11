@@ -63,40 +63,51 @@ All TypeScript-declared APIs now have working implementations:
 
 ---
 
-## Milestone 4: Runtime Performance (v1.8.1)
+## ~~Milestone 4: Runtime Performance (v1.8.1)~~ COMPLETED
 
-**Priority: MEDIUM-HIGH** | Effort: ~1 week | **In Progress**
+**Status: CLOSED** | Completed in v1.8.1
 
 Optimize hot paths and add missing performance features.
 
 ### Tasks
 
 - [x] **Add event delegation to `list()`** - `runtime/dom-event-delegate.js`
-- [ ] **Optimize dependency tracking in `pulse.get()`**
-  - Currently adds to `Set` on every `.get()` call within an effect
-  - Optimize: Track only fresh dependencies per effect execution cycle
-  - Use generation counter to skip redundant additions
+- [x] **Optimize dependency tracking in `pulse.get()`**
+  - Generation counter skips redundant `Set.add()` per effect execution cycle
+  - `subscribe()` correctly receives latest value during batch flush
 
 - [x] **Add virtual scrolling for `list()`** - `runtime/dom-virtual-list.js`
+  - Event delegation support via `on` option
+  - `scrollToIndex(index, { align })` programmatic API
+  - `aria-rowindex` on visible items for accessibility
 
-- [ ] **Add `batch()` integration with `subscribe()`**
-  - `subscribe()` callbacks currently fire outside batch boundaries
-  - Should respect batch semantics like effects
+- [x] **Add `batch()` integration with `subscribe()`**
+  - `subscribe()` callbacks now respect batch semantics
+  - Subscribers receive the final value (via `peek()`) when batch flushes
+  - Deduplication via `Set` ensures single notification per batch
 
 - [x] **Add element recycling in list reconciliation** - `runtime/dom-recycle.js`
+  - Pool acquire integration in `list()` Phase 2
+  - Recycled elements get attributes/children transferred from template result
+  - `delegatedList()` forwards `recycle` option and cleans stale `itemMap` entries
 
 - [x] **Benchmark suite** - `benchmarks/` directory
-  - Reactivity, DOM creation, list reconciliation, SSR benchmarks
+  - Auto-discovery of `*.bench.js` files
+  - `--filter`, `--save`, `--compare` flags
+  - Baseline storage and regression detection (10% threshold)
+  - Reactivity, DOM creation, list reconciliation, SSR, DOM list features benchmarks
+  - Added `watch()`, `createState()`, `memo()`, `subscribe()+batch()` benchmarks
 
-- [ ] **Optimize remaining hot paths**
-  - Integrate event delegation, virtual scrolling, and recycling with core `list()`
-  - Performance regression tests
+- [x] **Optimize remaining hot paths**
+  - Event delegation, virtual scrolling, and recycling integrated with core `list()`
+  - TypeScript definitions for all new APIs (`types/dom.d.ts`)
+  - ADR-0005 documenting the architecture plan
 
 ### Definition of Done
-- Event delegation working for `list()`
-- Virtual scrolling available as opt-in
-- Benchmark suite with baseline numbers
-- No regressions on existing tests
+- Event delegation working for `list()` ✓
+- Virtual scrolling available as opt-in ✓
+- Benchmark suite with baseline numbers ✓
+- No regressions on existing tests ✓
 
 ---
 

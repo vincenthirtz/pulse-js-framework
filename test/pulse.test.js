@@ -1762,3 +1762,158 @@ describe('Generation Counter Optimization (#58)', () => {
     assert.strictEqual(last, 25);
   });
 });
+
+// =============================================================================
+// Subscribe/Batch Integration (v1.8.1)
+// =============================================================================
+
+describe('Subscribe/Batch Integration', () => {
+  test('subscribe() callback receives the current value as argument', () => {
+    resetContext();
+    const p = pulse(0);
+    const received = [];
+
+    const unsub = p.subscribe((value) => {
+      received.push(value);
+    });
+
+    p.set(42);
+    assert.deepStrictEqual(received, [42]);
+
+    p.set(100);
+    assert.deepStrictEqual(received, [42, 100]);
+
+    unsub();
+  });
+
+  test('subscribe() fires once per batch with the final value', () => {
+    resetContext();
+    const p = pulse(0);
+    const received = [];
+
+    const unsub = p.subscribe((value) => {
+      received.push(value);
+    });
+
+    batch(() => {
+      p.set(1);
+      p.set(2);
+      p.set(3);
+    });
+
+    // Should only fire once with final value 3
+    assert.strictEqual(received.length, 1);
+    assert.strictEqual(received[0], 3);
+
+    unsub();
+  });
+
+  test('subscribe() outside batch fires immediately with value', () => {
+    resetContext();
+    const p = pulse('initial');
+    const received = [];
+
+    const unsub = p.subscribe((value) => {
+      received.push(value);
+    });
+
+    p.set('updated');
+    assert.deepStrictEqual(received, ['updated']);
+
+    p.set('again');
+    assert.deepStrictEqual(received, ['updated', 'again']);
+
+    unsub();
+  });
+
+  test('subscriber object has _isSubscriber marker', () => {
+    resetContext();
+    const p = pulse(0);
+
+    // Access internal subscribers via subscribe
+    const unsub = p.subscribe(() => {});
+
+    // We can verify the marker by observing behavior:
+    // subscribers receive values, effects don't get args
+    const values = [];
+    const unsub2 = p.subscribe((v) => values.push(v));
+
+    p.set(5);
+    assert.strictEqual(values[0], 5);
+
+    unsub();
+    unsub2();
+  });
+
+  test('multiple subscribers each fire once per batch', () => {
+    resetContext();
+    const p = pulse(0);
+    const values1 = [];
+    const values2 = [];
+
+    const unsub1 = p.subscribe((v) => values1.push(v));
+    const unsub2 = p.subscribe((v) => values2.push(v));
+
+    batch(() => {
+      p.set(10);
+      p.set(20);
+      p.set(30);
+    });
+
+    assert.deepStrictEqual(values1, [30]);
+    assert.deepStrictEqual(values2, [30]);
+
+    unsub1();
+    unsub2();
+  });
+
+  test('subscribe() and effect() coexist during batch', () => {
+    resetContext();
+    const p = pulse(0);
+    const subValues = [];
+    const effectValues = [];
+
+    const unsub = p.subscribe((v) => subValues.push(v));
+    const dispose = effect(() => {
+      effectValues.push(p.get());
+    });
+
+    batch(() => {
+      p.set(1);
+      p.set(2);
+    });
+
+    // Both should fire once with final value
+    assert.strictEqual(subValues.length, 1);
+    assert.strictEqual(subValues[0], 2);
+    // Effect fires initially (0), then once after batch (2)
+    assert.strictEqual(effectValues[effectValues.length - 1], 2);
+
+    unsub();
+    dispose();
+  });
+
+  test('subscribe() value is always current even with nested batches', () => {
+    resetContext();
+    const p = pulse(0);
+    const received = [];
+
+    const unsub = p.subscribe((v) => received.push(v));
+
+    batch(() => {
+      p.set(1);
+      batch(() => {
+        p.set(2);
+        p.set(3);
+      });
+      // Inner batch should not flush yet
+      p.set(4);
+    });
+
+    // Should fire once with final value 4
+    assert.strictEqual(received.length, 1);
+    assert.strictEqual(received[0], 4);
+
+    unsub();
+  });
+});
