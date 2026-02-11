@@ -703,20 +703,9 @@ export function createRouter(options = {}) {
       // Insert into trie for fast lookup
       routeTrie.insert(fullPattern, route);
 
-      // Issue #68: Route aliases — register alias as separate trie entry
-      if (normalized.alias) {
-        const aliasTarget = normalized.alias;
-        // Create an alias route that resolves to the target's handler
-        const aliasRoute = {
-          ...route,
-          pattern: aliasTarget,
-          _isAlias: true,
-          _aliasOf: fullPattern,
-          ...parsePattern(aliasTarget)
-        };
-        compiledRoutes.push(aliasRoute);
-        routeTrie.insert(aliasTarget, aliasRoute);
-      }
+      // Issue #68: Route aliases — the alias route is already in the trie at its own path
+      // (e.g., '/fake' with alias: '/real'). The navigate() function resolves
+      // aliases by following the alias chain to find the target handler.
 
       // Compile children (nested routes)
       if (normalized.children) {
