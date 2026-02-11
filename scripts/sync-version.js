@@ -6,6 +6,10 @@
  * This script updates version references in:
  * - docs/src/state.js (version constant for docs site)
  *
+ * Usage:
+ *   node scripts/sync-version.js           # Sync + git add (for npm version hook)
+ *   node scripts/sync-version.js --no-git  # Sync only (for CI workflows)
+ *
  * Note: For full release workflow with changelog updates,
  * use `pulse release` instead of `npm version`.
  */
@@ -17,6 +21,7 @@ import { execSync } from 'child_process';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..');
+const noGit = process.argv.includes('--no-git');
 
 // Read version from package.json
 const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf-8'));
@@ -55,9 +60,15 @@ for (const file of files) {
   }
 }
 
-// Stage the updated files
-if (updatedFiles.length > 0) {
-  execSync(`git add ${updatedFiles.join(' ')}`, { cwd: root });
+// Stage the updated files (skip in CI or when --no-git is passed)
+if (updatedFiles.length > 0 && !noGit) {
+  try {
+    execSync(`git add ${updatedFiles.join(' ')}`, { cwd: root });
+    console.log('Version sync complete (files staged)!');
+  } catch {
+    console.log('Version sync complete (git add skipped - not in a git context).');
+  }
+} else if (updatedFiles.length > 0) {
   console.log('Version sync complete!');
 } else {
   console.log('No files needed updating.');

@@ -7,6 +7,7 @@
 
 import { effect } from './pulse.js';
 import { getAdapter } from './dom-adapter.js';
+import { getPool } from './dom-recycle.js';
 
 // =============================================================================
 // LIS ALGORITHM
@@ -100,10 +101,13 @@ export function computeLIS(arr) {
  * @param {Function|Pulse} getItems - Items source (reactive)
  * @param {Function} template - (item, index) => Node | Node[]
  * @param {Function} keyFn - (item, index) => key (default: index)
+ * @param {Object} [options] - Optional configuration
+ * @param {boolean} [options.recycle=false] - Enable element recycling via pool
  * @returns {DocumentFragment} Container fragment with reactive list
  */
-export function list(getItems, template, keyFn = (item, i) => i) {
+export function list(getItems, template, keyFn = (item, i) => i, options = {}) {
   const dom = getAdapter();
+  const pool = options.recycle ? getPool() : null;
   const container = dom.createDocumentFragment();
   const startMarker = dom.createComment('list-start');
   const endMarker = dom.createComment('list-end');
@@ -150,6 +154,10 @@ export function list(getItems, template, keyFn = (item, i) => i) {
     for (const [key, entry] of itemNodes) {
       if (!newItemNodes.has(key)) {
         for (const node of entry.nodes) {
+          // Release to recycling pool before removing (if enabled)
+          if (pool && dom.isElement(node)) {
+            pool.release(node);
+          }
           dom.removeNode(node);
         }
         if (entry.cleanup) entry.cleanup();

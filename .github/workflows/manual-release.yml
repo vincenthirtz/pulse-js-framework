@@ -60,6 +60,9 @@ jobs:
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
           echo "New version: $NEW_VERSION"
 
+      - name: Sync version across files
+        run: node scripts/sync-version.js
+
       - name: Update CHANGELOG
         run: |
           VERSION="${{ steps.bump.outputs.new_version }}"
@@ -108,7 +111,7 @@ jobs:
           git push origin --delete "$BRANCH" 2>/dev/null || true
 
           git checkout -b "$BRANCH"
-          git add package.json CHANGELOG.md
+          git add package.json CHANGELOG.md docs/src/state.js 2>/dev/null || git add package.json CHANGELOG.md
 
           if git diff --staged --quiet; then
             echo "No changes to commit"
@@ -485,6 +488,18 @@ jobs:
           node-version: 20
           registry-url: 'https://registry.npmjs.org'
           cache: 'npm'
+
+      - name: Sync package.json version with tag
+        run: |
+          TAG_VERSION="${{ needs.auto-tag.outputs.version }}"
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
+            echo "Updating package.json version: $PKG_VERSION -> $TAG_VERSION"
+            npm version "$TAG_VERSION" --no-git-tag-version
+            node scripts/sync-version.js
+          else
+            echo "package.json version already matches tag: $TAG_VERSION"
+          fi
 
       - name: Install dependencies
         run: npm ci

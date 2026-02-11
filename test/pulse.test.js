@@ -1582,3 +1582,183 @@ describe('Isolated Context Tests', () => {
   });
 
 });
+
+// =============================================================================
+// Generation Counter Optimization (#58) Tests
+// =============================================================================
+
+describe('Generation Counter Optimization (#58)', () => {
+  test('effect tracks dependencies correctly with generation counter', () => {
+    resetContext();
+    const a = pulse(1);
+    const b = pulse(2);
+    const values = [];
+
+    effect(() => {
+      values.push(a.get() + b.get());
+    });
+
+    assert.deepStrictEqual(values, [3]);
+
+    a.set(10);
+    assert.deepStrictEqual(values, [3, 12]);
+
+    b.set(20);
+    assert.deepStrictEqual(values, [3, 12, 30]);
+  });
+
+  test('repeated reads of same pulse in effect do not cause issues', () => {
+    resetContext();
+    const count = pulse(0);
+    let runCount = 0;
+
+    effect(() => {
+      // Read count multiple times in same effect
+      const v1 = count.get();
+      const v2 = count.get();
+      const v3 = count.get();
+      runCount++;
+      assert.strictEqual(v1, v2);
+      assert.strictEqual(v2, v3);
+    });
+
+    assert.strictEqual(runCount, 1);
+
+    count.set(5);
+    assert.strictEqual(runCount, 2);
+
+    count.set(10);
+    assert.strictEqual(runCount, 3);
+  });
+
+  test('generation counter increments on each effect run', () => {
+    resetContext();
+    const activeCtx = getActiveContext();
+    const initialGen = activeCtx.generation;
+
+    const trigger = pulse(0);
+
+    effect(() => {
+      trigger.get();
+    });
+
+    const afterFirstRun = activeCtx.generation;
+    assert.ok(afterFirstRun > initialGen, 'Generation should increment after effect run');
+
+    trigger.set(1);
+    const afterSecondRun = activeCtx.generation;
+    assert.ok(afterSecondRun > afterFirstRun, 'Generation should increment on re-run');
+  });
+
+  test('effect correctly re-tracks when dependencies change', () => {
+    resetContext();
+    const useA = pulse(true);
+    const a = pulse('A');
+    const b = pulse('B');
+    const values = [];
+
+    effect(() => {
+      if (useA.get()) {
+        values.push(a.get());
+      } else {
+        values.push(b.get());
+      }
+    });
+
+    assert.deepStrictEqual(values, ['A']);
+
+    // Change which dependency is tracked
+    useA.set(false);
+    assert.deepStrictEqual(values, ['A', 'B']);
+
+    // Now a changes should NOT trigger the effect
+    a.set('A2');
+    assert.deepStrictEqual(values, ['A', 'B']);
+
+    // But b changes should
+    b.set('B2');
+    assert.deepStrictEqual(values, ['A', 'B', 'B2']);
+  });
+
+  test('multiple effects with generation counter are independent', () => {
+    resetContext();
+    const count = pulse(0);
+    const effectAValues = [];
+    const effectBValues = [];
+
+    effect(() => {
+      effectAValues.push(count.get());
+    });
+
+    effect(() => {
+      effectBValues.push(count.get() * 2);
+    });
+
+    assert.deepStrictEqual(effectAValues, [0]);
+    assert.deepStrictEqual(effectBValues, [0]);
+
+    count.set(5);
+    assert.deepStrictEqual(effectAValues, [0, 5]);
+    assert.deepStrictEqual(effectBValues, [0, 10]);
+  });
+
+  test('computed values work correctly with generation counter', () => {
+    resetContext();
+    const a = pulse(1);
+    const b = pulse(2);
+    const sum = computed(() => a.get() + b.get());
+    const doubled = computed(() => sum.get() * 2);
+
+    assert.strictEqual(doubled.get(), 6);
+
+    a.set(5);
+    assert.strictEqual(sum.get(), 7);
+    assert.strictEqual(doubled.get(), 14);
+
+    b.set(10);
+    assert.strictEqual(sum.get(), 15);
+    assert.strictEqual(doubled.get(), 30);
+  });
+
+  test('batch updates with generation counter work correctly', () => {
+    resetContext();
+    const a = pulse(1);
+    const b = pulse(2);
+    let runCount = 0;
+
+    effect(() => {
+      a.get();
+      b.get();
+      runCount++;
+    });
+
+    assert.strictEqual(runCount, 1);
+
+    batch(() => {
+      a.set(10);
+      b.set(20);
+    });
+
+    // Effect should only run once after batch
+    assert.strictEqual(runCount, 2);
+  });
+
+  test('diamond dependency with generation counter', () => {
+    resetContext();
+    const source = pulse(1);
+    const left = computed(() => source.get() + 10);
+    const right = computed(() => source.get() * 2);
+    const values = [];
+
+    effect(() => {
+      values.push(left.get() + right.get());
+    });
+
+    assert.deepStrictEqual(values, [13]); // (1+10) + (1*2) = 13
+
+    source.set(5);
+    // (5+10) + (5*2) = 25
+    const last = values[values.length - 1];
+    assert.strictEqual(last, 25);
+  });
+});

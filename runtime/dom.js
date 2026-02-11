@@ -64,6 +64,15 @@ import {
 // Advanced features
 import { portal, errorBoundary, transition, whenTransition } from './dom-advanced.js';
 
+// Element recycling pool (#60)
+import { createElementPool, getPool, resetPool } from './dom-recycle.js';
+
+// Event delegation (#56)
+import { delegate, delegatedList } from './dom-event-delegate.js';
+
+// Virtual scrolling (#59)
+import { virtualList } from './dom-virtual-list.js';
+
 // =============================================================================
 // INITIALIZE CONTEXT UTILITIES FOR COMPONENT FACTORY
 // =============================================================================
@@ -131,7 +140,19 @@ export {
   portal,
   errorBoundary,
   transition,
-  whenTransition
+  whenTransition,
+
+  // Element recycling (#60)
+  createElementPool,
+  getPool,
+  resetPool,
+
+  // Event delegation (#56)
+  delegate,
+  delegatedList,
+
+  // Virtual scrolling (#59)
+  virtualList
 };
 
 // =============================================================================
@@ -184,5 +205,17 @@ export default {
 
   // Diagnostics
   getCacheMetrics,
-  resetCacheMetrics
+  resetCacheMetrics,
+
+  // Element recycling (#60)
+  createElementPool,
+  getPool,
+  resetPool,
+
+  // Event delegation (#56)
+  delegate,
+  delegatedList,
+
+  // Virtual scrolling (#59)
+  virtualList
 };
