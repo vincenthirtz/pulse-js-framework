@@ -12,7 +12,7 @@ import assert from 'node:assert';
 
 import { setAdapter, MockDOMAdapter, MockElement, resetAdapter } from '../runtime/dom-adapter.js';
 import { delegate, delegatedList } from '../runtime/dom-event-delegate.js';
-import { pulse } from '../runtime/pulse.js';
+import { pulse, resetContext } from '../runtime/pulse.js';
 
 let adapter;
 
@@ -22,6 +22,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  resetContext();
   resetAdapter();
 });
 

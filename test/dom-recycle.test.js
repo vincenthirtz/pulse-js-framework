@@ -12,7 +12,7 @@ import assert from 'node:assert';
 
 import { setAdapter, MockDOMAdapter, resetAdapter } from '../runtime/dom-adapter.js';
 import { createElementPool, getPool, resetPool } from '../runtime/dom-recycle.js';
-import { pulse } from '../runtime/pulse.js';
+import { pulse, resetContext } from '../runtime/pulse.js';
 import { list } from '../runtime/dom-list.js';
 
 let adapter;
@@ -23,6 +23,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  resetContext();
   resetPool();
   resetAdapter();
 });
