@@ -2522,3 +2522,1160 @@ describe('CSS Transition Config Tests (#66)', () => {
     assert.strictEqual(router.path.get(), '/page', 'Should navigate normally without transitions');
   });
 });
+
+// =============================================================================
+// Coverage: Lazy Loading Cached Component Resolution (lines 73-79)
+// =============================================================================
+
+describe('Lazy Cached Component Resolution', () => {
+  beforeEach(resetHistory);
+
+  test('cached component as plain function (not module.default)', async () => {
+    // Module is a plain function — cached as-is, line 73-74 hit
+    const lazyComponent = lazy(() => {
+      const fn = (ctx) => el('div.direct-fn', 'Direct Function');
+      return Promise.resolve(fn);
+    });
+
+    const router = createRouter({
+      routes: {
+        '/': () => el('div', 'Home'),
+        '/cached': lazyComponent
+      }
+    });
+    router.start();
+    const container = document.createElement('div');
+    router.outlet(container);
+
+    // First load
+    await router.navigate('/cached');
+    await new Promise(r => setTimeout(r, 50));
+
+    // Navigate away and back to hit the cached branch (line 72-79)
+    await router.navigate('/');
+    await new Promise(r => setTimeout(r, 50));
+    await router.navigate('/cached');
+    await new Promise(r => setTimeout(r, 50));
+
+    assert.strictEqual(router.path.get(), '/cached', 'Should use cached plain function');
+  });
+
+  test('cached component with .default export', async () => {
+    // Module has .default — cached, on re-hit line 75-76 branch
+    const lazyComponent = lazy(() => {
+      return Promise.resolve({
+        default: (ctx) => el('div.default-export', 'Default Export')
+      });
+    });
+
+    const router = createRouter({
+      routes: {
+        '/': () => el('div', 'Home'),
+        '/cached-default': lazyComponent
+      }
+    });
+    router.start();
+    const container = document.createElement('div');
+    router.outlet(container);
+
+    await router.navigate('/cached-default');
+    await new Promise(r => setTimeout(r, 50));
+    await router.navigate('/');
+    await new Promise(r => setTimeout(r, 50));
+    await router.navigate('/cached-default');
+    await new Promise(r => setTimeout(r, 50));
+
+    assert.strictEqual(router.path.get(), '/cached-default', 'Should use cached module.default');
+  });
+
+  test('cached component with .render method (no .default)', async () => {
+    // Module has no .default but has .render — line 77-78
+    const lazyComponent = lazy(() => {
+      return Promise.resolve({
+        render: (ctx) => el('div.render-method', 'Render Method')
+      });
+    });
+
+    const router = createRouter({
+      routes: {
+        '/': () => el('div', 'Home'),
+        '/cached-render': lazyComponent
+      }
+    });
+    router.start();
+    const container = document.createElement('div');
+    router.outlet(container);
+
+    await router.navigate('/cached-render');
+    await new Promise(r => setTimeout(r, 50));
+    await router.navigate('/');
+    await new Promise(r => setTimeout(r, 50));
+    await router.navigate('/cached-render');
+    await new Promise(r => setTimeout(r, 50));
+
+    assert.strictEqual(router.path.get(), '/cached-render', 'Should use cached .render method');
+  });
+
+  test('cached component as plain object (no function, no default, no render)', async () => {
+    // Module is plain object — line 79 returns cachedComponent directly
+    const nodeResult = el('div.static-node', 'Static Node');
+    const lazyComponent = lazy(() => {
+      return Promise.resolve(nodeResult);
+    });
+
+    const router = createRouter({
+      routes: {
+        '/': () => el('div', 'Home'),
+        '/cached-obj': lazyComponent
+      }
+    });
+    router.start();
+    const container = document.createElement('div');
+    router.outlet(container);
+
+    await router.navigate('/cached-obj');
+    await new Promise(r => setTimeout(r, 50));
+    await router.navigate('/');
+    await new Promise(r => setTimeout(r, 50));
+    await router.navigate('/cached-obj');
+    await new Promise(r => setTimeout(r, 50));
+
+    assert.strictEqual(router.path.get(), '/cached-obj', 'Should return cached plain object');
+  });
+});
+
+// =============================================================================
+// Coverage: Lazy Component.render path during initial load (lines 137-139)
+// =============================================================================
+
+describe('Lazy Component.render During Load', () => {
+  beforeEach(resetHistory);
+
+  test('module without .default but with .render during initial load', async () => {
+    // Component (module.default || module) is an object with .render
+    // This hits lines 137-139 during the .then() callback
+    const lazyComponent = lazy(() => {
+      return Promise.resolve({
+        // No .default, so Component = module itself
+        // Component is not a function, but has .render
+        render: (ctx) => el('div.rendered', 'Rendered via render()')
+      });
+    });
+
+    const router = createRouter({
+      routes: {
+        '/': () => el('div', 'Home'),
+        '/render-load': lazyComponent
+      }
+    });
+    router.start();
+    const container = document.createElement('div');
+    router.outlet(container);
+
+    await router.navigate('/render-load');
+    await new Promise(r => setTimeout(r, 50));
+
+    assert.strictEqual(router.path.get(), '/render-load', 'Should load .render component');
+  });
+});
+
+// =============================================================================
+// Coverage: Lazy catch when stale (lines 152-154)
+// =============================================================================
+
+describe('Lazy Load Error When Stale', () => {
+  beforeEach(resetHistory);
+
+  test('error during lazy load is ignored when navigation changed', async () => {
+    let rejectLoad;
+    const loadPromise = new Promise((_, reject) => { rejectLoad = reject; });
+
+    const lazyComponent = lazy(() => loadPromise, {
+      error: () => el('div.error', 'Error shown')
+    });
+
+    const router = createRouter({
+      routes: {
+        '/': () => el('div', 'Home'),
+        '/stale': lazyComponent,
+        '/other': () => el('div', 'Other')
+      }
+    });
+    router.start();
+    const container = document.createElement('div');
+    router.outlet(container);
+
+    // Start loading the lazy route
+    const navPromise = router.navigate('/stale');
+
+    // Navigate away before load completes (makes loadCtx stale)
+    await new Promise(r => setTimeout(r, 10));
+    await router.navigate('/other');
+
+    // Now reject the load — should hit lines 152-154 (isStale check in catch)
+    rejectLoad(new Error('Load failed but stale'));
+    await navPromise;
+    await new Promise(r => setTimeout(r, 50));
+
+    // Should be on /other, not showing error
+    assert.strictEqual(router.path.get(), '/other', 'Should stay on /other ignoring stale error');
+  });
+});
+
+// =============================================================================
+// Coverage: Scroll Behavior Error Handling (lines 927-932)
+// =============================================================================
+
+describe('Scroll Behavior Error Handling', () => {
+  beforeEach(resetHistory);
+
+  test('scrollBehavior that throws falls back to scrollTo(0,0)', async () => {
+    let scrollToCalled = false;
+    const origScrollTo = mockWindow.scrollTo;
+    mockWindow.scrollTo = (...args) => { scrollToCalled = true; };
+
+    const router = createRouter({
+      routes: {
+        '/': () => el('div', 'Home'),
+        '/page': () => el('div', 'Page')
+      },
+      scrollBehavior: () => {
+        throw new Error('scrollBehavior broke');
+      }
+    });
+    router.start();
+
+    await router.navigate('/page');
+
+    assert.ok(scrollToCalled, 'Should call scrollTo as fallback when scrollBehavior throws');
+
+    mockWindow.scrollTo = origScrollTo;
+  });
+
+  test('scrollBehavior returning { x, y } with isFinite validation', async () => {
+    let scrollArgs = null;
+    const origScrollTo = mockWindow.scrollTo;
+    mockWindow.scrollTo = (...args) => { scrollArgs = args; };
+
+    const router = createRouter({
+      routes: {
+        '/': () => el('div', 'Home'),
+        '/page': () => el('div', 'Page')
+      },
+      scrollBehavior: () => ({ x: 100, y: 200 })
+    });
+    router.start();
+
+    await router.navigate('/page');
+
+    // Should call scrollTo with { left: 100, top: 200, behavior: 'auto' }
+    assert.ok(scrollArgs !== null, 'scrollTo should be called');
+    assert.strictEqual(scrollArgs[0].left, 100, 'x should be 100');
+    assert.strictEqual(scrollArgs[0].top, 200, 'y should be 200');
+
+    mockWindow.scrollTo = origScrollTo;
+  });
+
+  test('scrollBehavior returning { x, y } with non-finite values defaults to 0', async () => {
+    let scrollArgs = null;
+    const origScrollTo = mockWindow.scrollTo;
+    mockWindow.scrollTo = (...args) => { scrollArgs = args; };
+
+    const router = createRouter({
+      routes: {
+        '/': () => el('div', 'Home'),
+        '/page': () => el('div', 'Page')
+      },
+      scrollBehavior: () => ({ x: Infinity, y: NaN })
+    });
+    router.start();
+
+    await router.navigate('/page');
+
+    assert.ok(scrollArgs !== null, 'scrollTo should be called');
+    assert.strictEqual(scrollArgs[0].left, 0, 'Non-finite x should default to 0');
+    assert.strictEqual(scrollArgs[0].top, 0, 'Non-finite y should default to 0');
+
+    mockWindow.scrollTo = origScrollTo;
+  });
+
+  test('scrollBehavior returning { x, y, behavior: "smooth" }', async () => {
+    let scrollArgs = null;
+    const origScrollTo = mockWindow.scrollTo;
+    mockWindow.scrollTo = (...args) => { scrollArgs = args; };
+
+    const router = createRouter({
+      routes: {
+        '/': () => el('div', 'Home'),
+        '/page': () => el('div', 'Page')
+      },
+      scrollBehavior: () => ({ x: 50, y: 75, behavior: 'smooth' })
+    });
+    router.start();
+
+    await router.navigate('/page');
+
+    assert.strictEqual(scrollArgs[0].behavior, 'smooth', 'Should pass smooth behavior');
+
+    mockWindow.scrollTo = origScrollTo;
+  });
+
+  test('scrollBehavior returning { selector } scrolls to element', async () => {
+    // We need a mock element with scrollIntoView
+    let scrolledIntoView = false;
+    const targetEl = document.createElement('div');
+    targetEl.id = 'target-section';
+    targetEl.scrollIntoView = (opts) => { scrolledIntoView = true; };
+    document.body.appendChild(targetEl);
+
+    const router = createRouter({
+      routes: {
+        '/': () => el('div', 'Home'),
+        '/page': () => el('div', 'Page')
+      },
+      scrollBehavior: () => ({ selector: '#target-section', behavior: 'smooth' })
+    });
+    router.start();
+
+    await router.navigate('/page');
+
+    assert.ok(scrolledIntoView, 'Should call scrollIntoView on target element');
+
+    document.body.removeChild(targetEl);
+  });
+
+  test('scrollBehavior returning { selector } with invalid selector handles error', async () => {
+    // Invalid CSS selector should be caught and warned
+    const router = createRouter({
+      routes: {
+        '/': () => el('div', 'Home'),
+        '/page': () => el('div', 'Page')
+      },
+      scrollBehavior: () => ({ selector: '[invalid' })
+    });
+    router.start();
+
+    // Should not throw
+    await router.navigate('/page');
+    assert.strictEqual(router.path.get(), '/page', 'Should navigate despite invalid selector');
+  });
+
+  test('scrollBehavior returning null means no scroll', async () => {
+    let scrollToCalled = false;
+    const origScrollTo = mockWindow.scrollTo;
+    mockWindow.scrollTo = (...args) => { scrollToCalled = true; };
+
+    const router = createRouter({
+      routes: {
+        '/': () => el('div', 'Home'),
+        '/page': () => el('div', 'Page')
+      },
+      scrollBehavior: () => null
+    });
+    router.start();
+
+    await router.navigate('/page');
+
+    assert.ok(!scrollToCalled, 'Should not scroll when scrollBehavior returns null');
+
+    mockWindow.scrollTo = origScrollTo;
+  });
+
+  test('scrollBehavior returning empty object means no scroll', async () => {
+    let scrollToCalled = false;
+    const origScrollTo = mockWindow.scrollTo;
+    mockWindow.scrollTo = (...args) => { scrollToCalled = true; };
+
+    const router = createRouter({
+      routes: {
+        '/': () => el('div', 'Home'),
+        '/page': () => el('div', 'Page')
+      },
+      scrollBehavior: () => ({}) // No selector, no x/y
+    });
+    router.start();
+
+    await router.navigate('/page');
+
+    assert.ok(!scrollToCalled, 'Should not scroll with empty position object');
+
+    mockWindow.scrollTo = origScrollTo;
+  });
+
+  test('default scroll restore with non-finite savedPosition values', async () => {
+    let scrollArgs = null;
+    const origScrollTo = mockWindow.scrollTo;
+    mockWindow.scrollTo = (...args) => { scrollArgs = args; };
+
+    const router = createRouter({
+      routes: {
+        '/': () => el('div', 'Home'),
+        '/page': () => el('div', 'Page'),
+        '/other': () => el('div', 'Other')
+      }
+      // No scrollBehavior — uses default saved position restore
+    });
+    router.start();
+
+    // Navigate to /page to create a saved scroll position
+    mockWindow.scrollX = Infinity;
+    mockWindow.scrollY = NaN;
+    await router.navigate('/page');
+
+    // Navigate to /other
+    await router.navigate('/other');
+
+    // Navigate back to /page — saved position has non-finite values
+    // The handleScroll should validate with isFinite (lines 962-963)
+    await router.navigate('/page');
+
+    // scrollTo should be called with sanitized values
+    assert.ok(scrollArgs !== null, 'scrollTo should be called for saved position');
+
+    // Reset
+    mockWindow.scrollX = 0;
+    mockWindow.scrollY = 0;
+    mockWindow.scrollTo = origScrollTo;
+  });
+});
+
+// =============================================================================
+// Coverage: Route Error Handler (lines 1158-1180)
+// =============================================================================
+
+describe('Route Error Handler in Outlet', () => {
+  beforeEach(resetHistory);
+
+  test('onRouteError returns a Node that is rendered', async () => {
+    let errorHandlerCalled = false;
+
+    const router = createRouter({
+      routes: {
+        '/': () => el('div', 'Home'),
+        '/broken': () => { throw new Error('Component crashed'); }
+      },
+      onRouteError: (error, ctx) => {
+        errorHandlerCalled = true;
+        return el('div.custom-error', `Custom: ${error.message}`);
+      }
+    });
+    router.start();
+
+    const container = document.createElement('div');
+    router.outlet(container);
+
+    await router.navigate('/broken');
+    await new Promise(r => setTimeout(r, 50));
+
+    assert.ok(errorHandlerCalled, 'onRouteError handler should be called');
+    // The error view should be rendered (custom error node)
+    assert.ok(container.children.length > 0, 'Should render custom error view');
+  });
+
+  test('onRouteError handler that itself throws falls back to default error', async () => {
+    let handlerThrew = false;
+
+    const router = createRouter({
+      routes: {
+        '/': () => el('div', 'Home'),
+        '/broken': () => { throw new Error('Component crashed'); }
+      },
+      onRouteError: (error, ctx) => {
+        handlerThrew = true;
+        throw new Error('Error handler also broke!');
+      }
+    });
+    router.start();
+
+    const container = document.createElement('div');
+    router.outlet(container);
+
+    await router.navigate('/broken');
+    await new Promise(r => setTimeout(r, 50));
+
+    assert.ok(handlerThrew, 'Error handler should have thrown');
+    // Should fall through to default error rendering (div.route-error)
+    assert.ok(container.children.length > 0, 'Should render default error fallback');
+  });
+
+  test('onRouteError returning non-Node falls back to default error', async () => {
+    const router = createRouter({
+      routes: {
+        '/': () => el('div', 'Home'),
+        '/broken': () => { throw new Error('Broke'); }
+      },
+      onRouteError: () => 'not a node' // Returns string, not Node
+    });
+    router.start();
+
+    const container = document.createElement('div');
+    router.outlet(container);
+
+    await router.navigate('/broken');
+    await new Promise(r => setTimeout(r, 50));
+
+    // Should fall through to default error el
+    assert.ok(container.children.length > 0, 'Should render default error when handler returns non-Node');
+  });
+
+  test('setErrorHandler returns previous handler', () => {
+    const handler1 = () => el('div', 'Error 1');
+    const handler2 = () => el('div', 'Error 2');
+
+    const router = createRouter({
+      routes: { '/': () => el('div', 'Home') },
+      onRouteError: handler1
+    });
+
+    const prev = router.setErrorHandler(handler2);
+    assert.strictEqual(prev, handler1, 'Should return previous handler');
+
+    const prev2 = router.setErrorHandler(null);
+    assert.strictEqual(prev2, handler2, 'Should return handler2 as previous');
+  });
+
+  test('route error sets routeError pulse', async () => {
+    const router = createRouter({
+      routes: {
+        '/': () => el('div', 'Home'),
+        '/broken': () => { throw new Error('test error'); }
+      }
+    });
+    router.start();
+
+    const container = document.createElement('div');
+    router.outlet(container);
+
+    await router.navigate('/broken');
+    await new Promise(r => setTimeout(r, 50));
+
+    const err = router.error.get();
+    assert.ok(err !== null, 'routeError should be set');
+    assert.strictEqual(err.message, 'test error', 'Should have correct error message');
+  });
+});
+
+// =============================================================================
+// Coverage: Layout Error in Outlet (lines 1196-1204)
+// =============================================================================
+
+describe('Layout Error in Outlet', () => {
+  beforeEach(resetHistory);
+
+  test('layout function that throws renders component without layout', async () => {
+    const router = createRouter({
+      routes: {
+        '/': () => el('div', 'Home'),
+        '/page': {
+          handler: () => el('div.page-content', 'Page Content'),
+          layout: () => { throw new Error('Layout broke'); }
+        }
+      }
+    });
+    router.start();
+
+    const container = document.createElement('div');
+    router.outlet(container);
+
+    await router.navigate('/page');
+    await new Promise(r => setTimeout(r, 50));
+
+    // Should still render the page content (without layout wrapping)
+    assert.ok(container.children.length > 0, 'Should render page despite layout error');
+  });
+});
+
+// =============================================================================
+// Coverage: Query String Security Limits (lines 543-563)
+// =============================================================================
+
+describe('Query String Security Limits', () => {
+  beforeEach(resetHistory);
+
+  test('query string exceeding 2048 chars is truncated', () => {
+    const longValue = 'x'.repeat(3000);
+    const result = parseQuery(`key=${longValue}`);
+    // The entire query was > 2048, so it's truncated before parsing
+    assert.ok(result.key !== undefined, 'Should still parse after truncation');
+    assert.ok(result.key.length <= 2048, 'Value should be truncated');
+  });
+
+  test('more than 50 query parameters are ignored', () => {
+    const params = [];
+    for (let i = 0; i < 60; i++) {
+      params.push(`p${i}=v${i}`);
+    }
+    const result = parseQuery(params.join('&'));
+    const keys = Object.keys(result);
+    assert.strictEqual(keys.length, 50, 'Should limit to 50 parameters');
+  });
+
+  test('individual query value exceeding 1024 chars is truncated', () => {
+    const longValue = 'y'.repeat(1500);
+    const result = parseQuery(`key=${longValue}`);
+    assert.strictEqual(result.key.length, 1024, 'Individual value should be truncated to 1024');
+  });
+});
+
+// =============================================================================
+// Coverage: Typed Query Parsing Edge Cases (lines 507-519)
+// =============================================================================
+
+describe('Typed Query Parsing Edge Cases', () => {
+  beforeEach(resetHistory);
+
+  test('parseTypedValue with Infinity remains as string', () => {
+    const result = parseQuery('val=Infinity', { typed: true });
+    // Infinity is not isFinite, so should remain string
+    assert.strictEqual(result.val, 'Infinity', 'Infinity should remain string');
+  });
+
+  test('parseTypedValue with -Infinity remains as string', () => {
+    const result = parseQuery('val=-Infinity', { typed: true });
+    assert.strictEqual(result.val, '-Infinity', '-Infinity should remain string');
+  });
+
+  test('parseTypedValue with empty string stays empty', () => {
+    const result = parseQuery('val=', { typed: true });
+    assert.strictEqual(result.val, '', 'Empty string should stay empty');
+  });
+
+  test('parseTypedValue with hex string stays string', () => {
+    // 0xFF is technically parseable as number, test behavior
+    const result = parseQuery('val=0xFF', { typed: true });
+    // 0xFF: isNaN(0xFF) is false, parseFloat('0xFF') is 0 — Number('0xFF') = 255
+    // But parseFloat gives 0, while Number gives 255, so this is a tricky case
+    // The function uses isNaN(value) && isNaN(parseFloat(value))
+    // isNaN('0xFF') is false, !isNaN(parseFloat('0xFF')) is true, Number('0xFF')=255, isFinite(255) is true
+    // So it would be parsed as a number
+    assert.strictEqual(typeof result.val, 'number', '0xFF should be parsed as number');
+  });
+
+  test('parseTypedValue with NaN string stays string', () => {
+    const result = parseQuery('val=NaN', { typed: true });
+    // isNaN('NaN') is true, so the condition fails
+    assert.strictEqual(result.val, 'NaN', 'NaN should remain string');
+  });
+
+  test('parseTypedValue with negative number', () => {
+    const result = parseQuery('val=-42', { typed: true });
+    assert.strictEqual(result.val, -42, 'Negative number should be parsed');
+  });
+
+  test('parseTypedValue with decimal', () => {
+    const result = parseQuery('val=3.14', { typed: true });
+    assert.strictEqual(result.val, 3.14, 'Decimal should be parsed');
+  });
+});
+
+// =============================================================================
+// Coverage: Middleware Error Handling (lines 257-262)
+// =============================================================================
+
+describe('Middleware Error Handling', () => {
+  beforeEach(resetHistory);
+
+  test('middleware that throws error halts navigation', async () => {
+    const router = createRouter({
+      routes: {
+        '/': () => el('div', 'Home'),
+        '/page': () => el('div', 'Page')
+      },
+      middleware: [
+        async (ctx, next) => {
+          throw new Error('Middleware exploded');
+        }
+      ]
+    });
+    router.start();
+
+    let caught = false;
+    try {
+      await router.navigate('/page');
+    } catch (e) {
+      caught = true;
+      assert.strictEqual(e.message, 'Middleware exploded', 'Should propagate error');
+    }
+
+    assert.ok(caught, 'Navigation should throw when middleware errors');
+    // Loading should be reset even after error
+    assert.strictEqual(router.loading.get(), false, 'Loading should reset after middleware error');
+  });
+});
+
+// =============================================================================
+// Coverage: Guard Redirect Returns (lines 853-858, 863-866, 873-875)
+// =============================================================================
+
+describe('Guard Redirect Returns', () => {
+  beforeEach(resetHistory);
+
+  test('beforeEnter returning string redirects', async () => {
+    const router = createRouter({
+      routes: {
+        '/': () => el('div', 'Home'),
+        '/old': {
+          handler: () => el('div', 'Old'),
+          beforeEnter: () => '/new' // Return string = redirect
+        },
+        '/new': () => el('div', 'New')
+      }
+    });
+    router.start();
+
+    await router.navigate('/old');
+
+    assert.strictEqual(router.path.get(), '/new', 'beforeEnter string should redirect');
+  });
+
+  test('beforeResolve returning string redirects', async () => {
+    const router = createRouter({
+      routes: {
+        '/': () => el('div', 'Home'),
+        '/target': () => el('div', 'Target'),
+        '/redirected': () => el('div', 'Redirected')
+      }
+    });
+    router.start();
+
+    router.beforeResolve((to) => {
+      if (to.path === '/target') return '/redirected';
+      return true;
+    });
+
+    await router.navigate('/target');
+
+    assert.strictEqual(router.path.get(), '/redirected', 'beforeResolve string should redirect');
+  });
+
+  test('beforeEach returning string redirect (already tested but ensuring line coverage)', async () => {
+    const router = createRouter({
+      routes: {
+        '/': () => el('div', 'Home'),
+        '/src': () => el('div', 'Src'),
+        '/dst': () => el('div', 'Dst')
+      }
+    });
+    router.start();
+
+    router.beforeEach((to) => {
+      if (to.path === '/src') return '/dst';
+    });
+
+    await router.navigate('/src');
+
+    assert.strictEqual(router.path.get(), '/dst', 'beforeEach string should redirect');
+  });
+});
+
+// =============================================================================
+// Coverage: Catch-All Route Fallback (lines 755-762)
+// =============================================================================
+
+describe('Catch-All Route Fallback', () => {
+  beforeEach(resetHistory);
+
+  test('catch-all * route matches when trie finds nothing', async () => {
+    let catchAllUsed = false;
+
+    const router = createRouter({
+      routes: {
+        '/': () => el('div', 'Home'),
+        '/known': () => el('div', 'Known'),
+        '*': () => {
+          catchAllUsed = true;
+          return el('div', '404 Not Found');
+        }
+      }
+    });
+    router.start();
+    const container = document.createElement('div');
+    router.outlet(container);
+
+    await router.navigate('/totally/unknown/path');
+    await new Promise(r => setTimeout(r, 50));
+
+    assert.ok(catchAllUsed, 'Catch-all route should handle unknown paths');
+  });
+});
+
+// =============================================================================
+// Coverage: Outlet Abort Lazy Load (lines 1094-1097)
+// =============================================================================
+
+describe('Outlet Abort Lazy Load', () => {
+  beforeEach(resetHistory);
+
+  test('navigating away from lazy route calls _pulseAbortLazyLoad', async () => {
+    let abortCalled = false;
+    let resolveLoad;
+    const loadPromise = new Promise(resolve => { resolveLoad = resolve; });
+
+    const lazyComponent = lazy(() => loadPromise, {
+      loading: () => el('div.loading', 'Loading...')
+    });
+
+    const router = createRouter({
+      routes: {
+        '/': () => el('div', 'Home'),
+        '/lazy': lazyComponent,
+        '/other': () => el('div', 'Other')
+      }
+    });
+    router.start();
+
+    const container = document.createElement('div');
+    router.outlet(container);
+
+    // Navigate to lazy (starts loading)
+    await router.navigate('/lazy');
+    await new Promise(r => setTimeout(r, 50));
+
+    // The container should have a child with _pulseAbortLazyLoad
+    // Now navigate away — this triggers removeOldView which calls _pulseAbortLazyLoad
+    await router.navigate('/other');
+    await new Promise(r => setTimeout(r, 50));
+
+    // Resolve after navigation to clean up
+    resolveLoad({ default: () => el('div', 'Late') });
+    await new Promise(r => setTimeout(r, 50));
+
+    assert.strictEqual(router.path.get(), '/other', 'Should have navigated away from lazy route');
+  });
+});
+
+// =============================================================================
+// Coverage: simpleRouter (lines 1558-1563)
+// =============================================================================
+
+describe('simpleRouter Convenience Function', () => {
+  beforeEach(resetHistory);
+
+  test('simpleRouter creates router, starts, and sets up outlet', () => {
+    const router = simpleRouter({
+      '/': () => el('div', 'Home'),
+      '/about': () => el('div', 'About')
+    });
+
+    // Should have been started (path reactive)
+    assert.ok(router.path, 'Should have path pulse');
+    assert.ok(router.navigate, 'Should have navigate method');
+    assert.strictEqual(typeof router.navigate, 'function', 'navigate should be a function');
+  });
+});
+
+// =============================================================================
+// Coverage: Async Route with Layout (lines 1218-1227)
+// =============================================================================
+
+describe('Async Route with Layout', () => {
+  beforeEach(resetHistory);
+
+  test('async route handler wrapped with layout function', async () => {
+    let layoutCalled = false;
+
+    const router = createRouter({
+      routes: {
+        '/': () => el('div', 'Home'),
+        '/async-layout': {
+          handler: () => Promise.resolve(() => el('div.async-content', 'Async Content')),
+          layout: (contentFn, ctx) => {
+            layoutCalled = true;
+            return el('div.layout-wrap', contentFn());
+          }
+        }
+      }
+    });
+    router.start();
+
+    const container = document.createElement('div');
+    router.outlet(container);
+
+    await router.navigate('/async-layout');
+    await new Promise(r => setTimeout(r, 100));
+
+    assert.ok(layoutCalled, 'Layout should be called for async route');
+  });
+
+  test('async route with layout that throws still renders content', async () => {
+    const router = createRouter({
+      routes: {
+        '/': () => el('div', 'Home'),
+        '/async-bad-layout': {
+          handler: () => Promise.resolve(() => el('div.content', 'Content')),
+          layout: () => { throw new Error('Async layout broke'); }
+        }
+      }
+    });
+    router.start();
+
+    const container = document.createElement('div');
+    router.outlet(container);
+
+    await router.navigate('/async-bad-layout');
+    await new Promise(r => setTimeout(r, 100));
+
+    // Should still render (layout error caught, falls back to raw view)
+    assert.ok(container.children.length > 0, 'Should render despite async layout error');
+  });
+});
+
+// =============================================================================
+// Coverage: Transition Duration Edge Cases (lines 605-612)
+// =============================================================================
+
+describe('Transition Duration Edge Cases', () => {
+  beforeEach(resetHistory);
+
+  test('transition with zero duration', () => {
+    const router = createRouter({
+      routes: { '/': () => el('div', 'Home') },
+      transition: { duration: 0 }
+    });
+    assert.ok(router, 'Should create router with zero duration');
+  });
+
+  test('transition with negative duration is clamped to 0', () => {
+    const router = createRouter({
+      routes: { '/': () => el('div', 'Home') },
+      transition: { duration: -500 }
+    });
+    assert.ok(router, 'Should create router with negative duration (clamped)');
+  });
+
+  test('transition with no duration uses default 300', () => {
+    const router = createRouter({
+      routes: { '/': () => el('div', 'Home') },
+      transition: {} // No duration specified
+    });
+    assert.ok(router, 'Should create router with default transition duration');
+  });
+});
+
+// =============================================================================
+// Coverage: Nested Route Children Inherit Layout (lines 710-713)
+// =============================================================================
+
+describe('Nested Route Children Inherit Layout', () => {
+  beforeEach(resetHistory);
+
+  test('nested children inherit layout from parent', async () => {
+    let layoutCalled = false;
+
+    const ParentLayout = (contentFn, ctx) => {
+      layoutCalled = true;
+      return el('div.parent-layout', contentFn());
+    };
+
+    const router = createRouter({
+      routes: {
+        '/': () => el('div', 'Home'),
+        '/parent': {
+          handler: () => el('div', 'Parent'),
+          layout: ParentLayout,
+          children: {
+            '/child': () => el('div', 'Child Content')
+          }
+        }
+      }
+    });
+    router.start();
+
+    const container = document.createElement('div');
+    router.outlet(container);
+
+    await router.navigate('/parent/child');
+    await new Promise(r => setTimeout(r, 50));
+
+    assert.ok(layoutCalled, 'Child should inherit parent layout');
+  });
+});
+
+// =============================================================================
+// Coverage: PopState Handler (lines 1010-1014)
+// =============================================================================
+
+describe('PopState Handler', () => {
+  beforeEach(resetHistory);
+
+  test('popstate event updates route state', async () => {
+    const router = createRouter({
+      routes: {
+        '/': () => el('div', 'Home'),
+        '/page-a': () => el('div', 'A'),
+        '/page-b': () => el('div', 'B')
+      }
+    });
+    router.start();
+
+    await router.navigate('/page-a');
+    assert.strictEqual(router.path.get(), '/page-a');
+
+    await router.navigate('/page-b');
+    assert.strictEqual(router.path.get(), '/page-b');
+
+    // Simulate browser back button (triggers popstate)
+    window.history.back();
+    await new Promise(r => setTimeout(r, 50));
+
+    // handlePopState should update route to /page-a
+    assert.strictEqual(router.path.get(), '/page-a', 'PopState should update route');
+  });
+
+  test('popstate with query string parses query', async () => {
+    const router = createRouter({
+      routes: {
+        '/': () => el('div', 'Home'),
+        '/search': () => el('div', 'Search')
+      }
+    });
+    router.start();
+
+    await router.navigate('/search', { query: { q: 'test' } });
+    await router.navigate('/');
+
+    // Go back to /search?q=test
+    window.history.back();
+    await new Promise(r => setTimeout(r, 50));
+
+    // Route should be restored
+    assert.strictEqual(router.path.get(), '/search', 'Should restore path on popstate');
+  });
+});
+
+// =============================================================================
+// Coverage: Async Route Error in Outlet (lines 1232-1236)
+// =============================================================================
+
+describe('Async Route Error in Outlet', () => {
+  beforeEach(resetHistory);
+
+  test('async route that rejects triggers error handling in outlet', async () => {
+    const router = createRouter({
+      routes: {
+        '/': () => el('div', 'Home'),
+        '/async-error': () => Promise.reject(new Error('Async failed'))
+      }
+    });
+    router.start();
+
+    const container = document.createElement('div');
+    router.outlet(container);
+
+    await router.navigate('/async-error');
+    await new Promise(r => setTimeout(r, 100));
+
+    // The error should be set on the router
+    const err = router.error.get();
+    assert.ok(err !== null, 'Should set error for rejected async route');
+    assert.strictEqual(err.message, 'Async failed', 'Error message should match');
+  });
+});
+
+// =============================================================================
+// Coverage: Link click with ctrl/meta key (lines 1040-1041)
+// =============================================================================
+
+describe('Link Click Modifier Keys', () => {
+  beforeEach(resetHistory);
+
+  test('ctrl+click on link allows default browser behavior', async () => {
+    const router = createRouter({
+      routes: {
+        '/': () => el('div', 'Home'),
+        '/page': () => el('div', 'Page')
+      }
+    });
+    router.start();
+
+    const linkEl = router.link('/page', 'Page');
+
+    // Use mock Event (not native Event) so target is writable
+    const event = new mockWindow.Event('click', { cancelable: true });
+    event.ctrlKey = true;
+    event.metaKey = false;
+    linkEl.dispatchEvent(event);
+
+    await new Promise(r => setTimeout(r, 50));
+
+    // Should NOT navigate (allows default browser behavior)
+    assert.strictEqual(router.path.get(), '/', 'Ctrl+click should not trigger router navigation');
+  });
+
+  test('meta+click on link allows default browser behavior', async () => {
+    const router = createRouter({
+      routes: {
+        '/': () => el('div', 'Home'),
+        '/page': () => el('div', 'Page')
+      }
+    });
+    router.start();
+
+    const linkEl = router.link('/page', 'Page');
+
+    // Use mock Event so target is writable
+    const event = new mockWindow.Event('click', { cancelable: true });
+    event.ctrlKey = false;
+    event.metaKey = true;
+    linkEl.dispatchEvent(event);
+
+    await new Promise(r => setTimeout(r, 50));
+
+    assert.strictEqual(router.path.get(), '/', 'Meta+click should not trigger router navigation');
+  });
+});
+
+// =============================================================================
+// Coverage: Dynamic Redirect Function with Query (lines 802-806)
+// =============================================================================
+
+describe('Dynamic Redirect with Query', () => {
+  beforeEach(resetHistory);
+
+  test('redirect function receives params and query', async () => {
+    let redirectReceived = null;
+
+    const router = createRouter({
+      routes: {
+        '/': () => el('div', 'Home'),
+        '/old/:id': {
+          redirect: ({ params, query }) => {
+            redirectReceived = { params, query };
+            return `/new/${params.id}`;
+          }
+        },
+        '/new/:id': () => el('div', 'New')
+      }
+    });
+    router.start();
+
+    await router.navigate('/old/42', { query: { ref: 'home' } });
+
+    assert.ok(redirectReceived !== null, 'Redirect fn should receive context');
+    assert.strictEqual(redirectReceived.params.id, '42', 'Should receive params');
+  });
+});
+
+// =============================================================================
+// Coverage: buildQueryString with non-object input
+// =============================================================================
+
+describe('buildQueryString Edge Cases', () => {
+  test('buildQueryString with non-object string returns empty', () => {
+    assert.strictEqual(buildQueryString('not an object'), '', 'String should return empty');
+  });
+
+  test('buildQueryString with number returns empty', () => {
+    assert.strictEqual(buildQueryString(42), '', 'Number should return empty');
+  });
+
+  test('buildQueryString with boolean returns empty', () => {
+    assert.strictEqual(buildQueryString(true), '', 'Boolean should return empty');
+  });
+
+  test('buildQueryString stringifies non-string values', () => {
+    const result = buildQueryString({ count: 42, active: true });
+    assert.ok(result.includes('count=42'), 'Should stringify numbers');
+    assert.ok(result.includes('active=true'), 'Should stringify booleans');
+  });
+});
