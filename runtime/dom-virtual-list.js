@@ -12,6 +12,7 @@
 import { pulse, effect, computed, batch } from './pulse.js';
 import { getAdapter } from './dom-adapter.js';
 import { list } from './dom-list.js';
+import { delegate } from './dom-event-delegate.js';
 
 // ============================================================================
 // Constants
@@ -20,7 +21,8 @@ import { list } from './dom-list.js';
 const DEFAULT_OPTIONS = {
   overscan: 5,
   containerHeight: 400,
-  recycle: false
+  recycle: false,
+  on: null
 };
 
 // ============================================================================
@@ -38,7 +40,8 @@ const DEFAULT_OPTIONS = {
  * @param {number} [options.overscan=5] - Extra items above/below viewport
  * @param {number|string} [options.containerHeight=400] - Viewport height in px or 'auto'
  * @param {boolean} [options.recycle=false] - Enable element recycling for removed items
- * @returns {Element} Scroll container element
+ * @param {Object} [options.on] - Delegated event handlers: { eventType: (event, item, index) => void }
+ * @returns {Element} Scroll container element with scrollToIndex(index) and _dispose() methods
  *
  * @example
  * const vlist = virtualList(
@@ -51,7 +54,7 @@ const DEFAULT_OPTIONS = {
  */
 export function virtualList(getItems, template, keyFn, options = {}) {
   const config = { ...DEFAULT_OPTIONS, ...options };
-  const { itemHeight, overscan, containerHeight, recycle } = config;
+  const { itemHeight, overscan, containerHeight, recycle, on: eventHandlers } = config;
 
   if (!itemHeight || itemHeight <= 0) {
     throw new Error('[Pulse] virtualList requires a positive itemHeight');
@@ -66,6 +69,7 @@ export function virtualList(getItems, template, keyFn, options = {}) {
 
   // Outer container: fixed height, scrollable
   const container = dom.createElement('div');
+  container.scrollTop = 0; // Initialize for mock/SSR compatibility
   dom.setAttribute(container, 'role', 'list');
   dom.setAttribute(container, 'aria-label', 'Virtual scrolling list');
   setStyles(dom, container, {
@@ -107,10 +111,13 @@ export function virtualList(getItems, template, keyFn, options = {}) {
 
   // ---- Compute visible items slice ----
   const visibleSlice = pulse([]);
+  const currentStartIndex = pulse(0);
+  let allItems = [];
 
   effect(() => {
     const items = typeof getItems === 'function' ? getItems() : getItems.get();
-    const totalItems = Array.isArray(items) ? items.length : 0;
+    allItems = Array.isArray(items) ? items : [];
+    const totalItems = allItems.length;
     const top = scrollTop.get();
 
     // Update spacer height
@@ -121,20 +128,21 @@ export function virtualList(getItems, template, keyFn, options = {}) {
       ? containerHeight
       : (container.clientHeight || 400);
 
-    let startIndex = Math.floor(top / itemHeight) - overscan;
-    let endIndex = Math.ceil((top + height) / itemHeight) + overscan;
-    startIndex = Math.max(0, startIndex);
-    endIndex = Math.min(totalItems, endIndex);
+    let startIdx = Math.floor(top / itemHeight) - overscan;
+    let endIdx = Math.ceil((top + height) / itemHeight) + overscan;
+    startIdx = Math.max(0, startIdx);
+    endIdx = Math.min(totalItems, endIdx);
 
     // Position viewport at start offset
-    dom.setStyle(viewport, 'top', `${startIndex * itemHeight}px`);
+    dom.setStyle(viewport, 'top', `${startIdx * itemHeight}px`);
 
     // ARIA: announce total count
     dom.setAttribute(container, 'aria-rowcount', String(totalItems));
 
-    // Extract visible slice
-    const slice = Array.isArray(items) ? items.slice(startIndex, endIndex) : [];
-    visibleSlice.set(slice);
+    batch(() => {
+      currentStartIndex.set(startIdx);
+      visibleSlice.set(allItems.slice(startIdx, endIdx));
+    });
   });
 
   // ---- Render visible items using list() ----
@@ -143,14 +151,30 @@ export function virtualList(getItems, template, keyFn, options = {}) {
     listOptions.recycle = true;
   }
 
+  // Item map for event delegation
+  const itemMap = new Map();
+  const KEY_ATTR = 'data-pulse-key';
+
   const rendered = list(
     () => visibleSlice.get(),
     (item, relativeIndex) => {
-      const node = template(item, relativeIndex);
-      // Set ARIA rowindex for accessibility
+      const absIndex = currentStartIndex.peek() + relativeIndex;
+      const node = template(item, absIndex);
       const root = Array.isArray(node) ? node[0] : node;
       if (root && dom.isElement(root)) {
         dom.setAttribute(root, 'role', 'listitem');
+        // ARIA: set 1-based row index for screen readers
+        dom.setAttribute(root, 'aria-rowindex', String(absIndex + 1));
+        // Mark for event delegation
+        if (eventHandlers) {
+          const rawKey = keyFn(item, absIndex);
+          // Security: ensure key is a primitive to prevent collisions
+          const key = (typeof rawKey === 'string' || typeof rawKey === 'number')
+            ? String(rawKey)
+            : String(absIndex);
+          dom.setAttribute(root, KEY_ATTR, key);
+          itemMap.set(key, { item, index: absIndex });
+        }
       }
       return node;
     },
@@ -160,6 +184,65 @@ export function virtualList(getItems, template, keyFn, options = {}) {
 
   dom.appendChild(viewport, rendered);
 
+  // ---- Event delegation on viewport ----
+  const delegateCleanups = [];
+
+  if (eventHandlers && typeof eventHandlers === 'object') {
+    // Set up delegation after microtask (viewport needs to be in DOM)
+    const setupDelegation = () => {
+      for (const [eventType, handler] of Object.entries(eventHandlers)) {
+        const cleanup = delegate(viewport, eventType, `[${KEY_ATTR}]`, (event, matchedEl) => {
+          const key = dom.getAttribute(matchedEl, KEY_ATTR);
+          const entry = itemMap.get(key);
+          if (entry) {
+            handler(event, entry.item, entry.index);
+          }
+        });
+        delegateCleanups.push(cleanup);
+      }
+    };
+
+    if (typeof queueMicrotask === 'function') {
+      queueMicrotask(setupDelegation);
+    } else {
+      setupDelegation();
+    }
+  }
+
+  // ---- Programmatic scroll API ----
+
+  /**
+   * Scroll to bring a specific item index into view.
+   * @param {number} index - Zero-based item index
+   * @param {Object} [scrollOptions] - Options
+   * @param {'start'|'center'|'end'} [scrollOptions.align='start'] - Alignment in viewport
+   */
+  container.scrollToIndex = (index, scrollOptions = {}) => {
+    const { align = 'start' } = scrollOptions;
+    const totalItems = allItems.length;
+    const clampedIndex = Math.max(0, Math.min(index, totalItems - 1));
+
+    const height = typeof containerHeight === 'number'
+      ? containerHeight
+      : (container.clientHeight || 400);
+
+    let targetTop;
+    if (align === 'center') {
+      targetTop = clampedIndex * itemHeight - (height / 2) + (itemHeight / 2);
+    } else if (align === 'end') {
+      targetTop = (clampedIndex + 1) * itemHeight - height;
+    } else {
+      targetTop = clampedIndex * itemHeight;
+    }
+
+    targetTop = Math.max(0, targetTop);
+
+    if (container.scrollTop !== undefined) {
+      container.scrollTop = targetTop;
+    }
+    scrollTop.set(targetTop);
+  };
+
   // ---- Cleanup method ----
   container._dispose = () => {
     dom.removeEventListener(container, 'scroll', onScroll);
@@ -167,6 +250,9 @@ export function virtualList(getItems, template, keyFn, options = {}) {
       (typeof cancelAnimationFrame === 'function' ? cancelAnimationFrame : clearTimeout)(rafId);
       rafId = null;
     }
+    for (const cleanup of delegateCleanups) cleanup();
+    delegateCleanups.length = 0;
+    itemMap.clear();
   };
 
   return container;

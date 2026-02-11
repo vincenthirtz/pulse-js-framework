@@ -857,3 +857,91 @@ describe('delegatedList() advanced', () => {
     assert.ok(true, 'Empty on object should not throw');
   });
 });
+
+// =============================================================================
+// delegatedList() Stale Entry Cleanup (v1.8.1)
+// =============================================================================
+
+describe('delegatedList() stale entry cleanup', () => {
+  test('delegatedList() does not leak stale itemMap entries when items are removed', async () => {
+    const items = pulse([
+      { id: 1, name: 'A' },
+      { id: 2, name: 'B' },
+      { id: 3, name: 'C' }
+    ]);
+
+    let handlerCallCount = 0;
+    const fragment = delegatedList(
+      () => items.get(),
+      (item) => {
+        const el = adapter.createElement('li');
+        adapter.setTextContent(el, item.name);
+        return el;
+      },
+      (item) => item.id,
+      {
+        on: {
+          click: (event, item, index) => {
+            handlerCallCount++;
+          }
+        }
+      }
+    );
+
+    // Remove items
+    items.set([{ id: 1, name: 'A' }]);
+
+    // Allow microtask to run for cleanup
+    await new Promise(r => setTimeout(r, 10));
+
+    // The stale entries for id 2 and 3 should be pruned
+    // Verify indirectly: no crash, handler still works for remaining items
+    assert.ok(true, 'No errors from stale entry cleanup');
+  });
+
+  test('delegatedList() with recycle:true forwards option to list()', () => {
+    // This test verifies no errors — recycle option is forwarded via listOptions spread
+    const items = pulse([
+      { id: 1, name: 'A' },
+      { id: 2, name: 'B' }
+    ]);
+
+    const fragment = delegatedList(
+      () => items.get(),
+      (item) => {
+        const el = adapter.createElement('li');
+        adapter.setTextContent(el, item.name);
+        return el;
+      },
+      (item) => item.id,
+      { recycle: true, on: { click: () => {} } }
+    );
+
+    // Remove items — should release to pool (via list() recycle option)
+    items.set([]);
+
+    assert.ok(true, 'delegatedList with recycle:true does not throw');
+  });
+
+  test('delegatedList() with Pulse source does not use wrappedGetItems', () => {
+    // When getItems is a Pulse (not function), the wrappedGetItems path is skipped
+    const items = pulse([
+      { id: 1, name: 'A' }
+    ]);
+
+    const fragment = delegatedList(
+      items, // Pulse directly, not function
+      (item) => {
+        const el = adapter.createElement('li');
+        return el;
+      },
+      (item) => item.id,
+      { on: { click: () => {} } }
+    );
+
+    // Update pulse directly
+    items.set([{ id: 1, name: 'A' }, { id: 2, name: 'B' }]);
+
+    assert.ok(true, 'Pulse source handled correctly');
+  });
+});

@@ -526,7 +526,12 @@ export class Pulse {
    * unsub(); // Stop listening
    */
   subscribe(fn) {
-    const subscriber = { run: fn, dependencies: new Set() };
+    const self = this;
+    const subscriber = {
+      run() { fn(self.peek()); },
+      dependencies: new Set(),
+      _isSubscriber: true
+    };
     this.#subscribers.add(subscriber);
     return () => this.#subscribers.delete(subscriber);
   }

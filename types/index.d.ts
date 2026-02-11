@@ -68,7 +68,21 @@ export {
   portal,
   errorBoundary,
   transition,
-  whenTransition
+  whenTransition,
+  delegate,
+  DelegatedListHandlers,
+  DelegatedListOptions,
+  delegatedList,
+  VirtualListOptions,
+  ScrollToIndexOptions,
+  VirtualListElement,
+  virtualList,
+  ElementPoolOptions,
+  PoolStats,
+  ElementPool,
+  createElementPool,
+  getPool,
+  resetPool
 } from './dom';
 
 // Router

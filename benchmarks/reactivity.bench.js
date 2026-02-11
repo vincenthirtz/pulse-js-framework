@@ -6,7 +6,7 @@
  * @module benchmarks/reactivity
  */
 
-import { pulse, effect, computed, batch } from '../runtime/pulse.js';
+import { pulse, effect, computed, batch, watch, createState, memo } from '../runtime/pulse.js';
 import { bench, suite } from './utils.js';
 
 export async function runReactivityBenchmarks() {
@@ -145,6 +145,75 @@ export async function runReactivityBenchmarks() {
         pulses[0].set(i);
       }
       dispose();
+    }),
+
+    // watch() - simpler than effect for observing changes
+    bench('watch() single pulse (1000x updates)', () => {
+      const p = pulse(0);
+      const stop = watch(p, ([newVal], [oldVal]) => {});
+      for (let i = 0; i < 1000; i++) {
+        p.set(i);
+      }
+      stop();
+    }),
+
+    // watch() multiple sources
+    bench('watch() 5 pulses (100x updates)', () => {
+      const pulses = [];
+      for (let i = 0; i < 5; i++) {
+        pulses.push(pulse(i));
+      }
+      const stop = watch(pulses, () => {});
+      for (let i = 0; i < 100; i++) {
+        pulses[0].set(i);
+      }
+      stop();
+    }),
+
+    // createState() - proxy-based reactive object
+    bench('createState creation + access (1000x)', () => {
+      for (let i = 0; i < 1000; i++) {
+        const state = createState({ count: 0, name: 'test' });
+        state.count;
+        state.name;
+      }
+    }),
+
+    // createState() with mutations
+    bench('createState mutations (1000x)', () => {
+      const state = createState({ count: 0 });
+      for (let i = 0; i < 1000; i++) {
+        state.count = i;
+      }
+    }),
+
+    // memo() - memoized function calls
+    bench('memo() cached calls (10000x)', () => {
+      const fn = memo((x) => x * 2);
+      for (let i = 0; i < 10000; i++) {
+        fn(42); // Same args — always cache hit
+      }
+    }),
+
+    // memo() cache miss
+    bench('memo() cache miss (1000x)', () => {
+      const fn = memo((x) => x * 2);
+      for (let i = 0; i < 1000; i++) {
+        fn(i); // Different args each time — always cache miss
+      }
+    }),
+
+    // subscribe() inside batch
+    bench('subscribe() + batch (100x)', () => {
+      const p = pulse(0);
+      const unsub = p.subscribe(() => {});
+      for (let i = 0; i < 100; i++) {
+        batch(() => {
+          p.set(i);
+          p.set(i + 1);
+        });
+      }
+      unsub();
     })
   ]);
 }
