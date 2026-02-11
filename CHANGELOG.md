@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.8.2] - 2026-02-11
+
+### Changes
+
+- test(router): add 62 tests to cover missing lines from Codecov report
+- test(router): add v1.8.2 tests and fix alias trie overwrite bug
+- feat(router): implement milestone v1.8.2 router & navigation enhancements
+
+---
+
+
 ## [1.8.1] - 2026-02-11
 
 ### Changes
