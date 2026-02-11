@@ -149,6 +149,7 @@
     "test:async": "node test/async.test.js",
     "test:async-coverage": "node test/async-coverage.test.js",
     "test:form": "node test/form.test.js",
+    "test:form-v2": "node test/form-v2.test.js",
     "test:http": "node test/http.test.js",
     "test:devtools": "node test/devtools.test.js",
     "test:native": "node test/native.test.js",

@@ -41,6 +41,7 @@ const testScripts = [
   'test:async',
   'test:async-coverage',
   'test:form',
+  'test:form-v2',
   'test:http',
   'test:devtools',
   'test:native',
