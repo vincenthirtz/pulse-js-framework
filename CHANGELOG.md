@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.8.0] - 2026-02-11
+
+### Changes
+
+- ci(release): auto-sync package.json version on release
+- fix(test): use Proxy-based live NamedNodeMap mock to prevent infinite loop
+- fix(test): add resetContext() to M4 test afterEach hooks to prevent hang
+- fix(test): add getAttributeNames() to MockElement and fix dom-recycle test
+- test(runtime): improve Milestone 4 patch coverage and register missing test suites
+- feat(runtime): implement Milestone 4 - Runtime Performance (v1.9.0)
+- perf(ci): skip unchanged jobs and cache results across runs
+
+---
+
+
 ## [1.7.38] - 2026-02-10
 
 ### Changes
