@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.8.1] - 2026-02-11
+
+### Changes
+
+- test(coverage): add tests for recycling transfer and virtual-list edge cases
+- feat(runtime): implement milestone v1.8.1 runtime performance
+- docs(milestones): update versions to match v1.8.0 state
+- ci(release): publish to GitHub Packages alongside npm
+
+---
+
+
 ## [1.8.0] - 2026-02-11
 
 ### Changes
