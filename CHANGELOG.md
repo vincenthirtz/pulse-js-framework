@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.8.3] - 2026-02-11
+
+### Changes
+
+- fix(ci): use jq contains() instead of test() for milestone lookup
+
+---
+
+
 ## [1.8.2] - 2026-02-11
 
 ### Changes
