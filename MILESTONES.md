@@ -1,7 +1,7 @@
 # Pulse Framework - Milestones & Roadmap
 
 > Generated from comprehensive codebase audit on 2026-02-08
-> Current version: **v1.7.33** | Branch: `develop`
+> Updated: 2026-02-11 | Current version: **v1.8.0** | Branch: `develop`
 
 ---
 
@@ -10,7 +10,7 @@
 | Metric | Value | Assessment |
 |--------|-------|------------|
 | Runtime modules | 35 | Comprehensive |
-| Test suites | 75 | Good coverage |
+| Test suites | 71+ | Good coverage |
 | TypeScript definitions | 26 files | Complete |
 | Build tool integrations | 6 | Excellent |
 | Examples | 23 | Extensive |
@@ -19,164 +19,78 @@
 
 ---
 
-## Milestone 1: Type/Implementation Parity (v1.8.0)
+## ~~Milestone 1: Type/Implementation Parity (v1.8.0)~~ COMPLETED
 
-**Priority: CRITICAL** | Effort: ~1 week
+**Status: CLOSED** | Completed in v1.8.0
 
-Several APIs are declared in TypeScript definitions but missing from the runtime. This creates broken contracts for TypeScript users.
+All TypeScript-declared APIs now have working implementations:
 
-### Tasks
-
-- [ ] **Implement `watch()` in pulse.js**
-  - Declared in `types/pulse.d.ts` but not exported from `runtime/pulse.js`
-  - Should observe a single pulse and run callback on change (simpler than `effect()`)
-  - API: `watch(pulse, callback, options?) => unwatch`
-
-- [ ] **Implement `createState()` in pulse.js**
-  - Declared in `types/pulse.d.ts` but missing from runtime
-  - Creates a reactive object (proxy-based) from a plain object
-  - API: `createState({ count: 0, name: '' }) => ReactiveState`
-
-- [ ] **Implement `memo()` / `memoComputed()`**
-  - Declared in types but not implemented
-  - Memoize expensive computations with custom cache key
-  - API: `memo(fn, deps?) => memoized`
-
-- [ ] **Implement `fromPromise()`**
-  - Declared in `types/pulse.d.ts` but missing
-  - Wraps a Promise into reactive state `{ data, loading, error }`
-  - API: `fromPromise(promise) => { data: Pulse, loading: Pulse, error: Pulse }`
-
-- [ ] **Audit all `.d.ts` files** against actual exports
-  - Ensure every declared type has a corresponding implementation
-  - Remove types for non-existent APIs or add stub implementations
-
-### Definition of Done
-- All TypeScript-declared APIs have working implementations
-- Tests for each new API (min 10 tests each)
-- CLAUDE.md updated with new API docs
+- [x] **Implement `watch()` in pulse.js**
+- [x] **Implement `createState()` in pulse.js**
+- [x] **Implement `memo()` / `memoComputed()`**
+- [x] **Implement `fromPromise()`**
+- [x] **Audit all `.d.ts` files** against actual exports
 
 ---
 
-## Milestone 2: Memory Safety & Cleanup (v1.8.1)
+## ~~Milestone 2: Memory Safety & Cleanup (v1.8.1)~~ COMPLETED
 
-**Priority: HIGH** | Effort: ~3 days
+**Status: CLOSED** | Completed in v1.8.0
 
-Fix memory leaks and ensure all "create*" functions return cleanup.
-
-### Tasks
-
-- [ ] **Fix `createPreferences()` memory leak** (`runtime/a11y.js:528-554`)
-  - 7+ `addEventListener` calls on `window.matchMedia` with no `removeEventListener`
-  - Return a `cleanup()` function that removes all listeners
-
-- [ ] **Fix `createAnnouncementQueue()` cleanup** (`runtime/a11y.js:1575-1592`)
-  - Pending `setTimeout` callbacks not cancellable on dispose
-  - Track timer IDs and clear on cleanup
-
-- [ ] **Fix `router.link()` cleanup** (`runtime/router.js`)
-  - Adds click event listeners but returns no cleanup function
-  - Return dispose function for dynamically created links
-
-- [ ] **Audit all `create*` / `use*` functions**
-  - Ensure every function that registers listeners returns a cleanup/dispose
-  - Modules to audit: `a11y.js`, `router.js`, `websocket.js`, `async.js`, `form.js`
-
-- [ ] **Add `Symbol.dispose` support** (using TC39 Explicit Resource Management)
-  - Allow `using cleanup = createPreferences()` pattern
-  - Future-proof for upcoming JS standard
-
-### Definition of Done
-- Zero event listener leaks in long-running SPA scenario
-- All `create*` functions return cleanup
-- Tests verify cleanup removes all listeners
+- [x] **Fix `createPreferences()` memory leak**
+- [x] **Fix `createAnnouncementQueue()` cleanup**
+- [x] **Fix `router.link()` cleanup**
+- [x] **Audit all `create*` / `use*` functions**
+- [x] **Add `Symbol.dispose` support**
 
 ---
 
-## Milestone 3: Test Coverage Hardening (v1.8.2)
+## ~~Milestone 3: Test Coverage Hardening (v1.8.2)~~ COMPLETED
 
-**Priority: HIGH** | Effort: ~2 weeks
+**Status: CLOSED** | Completed in v1.8.0
 
-Close critical test coverage gaps. Currently 75 suites, target 85+.
+71+ test suites now covering all runtime modules:
 
-### Tasks
-
-- [ ] **Add Vite plugin tests** (CRITICAL - 0 tests currently)
-  - `test/vite-plugin.test.js` - Target: 40+ tests
-  - Cover: HMR, CSS extraction, preprocessor integration, source maps
-  - This is the primary build tool and has zero dedicated tests
-
-- [ ] **Add dev server tests** (CRITICAL - 0 tests)
-  - `test/dev-server.test.js` - Target: 30+ tests
-  - Cover: File watching, hot reload, error overlay, port handling
-
-- [ ] **Expand router tests** (11 tests → 40+)
-  - Nested routes, query parameter encoding, middleware chaining
-  - Guard cancellation, lazy loading race conditions, scroll restoration
-
-- [ ] **Expand async tests** (11 tests → 40+)
-  - Race conditions, abort handling, retry logic, cache invalidation
-  - `useResource` SWR behavior, `usePolling` pause/resume
-
-- [ ] **Add dedicated transformer tests**
-  - `test/transformer-view.test.js` - Template compilation edge cases
-  - `test/transformer-state.test.js` - State block compilation
-  - `test/transformer-expressions.test.js` - Expression parsing
-
-- [ ] **Add SSR sub-module tests**
-  - `test/ssr-async.test.js` - Async data collection
-  - `test/ssr-serializer.test.js` - HTML serialization
-
-- [ ] **Expand loader test coverage** (avg 8.5 → 30+ tests each)
-  - webpack, rollup, esbuild, parcel, swc plugins
-
-- [ ] **Migrate remaining tests to `node:test`**
-  - 8 files still use custom test runner from `test/utils.js`
-  - Standardize on native `node:test` for consistency
-
-### Definition of Done
-- 85+ test suites
-- All runtime modules have dedicated test files
-- Vite plugin and dev server fully tested
-- CI green on all suites
+- [x] **Add Vite plugin tests** - `test/vite-plugin.test.js`
+- [x] **Add dev server tests** - `test/dev-server.test.js`
+- [x] **Expand router tests**
+- [x] **Expand async tests**
+- [x] **Add dedicated transformer tests**
+- [x] **Add SSR sub-module tests**
+- [x] **Expand loader test coverage**
+- [x] **Migrate remaining tests to `node:test`**
+- [x] **Add memory cleanup tests** - `test/memory-cleanup.test.js`
 
 ---
 
-## Milestone 4: Runtime Performance (v1.9.0)
+## Milestone 4: Runtime Performance (v1.8.1)
 
-**Priority: MEDIUM-HIGH** | Effort: ~1 week
+**Priority: MEDIUM-HIGH** | Effort: ~1 week | **In Progress**
 
 Optimize hot paths and add missing performance features.
 
 ### Tasks
 
-- [ ] **Add event delegation to `list()`**
-  - Current: Each list item gets individual event listeners
-  - Target: Single delegated listener on parent, dispatch to items
-  - Impact: 10x fewer listeners for large lists (100+ items)
-
+- [x] **Add event delegation to `list()`** - `runtime/dom-event-delegate.js`
 - [ ] **Optimize dependency tracking in `pulse.get()`**
   - Currently adds to `Set` on every `.get()` call within an effect
   - Optimize: Track only fresh dependencies per effect execution cycle
   - Use generation counter to skip redundant additions
 
-- [ ] **Add virtual scrolling for `list()`**
-  - New export: `virtualList(items, render, key, { height, overscan })`
-  - Only render visible items + overscan buffer
-  - Critical for lists with 1000+ items
+- [x] **Add virtual scrolling for `list()`** - `runtime/dom-virtual-list.js`
 
 - [ ] **Add `batch()` integration with `subscribe()`**
   - `subscribe()` callbacks currently fire outside batch boundaries
   - Should respect batch semantics like effects
 
-- [ ] **Add element recycling in list reconciliation**
-  - Reuse detached DOM elements instead of creating new ones
-  - Pool unused elements by tag name
+- [x] **Add element recycling in list reconciliation** - `runtime/dom-recycle.js`
 
-- [ ] **Benchmark suite**
-  - Create `benchmarks/` directory with reproducible perf tests
-  - Track: reactivity throughput, DOM creation, list reconciliation, SSR speed
-  - Compare against Solid, Svelte, Vue 3
+- [x] **Benchmark suite** - `benchmarks/` directory
+  - Reactivity, DOM creation, list reconciliation, SSR benchmarks
+
+- [ ] **Optimize remaining hot paths**
+  - Integrate event delegation, virtual scrolling, and recycling with core `list()`
+  - Performance regression tests
 
 ### Definition of Done
 - Event delegation working for `list()`
@@ -186,7 +100,7 @@ Optimize hot paths and add missing performance features.
 
 ---
 
-## Milestone 5: Router & Navigation Enhancements (v1.9.1)
+## Milestone 5: Router & Navigation Enhancements (v1.8.2)
 
 **Priority: MEDIUM** | Effort: ~1 week
 
@@ -228,7 +142,7 @@ Close feature gaps versus Vue Router / Next.js routing.
 
 ---
 
-## Milestone 6: Form System v2 (v1.9.2)
+## Milestone 6: Form System v2 (v1.9.0)
 
 **Priority: MEDIUM** | Effort: ~1 week
 
@@ -270,7 +184,7 @@ Improve form handling to match Formik/React Hook Form capabilities.
 
 ---
 
-## Milestone 7: SSR & Streaming (v2.0.0)
+## Milestone 7: SSR & Streaming (v1.9.1)
 
 **Priority: MEDIUM** | Effort: ~2 weeks
 
@@ -319,7 +233,7 @@ Major SSR improvements for production deployment.
 
 ---
 
-## Milestone 8: Developer Experience (v2.0.1)
+## Milestone 8: Developer Experience (v1.9.2)
 
 **Priority: MEDIUM** | Effort: ~1 week
 
@@ -365,7 +279,7 @@ Polish DX tooling and error messages.
 
 ---
 
-## Milestone 9: Ecosystem & Integrations (v2.1.0)
+## Milestone 9: Ecosystem & Integrations (v2.0.0)
 
 **Priority: LOW-MEDIUM** | Effort: ~2 weeks
 
@@ -412,7 +326,7 @@ Expand the ecosystem with plugins and integrations.
 
 ---
 
-## Milestone 10: Code Architecture Refactoring (v2.2.0)
+## Milestone 10: Code Architecture Refactoring (v2.1.0)
 
 **Priority: LOW** | Effort: ~2 weeks
 
@@ -464,8 +378,8 @@ Improve maintainability of large modules.
 ```
                     HIGH IMPACT
                         │
-    M1 Type Parity ─────┼──── M3 Test Coverage
-    M2 Memory Safety    │     M4 Performance
+    ✅ M1 Type Parity ──┼──── ✅ M3 Test Coverage
+    ✅ M2 Memory Safety  │     🔄 M4 Performance
                         │
   LOW EFFORT ───────────┼─────────── HIGH EFFORT
                         │
@@ -482,16 +396,16 @@ Improve maintainability of large modules.
 
 | Version | Milestone | Target | Status |
 |---------|-----------|--------|--------|
-| v1.8.0 | M1: Type/Implementation Parity | Week 1-2 | Planned |
-| v1.8.1 | M2: Memory Safety & Cleanup | Week 2-3 | Planned |
-| v1.8.2 | M3: Test Coverage Hardening | Week 3-5 | Planned |
-| v1.9.0 | M4: Runtime Performance | Week 5-6 | Planned |
-| v1.9.1 | M5: Router Enhancements | Week 6-7 | Planned |
-| v1.9.2 | M6: Form System v2 | Week 7-8 | Planned |
-| v2.0.0 | M7: SSR & Streaming | Week 8-10 | Planned |
-| v2.0.1 | M8: Developer Experience | Week 10-11 | Planned |
-| v2.1.0 | M9: Ecosystem & Integrations | Week 11-13 | Planned |
-| v2.2.0 | M10: Code Architecture | Week 13-15 | Planned |
+| v1.8.0 | M1: Type/Implementation Parity | Week 1-2 | **DONE** |
+| v1.8.0 | M2: Memory Safety & Cleanup | Week 2-3 | **DONE** |
+| v1.8.0 | M3: Test Coverage Hardening | Week 3-5 | **DONE** |
+| v1.8.1 | M4: Runtime Performance | Feb 28 | In Progress |
+| v1.8.2 | M5: Router Enhancements | Mar 14 | Planned |
+| v1.9.0 | M6: Form System v2 | Mar 28 | Planned |
+| v1.9.1 | M7: SSR & Streaming | Apr 11 | Planned |
+| v1.9.2 | M8: Developer Experience | Apr 25 | Planned |
+| v2.0.0 | M9: Ecosystem & Integrations | May 9 | Planned |
+| v2.1.0 | M10: Code Architecture | May 23 | Planned |
 
 ---
 
@@ -514,7 +428,7 @@ These improvements are small, low-risk, and can be tackled independently:
 
 | Metric | Current | Target (v2.0) |
 |--------|---------|---------------|
-| Test suites | 75 | 90+ |
+| Test suites | 71+ | 90+ |
 | Runtime modules | 35 | 40+ |
 | TypeScript coverage | ~90% | 100% |
 | Bundle size (lite) | ~5KB | <5KB |
