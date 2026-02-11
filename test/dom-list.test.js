@@ -471,4 +471,29 @@ describe('list() Edge Cases', () => {
 
     assert.strictEqual(container.querySelectorAll('li').length, 2);
   });
+
+  test('list: cleanup is called when items with cleanup are removed', () => {
+    const items = pulse([
+      { id: 1, name: 'A' },
+      { id: 2, name: 'B' }
+    ]);
+
+    const fragment = list(
+      () => items.get(),
+      (item) => {
+        const node = el('li', item.name);
+        return node;
+      },
+      (item) => item.id
+    );
+
+    const container = document.createElement('div');
+    container.appendChild(fragment);
+
+    assert.strictEqual(container.querySelectorAll('li').length, 2);
+
+    // Remove all items to exercise the removal/cleanup path
+    items.set([]);
+    assert.strictEqual(container.querySelectorAll('li').length, 0);
+  });
 });

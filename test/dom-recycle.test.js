@@ -436,3 +436,197 @@ describe('list() with recycle option', () => {
     assert.strictEqual(pool.stats().hits, 0);
   });
 });
+
+// =============================================================================
+// resetElement edge cases
+// =============================================================================
+
+describe('resetElement edge cases', () => {
+  test('resets element with attributes set via setAttribute', () => {
+    const pool = createElementPool();
+    const el = pool.acquire('div');
+    adapter.setAttribute(el, 'data-id', '123');
+    adapter.setAttribute(el, 'class', 'active');
+    adapter.setAttribute(el, 'aria-label', 'test');
+
+    pool.release(el);
+
+    // All attributes should be removed
+    assert.strictEqual(adapter.getAttribute(el, 'data-id'), null);
+    assert.strictEqual(adapter.getAttribute(el, 'class'), null);
+    assert.strictEqual(adapter.getAttribute(el, 'aria-label'), null);
+  });
+
+  test('resets element with style.cssText', () => {
+    const pool = createElementPool();
+    const el = pool.acquire('div');
+    el.style.cssText = 'color: red; font-size: 16px;';
+    el.style.color = 'blue';
+
+    pool.release(el);
+
+    assert.strictEqual(el.style.cssText, '');
+  });
+
+  test('resets element with multiple child nodes', () => {
+    const pool = createElementPool();
+    const el = pool.acquire('div');
+    const child1 = adapter.createElement('span');
+    const child2 = adapter.createElement('p');
+    const child3 = adapter.createTextNode('text');
+    adapter.appendChild(el, child1);
+    adapter.appendChild(el, child2);
+    adapter.appendChild(el, child3);
+
+    assert.strictEqual(el.childNodes.length, 3);
+
+    pool.release(el);
+    assert.strictEqual(adapter.getFirstChild(el), null);
+    assert.strictEqual(el.childNodes.length, 0);
+  });
+
+  test('handles element without _eventListeners gracefully', () => {
+    const pool = createElementPool();
+    const el = pool.acquire('div');
+    // Simulate element that has no _eventListeners map
+    delete el._eventListeners;
+
+    // Should not throw
+    const result = pool.release(el);
+    assert.strictEqual(result, true);
+  });
+
+  test('handles element with empty _eventListeners', () => {
+    const pool = createElementPool();
+    const el = pool.acquire('div');
+    // Ensure _eventListeners exists but is empty
+    assert.strictEqual(el._eventListeners.size, 0);
+
+    const result = pool.release(el);
+    assert.strictEqual(result, true);
+  });
+
+  test('release returns false for element with empty tagName', () => {
+    const pool = createElementPool();
+    const el = adapter.createElement('div');
+    // Monkey-patch to simulate edge case
+    el.tagName = '';
+    el.nodeName = '';
+
+    const result = pool.release(el);
+    assert.strictEqual(result, false);
+  });
+
+  test('handles element with getAttributeNames method', () => {
+    const pool = createElementPool();
+    const el = pool.acquire('div');
+    adapter.setAttribute(el, 'data-x', '1');
+    adapter.setAttribute(el, 'data-y', '2');
+
+    // Add getAttributeNames method (simulating real DOM element)
+    // but remove attributes property to trigger fallback path
+    el.getAttributeNames = () => Array.from(el._attributes.keys());
+    // Remove the attributes property if it exists
+    Object.defineProperty(el, 'attributes', { get: () => undefined });
+
+    pool.release(el);
+
+    // Attributes should be cleared via getAttributeNames path
+    assert.strictEqual(adapter.getAttribute(el, 'data-x'), null);
+    assert.strictEqual(adapter.getAttribute(el, 'data-y'), null);
+  });
+
+  test('handles element where className is undefined', () => {
+    const pool = createElementPool();
+    const el = pool.acquire('div');
+    // Make className undefined
+    Object.defineProperty(el, 'className', {
+      value: undefined,
+      writable: true,
+      configurable: true
+    });
+
+    // Should not throw
+    const result = pool.release(el);
+    assert.strictEqual(result, true);
+  });
+
+  test('handles element where style is not an object', () => {
+    const pool = createElementPool();
+    const el = pool.acquire('div');
+    // Make style a non-object
+    Object.defineProperty(el, 'style', {
+      get: () => null,
+      configurable: true
+    });
+
+    // Should not throw
+    const result = pool.release(el);
+    assert.strictEqual(result, true);
+  });
+});
+
+// =============================================================================
+// Pool size tracking across operations
+// =============================================================================
+
+describe('pool size tracking', () => {
+  test('size getter returns correct value after mixed operations', () => {
+    const pool = createElementPool();
+
+    const el1 = pool.acquire('div');
+    const el2 = pool.acquire('div');
+    const el3 = pool.acquire('span');
+
+    assert.strictEqual(pool.size, 0);
+
+    pool.release(el1);
+    assert.strictEqual(pool.size, 1);
+
+    pool.release(el2);
+    assert.strictEqual(pool.size, 2);
+
+    pool.release(el3);
+    assert.strictEqual(pool.size, 3);
+
+    pool.acquire('div'); // hit
+    assert.strictEqual(pool.size, 2);
+
+    pool.acquire('div'); // hit
+    assert.strictEqual(pool.size, 1);
+
+    pool.acquire('div'); // miss (pool empty for div)
+    assert.strictEqual(pool.size, 1); // span still in pool
+  });
+
+  test('stats hitRate rounds to 3 decimal places', () => {
+    const pool = createElementPool();
+
+    // 1 miss
+    const el = pool.acquire('div');
+    pool.release(el);
+
+    // 2 hits
+    pool.acquire('div');
+    pool.release(el);
+    pool.acquire('div');
+
+    // hitRate = 2/3 = 0.667 (rounded to 3 decimals)
+    const stats = pool.stats();
+    assert.strictEqual(stats.hitRate, 0.667);
+  });
+});
+
+// =============================================================================
+// resetPool edge cases
+// =============================================================================
+
+describe('resetPool edge cases', () => {
+  test('resetPool when no pool was created is a no-op', () => {
+    // Ensure pool is reset first
+    resetPool();
+
+    // Calling resetPool again should not throw
+    assert.doesNotThrow(() => resetPool());
+  });
+});
