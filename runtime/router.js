@@ -11,6 +11,11 @@
  * - Scroll restoration
  * - Lazy-loaded routes
  * - Middleware support
+ * - Route aliases and redirects
+ * - Typed query parameter parsing
+ * - Route groups with shared layouts
+ * - Navigation loading state
+ * - Route transitions and lifecycle hooks (onBeforeLeave, onAfterEnter)
  */
 
 import { pulse, effect, batch } from './pulse.js';
@@ -417,15 +422,55 @@ function normalizeRoute(pattern, config) {
     };
   }
 
-  // Full format: pattern -> { handler, meta, beforeEnter, children }
+  // Full format: pattern -> { handler, meta, beforeEnter, children, alias, layout, group }
   return {
     pattern,
     handler: config.handler || config.component,
     meta: config.meta || {},
     beforeEnter: config.beforeEnter || null,
     children: config.children || null,
-    redirect: config.redirect || null
+    redirect: config.redirect || null,
+    alias: config.alias || null,
+    layout: config.layout || null,
+    group: config.group || false
   };
+}
+
+/**
+ * Build a query string from an object, supporting arrays and skipping null/undefined
+ *
+ * @param {Object} query - Query parameters object
+ * @returns {string} Encoded query string (without leading ?)
+ *
+ * @example
+ * buildQueryString({ q: 'hello world', tags: ['a', 'b'] })
+ * // 'q=hello+world&tags=a&tags=b'
+ *
+ * buildQueryString({ a: 'x', b: null, c: undefined })
+ * // 'a=x'
+ */
+function buildQueryString(query) {
+  if (!query || typeof query !== 'object') return '';
+
+  const params = new URLSearchParams();
+
+  for (const [key, value] of Object.entries(query)) {
+    // Skip null and undefined values
+    if (value === null || value === undefined) continue;
+
+    if (Array.isArray(value)) {
+      // Array values: ?tags=a&tags=b
+      for (const item of value) {
+        if (item !== null && item !== undefined) {
+          params.append(key, String(item));
+        }
+      }
+    } else {
+      params.append(key, String(value));
+    }
+  }
+
+  return params.toString();
 }
 
 /**
@@ -453,6 +498,27 @@ const QUERY_LIMITS = {
 };
 
 /**
+ * Parse a single query value into its typed representation
+ * Only converts when parseQueryTypes is enabled
+ *
+ * @param {string} value - Raw string value
+ * @returns {string|number|boolean} Typed value
+ */
+function parseTypedValue(value) {
+  // Boolean detection
+  if (value === 'true') return true;
+  if (value === 'false') return false;
+
+  // Number detection (strict: only numeric strings, not hex/octal/empty)
+  if (value !== '' && !isNaN(value) && !isNaN(parseFloat(value))) {
+    const num = Number(value);
+    if (isFinite(num)) return num;
+  }
+
+  return value;
+}
+
+/**
  * Parse query string into object with validation
  *
  * SECURITY: Enforces hard limits BEFORE parsing to prevent DoS attacks.
@@ -461,10 +527,14 @@ const QUERY_LIMITS = {
  * - Max parameters: 50
  *
  * @param {string} search - Query string (with or without leading ?)
+ * @param {Object} [options] - Parsing options
+ * @param {boolean} [options.typed=false] - Parse numbers and booleans from string values
  * @returns {Object} Parsed query parameters
  */
-function parseQuery(search) {
+function parseQuery(search, options = {}) {
   if (!search) return {};
+
+  const { typed = false } = options;
 
   // Remove leading ? if present
   let queryStr = search.startsWith('?') ? search.slice(1) : search;
@@ -493,6 +563,11 @@ function parseQuery(search) {
       safeValue = value.slice(0, QUERY_LIMITS.maxValueLength);
     }
 
+    // Apply typed parsing if enabled
+    if (typed) {
+      safeValue = parseTypedValue(safeValue);
+    }
+
     if (key in query) {
       // Multiple values for same key
       if (Array.isArray(query[key])) {
@@ -508,6 +583,9 @@ function parseQuery(search) {
   return query;
 }
 
+// Issue #66: Active router instance for standalone lifecycle exports
+let _activeRouter = null;
+
 /**
  * Create a router instance
  */
@@ -519,8 +597,19 @@ export function createRouter(options = {}) {
     scrollBehavior = null, // Function to control scroll restoration
     middleware: initialMiddleware = [], // Middleware functions
     persistScroll = false, // Persist scroll positions to sessionStorage
-    persistScrollKey = 'pulse-router-scroll' // Storage key for scroll persistence
+    persistScrollKey = 'pulse-router-scroll', // Storage key for scroll persistence
+    parseQueryTypes = false, // Parse typed query params (numbers, booleans)
+    transition = null // CSS transition config { enterClass, enterActiveClass, leaveClass, leaveActiveClass, duration }
   } = options;
+
+  // Validate transition duration to prevent DoS (max 10s)
+  const transitionConfig = transition ? {
+    enterClass: transition.enterClass || 'route-enter',
+    enterActiveClass: transition.enterActiveClass || 'route-enter-active',
+    leaveClass: transition.leaveClass || 'route-leave',
+    leaveActiveClass: transition.leaveActiveClass || 'route-leave-active',
+    duration: Math.min(Math.max(transition.duration || 300, 0), 10000)
+  } : null;
 
   // Middleware array (mutable for dynamic registration)
   const middleware = [...initialMiddleware];
@@ -585,14 +674,27 @@ export function createRouter(options = {}) {
   // Compile routes (supports nested routes)
   const compiledRoutes = [];
 
-  function compileRoutes(routeConfig, parentPath = '') {
+  function compileRoutes(routeConfig, parentPath = '', parentLayout = null) {
     for (const [pattern, config] of Object.entries(routeConfig)) {
       const normalized = normalizeRoute(pattern, config);
+
+      // Issue #71: Route groups — key starting with _ and group: true
+      // Group children get NO URL prefix from the group key
+      if (normalized.group && normalized.children) {
+        const groupLayout = normalized.layout || parentLayout;
+        compileRoutes(normalized.children, parentPath, groupLayout);
+        continue;
+      }
+
       const fullPattern = parentPath + pattern;
+
+      // Inherit layout from parent group if not specified
+      const routeLayout = normalized.layout || parentLayout;
 
       const route = {
         ...normalized,
         pattern: fullPattern,
+        layout: routeLayout,
         ...parsePattern(fullPattern)
       };
 
@@ -601,9 +703,24 @@ export function createRouter(options = {}) {
       // Insert into trie for fast lookup
       routeTrie.insert(fullPattern, route);
 
+      // Issue #68: Route aliases — register alias as separate trie entry
+      if (normalized.alias) {
+        const aliasTarget = normalized.alias;
+        // Create an alias route that resolves to the target's handler
+        const aliasRoute = {
+          ...route,
+          pattern: aliasTarget,
+          _isAlias: true,
+          _aliasOf: fullPattern,
+          ...parsePattern(aliasTarget)
+        };
+        compiledRoutes.push(aliasRoute);
+        routeTrie.insert(aliasTarget, aliasRoute);
+      }
+
       // Compile children (nested routes)
       if (normalized.children) {
-        compileRoutes(normalized.children, fullPattern);
+        compileRoutes(normalized.children, fullPattern, routeLayout);
       }
     }
   }
@@ -614,6 +731,13 @@ export function createRouter(options = {}) {
   const beforeHooks = [];
   const resolveHooks = [];
   const afterHooks = [];
+
+  // Issue #66: Route lifecycle hooks (per-route, registered by components)
+  const beforeLeaveHooks = new Map(); // path → [callbacks]
+  const afterEnterHooks = new Map();  // path → [callbacks]
+
+  // Issue #72: Loading change listeners
+  const loadingListeners = [];
 
   /**
    * Get current path based on mode
@@ -655,107 +779,152 @@ export function createRouter(options = {}) {
   async function navigate(path, options = {}) {
     const { replace = false, query = {}, state = null } = options;
 
-    // Find matching route first (needed for beforeEnter guard)
-    const match = findRoute(path);
-
-    // Build full path with query
-    let fullPath = path;
-    const queryString = new URLSearchParams(query).toString();
-    if (queryString) {
-      fullPath += '?' + queryString;
+    // Issue #72: Set loading state at start of navigation
+    const hasAsyncWork = middleware.length > 0 || beforeHooks.length > 0 || resolveHooks.length > 0;
+    if (hasAsyncWork) {
+      isLoading.set(true);
     }
 
-    // Handle redirect
-    if (match?.route?.redirect) {
-      const redirectPath = typeof match.route.redirect === 'function'
-        ? match.route.redirect({ params: match.params, query })
-        : match.route.redirect;
-      return navigate(redirectPath, { replace: true });
-    }
+    try {
+      // Find matching route first (needed for beforeEnter guard)
+      let match = findRoute(path);
 
-    // Create navigation context for guards
-    const from = {
-      path: currentPath.peek(),
-      params: currentParams.peek(),
-      query: currentQuery.peek(),
-      meta: currentMeta.peek()
-    };
-
-    const to = {
-      path,
-      params: match?.params || {},
-      query: parseQuery(queryString),
-      meta: match?.route?.meta || {}
-    };
-
-    // Run middleware if configured
-    if (middleware.length > 0) {
-      const runMiddleware = createMiddlewareRunner(middleware);
-      const middlewareResult = await runMiddleware({ to, from });
-      if (middlewareResult.aborted) {
-        return false;
+      // Issue #68: Resolve alias — follow alias chain (with loop protection)
+      const visited = new Set();
+      while (match?.route?.alias && !visited.has(match.route.pattern)) {
+        visited.add(match.route.pattern);
+        const aliasTarget = match.route.alias;
+        const aliasMatch = findRoute(aliasTarget);
+        if (aliasMatch) {
+          match = aliasMatch;
+        } else {
+          break;
+        }
       }
-      if (middlewareResult.redirectPath) {
-        return navigate(middlewareResult.redirectPath, { replace: true });
+
+      // Issue #70: Build full path with query using buildQueryString (array + null support)
+      let fullPath = path;
+      const queryString = buildQueryString(query);
+      if (queryString) {
+        fullPath += '?' + queryString;
       }
-      // Merge middleware meta into route meta
-      Object.assign(to.meta, middlewareResult.meta);
-    }
 
-    // Run global beforeEach hooks
-    for (const hook of beforeHooks) {
-      const result = await hook(to, from);
-      if (result === false) return false;
-      if (typeof result === 'string') {
-        return navigate(result, options);
+      // Handle redirect
+      if (match?.route?.redirect) {
+        const redirectPath = typeof match.route.redirect === 'function'
+          ? match.route.redirect({ params: match.params, query })
+          : match.route.redirect;
+        return navigate(redirectPath, { replace: true });
       }
-    }
 
-    // Run per-route beforeEnter guard
-    if (match?.route?.beforeEnter) {
-      const result = await match.route.beforeEnter(to, from);
-      if (result === false) return false;
-      if (typeof result === 'string') {
-        return navigate(result, options);
+      // Create navigation context for guards
+      const from = {
+        path: currentPath.peek(),
+        params: currentParams.peek(),
+        query: currentQuery.peek(),
+        meta: currentMeta.peek()
+      };
+
+      // Issue #70: Parse query with typed option
+      const parsedQuery = parseQuery(queryString, { typed: parseQueryTypes });
+
+      const to = {
+        path,
+        params: match?.params || {},
+        query: parsedQuery,
+        meta: match?.route?.meta || {}
+      };
+
+      // Issue #66: Run beforeLeave hooks for the current route
+      const leavePath = currentPath.peek();
+      const leaveCallbacks = beforeLeaveHooks.get(leavePath);
+      if (leaveCallbacks && leaveCallbacks.length > 0) {
+        for (const cb of [...leaveCallbacks]) {
+          const result = await cb(to, from);
+          if (result === false) return false;
+        }
       }
-    }
 
-    // Run beforeResolve hooks (after per-route guards)
-    for (const hook of resolveHooks) {
-      const result = await hook(to, from);
-      if (result === false) return false;
-      if (typeof result === 'string') {
-        return navigate(result, options);
+      // Run middleware if configured
+      if (middleware.length > 0) {
+        const runMiddleware = createMiddlewareRunner(middleware);
+        const middlewareResult = await runMiddleware({ to, from });
+        if (middlewareResult.aborted) {
+          return false;
+        }
+        if (middlewareResult.redirectPath) {
+          return navigate(middlewareResult.redirectPath, { replace: true });
+        }
+        // Merge middleware meta into route meta
+        Object.assign(to.meta, middlewareResult.meta);
       }
+
+      // Run global beforeEach hooks
+      for (const hook of beforeHooks) {
+        const result = await hook(to, from);
+        if (result === false) return false;
+        if (typeof result === 'string') {
+          return navigate(result, options);
+        }
+      }
+
+      // Run per-route beforeEnter guard
+      if (match?.route?.beforeEnter) {
+        const result = await match.route.beforeEnter(to, from);
+        if (result === false) return false;
+        if (typeof result === 'string') {
+          return navigate(result, options);
+        }
+      }
+
+      // Run beforeResolve hooks (after per-route guards)
+      for (const hook of resolveHooks) {
+        const result = await hook(to, from);
+        if (result === false) return false;
+        if (typeof result === 'string') {
+          return navigate(result, options);
+        }
+      }
+
+      // Save scroll position before leaving
+      const currentFullPath = currentPath.peek();
+      if (currentFullPath) {
+        scrollPositions.set(currentFullPath, {
+          x: window.scrollX,
+          y: window.scrollY
+        });
+        persistScrollPositions();
+      }
+
+      // Update URL
+      const url = mode === 'hash' ? `#${fullPath}` : `${base}${fullPath}`;
+      const historyState = { path: fullPath, ...(state || {}) };
+
+      if (replace) {
+        window.history.replaceState(historyState, '', url);
+      } else {
+        window.history.pushState(historyState, '', url);
+      }
+
+      // Update reactive state
+      await updateRoute(path, parsedQuery, match);
+
+      // Handle scroll behavior
+      handleScroll(to, from, scrollPositions.get(path));
+
+      // Issue #66: Run afterEnter hooks for the new route
+      const enterCallbacks = afterEnterHooks.get(path);
+      if (enterCallbacks && enterCallbacks.length > 0) {
+        for (const cb of [...enterCallbacks]) {
+          cb(to);
+        }
+      }
+
+      return true;
+    } finally {
+      // Issue #72: Always reset loading state
+      isLoading.set(false);
     }
-
-    // Save scroll position before leaving
-    const currentFullPath = currentPath.peek();
-    if (currentFullPath) {
-      scrollPositions.set(currentFullPath, {
-        x: window.scrollX,
-        y: window.scrollY
-      });
-      persistScrollPositions();
-    }
-
-    // Update URL
-    const url = mode === 'hash' ? `#${fullPath}` : `${base}${fullPath}`;
-    const historyState = { path: fullPath, ...(state || {}) };
-
-    if (replace) {
-      window.history.replaceState(historyState, '', url);
-    } else {
-      window.history.pushState(historyState, '', url);
-    }
-
-    // Update reactive state
-    await updateRoute(path, parseQuery(queryString), match);
-
-    // Handle scroll behavior
-    handleScroll(to, from, scrollPositions.get(path));
-
-    return true;
   }
 
   /**
@@ -911,6 +1080,10 @@ export function createRouter(options = {}) {
    *
    * MEMORY SAFETY: Aborts any pending lazy loads when navigating away
    * to prevent stale callbacks from updating the DOM.
+   *
+   * Supports:
+   * - Route groups with shared layouts (#71)
+   * - CSS route transitions (#66)
    */
   function outlet(container) {
     if (typeof container === 'string') {
@@ -920,6 +1093,56 @@ export function createRouter(options = {}) {
     let currentView = null;
     let cleanup = null;
 
+    /**
+     * Remove old view, optionally with CSS transition
+     */
+    function removeOldView(oldView, onDone) {
+      if (!oldView) {
+        onDone();
+        return;
+      }
+
+      // Abort any pending lazy loads before removing the view
+      if (oldView._pulseAbortLazyLoad) {
+        oldView._pulseAbortLazyLoad();
+      }
+
+      // Issue #66: CSS transition on leave
+      if (transitionConfig && oldView.classList) {
+        oldView.classList.add(transitionConfig.leaveClass);
+        requestAnimationFrame(() => {
+          oldView.classList.add(transitionConfig.leaveActiveClass);
+        });
+        setTimeout(() => {
+          oldView.classList.remove(transitionConfig.leaveClass, transitionConfig.leaveActiveClass);
+          container.replaceChildren();
+          onDone();
+        }, transitionConfig.duration);
+      } else {
+        container.replaceChildren();
+        onDone();
+      }
+    }
+
+    /**
+     * Add new view, optionally with CSS transition
+     */
+    function addNewView(view) {
+      container.appendChild(view);
+      currentView = view;
+
+      // Issue #66: CSS transition on enter
+      if (transitionConfig && view.classList) {
+        view.classList.add(transitionConfig.enterClass);
+        requestAnimationFrame(() => {
+          view.classList.add(transitionConfig.enterActiveClass);
+          setTimeout(() => {
+            view.classList.remove(transitionConfig.enterClass, transitionConfig.enterActiveClass);
+          }, transitionConfig.duration);
+        });
+      }
+    }
+
     effect(() => {
       const route = currentRoute.get();
       const params = currentParams.get();
@@ -927,85 +1150,107 @@ export function createRouter(options = {}) {
 
       // Cleanup previous view
       if (cleanup) cleanup();
-      if (currentView) {
-        // Abort any pending lazy loads before removing the view
-        if (currentView._pulseAbortLazyLoad) {
-          currentView._pulseAbortLazyLoad();
-        }
-        container.replaceChildren();
-      }
 
-      if (route && route.handler) {
-        // Create context for the route handler
-        const ctx = {
-          params,
-          query,
-          path: currentPath.peek(),
-          navigate,
-          router
-        };
+      const oldView = currentView;
+      currentView = null;
 
-        // Helper to handle errors
-        const handleError = (error) => {
-          routeError.set(error);
-          log.error('Route component error:', error);
+      function renderRoute() {
+        if (route && route.handler) {
+          // Create context for the route handler
+          const ctx = {
+            params,
+            query,
+            path: currentPath.peek(),
+            navigate,
+            router
+          };
 
-          if (onRouteError) {
-            try {
-              const errorView = onRouteError(error, ctx);
-              if (errorView instanceof Node) {
-                container.replaceChildren(errorView);
-                currentView = errorView;
-                return true;
+          // Helper to handle errors
+          const handleError = (error) => {
+            routeError.set(error);
+            log.error('Route component error:', error);
+
+            if (onRouteError) {
+              try {
+                const errorView = onRouteError(error, ctx);
+                if (errorView instanceof Node) {
+                  addNewView(errorView);
+                  return true;
+                }
+              } catch (handlerError) {
+                log.error('Route error handler threw:', handlerError);
               }
-            } catch (handlerError) {
-              log.error('Route error handler threw:', handlerError);
             }
+
+            const errorEl = el('div.route-error', [
+              el('h2', 'Route Error'),
+              el('p', error.message || 'Failed to load route component')
+            ]);
+            addNewView(errorEl);
+            return true;
+          };
+
+          // Call handler and render result (with error handling)
+          let result;
+          try {
+            result = typeof route.handler === 'function'
+              ? route.handler(ctx)
+              : route.handler;
+          } catch (error) {
+            handleError(error);
+            return;
           }
 
-          const errorEl = el('div.route-error', [
-            el('h2', 'Route Error'),
-            el('p', error.message || 'Failed to load route component')
-          ]);
-          container.replaceChildren(errorEl);
-          currentView = errorEl;
-          return true;
-        };
-
-        // Call handler and render result (with error handling)
-        let result;
-        try {
-          result = typeof route.handler === 'function'
-            ? route.handler(ctx)
-            : route.handler;
-        } catch (error) {
-          handleError(error);
-          return;
-        }
-
-        if (result instanceof Node) {
-          container.appendChild(result);
-          currentView = result;
-          routeError.set(null);
-        } else if (result && typeof result.then === 'function') {
-          // Async component
-          isLoading.set(true);
-          routeError.set(null);
-          result
-            .then(component => {
-              isLoading.set(false);
-              const view = typeof component === 'function' ? component(ctx) : component;
-              if (view instanceof Node) {
-                container.appendChild(view);
-                currentView = view;
+          if (result instanceof Node) {
+            // Issue #71: Wrap with layout if route has one
+            let view = result;
+            if (route.layout && typeof route.layout === 'function') {
+              try {
+                const layoutResult = route.layout(() => result, ctx);
+                if (layoutResult instanceof Node) {
+                  view = layoutResult;
+                }
+              } catch (error) {
+                log.error('Layout error:', error);
               }
-            })
-            .catch(error => {
-              isLoading.set(false);
-              handleError(error);
-            });
+            }
+
+            addNewView(view);
+            routeError.set(null);
+          } else if (result && typeof result.then === 'function') {
+            // Async component
+            isLoading.set(true);
+            routeError.set(null);
+            result
+              .then(component => {
+                isLoading.set(false);
+                let view = typeof component === 'function' ? component(ctx) : component;
+                if (view instanceof Node) {
+                  // Issue #71: Wrap with layout
+                  if (route.layout && typeof route.layout === 'function') {
+                    try {
+                      const layoutResult = route.layout(() => view, ctx);
+                      if (layoutResult instanceof Node) {
+                        view = layoutResult;
+                      }
+                    } catch (error) {
+                      log.error('Layout error:', error);
+                    }
+                  }
+
+                  addNewView(view);
+                }
+              })
+              .catch(error => {
+                isLoading.set(false);
+                handleError(error);
+              });
+          }
         }
       }
+
+      // Remove old view (with optional transition), then render new route
+      removeOldView(oldView, renderRoute);
     });
 
     return container;
@@ -1099,37 +1344,75 @@ export function createRouter(options = {}) {
   }
 
   /**
+   * Save current scroll and wait for popstate to fire
+   * Used by back(), forward(), and go() to integrate with scroll restoration
+   * @returns {Promise} Resolves after popstate fires or timeout
+   */
+  function saveScrollAndWaitForPopState() {
+    // Save current scroll position
+    const currentFullPath = currentPath.peek();
+    if (currentFullPath) {
+      scrollPositions.set(currentFullPath, {
+        x: window.scrollX,
+        y: window.scrollY
+      });
+      persistScrollPositions();
+    }
+
+    // Return a Promise that resolves on the next popstate (with 100ms fallback)
+    return new Promise(resolve => {
+      let resolved = false;
+      const done = () => {
+        if (resolved) return;
+        resolved = true;
+        window.removeEventListener('popstate', listener);
+        resolve();
+      };
+      const listener = () => done();
+      window.addEventListener('popstate', listener);
+      setTimeout(done, 100);
+    });
+  }
+
+  /**
    * Navigate back in browser history
-   * Equivalent to browser back button
-   * @returns {void}
+   * Saves scroll position before navigating
+   * @returns {Promise} Resolves after navigation completes
    * @example
-   * router.back(); // Go to previous page
+   * await router.back(); // Go to previous page
    */
   function back() {
+    const promise = saveScrollAndWaitForPopState();
     window.history.back();
+    return promise;
   }
 
   /**
    * Navigate forward in browser history
-   * Equivalent to browser forward button
-   * @returns {void}
+   * Saves scroll position before navigating
+   * @returns {Promise} Resolves after navigation completes
    * @example
-   * router.forward(); // Go to next page (if available)
+   * await router.forward(); // Go to next page (if available)
    */
   function forward() {
+    const promise = saveScrollAndWaitForPopState();
     window.history.forward();
+    return promise;
   }
 
   /**
    * Navigate to a specific position in browser history
+   * Saves scroll position before navigating
    * @param {number} delta - Number of entries to move (negative = back, positive = forward)
-   * @returns {void}
+   * @returns {Promise} Resolves after navigation completes
    * @example
-   * router.go(-2); // Go back 2 pages
-   * router.go(1);  // Go forward 1 page
+   * await router.go(-2); // Go back 2 pages
+   * await router.go(1);  // Go forward 1 page
    */
   function go(delta) {
+    const promise = saveScrollAndWaitForPopState();
     window.history.go(delta);
+    return promise;
   }
 
   /**
@@ -1141,6 +1424,68 @@ export function createRouter(options = {}) {
     const prev = onRouteError;
     onRouteError = handler;
     return prev;
+  }
+
+  /**
+   * Issue #72: Subscribe to loading state changes
+   * @param {function} callback - Called with (loading: boolean) when loading state changes
+   * @returns {function} Unsubscribe function
+   */
+  function onLoadingChange(callback) {
+    const dispose = effect(() => {
+      callback(isLoading.get());
+    });
+    loadingListeners.push(dispose);
+    return () => {
+      dispose();
+      const idx = loadingListeners.indexOf(dispose);
+      if (idx > -1) loadingListeners.splice(idx, 1);
+    };
+  }
+
+  /**
+   * Issue #66: Register a callback to run before leaving the current route
+   * If callback returns false, navigation is blocked
+   * @param {function} callback - (to, from) => boolean|void
+   * @returns {function} Unsubscribe function
+   */
+  function registerBeforeLeave(callback) {
+    const path = currentPath.peek();
+    if (!beforeLeaveHooks.has(path)) {
+      beforeLeaveHooks.set(path, []);
+    }
+    beforeLeaveHooks.get(path).push(callback);
+
+    return () => {
+      const hooks = beforeLeaveHooks.get(path);
+      if (hooks) {
+        const idx = hooks.indexOf(callback);
+        if (idx > -1) hooks.splice(idx, 1);
+        if (hooks.length === 0) beforeLeaveHooks.delete(path);
+      }
+    };
+  }
+
+  /**
+   * Issue #66: Register a callback to run after entering the current route
+   * @param {function} callback - (to) => void
+   * @returns {function} Unsubscribe function
+   */
+  function registerAfterEnter(callback) {
+    const path = currentPath.peek();
+    if (!afterEnterHooks.has(path)) {
+      afterEnterHooks.set(path, []);
+    }
+    afterEnterHooks.get(path).push(callback);
+
+    return () => {
+      const hooks = afterEnterHooks.get(path);
+      if (hooks) {
+        const idx = hooks.indexOf(callback);
+        if (idx > -1) hooks.splice(idx, 1);
+        if (hooks.length === 0) afterEnterHooks.delete(path);
+      }
+    };
   }
 
   /**
@@ -1195,14 +1540,25 @@ export function createRouter(options = {}) {
     afterEach,
     setErrorHandler,
 
+    // Issue #66: Route lifecycle hooks
+    onBeforeLeave: registerBeforeLeave,
+    onAfterEnter: registerAfterEnter,
+
+    // Issue #72: Loading state listener
+    onLoadingChange,
+
     // Route inspection
     isActive,
     getMatchedRoutes,
 
     // Utility functions
     matchRoute,
-    parseQuery
+    parseQuery,
+    buildQueryString
   };
+
+  // Set as active router for standalone exports (onBeforeLeave, onAfterEnter)
+  _activeRouter = router;
 
   return router;
 }
@@ -1217,11 +1573,44 @@ export function simpleRouter(routes, target = '#app') {
   return router;
 }
 
+/**
+ * Register a callback to run before leaving the current route
+ * Must be called within a route handler context
+ * @param {function} callback - (to, from) => boolean|void — return false to block
+ * @returns {function} Unsubscribe function
+ */
+export function onBeforeLeave(callback) {
+  if (!_activeRouter) {
+    log.warn('onBeforeLeave() called outside of a router context');
+    return () => {};
+  }
+  return _activeRouter.onBeforeLeave(callback);
+}
+
+/**
+ * Register a callback to run after entering the current route
+ * Must be called within a route handler context
+ * @param {function} callback - (to) => void
+ * @returns {function} Unsubscribe function
+ */
+export function onAfterEnter(callback) {
+  if (!_activeRouter) {
+    log.warn('onAfterEnter() called outside of a router context');
+    return () => {};
+  }
+  return _activeRouter.onAfterEnter(callback);
+}
+
+export { buildQueryString, parseQuery, matchRoute };
+
 export default {
   createRouter,
   simpleRouter,
   lazy,
   preload,
   matchRoute,
-  parseQuery
+  parseQuery,
+  buildQueryString,
+  onBeforeLeave,
+  onAfterEnter
 };
