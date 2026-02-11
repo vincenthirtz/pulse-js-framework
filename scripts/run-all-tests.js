@@ -61,6 +61,7 @@ const testScripts = [
   'test:integration',
   'test:context-stress',
   'test:form-edge-cases',
+  'test:form-coverage',
   'test:graphql-subscriptions',
   'test:http-edge-cases',
   'test:integration-advanced',

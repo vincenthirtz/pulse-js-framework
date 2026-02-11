@@ -169,6 +169,7 @@
     "test:integration": "node test/integration.test.js",
     "test:context-stress": "node test/context-stress.test.js",
     "test:form-edge-cases": "node test/form-edge-cases.test.js",
+    "test:form-coverage": "node test/form-coverage.test.js",
     "test:graphql-subscriptions": "node test/graphql-subscriptions.test.js",
     "test:http-edge-cases": "node test/http-edge-cases.test.js",
     "test:integration-advanced": "node test/integration-advanced.test.js",
