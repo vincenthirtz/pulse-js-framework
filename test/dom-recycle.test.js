@@ -517,21 +517,30 @@ describe('resetElement edge cases', () => {
     assert.strictEqual(result, false);
   });
 
-  test('handles element with getAttributeNames method', () => {
+  test('resets attributes via element.attributes NamedNodeMap path', () => {
     const pool = createElementPool();
     const el = pool.acquire('div');
     adapter.setAttribute(el, 'data-x', '1');
     adapter.setAttribute(el, 'data-y', '2');
 
-    // Add getAttributeNames method (simulating real DOM element)
-    // but remove attributes property to trigger fallback path
-    el.getAttributeNames = () => Array.from(el._attributes.keys());
-    // Remove the attributes property if it exists
-    Object.defineProperty(el, 'attributes', { get: () => undefined });
+    // Simulate browser-style NamedNodeMap on `attributes`
+    // This triggers the `while (attrs.length > 0)` path (line 44-48)
+    Object.defineProperty(el, 'attributes', {
+      get() {
+        const names = Array.from(el._attributes.keys());
+        return {
+          length: names.length,
+          0: names.length > 0 ? { name: names[0] } : undefined
+        };
+      },
+      configurable: true
+    });
+    // Remove getAttributeNames so the first branch is taken
+    el.getAttributeNames = undefined;
 
     pool.release(el);
 
-    // Attributes should be cleared via getAttributeNames path
+    // Attributes should be cleared via the while(attrs.length > 0) path
     assert.strictEqual(adapter.getAttribute(el, 'data-x'), null);
     assert.strictEqual(adapter.getAttribute(el, 'data-y'), null);
   });
