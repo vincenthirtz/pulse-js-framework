@@ -876,7 +876,7 @@ disposeContext(ThemeContext);
 ### Form (runtime/form.js)
 
 ```javascript
-import { useForm, useField, useFieldArray, validators } from 'pulse-js-framework/runtime/form';
+import { useForm, useField, useFieldArray, useFileField, validators } from 'pulse-js-framework/runtime/form';
 
 // Create a form with validation
 const { fields, handleSubmit, isValid, errors, reset } = useForm(
@@ -898,9 +898,59 @@ el('span.error', fields.email.error.get());
 
 // Form state
 isValid.get();        // true if all fields pass validation
-errors.get();         // { email: 'Invalid email', ... }
+errors.get();         // { email: 'Invalid email', _form: 'Form error', ... }
 fields.email.dirty.get();    // true if value changed from initial
 fields.email.touched.get();  // true if field was blurred
+
+// ===== Submission State (v1.9.0) =====
+const { isSubmitting, submitCount, submitError } = useForm(values, schema, {
+  onSubmit: async (values) => {
+    await api.createUser(values);  // If this throws, submitError is set
+  }
+});
+isSubmitting.get();     // true during async onSubmit
+submitCount.get();      // Number of submit attempts
+submitError.get();      // null | 'Server error message' (set on submit failure, cleared on next submit)
+
+// ===== Form-Level Validation (v1.9.0) =====
+const { formError, clearFormError } = useForm(
+  { password: '', confirmPassword: '' },
+  { password: [validators.required()] },
+  {
+    validate: (allValues) => {
+      const errors = {};
+      if (allValues.password !== allValues.confirmPassword) {
+        errors.confirmPassword = 'Passwords must match';
+      }
+      if (someGlobalCondition) {
+        errors._form = 'Please fix the errors above';  // Form-level error
+      }
+      return errors;  // {} means valid
+    },
+    // validate can also be async:
+    // validate: async (allValues) => { ... return errors; }
+  }
+);
+formError.get();        // null | 'Form-level error message'
+clearFormError();       // Clear form-level error only
+
+// ===== Draft Persistence (v1.9.0) =====
+const { hasDraft, clearDraft } = useForm(
+  { email: '', message: '' },
+  schema,
+  {
+    persist: true,                    // Enable draft persistence to localStorage
+    persistKey: 'contact-form',       // localStorage key (default: 'pulse-form-draft')
+    persistDebounce: 300,             // Debounce save delay (ms, default: 300)
+    persistExclude: ['password'],     // Fields to never persist
+    onSubmit: async (values) => {
+      await api.submit(values);
+      // Draft automatically cleared on successful submit
+    }
+  }
+);
+hasDraft.get();         // true if a saved draft exists in localStorage
+clearDraft();           // Manually clear saved draft
 
 // Built-in validators (sync)
 validators.required(message?)
@@ -913,6 +963,25 @@ validators.min(value, message?)
 validators.max(value, message?)
 validators.matches(fieldName, message?)
 validators.custom((value, allValues) => true | 'error message')
+
+// ===== Conditional Validators (v1.9.0) =====
+// Run rules only when condition is true
+validators.when(
+  (value, allValues) => allValues.differentShipping,  // Condition
+  [validators.required(), validators.minLength(5)]     // Rules to apply
+)
+
+// Run rules unless condition is true (inverse of when)
+validators.unless(
+  (value) => !value,               // Condition
+  [validators.email()]              // Rules to apply when condition is false
+)
+
+// Conditional validators work with async rules too
+validators.when(
+  (value, allValues) => allValues.checkUniqueness,
+  [validators.required(), validators.asyncUnique(checkFn)]
+)
 
 // Async validators (for server-side checks)
 validators.asyncCustom(async (value) => true | 'error', { debounce: 300 })
@@ -943,6 +1012,45 @@ tags.append('tag2');
 tags.remove(0);
 tags.move(0, 1);
 tags.fields.get().forEach(field => field.value.get());
+
+// ===== File Upload Field (v1.9.0) =====
+const avatar = useFileField({
+  accept: ['image/png', 'image/jpeg'],  // Allowed MIME types
+  maxSize: 5 * 1024 * 1024,             // 5MB max
+  multiple: false,                        // Single file (default)
+  maxFiles: 10,                           // Max files when multiple=true
+  preview: true,                          // Generate preview URLs for images
+  validate: (files) => {                  // Custom validation
+    if (files[0]?.size < 1024) return 'File too small';
+    return true;
+  }
+});
+
+// Reactive state
+avatar.files.get();        // Pulse<File[]>
+avatar.previews.get();     // Pulse<string[]> — object URLs for image files
+avatar.error.get();        // Pulse<string|null>
+avatar.touched.get();      // Pulse<boolean>
+avatar.valid.get();        // Computed<boolean>
+avatar.isDragging.get();   // Pulse<boolean> — true during drag-over
+
+// File input binding
+el('input[type=file]', { onchange: avatar.onChange, accept: 'image/*' });
+
+// Drag-and-drop zone
+el('.dropzone', {
+  ondragenter: avatar.onDragEnter,
+  ondragover: avatar.onDragOver,
+  ondragleave: avatar.onDragLeave,
+  ondrop: avatar.onDrop,
+  class: () => avatar.isDragging.get() ? 'drag-over' : ''
+});
+
+// Control methods
+avatar.clear();            // Remove all files
+avatar.removeFile(0);      // Remove file by index
+avatar.reset();            // Reset to initial state
+avatar.dispose();          // Cleanup preview URLs (called automatically on unmount)
 ```
 
 ### Async (runtime/async.js)
@@ -2483,7 +2591,7 @@ view {
 | `runtime/router.js` | Router (createRouter, lazy, preload, middleware) |
 | `runtime/store.js` | Store (createStore, createActions, plugins) |
 | `runtime/context.js` | Context API (createContext, useContext, Provider, provideMany) |
-| `runtime/form.js` | Form handling (useForm, useField, useFieldArray, validators) |
+| `runtime/form.js` | Form handling (useForm, useField, useFieldArray, useFileField, validators) |
 | `runtime/async.js` | Async primitives (useAsync, useResource, usePolling, createVersionedAsync) |
 | `runtime/http.js` | HTTP client (createHttp, HttpError, useHttp, useHttpResource, interceptors) |
 | `runtime/websocket.js` | WebSocket client (createWebSocket, useWebSocket, auto-reconnect, heartbeat) |
@@ -2549,7 +2657,7 @@ import { createStore, createActions, createGetters, combineStores, createModuleS
 import { createContext, useContext, Provider, Consumer, provideMany, useContextSelector, disposeContext } from 'pulse-js-framework/runtime/context';
 
 // Form
-import { useForm, useField, useFieldArray, validators } from 'pulse-js-framework/runtime/form';
+import { useForm, useField, useFieldArray, useFileField, validators } from 'pulse-js-framework/runtime/form';
 
 // Async
 import { useAsync, useResource, usePolling, createVersionedAsync } from 'pulse-js-framework/runtime/async';
