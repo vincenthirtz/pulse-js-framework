@@ -1,5 +1,216 @@
 # Changelog
 
+## [1.9.0] - 2026-02-11
+
+### Changes
+
+- test(form): add 65 tests to cover missing lines from Codecov report
+- feat(form): implement milestone v1.9.0 Form System v2 (#29, #30, #32, #34, #36)
+
+---
+
+
+## [1.8.3] - 2026-02-11
+
+### Changes
+
+- fix(ci): use jq contains() instead of test() for milestone lookup
+
+---
+
+
+## [1.8.2] - 2026-02-11
+
+### Changes
+
+- test(router): add 62 tests to cover missing lines from Codecov report
+- test(router): add v1.8.2 tests and fix alias trie overwrite bug
+- feat(router): implement milestone v1.8.2 router & navigation enhancements
+
+---
+
+
+## [1.8.1] - 2026-02-11
+
+### Changes
+
+- test(coverage): add tests for recycling transfer and virtual-list edge cases
+- feat(runtime): implement milestone v1.8.1 runtime performance
+- docs(milestones): update versions to match v1.8.0 state
+- ci(release): publish to GitHub Packages alongside npm
+
+---
+
+
+## [1.8.0] - 2026-02-11
+
+### Changes
+
+- ci(release): auto-sync package.json version on release
+- fix(test): use Proxy-based live NamedNodeMap mock to prevent infinite loop
+- fix(test): add resetContext() to M4 test afterEach hooks to prevent hang
+- fix(test): add getAttributeNames() to MockElement and fix dom-recycle test
+- test(runtime): improve Milestone 4 patch coverage and register missing test suites
+- feat(runtime): implement Milestone 4 - Runtime Performance (v1.9.0)
+- perf(ci): skip unchanged jobs and cache results across runs
+
+---
+
+
+## [1.7.38] - 2026-02-10
+
+### Changes
+
+- fix(runtime): add cleanup/dispose to all create*/use* functions (#31, #33, #35, #37)
+- fix(test): debug and fix all 7 failing/hanging test suites (66/66 pass)
+
+---
+
+
+## [1.7.37] - 2026-02-09
+
+### Changes
+
+- fix(ci): add release jobs to manual-release workflow
+
+---
+
+
+## [1.7.36] - 2026-02-09
+
+### Changes
+
+- fix(test): use clearSSRState() to properly reset module-scoped state in SSR test
+- fix(compiler): transform state assignments in text interpolation to .set() instead of .get() =
+- fix(actions): repair syntax github action
+- feat: complete milestone 1 - type/implementation parity (v1.8.0)
+- feat: harden runtime, improve SSR state isolation, add type definitions and tests
+- feat(ci): auto-tag on release PR merge in manual-release workflow
+- chore(release): bump version to 1.7.35
+- chore(release): bump version to 1.7.34
+- chore(ci): bump codecov/codecov-action from 4 to 5
+- chore(ci): bump actions/cache from 4 to 5
+- chore(ci): bump actions/github-script from 7 to 8
+
+---
+
+
+## [1.7.35] - 2026-02-08
+
+### Changes
+
+- fix(ci): make Discord notification non-blocking in manual-release
+- chore(release): bump version to 1.7.34
+- fix(ci): handle existing release branch in manual-release workflow
+- fix(ci): make release label optional in manual-release workflow
+- fix(ci): use PR-based flow for manual-release workflow
+- fix(ci): remove dynamic input from release job name
+- fix(ci): restrict release trigger to main branch only
+- feat(ci): add release type choice to CI workflow_dispatch
+- feat(loader): add SWC plugin for .pulse file compilation
+- fix(ci): harden and optimize GitHub Actions workflows
+- feat(ci): add Discord notification to manual-release workflow
+- fix(ci): handle empty git diff stats in enhance-pr-description workflow
+- feat(ci): optimize release process with two-step workflow
+- fix(ci): handle empty commits in enhance-pr-description workflow
+- feat(ci): integrate manual release workflow into CI
+- fix(ci): fix bash quoting issues in PR workflows
+- fix(ci): improve post-deploy workflow status handling
+- feat(ci): add automatic PR commit summary workflow
+- fix(examples): add missing index.html to parcel-example
+- fix(i18n): add missing parcelDemo translations and increase line variance
+- fix(ci): improve test runner robustness for GitHub Actions
+- refactor(test): improve Parcel plugin test robustness and maintainability
+- fix(test): make Parcel plugin tests more robust for CI
+- feat(loader): add Parcel transformer with full integration
+- fix(ci): fix conditional logic in post-deploy workflow
+- fix(ci): add explicit branch validation to post-deploy workflow
+- fix(ci): simplify sed command in post-deploy workflow
+- fix(ci): fix YAML syntax error in post-deploy workflow
+- fix(ci): prevent post-deploy workflow loop and improve branch filtering
+- fix(ci): fix post-deploy workflow to only run on main branch
+- chore(ci): add codecov configuration for better coverage reporting
+- fix(ci): fix failing GitHub Actions workflows
+- feat(loader): add ESBuild plugin with ultra-fast builds
+- docs(ci): add comprehensive PR automation documentation
+- feat(ci): enhance PR descriptions with detailed commit analysis
+- chore(ci): remove obsolete create-release workflow
+- feat(ci): add automated post-deploy release system
+- feat(loaders): add Webpack and Rollup build tool integrations
+- docs: add quick setup guide for Git Flow and branch protection
+- docs: update CONTRIBUTING.md with Git Flow strategy
+- feat(git): implement Git Flow with branch protection and develop branch
+- docs(ci): add comprehensive CI/CD improvements summary
+- chore(ci): bump codecov/codecov-action from 4 to 5
+- chore(ci): bump actions/cache from 4 to 5
+- chore(ci): bump actions/github-script from 7 to 8
+- feat(ci): comprehensive CI/CD improvements and automation
+- feat(ci): add automated release creation workflow after Netlify deploy
+- feat(release): add GitHub CLI integration for automated releases
+- chore(release): v1.7.33 - compiler improvements for LESS/Stylus examples
+- feat(compiler): add support for compound assignment and increment operators
+- fix(docs): update LESS and Stylus example links to point to live demos
+
+---
+
+
+## [1.7.34] - 2026-02-08
+
+### Changes
+
+- fix(ci): handle existing release branch in manual-release workflow
+- fix(ci): make release label optional in manual-release workflow
+- fix(ci): use PR-based flow for manual-release workflow
+- fix(ci): remove dynamic input from release job name
+- fix(ci): restrict release trigger to main branch only
+- feat(ci): add release type choice to CI workflow_dispatch
+- feat(loader): add SWC plugin for .pulse file compilation
+- fix(ci): harden and optimize GitHub Actions workflows
+- feat(ci): add Discord notification to manual-release workflow
+- fix(ci): handle empty git diff stats in enhance-pr-description workflow
+- feat(ci): optimize release process with two-step workflow
+- fix(ci): handle empty commits in enhance-pr-description workflow
+- feat(ci): integrate manual release workflow into CI
+- fix(ci): fix bash quoting issues in PR workflows
+- fix(ci): improve post-deploy workflow status handling
+- feat(ci): add automatic PR commit summary workflow
+- fix(examples): add missing index.html to parcel-example
+- fix(i18n): add missing parcelDemo translations and increase line variance
+- fix(ci): improve test runner robustness for GitHub Actions
+- refactor(test): improve Parcel plugin test robustness and maintainability
+- fix(test): make Parcel plugin tests more robust for CI
+- feat(loader): add Parcel transformer with full integration
+- fix(ci): fix conditional logic in post-deploy workflow
+- fix(ci): add explicit branch validation to post-deploy workflow
+- fix(ci): simplify sed command in post-deploy workflow
+- fix(ci): fix YAML syntax error in post-deploy workflow
+- fix(ci): prevent post-deploy workflow loop and improve branch filtering
+- fix(ci): fix post-deploy workflow to only run on main branch
+- chore(ci): add codecov configuration for better coverage reporting
+- fix(ci): fix failing GitHub Actions workflows
+- feat(loader): add ESBuild plugin with ultra-fast builds
+- docs(ci): add comprehensive PR automation documentation
+- feat(ci): enhance PR descriptions with detailed commit analysis
+- chore(ci): remove obsolete create-release workflow
+- feat(ci): add automated post-deploy release system
+- feat(loaders): add Webpack and Rollup build tool integrations
+- docs: add quick setup guide for Git Flow and branch protection
+- docs: update CONTRIBUTING.md with Git Flow strategy
+- feat(git): implement Git Flow with branch protection and develop branch
+- docs(ci): add comprehensive CI/CD improvements summary
+- chore(ci): bump codecov/codecov-action from 4 to 5
+- chore(ci): bump actions/cache from 4 to 5
+- chore(ci): bump actions/github-script from 7 to 8
+- feat(ci): comprehensive CI/CD improvements and automation
+- feat(ci): add automated release creation workflow after Netlify deploy
+- feat(release): add GitHub CLI integration for automated releases
+- chore(release): v1.7.33 - compiler improvements for LESS/Stylus examples
+- feat(compiler): add support for compound assignment and increment operators
+- fix(docs): update LESS and Stylus example links to point to live demos
+
+---
+
+
 All notable changes to Pulse Framework will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
