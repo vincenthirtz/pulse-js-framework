@@ -257,6 +257,61 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "[View PR]($PR_URL)" >> $GITHUB_STEP_SUMMARY
 
+  sync-develop:
+    name: Sync main → develop
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.merged == true &&
+      startsWith(github.event.pull_request.head.ref, 'release/v')
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Merge main into develop
+        id: merge
+        run: |
+          git fetch origin main develop
+          git checkout develop
+          git merge origin/main --no-edit -m "chore: sync main → develop after release"
+          git push origin develop
+
+          echo "status=success" >> $GITHUB_OUTPUT
+
+      - name: Handle merge conflict
+        if: failure()
+        run: |
+          echo "::error::Merge conflict detected when syncing main → develop."
+          echo "::error::Please resolve manually: git checkout develop && git merge origin/main"
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Sync main → develop" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.merge.outcome }}" = "success" ]; then
+            echo "Branch \`develop\` has been synchronized with \`main\`." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**Failed** - Manual merge required." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+            echo "git checkout develop" >> $GITHUB_STEP_SUMMARY
+            echo "git merge origin/main" >> $GITHUB_STEP_SUMMARY
+            echo "# Resolve conflicts, then:" >> $GITHUB_STEP_SUMMARY
+            echo "git push origin develop" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          fi
+
   auto-tag:
     name: Auto Tag on PR Merge
     runs-on: ubuntu-latest

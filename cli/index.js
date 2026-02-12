@@ -53,7 +53,8 @@ const commands = {
   scaffold: runScaffoldCmd,
   docs: runDocsCmd,
   release: runReleaseCmd,
-  'docs-test': runDocsTestCmd
+  'docs-test': runDocsTestCmd,
+  ssg: runSSGCmd
 };
 
 // Command aliases for common typos
@@ -1015,6 +1016,16 @@ async function runBuild(args) {
 
   const { buildProject } = await import('./build.js');
   await buildProject(args);
+}
+
+/**
+ * Run static site generation
+ */
+async function runSSGCmd(args) {
+  log.info('Running static site generation...');
+
+  const { runSSG } = await import('./ssg.js');
+  await runSSG(args);
 }
 
 /**

@@ -2,6 +2,8 @@
  * Pulse SSR - Server-Side Rendering Module
  *
  * Provides server-side rendering and client-side hydration for Pulse applications.
+ * Includes streaming SSR, selective rendering (@client/@server), and hydration
+ * mismatch detection.
  *
  * @module pulse-js-framework/runtime/ssr
  *
@@ -24,6 +26,15 @@
  *
  * hydrate('#app', () => App(), {
  *   state: window.__PULSE_STATE__
+ * });
+ *
+ * @example
+ * // Streaming SSR
+ * import { renderToStream } from 'pulse-js-framework/runtime/ssr';
+ *
+ * const stream = renderToStream(() => App(), {
+ *   shellStart: '<!DOCTYPE html><html><body><div id="app">',
+ *   shellEnd: '</div></body></html>'
  * });
  */
 
@@ -299,6 +310,76 @@ export function hydrate(target, componentFactory, options = {}) {
 }
 
 // ============================================================================
+// Selective SSR: ClientOnly / ServerOnly (#39)
+// ============================================================================
+
+/**
+ * Render content only on the client side. During SSR, renders the fallback
+ * (or an empty comment node). On the client, renders the main content.
+ *
+ * Use this for browser-only components (charts, maps, animations, etc.)
+ * that would break during server-side rendering.
+ *
+ * @param {Function} clientFactory - Factory function for client-side content
+ * @param {Function} [fallbackFactory] - Optional fallback factory for SSR
+ * @returns {*} DOM node(s) or comment placeholder
+ *
+ * @example
+ * import { ClientOnly } from 'pulse-js-framework/runtime/ssr';
+ *
+ * const chart = ClientOnly(
+ *   () => el('canvas.chart', { onmount: initChart }),
+ *   () => el('.placeholder', 'Chart loading...')
+ * );
+ *
+ * @example
+ * // In .pulse file with @client directive:
+ * // .chart @client { canvas "Loading..." }
+ */
+export function ClientOnly(clientFactory, fallbackFactory) {
+  if (isSSR()) {
+    // During SSR: render fallback or empty placeholder
+    if (fallbackFactory) {
+      return fallbackFactory();
+    }
+    // Return a comment node as placeholder
+    const adapter = getAdapter();
+    return adapter.createComment('client-only');
+  }
+  // On client: render the actual content
+  return clientFactory();
+}
+
+/**
+ * Render content only during SSR. On the client, renders an empty comment node.
+ *
+ * Use this for server-only content like JSON-LD structured data,
+ * meta tags, or server-side analytics scripts.
+ *
+ * @param {Function} serverFactory - Factory function for server-side content
+ * @returns {*} DOM node(s) or comment placeholder
+ *
+ * @example
+ * import { ServerOnly } from 'pulse-js-framework/runtime/ssr';
+ *
+ * const seoData = ServerOnly(
+ *   () => el('script[type=application/ld+json]', JSON.stringify(schema))
+ * );
+ *
+ * @example
+ * // In .pulse file with @server directive:
+ * // .seo @server { script[type=application/ld+json] "{seoJson}" }
+ */
+export function ServerOnly(serverFactory) {
+  if (isSSR()) {
+    return serverFactory();
+  }
+  // On client: empty placeholder
+  const adapter = getAdapter();
+  return adapter.createComment('server-only');
+}
+
+// ============================================================================
 // State Serialization
 // ============================================================================
 
@@ -365,9 +446,12 @@ export function serializeState(state) {
   const preprocessed = preprocessForSerialization(state);
 
   return JSON.stringify(preprocessed)
-    // Escape </script> to prevent XSS
-    .replace(/<\/script/gi, '<\\/script')
-    .replace(/<!--/g, '<\\!--');
+    // Escape all < and > to prevent HTML parser interference in <script> context
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    // Escape unicode line/paragraph separators (invalid in JS strings pre-ES2019)
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
 }
 
 /**
@@ -455,6 +539,15 @@ export function clearSSRState() {
 export { isHydratingMode, getHydrationContext } from './ssr-hydrator.js';
 export { getSSRAsyncContext } from './ssr-async.js';
 
+// Streaming SSR (#38)
+export { renderToStream, renderToReadableStream } from './ssr-stream.js';
+
+// Hydration mismatch detection (#44)
+export { MismatchType, diffNodes, logMismatches, getSuggestion } from './ssr-mismatch.js';
+
+// Preload hints (#42)
+export { generatePreloadHints, getRoutePreloads, parseBuildManifest, createPreloadMiddleware, hintsToHTML } from './ssr-preload.js';
+
 // ============================================================================
 // Default Export
 // ============================================================================
@@ -464,6 +557,13 @@ export default {
   renderToString,
   renderToStringSync,
   hydrate,
+
+  // Streaming
+  // renderToStream and renderToReadableStream are re-exported above
+
+  // Selective rendering
+  ClientOnly,
+  ServerOnly,
 
   // State management
   serializeState,
