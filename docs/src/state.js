@@ -217,7 +217,7 @@ export function getNavigation() {
 }
 
 // Current version - automatically updated by npm version script
-export const version = '1.9.2';
+export const version = '1.9.3';
 
 // =============================================================================
 // Current Path State (for reactive active link detection)

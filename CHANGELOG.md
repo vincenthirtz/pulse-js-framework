@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.9.3] - 2026-02-12
+
+### Changes
+
+- ci: refactor workflows with reusable pipelines, fix caching, and parallelize tests
+
+---
+
+
 ## [1.9.2] - 2026-02-12
 
 ### Changes
