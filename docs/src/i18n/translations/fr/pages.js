@@ -702,7 +702,14 @@ export default {
     childInstancesDesc: 'Créez des clients spécialisés qui héritent d\'un parent :',
     fileUpload: 'Upload de fichiers',
     urlParameters: 'Paramètres URL',
-    fullExample: 'Exemple complet'
+    fullExample: 'Exemple complet',
+    advancedInterceptors: 'Patterns d\'intercepteurs avancés',
+    advancedInterceptorsDesc: 'Patterns d\'intercepteurs pour les cas d\'usage courants :',
+    tokenRefresh: 'Authentification avec rafraîchissement de token',
+    requestLogging: 'Journalisation des requêtes/réponses',
+    cachingRequests: 'Mise en cache des requêtes GET',
+    rateLimiting: 'Limitation du débit',
+    errorNormalization: 'Normalisation des erreurs'
   },
 
   // Accessibility page

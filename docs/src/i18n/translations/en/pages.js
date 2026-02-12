@@ -707,7 +707,14 @@ export default {
     childInstancesDesc: 'Create specialized clients that inherit from a parent:',
     fileUpload: 'File Upload',
     urlParameters: 'URL Parameters',
-    fullExample: 'Complete Example'
+    fullExample: 'Complete Example',
+    advancedInterceptors: 'Advanced Interceptor Patterns',
+    advancedInterceptorsDesc: 'Real-world interceptor patterns for common use cases:',
+    tokenRefresh: 'Authentication with Token Refresh',
+    requestLogging: 'Request/Response Logging',
+    cachingRequests: 'Caching GET Requests',
+    rateLimiting: 'Rate Limiting',
+    errorNormalization: 'Error Normalization'
   },
 
   // Mobile page
