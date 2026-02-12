@@ -317,42 +317,78 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Close milestone issues
+      - name: Close milestone and issues
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           VERSION="${{ inputs.version }}"
-          echo "Looking for milestone matching version v${VERSION}..."
+          echo "Looking for milestones to close for release v${VERSION}..."
 
-          # Find milestone whose title contains (vX.Y.Z)
-          MILESTONE=$(gh api repos/${{ github.repository }}/milestones --jq ".[] | select(.title | contains(\"(v${VERSION})\")) | .number")
+          # Extract semver components for comparison
+          REL_MAJOR=$(echo "$VERSION" | cut -d. -f1)
+          REL_MINOR=$(echo "$VERSION" | cut -d. -f2)
+          REL_PATCH=$(echo "$VERSION" | cut -d. -f3 | sed 's/-.*//')
 
-          if [ -z "$MILESTONE" ]; then
-            echo "::notice::No milestone found for v${VERSION}, skipping"
+          # Get all open milestones
+          MILESTONES=$(gh api "repos/${{ github.repository }}/milestones?state=open&per_page=100" --jq '.[] | "\(.number)|\(.title)|\(.open_issues)"')
+
+          if [ -z "$MILESTONES" ]; then
+            echo "::notice::No open milestones found, skipping"
             exit 0
           fi
 
-          MILESTONE_TITLE=$(gh api repos/${{ github.repository }}/milestones/${MILESTONE} --jq '.title')
-          echo "Found milestone #${MILESTONE}: ${MILESTONE_TITLE}"
+          TOTAL_CLOSED_MILESTONES=0
+          TOTAL_CLOSED_ISSUES=0
 
-          # Close all open issues in this milestone
-          ISSUES=$(gh api "repos/${{ github.repository }}/issues?milestone=${MILESTONE}&state=open&per_page=100" --jq '.[].number')
-          CLOSED_COUNT=0
+          while IFS='|' read -r MS_NUMBER MS_TITLE MS_OPEN; do
+            [ -z "$MS_NUMBER" ] && continue
 
-          for ISSUE in $ISSUES; do
-            echo "Closing issue #${ISSUE}..."
-            gh issue close "$ISSUE" --repo "${{ github.repository }}" --comment "Closed automatically by release v${VERSION}."
-            CLOSED_COUNT=$((CLOSED_COUNT + 1))
-          done
+            # Extract version from milestone title, e.g. "SSR & Streaming (v1.9.1)" -> "1.9.1"
+            MS_VERSION=$(echo "$MS_TITLE" | grep -oE '\(v[0-9]+\.[0-9]+\.[0-9]+[^)]*\)' | tr -d '()v')
 
-          echo "Closed ${CLOSED_COUNT} issue(s) from milestone '${MILESTONE_TITLE}'"
+            if [ -z "$MS_VERSION" ]; then
+              echo "Skipping milestone '${MS_TITLE}' (no version in title)"
+              continue
+            fi
 
-          # Close the milestone itself
-          if [ "$CLOSED_COUNT" -gt 0 ] || [ "$(gh api repos/${{ github.repository }}/milestones/${MILESTONE} --jq '.open_issues')" = "0" ]; then
-            echo "Closing milestone '${MILESTONE_TITLE}'..."
-            gh api --method PATCH "repos/${{ github.repository }}/milestones/${MILESTONE}" -f state=closed
-            echo "Milestone closed"
-          fi
+            # Compare: only close milestones with version <= release version
+            MS_MAJOR=$(echo "$MS_VERSION" | cut -d. -f1)
+            MS_MINOR=$(echo "$MS_VERSION" | cut -d. -f2)
+            MS_PATCH=$(echo "$MS_VERSION" | cut -d. -f3 | sed 's/-.*//')
+
+            IS_LTEQ=false
+            if [ "$MS_MAJOR" -lt "$REL_MAJOR" ]; then
+              IS_LTEQ=true
+            elif [ "$MS_MAJOR" -eq "$REL_MAJOR" ] && [ "$MS_MINOR" -lt "$REL_MINOR" ]; then
+              IS_LTEQ=true
+            elif [ "$MS_MAJOR" -eq "$REL_MAJOR" ] && [ "$MS_MINOR" -eq "$REL_MINOR" ] && [ "$MS_PATCH" -le "$REL_PATCH" ]; then
+              IS_LTEQ=true
+            fi
+
+            if [ "$IS_LTEQ" = "false" ]; then
+              echo "Skipping milestone '${MS_TITLE}' (v${MS_VERSION} > v${VERSION})"
+              continue
+            fi
+
+            echo "Processing milestone #${MS_NUMBER}: ${MS_TITLE} (v${MS_VERSION})"
+
+            # Close all open issues in this milestone
+            ISSUES=$(gh api "repos/${{ github.repository }}/issues?milestone=${MS_NUMBER}&state=open&per_page=100" --jq '.[].number')
+
+            for ISSUE in $ISSUES; do
+              echo "  Closing issue #${ISSUE}..."
+              gh issue close "$ISSUE" --repo "${{ github.repository }}" --comment "Closed automatically by release v${VERSION}."
+              TOTAL_CLOSED_ISSUES=$((TOTAL_CLOSED_ISSUES + 1))
+            done
+
+            # Close the milestone
+            echo "  Closing milestone '${MS_TITLE}'..."
+            gh api --method PATCH "repos/${{ github.repository }}/milestones/${MS_NUMBER}" -f state=closed
+            TOTAL_CLOSED_MILESTONES=$((TOTAL_CLOSED_MILESTONES + 1))
+
+          done <<< "$MILESTONES"
+
+          echo "Summary: closed ${TOTAL_CLOSED_MILESTONES} milestone(s), ${TOTAL_CLOSED_ISSUES} issue(s)"
 
       - name: Summary
         run: |

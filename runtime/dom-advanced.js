@@ -21,63 +21,142 @@ const log = loggers.dom;
  *
  * @param {*|Function} children - Children to render (static or reactive)
  * @param {string|HTMLElement} target - Target selector or element
- * @returns {Comment} Marker node for position tracking
+ * @param {Object} [options] - Portal options
+ * @param {string} [options.key] - Unique key for multiple portals to same target
+ * @param {boolean} [options.prepend=false] - Insert at beginning of target
+ * @param {Function} [options.onMount] - Called when children are mounted
+ * @param {Function} [options.onUnmount] - Called when children are unmounted
+ * @returns {Comment} Marker node with dispose(), moveTo(), getNodes() methods
  */
-export function portal(children, target) {
+export function portal(children, target, options = {}) {
   const dom = getAdapter();
-  const { element: resolvedTarget, selector } = resolveSelector(target, 'portal');
+  const { key = null, prepend = false, onMount = null, onUnmount = null } = options;
+
+  let currentTarget = null;
+  let currentSelector = null;
+  let mountedNodes = [];
+  let disposed = false;
+  let disposeEffect = null;
+
+  // Resolve target
+  function _resolveTarget(tgt) {
+    const { element: resolvedTarget, selector } = resolveSelector(tgt, 'portal');
+    currentTarget = resolvedTarget;
+    currentSelector = selector;
+    return resolvedTarget;
+  }
+
+  const resolvedTarget = _resolveTarget(target);
 
   if (!resolvedTarget) {
-    log.warn(`Portal target not found: "${selector}"`);
-    return dom.createComment('portal-target-not-found');
+    log.warn(`Portal target not found: "${currentSelector}"`);
+    const marker = dom.createComment(key ? `portal:${key}` : 'portal-target-not-found');
+    marker.dispose = () => {};
+    marker.moveTo = () => {};
+    marker.getNodes = () => [];
+    return marker;
   }
 
-  const marker = dom.createComment('portal');
-  let mountedNodes = [];
+  const marker = dom.createComment(key ? `portal:${key}` : 'portal');
 
-  // Handle reactive children
-  if (typeof children === 'function') {
-    effect(() => {
-      // Cleanup previous nodes
-      for (const node of mountedNodes) {
-        dom.removeNode(node);
-        if (node._pulseUnmount) {
-          for (const cb of node._pulseUnmount) cb();
-        }
-      }
-      mountedNodes = [];
-
-      const result = children();
-      if (result) {
-        const nodes = Array.isArray(result) ? result : [result];
-        for (const node of nodes) {
-          if (dom.isNode(node)) {
-            dom.appendChild(resolvedTarget, node);
-            mountedNodes.push(node);
-          }
-        }
-      }
-    });
-  } else {
-    // Static children
-    const nodes = Array.isArray(children) ? children : [children];
-    for (const node of nodes) {
-      if (dom.isNode(node)) {
-        dom.appendChild(resolvedTarget, node);
-        mountedNodes.push(node);
-      }
-    }
-  }
-
-  // Return marker for position tracking, attach cleanup
-  marker._pulseUnmount = [() => {
+  function _clearNodes() {
     for (const node of mountedNodes) {
       dom.removeNode(node);
       if (node._pulseUnmount) {
         for (const cb of node._pulseUnmount) cb();
       }
     }
-  }];
+    if (mountedNodes.length > 0) {
+      onUnmount?.();
+    }
+    mountedNodes = [];
+  }
+
+  function _mountNodes(nodes, tgt) {
+    for (const node of nodes) {
+      if (dom.isNode(node)) {
+        if (prepend && tgt.firstChild) {
+          dom.insertBefore(tgt, node, tgt.firstChild);
+        } else {
+          dom.appendChild(tgt, node);
+        }
+        mountedNodes.push(node);
+      }
+    }
+    if (mountedNodes.length > 0) {
+      onMount?.();
+    }
+  }
+
+  function _renderChildren(tgt) {
+    if (typeof children === 'function') {
+      const result = children();
+      if (result) {
+        const nodes = Array.isArray(result) ? result : [result];
+        _mountNodes(nodes, tgt);
+      }
+    } else {
+      const nodes = Array.isArray(children) ? children : [children];
+      _mountNodes(nodes, tgt);
+    }
+  }
+
+  // Handle reactive children
+  if (typeof children === 'function') {
+    disposeEffect = effect(() => {
+      if (disposed) return;
+      _clearNodes();
+      _renderChildren(currentTarget);
+    });
+  } else {
+    _renderChildren(currentTarget);
+  }
+
+  /**
+   * Manually dispose portal (remove all portaled nodes)
+   */
+  marker.dispose = function () {
+    if (disposed) return;
+    disposed = true;
+    _clearNodes();
+    if (disposeEffect) disposeEffect();
+  };
+
+  /**
+   * Move portaled content to a new target
+   * @param {string|HTMLElement} newTarget - New target selector or element
+   */
+  marker.moveTo = function (newTarget) {
+    if (disposed) return;
+
+    const resolved = _resolveTarget(newTarget);
+    if (!resolved) {
+      log.warn(`Portal moveTo target not found: "${currentSelector}"`);
+      return;
+    }
+
+    // Re-mount existing nodes in new target
+    const existingNodes = [...mountedNodes];
+    // Remove from old target without unmount callbacks
+    for (const node of existingNodes) {
+      dom.removeNode(node);
+    }
+    mountedNodes = [];
+
+    // Re-mount in new target
+    _mountNodes(existingNodes, resolved);
+  };
+
+  /**
+   * Get currently portaled nodes
+   * @returns {Array} Currently mounted nodes
+   */
+  marker.getNodes = function () {
+    return [...mountedNodes];
+  };
+
+  // Attach cleanup for parent effect cascade
+  marker._pulseUnmount = [() => marker.dispose()];
 
   return marker;
 }

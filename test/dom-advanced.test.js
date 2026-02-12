@@ -488,4 +488,146 @@ describe('whenTransition', () => {
   });
 });
 
+// ============================================================================
+// Portal — Additional Edge Cases
+// ============================================================================
+
+describe('portal — additional edge cases', () => {
+  beforeEach(() => {
+    adapter = new MockDOMAdapter();
+    setAdapter(adapter);
+    resetContext();
+  });
+
+  afterEach(() => {
+    resetAdapter();
+  });
+
+  test('portal moveTo with invalid target logs warning', async () => {
+    const { portal } = await import('../runtime/dom-advanced.js');
+
+    const target = adapter.createElement('div');
+    adapter.appendChild(adapter.getBody(), target);
+
+    const child = adapter.createElement('span');
+    const marker = portal(child, target);
+
+    // moveTo with non-existent target
+    const originalWarn = console.warn;
+    let warned = false;
+    console.warn = () => { warned = true; };
+
+    marker.moveTo('#nonexistent-target');
+
+    console.warn = originalWarn;
+    assert.ok(warned);
+  });
+
+  test('portal getNodes returns currently mounted nodes', async () => {
+    const { portal } = await import('../runtime/dom-advanced.js');
+
+    const target = adapter.createElement('div');
+    adapter.appendChild(adapter.getBody(), target);
+
+    const child1 = adapter.createElement('span');
+    const child2 = adapter.createElement('p');
+    const marker = portal([child1, child2], target);
+
+    const nodes = marker.getNodes();
+    assert.strictEqual(nodes.length, 2);
+    assert.strictEqual(nodes[0], child1);
+    assert.strictEqual(nodes[1], child2);
+  });
+
+  test('portal dispose on already disposed marker is no-op', async () => {
+    const { portal } = await import('../runtime/dom-advanced.js');
+
+    const target = adapter.createElement('div');
+    adapter.appendChild(adapter.getBody(), target);
+
+    const child = adapter.createElement('span');
+    const marker = portal(child, target);
+
+    marker.dispose();
+    // Second dispose should not throw
+    assert.doesNotThrow(() => marker.dispose());
+  });
+
+  test('portal moveTo on disposed marker is no-op', async () => {
+    const { portal } = await import('../runtime/dom-advanced.js');
+
+    const target = adapter.createElement('div');
+    adapter.appendChild(adapter.getBody(), target);
+
+    const child = adapter.createElement('span');
+    const marker = portal(child, target);
+
+    marker.dispose();
+    assert.doesNotThrow(() => marker.moveTo(target));
+  });
+});
+
+// ============================================================================
+// Error Boundary — Additional Edge Cases
+// ============================================================================
+
+describe('errorBoundary — additional edge cases', () => {
+  beforeEach(() => {
+    adapter = new MockDOMAdapter();
+    setAdapter(adapter);
+    resetContext();
+  });
+
+  afterEach(() => {
+    resetAdapter();
+  });
+
+  test('errorBoundary with static (non-function) fallback', async () => {
+    const { errorBoundary } = await import('../runtime/dom-advanced.js');
+
+    const originalError = console.error;
+    console.error = () => {};
+
+    const staticFallback = adapter.createElement('div');
+    staticFallback.textContent = 'Error occurred';
+
+    const children = () => {
+      throw new Error('boom');
+    };
+
+    const container = errorBoundary(children, staticFallback);
+    const root = adapter.createElement('div');
+    adapter.appendChild(root, container);
+
+    adapter.flushMicrotasks();
+    adapter.flushMicrotasks();
+
+    console.error = originalError;
+
+    // Should have rendered the static fallback element
+    const elements = root.childNodes.filter(n => n.nodeType === 1);
+    assert.ok(elements.length >= 1);
+  });
+
+  test('errorBoundary with null fallback still catches error', async () => {
+    const { errorBoundary } = await import('../runtime/dom-advanced.js');
+
+    const originalError = console.error;
+    console.error = () => {};
+
+    const children = () => { throw new Error('test'); };
+    const container = errorBoundary(children, null);
+    const root = adapter.createElement('div');
+    adapter.appendChild(root, container);
+
+    adapter.flushMicrotasks();
+    adapter.flushMicrotasks();
+
+    console.error = originalError;
+
+    // Should not crash even without fallback
+    assert.ok(container.nodeType === 11);
+  });
+});
+
 console.log('DOM Advanced tests loaded');
