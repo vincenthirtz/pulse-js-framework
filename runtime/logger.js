@@ -382,7 +382,11 @@ export const loggers = {
   get native() { return isProduction ? noopLogger : createDevLogger('Native', {}); },
   get hmr() { return isProduction ? noopLogger : createDevLogger('HMR', {}); },
   get cli() { return isProduction ? noopLogger : createDevLogger('CLI', {}); },
-  get websocket() { return isProduction ? noopLogger : createDevLogger('WebSocket', {}); }
+  get websocket() { return isProduction ? noopLogger : createDevLogger('WebSocket', {}); },
+  get sse() { return isProduction ? noopLogger : createDevLogger('SSE', {}); },
+  get i18n() { return isProduction ? noopLogger : createDevLogger('I18n', {}); },
+  get animation() { return isProduction ? noopLogger : createDevLogger('Animation', {}); },
+  get sw() { return isProduction ? noopLogger : createDevLogger('SW', {}); }
 };
 
 export default logger;

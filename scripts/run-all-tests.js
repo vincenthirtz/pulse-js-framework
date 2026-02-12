@@ -108,6 +108,14 @@ const testGroups = {
     'test:swc-plugin',
     'test:dev-server',
   ],
+  ecosystem: [
+    'test:sse',
+    'test:persistence',
+    'test:i18n',
+    'test:portal',
+    'test:animation',
+    'test:sw',
+  ],
   integration: [
     'test:integration',
     'test:integration-advanced',

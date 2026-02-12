@@ -60,6 +60,21 @@ export * from './lru-cache.js';
 // DOM Adapter (for SSR/testing)
 export * from './dom-adapter.js';
 
+// SSE (Server-Sent Events)
+export * from './sse.js';
+
+// Persistence adapters (IndexedDB, SessionStorage, Memory)
+export * from './persistence.js';
+
+// Animation system (Web Animations API)
+export * from './animation.js';
+
+// Internationalization (i18n)
+export * from './i18n.js';
+
+// Service worker (main thread registration)
+export * from './sw.js';
+
 // Default exports for namespace imports
 export { default as PulseCore } from './pulse.js';
 export { default as PulseDOM } from './dom.js';
@@ -75,6 +90,11 @@ export { default as PulseSSR } from './ssr.js';
 export { default as PulseA11y } from './a11y.js';
 export { default as PulseNative } from './native.js';
 export { default as PulseLogger } from './logger.js';
+export { default as PulseSSE } from './sse.js';
+export { default as PulsePersistence } from './persistence.js';
+export { default as PulseAnimation } from './animation.js';
+export { default as PulseI18n } from './i18n.js';
+export { default as PulseSW } from './sw.js';
 
 // Note: The following modules are intentionally NOT re-exported here
 // to enable tree-shaking. Import them directly when needed:

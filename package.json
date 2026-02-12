@@ -110,6 +110,26 @@
     "./server/hono": "./server/hono.js",
     "./server/fastify": "./server/fastify.js",
     "./server/utils": "./server/utils.js",
+    "./runtime/sse": {
+      "types": "./types/sse.d.ts",
+      "default": "./runtime/sse.js"
+    },
+    "./runtime/persistence": {
+      "types": "./types/persistence.d.ts",
+      "default": "./runtime/persistence.js"
+    },
+    "./runtime/animation": {
+      "types": "./types/animation.d.ts",
+      "default": "./runtime/animation.js"
+    },
+    "./runtime/i18n": {
+      "types": "./types/i18n.d.ts",
+      "default": "./runtime/i18n.js"
+    },
+    "./sw": {
+      "types": "./types/sw.d.ts",
+      "default": "./sw/index.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [
@@ -121,6 +141,7 @@
     "loader/",
     "mobile/",
     "server/",
+    "sw/",
     "types/",
     "README.md",
     "LICENSE"
@@ -198,6 +219,12 @@
     "test:interceptor-manager": "node test/interceptor-manager.test.js",
     "test:vite-plugin": "node --test test/vite-plugin.test.js",
     "test:memory-cleanup": "node --test test/memory-cleanup.test.js",
+    "test:sse": "node --test test/sse.test.js",
+    "test:persistence": "node --test test/persistence.test.js",
+    "test:i18n": "node --test test/i18n.test.js",
+    "test:portal": "node --test test/portal.test.js",
+    "test:animation": "node --test test/animation.test.js",
+    "test:sw": "node --test test/sw.test.js",
     "test:dev-server": "node --test test/dev-server.test.js",
     "test:ssr-stream": "node --test test/ssr-stream.test.js",
     "test:ssr-mismatch": "node --test test/ssr-mismatch.test.js",
