@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.9.2] - 2026-02-12
+
+### Changes
+
+- ci(release): add sync main → develop job after release merge
+- fix(ssr): use escapeAttr for bootstrapModules src attribute
+- feat(ssr): implement milestone v1.9.1 SSR & Streaming (#38, #39, #42, #44, #46, #48)
+
+---
+
+
 ## [1.9.0] - 2026-02-11
 
 ### Changes
