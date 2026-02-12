@@ -588,3 +588,174 @@ describe('availableLocales', () => {
     assert.ok(i18n.availableLocales.includes('ja'));
   });
 });
+
+// ============================================================================
+// tc() — Additional Edge Cases
+// ============================================================================
+
+describe('tc() — edge cases', () => {
+  test('tc falls back to fallbackLocale', () => {
+    const i18n = createI18n({
+      locale: 'fr',
+      fallbackLocale: 'en',
+      messages: {
+        en: { items: 'no items | one item | {count} items' },
+        fr: {}
+      }
+    });
+    assert.strictEqual(i18n.tc('items', 3), '3 items');
+  });
+
+  test('tc uses missing handler when key not found', () => {
+    const missing = [];
+    const i18n = createI18n({
+      locale: 'en',
+      messages: { en: {} },
+      missing: (locale, key) => {
+        missing.push({ locale, key });
+        return `[missing:${key}]`;
+      }
+    });
+    const result = i18n.tc('absent', 5);
+    assert.strictEqual(result, '[missing:absent]');
+    assert.strictEqual(missing.length, 1);
+  });
+
+  test('tc returns key for non-string message', () => {
+    const i18n = createI18n({
+      locale: 'en',
+      messages: {
+        en: { nested: { child: 'value' } }
+      }
+    });
+    // 'nested' resolves to an object
+    assert.strictEqual(i18n.tc('nested', 1), 'nested');
+  });
+});
+
+// ============================================================================
+// d() and n() — Error Handling
+// ============================================================================
+
+describe('d() — error handling', () => {
+  test('returns string for invalid date input', () => {
+    const i18n = createI18n({ locale: 'en' });
+    const result = i18n.d('not-a-date');
+    assert.strictEqual(typeof result, 'string');
+  });
+});
+
+describe('n() — error handling', () => {
+  test('returns string representation for invalid options', () => {
+    const i18n = createI18n({ locale: 'en' });
+    // Invalid style should trigger catch
+    const result = i18n.n(42, { style: 'invalid-style-that-does-not-exist' });
+    assert.strictEqual(typeof result, 'string');
+  });
+});
+
+// ============================================================================
+// _deepMerge — Depth Limit
+// ============================================================================
+
+describe('loadMessages — deep merge edge cases', () => {
+  test('deep merge stops at max depth', () => {
+    const i18n = createI18n({
+      locale: 'en',
+      messages: { en: { a: { b: { c: { d: { e: { f: { g: { h: { i: { j: 'deep' } } } } } } } } } } }
+    });
+
+    // Try to merge even deeper
+    i18n.loadMessages('en', {
+      a: { b: { c: { d: { e: { f: { g: { h: { i: { j: { k: { l: 'too deep' } } } } } } } } } } }
+    });
+
+    // Should not crash, original value should be preserved at some depth
+    assert.strictEqual(typeof i18n.t('a'), 'string'); // returns key since it's object
+  });
+
+  test('deep merge skips dangerous keys', () => {
+    const i18n = createI18n({
+      locale: 'en',
+      messages: { en: { safe: 'ok' } }
+    });
+
+    i18n.loadMessages('en', {
+      constructor: { hack: true },
+      prototype: { polluted: true },
+      safe: 'still ok'
+    });
+
+    assert.strictEqual(i18n.t('safe'), 'still ok');
+    assert.strictEqual(({}).polluted, undefined);
+  });
+});
+
+// ============================================================================
+// _getPluralIndex — Fallback for Unknown Locale
+// ============================================================================
+
+describe('Pluralization — unknown locale fallback', () => {
+  test('uses default fallback for unknown locale without custom rules', () => {
+    const i18n = createI18n({
+      locale: 'xx',
+      messages: {
+        xx: { items: 'zero | one | many' }
+      }
+    });
+    // Fallback: count === 0 → 0, count === 1 → 1, else → 2
+    assert.strictEqual(i18n.tc('items', 0), 'zero');
+    assert.strictEqual(i18n.tc('items', 1), 'one');
+    assert.strictEqual(i18n.tc('items', 5), 'many');
+  });
+
+  test('uses default English rules for en-US locale', () => {
+    const i18n = createI18n({
+      locale: 'en-US',
+      messages: {
+        'en-US': { items: 'none | single | multiple' }
+      }
+    });
+    // Should use 'en' rules (split on '-')
+    assert.strictEqual(i18n.tc('items', 0), 'none');
+    assert.strictEqual(i18n.tc('items', 1), 'single');
+    assert.strictEqual(i18n.tc('items', 10), 'multiple');
+  });
+});
+
+// ============================================================================
+// _interpolate — Edge Cases
+// ============================================================================
+
+describe('Interpolation edge cases', () => {
+  test('returns message as-is when no params provided', () => {
+    const i18n = createI18n({
+      locale: 'en',
+      messages: { en: { msg: 'Hello {name}' } }
+    });
+    assert.strictEqual(i18n.t('msg'), 'Hello {name}');
+  });
+
+  test('handles empty params object', () => {
+    const i18n = createI18n({
+      locale: 'en',
+      messages: { en: { msg: 'Hello {name}' } }
+    });
+    assert.strictEqual(i18n.t('msg', {}), 'Hello {name}');
+  });
+});
+
+// ============================================================================
+// Modifiers — Edge Cases
+// ============================================================================
+
+describe('Modifiers edge cases', () => {
+  test('no modifiers config returns value unchanged', () => {
+    const i18n = createI18n({
+      locale: 'en',
+      messages: { en: { val: 'test' } },
+      // No modifiers option
+    });
+    assert.strictEqual(i18n.t('val | anything'), 'test');
+  });
+});

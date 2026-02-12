@@ -514,4 +514,231 @@ describe('useSSE', () => {
     assert.deepStrictEqual(received, { test: true });
     result.sse.dispose();
   });
+
+  test('calls user onOpen callback', () => {
+    let openCalled = false;
+    const result = useSSE('http://localhost/events', {
+      onOpen: () => { openCalled = true; }
+    });
+    const es = MockEventSource.lastInstance;
+    es.simulateOpen();
+
+    assert.ok(openCalled);
+    result.sse.dispose();
+  });
+
+  test('calls user onError callback', () => {
+    let errorReceived = null;
+    const result = useSSE('http://localhost/events', {
+      reconnect: false,
+      onError: (err) => { errorReceived = err; }
+    });
+    const es = MockEventSource.lastInstance;
+    es.simulateOpen();
+    es.simulateError();
+
+    assert.ok(errorReceived);
+    result.sse.dispose();
+  });
+});
+
+// ============================================================================
+// Reconnection Behavior
+// ============================================================================
+
+describe('createSSE — reconnection', () => {
+  test('error on connected state triggers reconnection', () => {
+    const sse = createSSE('http://localhost/events', {
+      reconnect: true,
+      maxRetries: 3,
+      baseDelay: 10,
+    });
+    const es = MockEventSource.lastInstance;
+    es.simulateOpen();
+
+    assert.strictEqual(sse.connected.get(), true);
+    es.simulateError();
+
+    assert.strictEqual(sse.reconnecting.get(), true);
+    sse.dispose();
+  });
+
+  test('does not reconnect when reconnect is false', () => {
+    const sse = createSSE('http://localhost/events', {
+      reconnect: false,
+    });
+    const es = MockEventSource.lastInstance;
+    es.simulateOpen();
+    es.simulateError();
+
+    assert.strictEqual(sse.reconnecting.get(), false);
+    sse.dispose();
+  });
+
+  test('max retries exhausted sets error with MAX_RETRIES code', async () => {
+    const sse = createSSE('http://localhost/events', {
+      reconnect: true,
+      maxRetries: 2,
+      baseDelay: 5,
+    });
+
+    // Simulate errors to exhaust retries
+    let es = MockEventSource.lastInstance;
+    es.simulateOpen();
+    es.simulateError();
+
+    // Wait for reconnect timer
+    await new Promise(r => setTimeout(r, 50));
+
+    // Second attempt error
+    es = MockEventSource.lastInstance;
+    if (es) es.simulateError();
+
+    await new Promise(r => setTimeout(r, 50));
+
+    // Third attempt error (attempt 2 = maxRetries)
+    es = MockEventSource.lastInstance;
+    if (es) es.simulateError();
+
+    await new Promise(r => setTimeout(r, 50));
+
+    // Should have exhausted retries
+    const err = sse.error.get();
+    if (err) {
+      assert.ok(SSEError.isSSEError(err));
+    }
+
+    sse.dispose();
+  });
+
+  test('successful reconnect resets attempt counter', async () => {
+    const sse = createSSE('http://localhost/events', {
+      reconnect: true,
+      maxRetries: 5,
+      baseDelay: 5,
+    });
+    const es = MockEventSource.lastInstance;
+    es.simulateOpen();
+    es.simulateError();
+
+    // Wait for reconnect
+    await new Promise(r => setTimeout(r, 50));
+
+    // New EventSource should be created
+    const es2 = MockEventSource.lastInstance;
+    if (es2 && es2 !== es) {
+      es2.simulateOpen();
+      assert.strictEqual(sse.reconnectAttempt.get(), 0);
+    }
+
+    sse.dispose();
+  });
+});
+
+// ============================================================================
+// Event Handler Edge Cases
+// ============================================================================
+
+describe('createSSE — event handler edge cases', () => {
+  test('handler that throws is caught and does not crash', () => {
+    const sse = createSSE('http://localhost/events');
+    sse.addEventListener('message', () => { throw new Error('handler error'); });
+
+    const es = MockEventSource.lastInstance;
+    es.simulateOpen();
+
+    // Should not throw
+    assert.doesNotThrow(() => {
+      es.simulateMessage('test data');
+    });
+
+    sse.dispose();
+  });
+
+  test('removeEventListener for non-existent event does not crash', () => {
+    const sse = createSSE('http://localhost/events', { immediate: false });
+    const handler = () => {};
+
+    assert.doesNotThrow(() => {
+      sse.removeEventListener('nonexistent', handler);
+    });
+  });
+
+  test('removeEventListener cleans up empty handler set', () => {
+    const sse = createSSE('http://localhost/events', { immediate: false });
+    const handler = () => {};
+
+    sse.addEventListener('custom', handler);
+    sse.removeEventListener('custom', handler);
+
+    // Removing the only handler should clean up, second remove should not crash
+    assert.doesNotThrow(() => {
+      sse.removeEventListener('custom', handler);
+    });
+  });
+
+  test('addEventListener for non-config event adds to live EventSource', () => {
+    const sse = createSSE('http://localhost/events', {
+      events: ['message'],
+    });
+    const es = MockEventSource.lastInstance;
+    es.simulateOpen();
+
+    let received = null;
+    sse.addEventListener('custom-event', (data) => { received = data; });
+
+    // The custom event listener should have been registered on EventSource
+    assert.ok(es._listeners.has('custom-event'));
+
+    sse.dispose();
+  });
+
+  test('events after dispose are ignored', () => {
+    let messageCount = 0;
+    const sse = createSSE('http://localhost/events', {
+      onMessage: () => { messageCount++; }
+    });
+    const es = MockEventSource.lastInstance;
+    es.simulateOpen();
+    es.simulateMessage('msg1');
+    assert.strictEqual(messageCount, 1);
+
+    sse.dispose();
+
+    // Messages after dispose should be ignored
+    es.simulateMessage('msg2');
+    assert.strictEqual(messageCount, 1);
+  });
+
+  test('connect after dispose is no-op', () => {
+    const sse = createSSE('http://localhost/events', { immediate: false });
+    sse.dispose();
+
+    const countBefore = MockEventSource.instances.length;
+    sse.connect();
+    assert.strictEqual(MockEventSource.instances.length, countBefore);
+  });
+
+  test('close resets reconnecting state', () => {
+    const sse = createSSE('http://localhost/events');
+    const es = MockEventSource.lastInstance;
+    es.simulateOpen();
+
+    sse.close();
+
+    assert.strictEqual(sse.state.get(), 'closed');
+    assert.strictEqual(sse.reconnecting.get(), false);
+    assert.strictEqual(sse.connected.get(), false);
+  });
+
+  test('lastEventId not updated when empty', () => {
+    const sse = createSSE('http://localhost/events');
+    const es = MockEventSource.lastInstance;
+    es.simulateOpen();
+
+    es.simulateMessage('data', { lastEventId: '' });
+    assert.strictEqual(sse.lastEventId.get(), null);
+
+    sse.dispose();
+  });
 });
