@@ -40,6 +40,7 @@ jobs:
       docs: ${{ steps.filter.outputs.docs }}
       ci: ${{ steps.filter.outputs.ci }}
       src_hash: ${{ steps.hash.outputs.src_hash }}
+      deps_hash: ${{ steps.hash.outputs.deps_hash }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -76,6 +77,10 @@ jobs:
           SRC_HASH=$(find runtime compiler cli loader test scripts mobile -name "*.js" -type f 2>/dev/null | sort | xargs cat 2>/dev/null | sha256sum | cut -d' ' -f1)
           echo "src_hash=$SRC_HASH" >> $GITHUB_OUTPUT
           echo "Source hash: $SRC_HASH"
+
+          DEPS_HASH=$(cat package.json package-lock.json 2>/dev/null | sha256sum | cut -d' ' -f1)
+          echo "deps_hash=$DEPS_HASH" >> $GITHUB_OUTPUT
+          echo "Deps hash: $DEPS_HASH"
 
   # Security audit - runs only when deps change
   security:
@@ -161,9 +166,10 @@ jobs:
       - name: Cache test results
         uses: actions/cache@v4
         id: test-cache
+        if: github.event_name != 'workflow_dispatch'
         with:
           path: .test-results
-          key: test-node${{ matrix.node-version }}-${{ needs.changes.outputs.src_hash }}
+          key: test-node${{ matrix.node-version }}-src${{ needs.changes.outputs.src_hash }}-deps${{ needs.changes.outputs.deps_hash }}
 
       - name: Install dependencies
         if: steps.test-cache.outputs.cache-hit != 'true'
@@ -174,11 +180,11 @@ jobs:
         run: |
           npm test
           mkdir -p .test-results
-          echo "${{ needs.changes.outputs.src_hash }}" > .test-results/last-pass
+          echo "node${{ matrix.node-version }}-src${{ needs.changes.outputs.src_hash }}-deps${{ needs.changes.outputs.deps_hash }}" > .test-results/last-pass
 
       - name: Skip tests (cache hit)
         if: steps.test-cache.outputs.cache-hit == 'true'
-        run: echo "Tests already passed for this source hash, skipping."
+        run: echo "Tests already passed for this source+deps hash on Node ${{ matrix.node-version }}, skipping."
 
   coverage:
     name: Coverage
@@ -204,9 +210,10 @@ jobs:
       - name: Cache coverage results
         uses: actions/cache@v4
         id: cov-cache
+        if: github.event_name != 'workflow_dispatch'
         with:
           path: coverage
-          key: coverage-${{ needs.changes.outputs.src_hash }}
+          key: coverage-src${{ needs.changes.outputs.src_hash }}-deps${{ needs.changes.outputs.deps_hash }}
 
       - name: Install dependencies
         if: steps.cov-cache.outputs.cache-hit != 'true'
@@ -261,7 +268,7 @@ jobs:
         id: build-cache
         with:
           path: dist
-          key: build-${{ needs.changes.outputs.src_hash }}
+          key: build-src${{ needs.changes.outputs.src_hash }}-deps${{ needs.changes.outputs.deps_hash }}
 
       - name: Install dependencies
         if: steps.build-cache.outputs.cache-hit != 'true'
