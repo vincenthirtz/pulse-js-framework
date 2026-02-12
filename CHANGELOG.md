@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.10.0] - 2026-02-12
+
+### Changes
+
+- test: improve coverage for v2.0.0 ecosystem modules
+- feat: add milestone v2.0.0 ecosystem modules (SSE, persistence, i18n, animation, portal, service worker)
+
+---
+
+
 ## [1.9.3] - 2026-02-12
 
 ### Changes
