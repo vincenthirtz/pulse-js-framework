@@ -237,7 +237,7 @@ export function renderToStream(componentFactory, options = {}) {
             scriptTags += `<script src="${escapeAttr(src)}"></script>`;
           }
           for (const src of bootstrapModules) {
-            scriptTags += `<script type="module" src="${escapeHTML(src)}"></script>`;
+            scriptTags += `<script type="module" src="${escapeAttr(src)}"></script>`;
           }
 
           // Enqueue shell HTML
