@@ -34,6 +34,10 @@ export const NodeType = {
   LiveDirective: 'LiveDirective',
   FocusTrapDirective: 'FocusTrapDirective',
 
+  // SSR directives
+  ClientDirective: 'ClientDirective',
+  ServerDirective: 'ServerDirective',
+
   Property: 'Property',
   ObjectLiteral: 'ObjectLiteral',
   ArrayLiteral: 'ArrayLiteral',
@@ -799,6 +803,14 @@ export class Parser {
       return this.parseSrOnlyDirective();
     }
 
+    // SSR directives
+    if (name === 'client') {
+      return new ASTNode(NodeType.ClientDirective, {});
+    }
+    if (name === 'server') {
+      return new ASTNode(NodeType.ServerDirective, {});
+    }
+
     // @model directive for two-way binding
     if (name === 'model') {
       return this.parseModelDirective(modifiers);
@@ -833,6 +845,14 @@ export class Parser {
     }
     if (name === 'srOnly') {
       return this.parseSrOnlyDirective();
+    }
+
+    // SSR directives
+    if (name === 'client') {
+      return new ASTNode(NodeType.ClientDirective, {});
+    }
+    if (name === 'server') {
+      return new ASTNode(NodeType.ServerDirective, {});
     }
 
     // @model directive for two-way binding

@@ -188,7 +188,9 @@ export function serializeToHTML(node, options = {}) {
   // Comment node (nodeType 8)
   if (node.nodeType === 8) {
     const data = node.data ?? node.textContent ?? '';
-    return `${prefix}<!--${data}-->`;
+    // Escape sequences that could break out of HTML comments
+    const safeData = data.replace(/--/g, '\\u002d\\u002d').replace(/>/g, '\\u003e');
+    return `${prefix}<!--${safeData}-->`;
   }
 
   // Document fragment (nodeType 11)

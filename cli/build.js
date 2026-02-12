@@ -22,6 +22,20 @@ export async function buildProject(args) {
   const outDir = join(root, 'dist');
   const timer = createTimer();
 
+  // Check for --ssg flag
+  const ssgIndex = args.indexOf('--ssg');
+  const isSSG = ssgIndex !== -1;
+  if (isSSG) {
+    args.splice(ssgIndex, 1);
+  }
+
+  // Check for --manifest flag
+  const manifestIndex = args.indexOf('--manifest');
+  const generateManifest = manifestIndex !== -1 || isSSG;
+  if (manifestIndex !== -1) {
+    args.splice(manifestIndex, 1);
+  }
+
   // Check if vite is available
   try {
     const viteConfig = join(root, 'vite.config.js');
@@ -90,6 +104,30 @@ export async function buildProject(args) {
 
   // Bundle runtime
   bundleRuntime(outDir);
+
+  // Generate build manifest
+  if (generateManifest) {
+    try {
+      const { generateBuildManifest } = await import('./ssg.js');
+      const manifest = generateBuildManifest(outDir);
+      const manifestPath = join(outDir, '.pulse-manifest.json');
+      writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
+      log.info('  Generated: .pulse-manifest.json');
+    } catch (err) {
+      log.warn(`  Warning: Could not generate manifest: ${err.message}`);
+    }
+  }
+
+  // Run SSG if requested
+  if (isSSG) {
+    log.info('\n  Running static site generation...\n');
+    try {
+      const { runSSG } = await import('./ssg.js');
+      await runSSG(args);
+    } catch (err) {
+      log.warn(`  SSG warning: ${err.message}`);
+    }
+  }
 
   const elapsed = timer.elapsed();
   log.success(`

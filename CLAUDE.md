@@ -1778,10 +1778,13 @@ function UserProfile({ userId }) {
 
 | Module | Purpose |
 |--------|---------|
-| `ssr.js` | Main entry point (renderToString, hydrate) |
+| `ssr.js` | Main entry point (renderToString, hydrate, ClientOnly, ServerOnly) |
+| `ssr-stream.js` | Streaming SSR (renderToStream, renderToReadableStream) |
 | `ssr-serializer.js` | HTML serialization for MockNode trees |
 | `ssr-hydrator.js` | Client-side hydration utilities |
 | `ssr-async.js` | Async data collection during SSR |
+| `ssr-mismatch.js` | Hydration mismatch detection (dev-mode) |
+| `ssr-preload.js` | Preload hint generation from build manifest |
 
 **How SSR Works:**
 
@@ -1792,6 +1795,162 @@ function UserProfile({ userId }) {
 5. **Serialization**: MockNode tree → HTML string
 6. **State Transfer**: Serialize state for client
 7. **Hydration**: Client attaches listeners to existing DOM
+
+#### Streaming SSR (runtime/ssr-stream.js)
+
+```javascript
+import { renderToStream, renderToReadableStream } from 'pulse-js-framework/runtime/ssr';
+
+// Render to a ReadableStream (Web Streams API)
+const stream = renderToStream(() => App(), {
+  shellStart: '<!DOCTYPE html><html><head></head><body><div id="app">',
+  shellEnd: '</div></body></html>',
+  timeout: 10000,
+  bootstrapModules: ['/assets/main.js'],
+  onShellError: (err) => console.error('Shell failed:', err),
+  onBoundaryError: (id, err) => console.error(`Boundary ${id}:`, err)
+});
+
+// Use with Web Streams (Hono, Deno, Bun)
+return new Response(stream, { headers: { 'Content-Type': 'text/html' } });
+
+// Use with Node.js pipe
+import { Readable } from 'stream';
+Readable.fromWeb(stream).pipe(res);
+
+// With abort control
+const { stream, abort } = renderToReadableStream(() => App(), options);
+abort(); // Cancel streaming
+```
+
+#### Selective Rendering: ClientOnly / ServerOnly
+
+```javascript
+import { ClientOnly, ServerOnly } from 'pulse-js-framework/runtime/ssr';
+
+// Client-only content (skipped during SSR, rendered on client)
+const chart = ClientOnly(
+  () => el('canvas.chart', { onmount: initChart }),
+  () => el('.placeholder', 'Chart loading...')  // SSR fallback
+);
+
+// Server-only content (rendered during SSR, skipped on client)
+const seoData = ServerOnly(
+  () => el('script[type=application/ld+json]', JSON.stringify(schema))
+);
+```
+
+In .pulse files, use `@client` and `@server` directives:
+
+```pulse
+view {
+  // Client-only (browser APIs, animations, etc.)
+  .chart @client { canvas "Loading chart..." }
+
+  // Server-only (SEO, structured data, etc.)
+  .seo @server { script[type=application/ld+json] "{seoJson}" }
+}
+```
+
+#### Hydration Mismatch Detection (runtime/ssr-mismatch.js)
+
+```javascript
+import { diffNodes, logMismatches, getSuggestion, MismatchType } from 'pulse-js-framework/runtime/ssr';
+
+// Compare server and client DOM (dev-mode only)
+const reports = diffNodes(serverNode, clientNode);
+logMismatches(reports);
+// Output:
+//   [Pulse Hydration] 2 mismatches detected:
+//   1. [TEXT] at div.container > p
+//      Server: "Hello John"
+//      Client: "Hello Guest"
+//      -> Text content differs. If using browser-only values, wrap in ClientOnly().
+
+// Mismatch types: TAG, TEXT, ATTRIBUTE, CHILDREN, EXTRA_NODE, MISSING_NODE
+```
+
+#### Preload Hint Generation (runtime/ssr-preload.js)
+
+```javascript
+import {
+  generatePreloadHints, getRoutePreloads, parseBuildManifest,
+  createPreloadMiddleware, hintsToHTML
+} from 'pulse-js-framework/runtime/ssr';
+
+// Generate <link> preload tags from a build manifest
+const manifest = parseBuildManifest(require('./dist/.pulse-manifest.json'));
+const hints = generatePreloadHints(manifest, '/dashboard');
+// '<link rel="modulepreload" href="/assets/dashboard.js">\n...'
+
+// Create middleware for automatic preload injection
+const getPreloads = createPreloadMiddleware(manifest);
+const preloadHtml = getPreloads('/dashboard');
+// Inject into <head> of SSR response
+```
+
+#### Static Site Generation (CLI)
+
+```bash
+# Pre-render all routes to static HTML
+pulse build --ssg
+
+# Pre-render specific routes
+pulse ssg --routes /,/about,/contact
+
+# With options
+pulse ssg --routes /,/about --concurrent 8 --timeout 15000 --no-trailing-slash
+```
+
+```javascript
+// Programmatic SSG
+import { generateStaticSite, generateBuildManifest } from 'pulse-js-framework/cli/ssg';
+
+const result = await generateStaticSite({
+  routes: ['/', '/about', '/blog'],
+  outDir: 'dist',
+  concurrent: 4,
+  timeout: 10000,
+  onPageGenerated: ({ route, filePath }) => console.log(`Generated: ${route}`)
+});
+console.log(`${result.successCount}/${result.totalRoutes} pages generated`);
+```
+
+#### Server Framework Adapters
+
+```javascript
+// Express
+import express from 'express';
+import { createExpressMiddleware } from 'pulse-js-framework/server/express';
+
+const app = express();
+app.use(createExpressMiddleware({
+  app: ({ route, query }) => App({ route, query }),
+  templatePath: './dist/index.html',
+  distDir: './dist',
+  streaming: false
+}));
+
+// Hono
+import { Hono } from 'hono';
+import { createHonoMiddleware } from 'pulse-js-framework/server/hono';
+
+const app = new Hono();
+app.use('*', createHonoMiddleware({
+  app: ({ route }) => App({ route }),
+  streaming: true  // Hono supports streaming natively
+}));
+
+// Fastify
+import Fastify from 'fastify';
+import { createFastifyPlugin } from 'pulse-js-framework/server/fastify';
+
+const app = Fastify();
+app.register(createFastifyPlugin({
+  app: ({ route }) => App({ route }),
+  templatePath: './dist/index.html'
+}));
+```
 
 ### A11y (runtime/a11y.js)
 
@@ -2600,10 +2759,18 @@ view {
 | `runtime/devtools.js` | Dev tools (trackedPulse, time-travel, dependency graph, profiling, a11y audit) |
 | `runtime/native.js` | Native mobile bridge (storage, device, UI, lifecycle) |
 | `runtime/hmr.js` | Hot module replacement (createHMRContext) |
-| `runtime/ssr.js` | Server-side rendering (renderToString, hydrate, serializeState) |
+| `runtime/ssr.js` | Server-side rendering (renderToString, hydrate, ClientOnly, ServerOnly) |
+| `runtime/ssr-stream.js` | Streaming SSR (renderToStream, renderToReadableStream) |
 | `runtime/ssr-serializer.js` | HTML serialization for MockNode trees |
 | `runtime/ssr-hydrator.js` | Client-side hydration utilities |
 | `runtime/ssr-async.js` | Async data collection during SSR |
+| `runtime/ssr-mismatch.js` | Hydration mismatch detection (dev-mode DOM diff) |
+| `runtime/ssr-preload.js` | Preload hint generation from build manifest |
+| `server/index.js` | Server middleware factory (createPulseHandler) |
+| `server/express.js` | Express adapter (createExpressMiddleware) |
+| `server/hono.js` | Hono adapter (createHonoMiddleware) |
+| `server/fastify.js` | Fastify adapter (createFastifyPlugin) |
+| `cli/ssg.js` | Static site generation (generateStaticSite, runSSG) |
 | `runtime/lite.js` | Minimal bundle (~5KB) with core reactivity and DOM only |
 | `runtime/logger.js` | Centralized logging with namespaces and levels |
 | `runtime/lru-cache.js` | LRU cache for HTTP/GraphQL response caching |
@@ -2684,7 +2851,21 @@ import { createHMRContext } from 'pulse-js-framework/runtime/hmr';
 import { enableDevTools, trackedPulse, trackedEffect, getDependencyGraph } from 'pulse-js-framework/runtime/devtools';
 
 // SSR (Server-Side Rendering)
-import { renderToString, renderToStringSync, hydrate, serializeState, deserializeState, isSSR } from 'pulse-js-framework/runtime/ssr';
+import { renderToString, renderToStringSync, hydrate, serializeState, deserializeState, isSSR, ClientOnly, ServerOnly } from 'pulse-js-framework/runtime/ssr';
+
+// Streaming SSR
+import { renderToStream, renderToReadableStream } from 'pulse-js-framework/runtime/ssr';
+
+// SSR Mismatch Detection
+import { diffNodes, logMismatches, MismatchType, getSuggestion } from 'pulse-js-framework/runtime/ssr';
+
+// SSR Preload Hints
+import { generatePreloadHints, getRoutePreloads, parseBuildManifest, createPreloadMiddleware, hintsToHTML } from 'pulse-js-framework/runtime/ssr';
+
+// Server Framework Adapters
+import { createExpressMiddleware } from 'pulse-js-framework/server/express';
+import { createHonoMiddleware } from 'pulse-js-framework/server/hono';
+import { createFastifyPlugin } from 'pulse-js-framework/server/fastify';
 
 // Lite build (minimal bundle ~5KB)
 import { pulse, effect, computed, el, mount, list, when } from 'pulse-js-framework/runtime/lite';

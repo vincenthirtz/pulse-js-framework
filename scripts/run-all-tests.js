@@ -81,6 +81,12 @@ const testScripts = [
   'test:memory-cleanup',
   'test:vite-plugin',
   'test:dev-server',
+  'test:ssr-stream',
+  'test:ssr-mismatch',
+  'test:ssr-preload',
+  'test:ssr-directives',
+  'test:ssg',
+  'test:server-adapters',
 ];
 
 const results = {

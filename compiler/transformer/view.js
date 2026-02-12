@@ -23,7 +23,10 @@ export const VIEW_NODE_HANDLERS = {
   // Accessibility directives
   [NodeType.A11yDirective]: 'transformA11yDirective',
   [NodeType.LiveDirective]: 'transformLiveDirective',
-  [NodeType.FocusTrapDirective]: 'transformFocusTrapDirective'
+  [NodeType.FocusTrapDirective]: 'transformFocusTrapDirective',
+  // SSR directives
+  [NodeType.ClientDirective]: 'transformClientDirective',
+  [NodeType.ServerDirective]: 'transformServerDirective'
 };
 
 /**
@@ -119,6 +122,10 @@ export function transformViewNode(transformer, node, indent = 0) {
         return transformLiveDirective(transformer, node, indent);
       case NodeType.FocusTrapDirective:
         return transformFocusTrapDirective(transformer, node, indent);
+      case NodeType.ClientDirective:
+        return transformClientDirective(transformer, node, indent);
+      case NodeType.ServerDirective:
+        return transformServerDirective(transformer, node, indent);
       default:
         return `${' '.repeat(indent)}/* unknown node: ${node.type} */`;
     }
@@ -516,6 +523,26 @@ export function transformElement(transformer, node, indent) {
   const a11yDirectives = node.directives.filter(d => d.type === NodeType.A11yDirective);
   const liveDirectives = node.directives.filter(d => d.type === NodeType.LiveDirective);
   const focusTrapDirectives = node.directives.filter(d => d.type === NodeType.FocusTrapDirective);
+  const clientDirectives = node.directives.filter(d => d.type === NodeType.ClientDirective);
+  const serverDirectives = node.directives.filter(d => d.type === NodeType.ServerDirective);
+
+  // Check for @client directive - wrap entire element in ClientOnly()
+  if (clientDirectives.length > 0) {
+    transformer.usesSSR = true;
+    // Remove @client directives and transform element normally
+    const filteredNode = { ...node, directives: node.directives.filter(d => d.type !== NodeType.ClientDirective) };
+    const innerCode = transformElement(transformer, filteredNode, indent + 2).trim();
+    return `${pad}ClientOnly(() => ${innerCode})`;
+  }
+
+  // Check for @server directive - wrap entire element in ServerOnly()
+  if (serverDirectives.length > 0) {
+    transformer.usesSSR = true;
+    // Remove @server directives and transform element normally
+    const filteredNode = { ...node, directives: node.directives.filter(d => d.type !== NodeType.ServerDirective) };
+    const innerCode = transformElement(transformer, filteredNode, indent + 2).trim();
+    return `${pad}ServerOnly(() => ${innerCode})`;
+  }
 
   // Check for @srOnly directive
   const srOnlyDirective = a11yDirectives.find(d => d.attrs && d.attrs.srOnly);
@@ -669,6 +696,58 @@ export function addScopeToSelector(transformer, selector) {
   }
   // Just a tag name, add scope class
   return `${selector}.${transformer.scopeId}`;
+}
+
+/**
+ * Transform @client directive - wraps content in ClientOnly()
+ * Content is only rendered on the client side, not during SSR.
+ * @param {Object} transformer - Transformer instance
+ * @param {Object} node - Client directive node
+ * @param {number} indent - Indentation level
+ * @returns {string} JavaScript code
+ */
+export function transformClientDirective(transformer, node, indent) {
+  const pad = ' '.repeat(indent);
+  transformer.usesSSR = true;
+
+  const children = (node.children || []).map(child =>
+    transformViewNode(transformer, child, indent + 2)
+  );
+  const content = children.length === 1
+    ? children[0].trim()
+    : `[${children.map(c => c.trim()).join(', ')}]`;
+
+  const fallbackChildren = node.fallback || [];
+  if (fallbackChildren.length > 0) {
+    const fallbackCode = fallbackChildren.map(child =>
+      transformViewNode(transformer, child, indent + 2)
+    ).join(',\n');
+    return `${pad}ClientOnly(() => ${content}, () => (\n${fallbackCode}\n${pad}))`;
+  }
+
+  return `${pad}ClientOnly(() => ${content})`;
+}
+
+/**
+ * Transform @server directive - wraps content in ServerOnly()
+ * Content is only rendered during SSR, not on the client.
+ * @param {Object} transformer - Transformer instance
+ * @param {Object} node - Server directive node
+ * @param {number} indent - Indentation level
+ * @returns {string} JavaScript code
+ */
+export function transformServerDirective(transformer, node, indent) {
+  const pad = ' '.repeat(indent);
+  transformer.usesSSR = true;
+
+  const children = (node.children || []).map(child =>
+    transformViewNode(transformer, child, indent + 2)
+  );
+  const content = children.length === 1
+    ? children[0].trim()
+    : `[${children.map(c => c.trim()).join(', ')}]`;
+
+  return `${pad}ServerOnly(() => ${content})`;
 }
 
 /**
