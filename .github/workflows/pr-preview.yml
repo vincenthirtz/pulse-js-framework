@@ -109,3 +109,90 @@ jobs:
           echo "- [View Preview](${{ steps.netlify.outputs.deploy-url }})" >> $GITHUB_STEP_SUMMARY
           echo "- [Netlify Logs](${{ steps.netlify.outputs.logs }})" >> $GITHUB_STEP_SUMMARY
           echo "- [PR #${{ github.event.pull_request.number }}](${{ github.event.pull_request.html_url }})" >> $GITHUB_STEP_SUMMARY
+
+      - name: Install Playwright for E2E tests
+        run: |
+          npm install -D @playwright/test@1.48
+          npx playwright install --with-deps chromium firefox
+
+      - name: Run E2E tests on preview deployment
+        id: e2e
+        continue-on-error: true
+        env:
+          PLAYWRIGHT_BASE_URL: ${{ steps.netlify.outputs.deploy-url }}
+        run: npx playwright test --project=chromium --project=firefox --reporter=list,html
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-pr-${{ github.event.pull_request.number }}
+          path: playwright-report/
+          retention-days: 7
+
+      - name: Add E2E test results to PR comment
+        if: always()
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(comment =>
+              comment.user.type === 'Bot' &&
+              comment.body.includes('Preview Deployment')
+            );
+
+            if (!botComment) return;
+
+            const e2eStatus = '${{ steps.e2e.outcome }}';
+            const e2eEmoji = e2eStatus === 'success' ? '✅' : '❌';
+            const e2eText = e2eStatus === 'success' ? 'All tests passed' : 'Some tests failed';
+
+            const previewUrl = '${{ steps.netlify.outputs.deploy-url }}';
+            const commitSha = context.sha.substring(0, 7);
+
+            const commentBody = `
+            ## 🚀 Preview Deployment Ready!
+
+            | Name | Link |
+            |------|------|
+            | 🔍 Preview | [Visit Preview](${previewUrl}) |
+            | 📝 Commit | [\`${commitSha}\`](https://github.com/${{ github.repository }}/commit/${{ github.sha }}) |
+            | ${e2eEmoji} E2E Tests | ${e2eText} |
+
+            ${e2eStatus !== 'success' ? `
+            ⚠️ **E2E tests detected issues**
+            - [View detailed report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            - Check for console errors or failed network requests
+            ` : ''}
+
+            ---
+
+            <sub>Built with Netlify • Updated: ${new Date().toUTCString()}</sub>
+            `;
+
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: botComment.id,
+              body: commentBody
+            });
+
+      - name: Update deployment summary with E2E results
+        if: always()
+        run: |
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🧪 E2E Test Results" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.e2e.outcome }}" == "success" ]; then
+            echo "✅ All E2E tests passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Some E2E tests failed" >> $GITHUB_STEP_SUMMARY
+            echo "- Console errors or warnings detected" >> $GITHUB_STEP_SUMMARY
+            echo "- [View detailed report](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+          fi
