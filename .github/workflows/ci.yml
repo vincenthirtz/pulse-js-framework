@@ -439,9 +439,9 @@ jobs:
           COMMIT_URL="${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}"
           SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
 
-          curl -s -X POST "$DISCORD_WEBHOOK_URL" \
-            -H "Content-Type: application/json" \
-            -d @- <<PAYLOAD
+          TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+          PAYLOAD=$(cat <<EOF
           {
             "embeds": [{
               "title": "CI Failed on main",
@@ -469,10 +469,15 @@ jobs:
                   "inline": true
                 }
               ],
-              "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+              "timestamp": "${TIMESTAMP}",
               "footer": {
                 "text": "Pulse CI"
               }
             }]
           }
-PAYLOAD
+          EOF
+          )
+
+          curl -s -X POST "$DISCORD_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD"
