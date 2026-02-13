@@ -295,7 +295,7 @@ describe('trapFocus', () => {
     assert.strictEqual(dom.document.activeElement, outsideButton);
   });
 
-  test('does not save focus when returnFocus is false', () => {
+  test('does not save focus when returnFocus is false', async () => {
     const outsideButton = dom.document.createElement('button');
     dom.document.body.appendChild(outsideButton);
     outsideButton.focus();
@@ -303,10 +303,17 @@ describe('trapFocus', () => {
     const button = dom.document.createElement('button');
     container.appendChild(button);
 
-    const release = trapFocus(container, { autoFocus: false, returnFocus: false });
+    const release = trapFocus(container, { autoFocus: true, returnFocus: false });
+
+    // Wait for autoFocus via requestAnimationFrame
+    await new Promise(resolve => setTimeout(resolve, 10));
+
+    // Focus should now be inside the container
+    assert.strictEqual(dom.document.activeElement, button);
+
     release();
 
-    // Should not restore to outsideButton
+    // Should NOT restore to outsideButton since returnFocus is false
     assert.notStrictEqual(dom.document.activeElement, outsideButton);
   });
 

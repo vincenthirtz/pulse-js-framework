@@ -445,6 +445,7 @@ export function createMenu(button, menu, options = {}) {
   const menuId = menu.id || generateId('menu');
   let rovingCleanup = null;
   let documentClickHandler = null;
+  let documentClickTimeout = null;
 
   // Set ARIA attributes
   menu.id = menuId;
@@ -476,7 +477,8 @@ export function createMenu(button, menu, options = {}) {
     if (firstItem) firstItem.focus();
 
     // Close on click outside (delay to avoid immediate close)
-    setTimeout(() => {
+    documentClickTimeout = setTimeout(() => {
+      documentClickTimeout = null;
       documentClickHandler = (e) => {
         if (!button.contains(e.target) && !menu.contains(e.target)) {
           close();
@@ -496,6 +498,11 @@ export function createMenu(button, menu, options = {}) {
     if (rovingCleanup) {
       rovingCleanup();
       rovingCleanup = null;
+    }
+
+    if (documentClickTimeout) {
+      clearTimeout(documentClickTimeout);
+      documentClickTimeout = null;
     }
 
     if (documentClickHandler) {
@@ -533,11 +540,17 @@ export function createMenu(button, menu, options = {}) {
     button.removeEventListener('click', toggle);
     button.removeEventListener('keydown', handleButtonKeyDown);
     menu.removeEventListener('keydown', handleMenuKeyDown);
+    if (documentClickTimeout) {
+      clearTimeout(documentClickTimeout);
+      documentClickTimeout = null;
+    }
     if (documentClickHandler) {
       document.removeEventListener('click', documentClickHandler);
+      documentClickHandler = null;
     }
     if (rovingCleanup) {
       rovingCleanup();
+      rovingCleanup = null;
     }
   };
 
