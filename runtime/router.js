@@ -14,3 +14,4 @@
  */
 
 export * from './router/index.js';
+export { default } from './router/index.js';

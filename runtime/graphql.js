@@ -13,3 +13,4 @@
  */
 
 export * from './graphql/index.js';
+export { default } from './graphql/index.js';
