@@ -4,7 +4,7 @@ coverage:
   status:
     project:
       default:
-        target: 88%         # Overall project coverage target
+        target: 92%         # Overall project coverage target (increased from 88%)
         threshold: 1%       # Allow 1% decrease
         
     patch:

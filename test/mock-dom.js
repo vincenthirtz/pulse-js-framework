@@ -244,6 +244,12 @@ class Node {
     return child;
   }
 
+  remove() {
+    if (this.parentNode) {
+      this.parentNode.removeChild(this);
+    }
+  }
+
   insertBefore(newNode, referenceNode) {
     if (newNode.parentNode) {
       newNode.parentNode.removeChild(newNode);
@@ -613,8 +619,17 @@ class Element extends Node {
   }
 
   dispatchEvent(event) {
-    event.target = this;
-    event.currentTarget = this;
+    // Handle both mock Events (writable target) and native Events (read-only target)
+    try {
+      event.target = this;
+    } catch {
+      Object.defineProperty(event, 'target', { value: this, writable: true, configurable: true });
+    }
+    try {
+      event.currentTarget = this;
+    } catch {
+      Object.defineProperty(event, 'currentTarget', { value: this, writable: true, configurable: true });
+    }
 
     const listeners = this._eventListeners[event.type] || [];
     for (const { handler } of listeners) {
@@ -637,11 +652,17 @@ class Element extends Node {
   }
 
   focus() {
-    // No-op for mock
+    const doc = this.ownerDocument || globalThis.document;
+    if (doc) {
+      doc.activeElement = this;
+    }
   }
 
   blur() {
-    // No-op for mock
+    const doc = this.ownerDocument || globalThis.document;
+    if (doc) {
+      doc.activeElement = doc.body;
+    }
   }
 
   // Query methods
@@ -764,12 +785,14 @@ class HTMLElement extends Element {
 class Document extends Node {
   constructor() {
     super(Node.DOCUMENT_NODE);
+    this._eventListeners = {};
     this.documentElement = this.createElement('html');
     this.head = this.createElement('head');
     this.body = this.createElement('body');
     this.documentElement.appendChild(this.head);
     this.documentElement.appendChild(this.body);
     this.appendChild(this.documentElement);
+    this.activeElement = this.body;
   }
 
   createElement(tagName) {
@@ -811,6 +834,39 @@ class Document extends Node {
   querySelectorAll(selector) {
     return querySelect(this, selector, true);
   }
+
+  addEventListener(type, handler, options) {
+    if (!this._eventListeners[type]) {
+      this._eventListeners[type] = [];
+    }
+    this._eventListeners[type].push({ handler, options });
+  }
+
+  removeEventListener(type, handler) {
+    if (!this._eventListeners[type]) return;
+    this._eventListeners[type] = this._eventListeners[type].filter(
+      l => l.handler !== handler
+    );
+  }
+
+  dispatchEvent(event) {
+    try {
+      event.target = this;
+    } catch {
+      Object.defineProperty(event, 'target', { value: this, writable: true, configurable: true });
+    }
+    try {
+      event.currentTarget = this;
+    } catch {
+      Object.defineProperty(event, 'currentTarget', { value: this, writable: true, configurable: true });
+    }
+    const listeners = this._eventListeners[event.type] || [];
+    for (const { handler } of listeners) {
+      handler.call(this, event);
+      if (event.propagationStopped) break;
+    }
+    return !event.defaultPrevented;
+  }
 }
 
 // =============================================================================
@@ -820,9 +876,18 @@ class Document extends Node {
 function matchesSelector(element, selector) {
   if (!selector || element.nodeType !== Node.ELEMENT_NODE) return false;
 
-  // Handle multiple selectors (comma-separated)
-  if (selector.includes(',')) {
+  // Handle multiple selectors (comma-separated) - careful with commas inside :not()
+  if (selector.includes(',') && !selector.match(/:not\([^)]*,[^)]*\)/)) {
     return selector.split(',').some(s => matchesSelector(element, s.trim()));
+  }
+
+  // Handle child combinator (e.g., "details > summary")
+  if (selector.includes(' > ')) {
+    const parts = selector.split(' > ').map(s => s.trim());
+    const childSelector = parts[parts.length - 1];
+    const parentSelector = parts.slice(0, -1).join(' > ');
+    if (!matchesSelector(element, childSelector)) return false;
+    return element.parentNode && matchesSelector(element.parentNode, parentSelector);
   }
 
   // Simple selector parser
@@ -834,6 +899,13 @@ function matchesSelector(element, selector) {
   if (tagMatch) {
     parts.push({ type: 'tag', value: tagMatch[1].toUpperCase() });
     remaining = remaining.slice(tagMatch[0].length);
+  }
+
+  // Extract :not() pseudo-classes
+  let notMatch;
+  while ((notMatch = remaining.match(/^:not\(([^)]+)\)/))) {
+    parts.push({ type: 'not', value: notMatch[1] });
+    remaining = remaining.slice(notMatch[0].length);
   }
 
   // Extract id
@@ -857,6 +929,12 @@ function matchesSelector(element, selector) {
     remaining = remaining.slice(attrMatch[0].length);
   }
 
+  // Extract :not() after attributes (e.g., [tabindex]:not([tabindex="-1"]))
+  while ((notMatch = remaining.match(/^:not\(([^)]+)\)/))) {
+    parts.push({ type: 'not', value: notMatch[1] });
+    remaining = remaining.slice(notMatch[0].length);
+  }
+
   // Match all parts
   for (const part of parts) {
     switch (part.type) {
@@ -875,6 +953,9 @@ function matchesSelector(element, selector) {
         } else {
           if (!element.hasAttribute(part.name)) return false;
         }
+        break;
+      case 'not':
+        if (matchesSelector(element, part.value)) return false;
         break;
     }
   }

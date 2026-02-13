@@ -9,6 +9,8 @@
 import { pulse, effect, onCleanup } from '../pulse.js';
 import { createWebSocket, WebSocketError } from '../websocket.js';
 import { ClientError } from '../errors.js';
+import { extractOperationName } from './cache.js';
+import { GraphQLError } from './client.js';
 
 // ============================================================================
 // Constants
