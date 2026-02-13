@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.10.2] - 2026-02-13
+
+### Changes
+
+- fix(ci): resolve YAML syntax error in Discord notification heredoc
+- ci: add auto-merge on release PR and scope workflow permissions
+
+---
+
+
 ## [1.10.1] - 2026-02-13
 
 ### Changes
