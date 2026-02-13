@@ -149,6 +149,7 @@
   "scripts": {
     "test": "node scripts/run-all-tests.js",
     "test:compiler": "node test/compiler.test.js",
+    "test:parser-coverage": "node test/parser-coverage.test.js",
     "test:sourcemap": "node test/sourcemap.test.js",
     "test:css-parsing": "node test/css-parsing.test.js",
     "test:preprocessor": "node test/preprocessor.test.js",
