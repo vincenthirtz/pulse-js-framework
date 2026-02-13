@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.10.1] - 2026-02-13
+
+### Changes
+
+- fix: resolve E2E failures from missing default exports and incorrect test routes
+- test: add 184 parser sub-module coverage tests
+- feat(ci): add E2E console error detection with Playwright
+- refactor: split 4 large modules into focused sub-modules (milestone 1.11.0)
+- docs: migrate markdown files to documentation site and enhance HTTP page
+- docs(i18n): add missing page translations for v2.0.0 ecosystem modules
+
+---
+
+
 ## [1.11.0] - 2026-02-13
 
 ### Architecture Refactoring
