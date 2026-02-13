@@ -176,7 +176,9 @@ jobs:
 
       - name: Enable auto-merge
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # GITHUB_TOKEN events don't trigger downstream workflows.
+          # A PAT (RELEASE_PAT) is required so the merge event triggers auto-tag.
+          GH_TOKEN: ${{ secrets.RELEASE_PAT }}
         run: |
           PR_URL="${{ steps.create_pr.outputs.pr_url }}"
           echo "Enabling auto-merge for $PR_URL..."
