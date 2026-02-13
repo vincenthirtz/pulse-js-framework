@@ -19,8 +19,7 @@ on:
         default: 'none'
 
 permissions:
-  contents: write
-  actions: write
+  contents: read
 
 # Cancel in-progress runs for same PR/branch
 concurrency:
@@ -39,8 +38,6 @@ jobs:
       deps: ${{ steps.filter.outputs.deps }}
       docs: ${{ steps.filter.outputs.docs }}
       ci: ${{ steps.filter.outputs.ci }}
-      src_hash: ${{ steps.hash.outputs.src_hash }}
-      deps_hash: ${{ steps.hash.outputs.deps_hash }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -70,17 +67,6 @@ jobs:
               - '*.md'
             ci:
               - '.github/workflows/**'
-
-      - name: Compute source hash
-        id: hash
-        run: |
-          SRC_HASH=$(find runtime compiler cli loader test scripts mobile -name "*.js" -type f 2>/dev/null | sort | xargs cat 2>/dev/null | sha256sum | cut -d' ' -f1)
-          echo "src_hash=$SRC_HASH" >> $GITHUB_OUTPUT
-          echo "Source hash: $SRC_HASH"
-
-          DEPS_HASH=$(cat package.json package-lock.json 2>/dev/null | sha256sum | cut -d' ' -f1)
-          echo "deps_hash=$DEPS_HASH" >> $GITHUB_OUTPUT
-          echo "Deps hash: $DEPS_HASH"
 
   # Security audit - runs only when deps change
   security:
@@ -169,10 +155,9 @@ jobs:
         if: github.event_name != 'workflow_dispatch'
         with:
           path: .test-results
-          key: test-node${{ matrix.node-version }}-src${{ needs.changes.outputs.src_hash }}-deps${{ needs.changes.outputs.deps_hash }}
+          key: test-node${{ matrix.node-version }}-${{ hashFiles('runtime/**/*.js', 'compiler/**/*.js', 'cli/**/*.js', 'loader/**/*.js', 'test/**/*.js', 'scripts/**/*.js', 'mobile/**/*.js') }}-${{ hashFiles('package-lock.json') }}
 
       - name: Install dependencies
-        if: steps.test-cache.outputs.cache-hit != 'true'
         run: npm ci
 
       - name: Run all tests
@@ -180,7 +165,7 @@ jobs:
         run: |
           npm test
           mkdir -p .test-results
-          echo "node${{ matrix.node-version }}-src${{ needs.changes.outputs.src_hash }}-deps${{ needs.changes.outputs.deps_hash }}" > .test-results/last-pass
+          echo "passed" > .test-results/last-pass
 
       - name: Skip tests (cache hit)
         if: steps.test-cache.outputs.cache-hit == 'true'
@@ -213,10 +198,9 @@ jobs:
         if: github.event_name != 'workflow_dispatch'
         with:
           path: coverage
-          key: coverage-src${{ needs.changes.outputs.src_hash }}-deps${{ needs.changes.outputs.deps_hash }}
+          key: coverage-${{ hashFiles('runtime/**/*.js', 'compiler/**/*.js', 'cli/**/*.js', 'loader/**/*.js', 'test/**/*.js', 'scripts/**/*.js', 'mobile/**/*.js') }}-${{ hashFiles('package-lock.json') }}
 
       - name: Install dependencies
-        if: steps.cov-cache.outputs.cache-hit != 'true'
         run: npm ci
 
       - name: Run tests with coverage
@@ -224,7 +208,6 @@ jobs:
         run: npx c8 --reporter=lcov --reporter=text --reporter=json-summary npm test
 
       - name: Upload coverage to Codecov
-        if: steps.cov-cache.outputs.cache-hit != 'true'
         uses: codecov/codecov-action@v4
         with:
           files: ./coverage/lcov.info
@@ -268,7 +251,7 @@ jobs:
         id: build-cache
         with:
           path: dist
-          key: build-src${{ needs.changes.outputs.src_hash }}-deps${{ needs.changes.outputs.deps_hash }}
+          key: build-${{ hashFiles('runtime/**/*.js', 'compiler/**/*.js', 'cli/**/*.js', 'loader/**/*.js', 'docs/**', 'scripts/**/*.js', 'mobile/**/*.js') }}-${{ hashFiles('package-lock.json') }}
 
       - name: Install dependencies
         if: steps.build-cache.outputs.cache-hit != 'true'
@@ -378,6 +361,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     needs: [test, lint, build, coverage]
+    permissions:
+      contents: write
+      actions: write
     if: |
       always() &&
       (needs.test.result == 'success' || needs.test.result == 'skipped') &&
@@ -412,3 +398,81 @@ jobs:
           echo "All CI checks passed. Triggered **${{ inputs.release_type }}** release." >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "[View Release Workflow](https://github.com/${{ github.repository }}/actions/workflows/manual-release.yml)" >> $GITHUB_STEP_SUMMARY
+
+  # Discord notification on failure (main branch only)
+  notify-discord:
+    name: Notify Discord on Failure
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    needs: [lint, test, coverage, build, deploy]
+    if: >-
+      always() &&
+      github.ref == 'refs/heads/main' &&
+      github.event_name == 'push' &&
+      (
+        needs.lint.result == 'failure' ||
+        needs.test.result == 'failure' ||
+        needs.coverage.result == 'failure' ||
+        needs.build.result == 'failure' ||
+        needs.deploy.result == 'failure'
+      )
+
+    steps:
+      - name: Build failure report
+        id: report
+        run: |
+          FAILED_JOBS=""
+          [ "${{ needs.lint.result }}" = "failure" ] && FAILED_JOBS="${FAILED_JOBS}Lint, "
+          [ "${{ needs.test.result }}" = "failure" ] && FAILED_JOBS="${FAILED_JOBS}Test, "
+          [ "${{ needs.coverage.result }}" = "failure" ] && FAILED_JOBS="${FAILED_JOBS}Coverage, "
+          [ "${{ needs.build.result }}" = "failure" ] && FAILED_JOBS="${FAILED_JOBS}Build, "
+          [ "${{ needs.deploy.result }}" = "failure" ] && FAILED_JOBS="${FAILED_JOBS}Deploy, "
+          FAILED_JOBS="${FAILED_JOBS%, }"
+          echo "FAILED_JOBS=$FAILED_JOBS" >> $GITHUB_OUTPUT
+
+      - name: Send Discord notification
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          COMMIT_MSG=$(echo "${{ github.event.head_commit.message }}" | head -1 | cut -c1-80)
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          COMMIT_URL="${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}"
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+
+          curl -s -X POST "$DISCORD_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d @- <<PAYLOAD
+          {
+            "embeds": [{
+              "title": "CI Failed on main",
+              "color": 15548997,
+              "description": "**Failed jobs:** ${{ steps.report.outputs.FAILED_JOBS }}",
+              "fields": [
+                {
+                  "name": "Commit",
+                  "value": "[\`${SHORT_SHA}\`](${COMMIT_URL}) ${COMMIT_MSG}",
+                  "inline": false
+                },
+                {
+                  "name": "Author",
+                  "value": "${{ github.actor }}",
+                  "inline": true
+                },
+                {
+                  "name": "Branch",
+                  "value": "main",
+                  "inline": true
+                },
+                {
+                  "name": "Workflow",
+                  "value": "[View run](${RUN_URL})",
+                  "inline": true
+                }
+              ],
+              "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+              "footer": {
+                "text": "Pulse CI"
+              }
+            }]
+          }
+PAYLOAD
