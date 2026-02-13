@@ -244,6 +244,12 @@ class Node {
     return child;
   }
 
+  remove() {
+    if (this.parentNode) {
+      this.parentNode.removeChild(this);
+    }
+  }
+
   insertBefore(newNode, referenceNode) {
     if (newNode.parentNode) {
       newNode.parentNode.removeChild(newNode);
