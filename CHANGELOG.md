@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.10.4] - 2026-02-13
+
+### Changes
+
+- fix: resolve a11y coverage-boost test failures in CI
+- chore: update coverage target to 92% and enhance mock DOM
+- test: add comprehensive coverage boost tests - achieve 92.66% coverage
+
+---
+
+
 ## [1.10.3] - 2026-02-13
 
 ### Changes
