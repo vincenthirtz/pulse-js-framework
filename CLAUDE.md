@@ -93,21 +93,48 @@ pulse/
 ├── runtime/              # Core framework
 │   ├── pulse.js         # Reactivity system (signals, effects, computed)
 │   ├── dom.js           # DOM creation and reactive bindings
-│   ├── router.js        # SPA routing
+│   ├── router.js        # SPA routing (re-exports from router/)
+│   │   └── router/      # Router sub-modules
+│   │       ├── core.js      # RouteTrie, createRouter, simpleRouter
+│   │       ├── lazy.js      # Lazy loading utilities
+│   │       ├── guards.js    # Middleware and navigation guards
+│   │       ├── history.js   # Browser history and scroll management
+│   │       └── utils.js     # Route parsing and query string utilities
 │   ├── store.js         # Global state management
 │   ├── context.js       # Context API (dependency injection, prop drilling prevention)
 │   ├── form.js          # Form validation and management
 │   ├── async.js         # Async primitives (useAsync, useResource, usePolling)
 │   ├── http.js          # HTTP client (fetch wrapper, interceptors)
 │   ├── websocket.js     # WebSocket client (auto-reconnect, heartbeat, queuing)
-│   ├── graphql.js       # GraphQL client (queries, mutations, subscriptions)
-│   ├── a11y.js          # Accessibility (focus, announcements, ARIA)
+│   ├── graphql.js       # GraphQL client (re-exports from graphql/)
+│   │   └── graphql/     # GraphQL sub-modules
+│   │       ├── client.js        # GraphQLClient, createGraphQLClient
+│   │       ├── cache.js         # Query caching, cache key generation
+│   │       ├── subscriptions.js # WebSocket subscriptions (graphql-ws)
+│   │       └── hooks.js         # useQuery, useMutation, useSubscription
+│   ├── a11y.js          # Accessibility (re-exports from a11y/)
+│   │   └── a11y/        # A11y sub-modules
+│   │       ├── announcements.js # Screen reader announcements
+│   │       ├── focus.js         # Focus management and keyboard navigation
+│   │       ├── preferences.js   # User preference detection
+│   │       ├── widgets.js       # ARIA widgets (modal, tabs, etc.)
+│   │       ├── validation.js    # A11y validation and auditing
+│   │       ├── contrast.js      # Color contrast utilities
+│   │       └── utils.js         # Utility functions
 │   ├── devtools.js      # Debugging tools (time-travel, dependency graph)
 │   ├── native.js        # Mobile bridge for iOS/Android
 │   └── hmr.js           # Hot module replacement
 ├── compiler/            # .pulse file compiler
 │   ├── lexer.js         # Tokenizer
-│   ├── parser.js        # AST builder
+│   ├── parser.js        # AST builder (re-exports from parser/)
+│   │   └── parser/      # Parser sub-modules
+│   │       ├── core.js        # NodeType, ASTNode, Parser class
+│   │       ├── imports.js     # Import, page, route declarations
+│   │       ├── state.js       # Props, state blocks, value parsing
+│   │       ├── view.js        # View block, elements, directives
+│   │       ├── expressions.js # Expression parsing, precedence climbing
+│   │       ├── style.js       # CSS parsing, preprocessor support
+│   │       └── blocks.js      # Actions, router, store blocks
 │   ├── transformer.js   # Code generator
 │   └── sourcemap.js     # V3 source map generation
 ├── cli/                 # Command-line interface

@@ -12,3 +12,4 @@ dist/
 test-fixtures-analyze
 coverage
 .test-runner-project
+.test-dev-server
