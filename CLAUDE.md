@@ -86,6 +86,120 @@ pulse build             # Generate minified dist/ folder
 pulse preview           # Serve dist/ at http://localhost:4173
 ```
 
+## Git Workflow
+
+When committing and pushing, always pull/rebase first to handle remote changes:
+
+```bash
+# Before pushing, always rebase
+git pull --rebase origin <branch>
+git push origin <branch>
+
+# Example workflow
+git add -A
+git commit -m "feat: implement feature"
+git pull --rebase origin develop  # Rebase before push
+git push origin develop
+```
+
+**Why rebase?** This prevents merge commits and keeps history clean when multiple developers (or CI/CD) are pushing to the same branch.
+
+## Claude Skills
+
+Custom skills are located in `.claude/skills/` with `SKILL.md` format (not `skill.json`). Always check this directory structure before creating or loading skills.
+
+**Skill structure:**
+```
+.claude/
+└── skills/
+    └── my-skill/
+        └── SKILL.md    # Skill definition (NOT skill.json)
+```
+
+To invoke a skill, use: `/skill-name`
+
+**Available skills in this project:**
+- `/lead-developer` - Orchestrates multi-phase workflows
+- `/software-architect` - Architecture and design decisions
+- `/senior-developer` - Feature implementation
+- `/qa-testing` - Test writing and validation
+- `/security-reviewer` - Security audits
+
+## Working with Large File Sets
+
+When working with large batches of files (e.g., translations across 7+ languages), **process files incrementally** rather than reading all files at once to avoid hitting prompt length limits.
+
+**Bad approach:**
+```javascript
+// DON'T: Read all language files at once
+const files = await Promise.all([
+  readFile('en.json'), readFile('fr.json'), readFile('es.json'),
+  readFile('de.json'), readFile('it.json'), readFile('pt.json'), readFile('ja.json')
+]);
+// This can hit context limits!
+```
+
+**Good approach:**
+```javascript
+// DO: Process one file at a time
+for (const lang of ['en', 'fr', 'es', 'de', 'it', 'pt', 'ja']) {
+  const content = await readFile(`${lang}.json`);
+  // Process and write
+  await writeFile(`${lang}.json`, updated);
+  // Commit incrementally if needed
+}
+```
+
+## Environment
+
+This project targets **macOS**. Do not use Linux-only commands.
+
+**Common pitfalls:**
+
+| Linux Command | macOS Alternative |
+|---------------|-------------------|
+| `timeout 5s cmd` | `gtimeout 5s cmd` (install via `brew install coreutils`) |
+| `date -d "..."` | `date -j -f "..." "..."` |
+| `readlink -f` | `greadlink -f` (coreutils) |
+| `sed -i` | `sed -i ''` (requires empty string for BSD sed) |
+
+**Development environment:**
+- OS: macOS (Darwin)
+- Node.js: >= 18.0.0
+- Package manager: npm (not yarn/pnpm)
+- Shell: bash/zsh
+
+## Efficiency Guidelines
+
+When editing many files with similar changes, **prefer batch approaches** (sed, Task agents) over repeated Edit tool calls on individual files.
+
+**Inefficient:**
+```javascript
+// DON'T: Repeated Edit tool calls
+Edit('file1.js', old1, new1);
+Edit('file2.js', old2, new2);
+Edit('file3.js', old3, new3);
+// ... 20 more files
+```
+
+**Efficient:**
+```bash
+# DO: Use sed for batch replacements
+find src/ -name '*.js' -exec sed -i '' 's/oldPattern/newPattern/g' {} +
+
+# OR: Use Task agent for complex logic
+Task({
+  subagent_type: 'general-purpose',
+  prompt: 'Apply the transformation to all JS files in src/',
+  description: 'Batch file transformation'
+});
+```
+
+**When to use each approach:**
+- **Edit tool**: 1-3 files with unique changes
+- **sed/awk**: 4+ files with pattern-based changes
+- **Task agent**: Complex logic requiring file reading + analysis
+
 ## Architecture
 
 ```
@@ -2926,13 +3040,73 @@ import swcPlugin from 'pulse-js-framework/swc';           // SWC plugin
 
 ## Testing
 
+This project primarily uses **JavaScript** (not TypeScript). Tests use **Node.js built-in test runner** (`node:test`), not Jest or Mocha.
+
 Tests are in `test/` directory and cover the compiler (lexer, parser, transformer). Run with:
 
 ```bash
 npm test
 # or
 node --test test/*.js
+# With coverage
+npm test -- --coverage
 ```
+
+**Important testing guidelines:**
+
+1. **Use node:test** - Do NOT use Jest, Mocha, or other frameworks
+2. **Async cleanup** - Always provide cleanup for async operations to prevent hanging tests
+3. **Timeout handling** - Use `AbortSignal.timeout()` or explicit timeouts for async tests
+4. **Mock DOM** - Use the project's MockDOMAdapter for DOM-dependent tests
+5. **No hardcoded timing** - Avoid `setTimeout` in tests; use proper async patterns
+
+**Good async test pattern:**
+```javascript
+import { test, describe } from 'node:test';
+import assert from 'node:assert';
+
+test('async operation with cleanup', async (t) => {
+  const signal = AbortSignal.timeout(1000);  // Timeout after 1s
+
+  const resource = await setupResource({ signal });
+
+  // Cleanup on test end
+  t.after(() => resource.dispose());
+
+  const result = await resource.doWork();
+  assert.strictEqual(result, expected);
+});
+```
+
+**Mock DOM setup:**
+```javascript
+import { setAdapter, MockDOMAdapter, resetAdapter } from '../runtime/dom-adapter.js';
+
+describe('DOM tests', () => {
+  let mockAdapter;
+
+  beforeEach(() => {
+    mockAdapter = new MockDOMAdapter();
+    setAdapter(mockAdapter);
+  });
+
+  afterEach(() => {
+    resetAdapter();
+  });
+
+  test('creates element', () => {
+    const div = mockAdapter.createElement('div');
+    assert.strictEqual(div.tagName, 'DIV');
+  });
+});
+```
+
+**Common pitfalls to avoid:**
+- ❌ Using Jest/Mocha syntax (`expect()`, `jest.fn()`)
+- ❌ Async tests without cleanup (causes hangs)
+- ❌ Hardcoded `setTimeout(done, 100)` delays
+- ❌ Missing mock DOM setup for DOM-dependent code
+- ❌ Not handling promise rejections in async tests
 
 ## CSS Preprocessor Support (SASS/SCSS, LESS, and Stylus)
 
