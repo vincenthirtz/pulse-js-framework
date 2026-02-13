@@ -1,0 +1,42 @@
+{
+  "name": "lead-developer",
+  "version": "1.0.0",
+  "description": "Lead developer agent that orchestrates complex tasks with architecture, implementation, testing, and documentation phases",
+  "instructions": "instructions.md",
+  "triggers": [
+    "coordinate",
+    "orchestrate",
+    "lead",
+    "manage task",
+    "full implementation",
+    "end-to-end",
+    "complete feature"
+  ],
+  "keywords": [
+    "coordination",
+    "orchestration",
+    "task management",
+    "architecture + implementation",
+    "complete feature",
+    "project planning",
+    "quality assurance"
+  ],
+  "capabilities": [
+    "Task decomposition and planning",
+    "Architecture design and ADR creation",
+    "Production code implementation",
+    "Comprehensive test coverage (≥90%)",
+    "Security review and vulnerability scanning",
+    "Documentation updates and examples",
+    "Quality gate enforcement",
+    "Integration validation"
+  ],
+  "delegatesTo": [
+    "software-architect",
+    "senior-developer",
+    "qa-testing",
+    "security-reviewer",
+    "docs-manager"
+  ],
+  "notes": "This skill delegates to specialized skills in .claude/skills/ for expert-level work in each domain. Falls back to autonomous mode if skills are not available."
+}
