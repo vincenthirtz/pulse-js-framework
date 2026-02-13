@@ -1,5 +1,48 @@
 # Changelog
 
+## [1.11.0] - 2026-02-13
+
+### Architecture Refactoring
+
+Split 4 large monolithic modules into focused sub-modules with 100% backward compatibility:
+
+- **compiler/parser.js** (2,376 LOC) → `compiler/parser/` (7 sub-modules)
+  - `core.js` - NodeType, ASTNode, Parser class with utility methods
+  - `imports.js` - Import, page, and route declaration parsing
+  - `state.js` - Props block, state block, and value/literal parsing
+  - `view.js` - View block, elements, text nodes, and directives
+  - `expressions.js` - Expression parsing with precedence climbing
+  - `style.js` - CSS parsing with preprocessor support
+  - `blocks.js` - Actions, router, store blocks, and function parsing
+
+- **runtime/graphql.js** (1,326 LOC) → `runtime/graphql/` (4 sub-modules)
+  - `client.js` - GraphQLClient, createGraphQLClient, error handling
+  - `cache.js` - Query caching, cache key generation
+  - `subscriptions.js` - WebSocket subscriptions (graphql-ws protocol)
+  - `hooks.js` - useQuery, useMutation, useSubscription
+
+- **runtime/a11y.js** (1,844 LOC) → `runtime/a11y/` (7 sub-modules)
+  - `announcements.js` - Screen reader announcements
+  - `focus.js` - Focus management and keyboard navigation
+  - `preferences.js` - User preference detection
+  - `widgets.js` - ARIA widgets (modal, tabs, accordion, menu)
+  - `validation.js` - A11y validation and auditing
+  - `contrast.js` - Color contrast utilities
+  - `utils.js` - Utility functions (generateId, srOnly, etc.)
+
+- **runtime/router.js** (1,605 LOC) → `runtime/router/` (5 sub-modules)
+  - `core.js` - RouteTrie, createRouter, simpleRouter
+  - `lazy.js` - Lazy loading utilities
+  - `guards.js` - Middleware and navigation guards
+  - `history.js` - Browser history and scroll management
+  - `utils.js` - Route parsing and query string utilities
+
+All original files replaced with backward-compatible barrel re-exports.
+No breaking changes - all existing imports continue to work.
+
+---
+
+
 ## [1.10.0] - 2026-02-12
 
 ### Changes

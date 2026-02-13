@@ -12,3 +12,9 @@ dist/
 test-fixtures-analyze
 coverage
 .test-runner-project
+.test-dev-server
+
+# Playwright
+playwright-report/
+test-results/
+playwright/.cache/

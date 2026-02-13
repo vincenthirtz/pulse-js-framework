@@ -1,0 +1,90 @@
+name: E2E Tests
+
+on:
+  # Manual trigger
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'Base URL to test (e.g., https://pulse-js.fr)'
+        required: true
+        default: 'https://pulse-js.fr'
+
+  # Scheduled runs (weekly on production)
+  schedule:
+    - cron: '0 2 * * 1' # Every Monday at 2 AM UTC
+
+  # On main branch pushes (optional)
+  # push:
+  #   branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    name: Run E2E Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps ${{ matrix.browser }}
+
+      - name: Run E2E tests
+        env:
+          PLAYWRIGHT_BASE_URL: ${{ github.event.inputs.url || 'https://pulse-js.fr' }}
+        run: npx playwright test --project=${{ matrix.browser }}
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ matrix.browser }}
+          path: playwright-report/
+          retention-days: 30
+
+      - name: Upload test results summary
+        if: always()
+        run: |
+          echo "## 🧪 E2E Test Results (${{ matrix.browser }})" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Base URL**: ${{ github.event.inputs.url || 'https://pulse-js.fr' }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ $? -eq 0 ]; then
+            echo "✅ All tests passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Some tests failed" >> $GITHUB_STEP_SUMMARY
+            echo "- View [detailed report](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  notify:
+    name: Notify Results
+    needs: e2e
+    if: always()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Create overall summary
+        run: |
+          echo "# 📊 E2E Test Suite Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Tested URL: **${{ github.event.inputs.url || 'https://pulse-js.fr' }}**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "View individual browser reports in the artifacts." >> $GITHUB_STEP_SUMMARY

@@ -58,7 +58,19 @@ export default {
     benchmarks: '📊 ベンチマーク',
     benchmarksDesc: 'インタラクティブパフォーマンステスト',
     testing: '🧪 テスト',
-    testingDesc: 'テストガイドとユーティリティ'
+    testingDesc: 'テストガイドとユーティリティ',
+    sse: '📡 SSE',
+    sseDesc: 'Server-Sent Eventsストリーミング',
+    persistence: '💾 永続化',
+    persistenceDesc: '状態ストレージアダプター',
+    i18nModule: '🌍 i18n',
+    i18nModuleDesc: '国際化とロケール',
+    animation: '🎬 アニメーション',
+    animationDesc: 'Web Animations APIラッパー',
+    portal: '🚪 ポータル',
+    portalDesc: '親DOM外にレンダリング',
+    serviceWorker: '⚙️ Service Worker',
+    serviceWorkerDesc: 'オフライン対応とキャッシュ'
   },
 
   // Theme

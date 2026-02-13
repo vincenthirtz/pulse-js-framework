@@ -58,7 +58,19 @@ export default {
     benchmarks: '📊 Komparnormoj',
     benchmarksDesc: 'Interagaj efikeco-provoj',
     testing: '🧪 Testado',
-    testingDesc: 'Testgvidilo kaj utilaĵoj'
+    testingDesc: 'Testgvidilo kaj utilaĵoj',
+    sse: '📡 SSE',
+    sseDesc: 'Server-Sent Events fluado',
+    persistence: '💾 Persisteco',
+    persistenceDesc: 'Stokaĝaj adaptiloj por stato',
+    i18nModule: '🌍 i18n',
+    i18nModuleDesc: 'Internaciigo kaj lokalizoj',
+    animation: '🎬 Animacio',
+    animationDesc: 'Web Animations API envolvaĵo',
+    portal: '🚪 Portalo',
+    portalDesc: 'Bildigi ekster gepatra DOM',
+    serviceWorker: '⚙️ Service Worker',
+    serviceWorkerDesc: 'Senreta subteno kaj kaŝmemoro'
   },
 
   // Theme

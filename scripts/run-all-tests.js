@@ -14,6 +14,7 @@ import { cpus } from 'os';
 const testGroups = {
   compiler: [
     'test:compiler',
+    'test:parser-coverage',
     'test:sourcemap',
     'test:css-parsing',
     'test:preprocessor',

@@ -58,7 +58,19 @@ export default {
     benchmarks: '📊 Viðmiðanir',
     benchmarksDesc: 'Gagnvirkir afkastapróf',
     testing: '🧪 Prófanir',
-    testingDesc: 'Prófunarleiðbeiningar og tól'
+    testingDesc: 'Prófunarleiðbeiningar og tól',
+    sse: '📡 SSE',
+    sseDesc: 'Server-Sent Events straumar',
+    persistence: '💾 Varanleiki',
+    persistenceDesc: 'Gagnageymsluadaptar fyrir ástand',
+    i18nModule: '🌍 i18n',
+    i18nModuleDesc: 'Alþjóðavæðing og staðfærslur',
+    animation: '🎬 Hreyfimyndir',
+    animationDesc: 'Web Animations API umbúðir',
+    portal: '🚪 Gátt',
+    portalDesc: 'Birta utan foreldra-DOM',
+    serviceWorker: '⚙️ Service Worker',
+    serviceWorkerDesc: 'Stuðningur án nettengingar og skyndiminni'
   },
 
   // Theme

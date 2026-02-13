@@ -58,7 +58,19 @@ export default {
     benchmarks: '📊 Benchmarks',
     benchmarksDesc: 'Interaktive Performance-Tests',
     testing: '🧪 Testen',
-    testingDesc: 'Testanleitungen & Hilfsmittel'
+    testingDesc: 'Testanleitungen & Hilfsmittel',
+    sse: '📡 SSE',
+    sseDesc: 'Server-Sent Events Streaming',
+    persistence: '💾 Persistenz',
+    persistenceDesc: 'Zustandsspeicher-Adapter',
+    i18nModule: '🌍 i18n',
+    i18nModuleDesc: 'Internationalisierung & Lokalisierung',
+    animation: '🎬 Animation',
+    animationDesc: 'Web Animations API Wrapper',
+    portal: '🚪 Portal',
+    portalDesc: 'Außerhalb des Eltern-DOM rendern',
+    serviceWorker: '⚙️ Service Worker',
+    serviceWorkerDesc: 'Offline-Unterstützung & Caching'
   },
 
   // Theme
