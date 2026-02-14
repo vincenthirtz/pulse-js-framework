@@ -1439,7 +1439,7 @@ export default {
     errorHandlingDesc: 'Handle service worker registration and update errors:',
     fullExample: 'Complete Example',
     fullExampleDesc: 'PWA with update notifications and offline support:'
-  }
+  },
 
   // Server Components page
   serverComponents: {
