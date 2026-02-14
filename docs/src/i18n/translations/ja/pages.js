@@ -1440,4 +1440,10 @@ export default {
     fullExample: 'Complete Example',
     fullExampleDesc: 'PWA with update notifications and offline support:'
   }
+
+  // Server Components page
+  serverComponents: {
+    title: '🌐 サーバーコンポーネント',
+    intro: 'Pulse用のReactスタイルのサーバーコンポーネントアーキテクチャ。コンポーネントレベルのコード分割、サーバーアクション、CSRF保護とレート制限を含む包括的なセキュリティ機能を備えたハイブリッドアプリケーションを構築します。'
+  }
 };

@@ -1491,5 +1491,11 @@ export default {
     errorHandlingDesc: 'Handle service worker registration and update errors:',
     fullExample: 'Complete Example',
     fullExampleDesc: 'PWA with update notifications and offline support:'
+  },
+
+  // Server Components page
+  serverComponents: {
+    title: '🌐 Server Components',
+    intro: 'React Server Components-style architecture for Pulse. Build hybrid applications with component-level code splitting, Server Actions, and comprehensive security features including CSRF protection and rate limiting.'
   }
 };

@@ -1440,4 +1440,10 @@ export default {
     fullExample: 'Complete Example',
     fullExampleDesc: 'PWA with update notifications and offline support:'
   }
+
+  // Server Components page
+  serverComponents: {
+    title: '🌐 Servila Komponantoj',
+    intro: 'React-stila servila komponanta arkitekturo por Pulse. Konstruu hibridajn aplikaĵojn kun komponanto-nivela kodo-fendo, Servila Agoj, kaj ampleksaj sekurecaj trajtoj inkluzive de CSRF protekto kaj rapidec-limigo.'
+  }
 };

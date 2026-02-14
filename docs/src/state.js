@@ -39,6 +39,7 @@ import { I18nPage } from './pages/I18nPage.js';
 import { AnimationPage } from './pages/AnimationPage.js';
 import { PortalPage } from './pages/PortalPage.js';
 import { ServiceWorkerPage } from './pages/ServiceWorkerPage.js';
+import { ServerComponentsPage } from './pages/ServerComponentsPage.js';
 
 // Re-export i18n for convenience
 export { locale, localePath, t, setLocale, getPathWithoutLocale, translations } from './i18n/index.js';
@@ -125,6 +126,7 @@ export const navStructure = [
       { path: '/graphql', labelKey: 'nav.graphql', descKey: 'nav.graphqlDesc', handler: GraphQLPage },
       { path: '/context', labelKey: 'nav.context', descKey: 'nav.contextDesc', handler: ContextPage },
       { path: '/ssr', labelKey: 'nav.ssr', descKey: 'nav.ssrDesc', handler: SSRPage },
+      { path: '/server-components', labelKey: 'nav.serverComponents', descKey: 'nav.serverComponentsDesc', handler: ServerComponentsPage },
       { path: '/sse', labelKey: 'nav.sse', descKey: 'nav.sseDesc', handler: SSEPage },
       { path: '/persistence', labelKey: 'nav.persistence', descKey: 'nav.persistenceDesc', handler: PersistencePage },
       { path: '/i18n', labelKey: 'nav.i18nModule', descKey: 'nav.i18nModuleDesc', handler: I18nPage },

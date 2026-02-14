@@ -1442,4 +1442,10 @@ export default {
     fullExample: 'Complete Example',
     fullExampleDesc: 'PWA with update notifications and offline support:'
   }
+
+  // Server Components page
+  serverComponents: {
+    title: '🌐 Server-Komponenten',
+    intro: 'React-Style Server-Komponenten-Architektur für Pulse. Erstellen Sie hybride Anwendungen mit Komponentenebenen-Code-Splitting, Server Actions und umfassenden Sicherheitsfunktionen einschließlich CSRF-Schutz und Rate Limiting.'
+  }
 };

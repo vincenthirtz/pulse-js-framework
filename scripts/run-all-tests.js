@@ -41,6 +41,7 @@ const testGroups = {
   ],
   routing: [
     'test:router',
+    'test:router-psc',
   ],
   state: [
     'test:store',
@@ -72,6 +73,7 @@ const testGroups = {
     'test:logger-prod',
     'test:logger-coverage-boost',
     'test:errors',
+    'test:error-sanitizer',
     'test:lru-cache',
     'test:utils',
     'test:utils-coverage',
@@ -106,6 +108,11 @@ const testGroups = {
     'test:ssr-directives',
     'test:ssg',
     'test:server-adapters',
+    'test:server-components-core',
+    'test:server-components-compiler',
+    'test:server-components-build-tools',
+    'test:server-actions',
+    'test:server-components-security',
   ],
   loaders: [
     'test:vite-plugin',

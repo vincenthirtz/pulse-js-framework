@@ -1440,4 +1440,10 @@ export default {
     fullExample: 'Complete Example',
     fullExampleDesc: 'PWA with update notifications and offline support:'
   }
+
+  // Server Components page
+  serverComponents: {
+    title: '🌐 Netþjónaíhlutir',
+    intro: 'React-stíll netþjónaíhlutahönnun fyrir Pulse. Byggja blendingsforrit með íhlutalega kóða skiptingu, Server Actions, og alhliða öryggiseiginleikar þar með talið CSRF vörn og takmörkun á beiðnum.'
+  }
 };

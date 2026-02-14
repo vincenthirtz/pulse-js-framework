@@ -27,6 +27,8 @@ export default {
     contextDesc: 'Dependency injection',
     ssr: '🖥️ SSR',
     ssrDesc: 'Server-side rendering & hydration',
+    serverComponents: '🌐 Server Components',
+    serverComponentsDesc: 'React-style server components & actions',
     devtools: '🛠️ DevTools',
     devtoolsDesc: 'Debugging & profiling',
     internals: '⚙️ Internals',
