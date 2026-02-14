@@ -243,7 +243,7 @@ describe('Server Components Security Integration', () => {
   describe('detectSecrets()', () => {
     test('detects Stripe live keys', () => {
       const props = {
-        stripeKey: 'sk_test_FAKE12345678' // Fake test key pattern
+        stripeKey: 'sk_test_FAKE1234567890abcdefghijklmnop' // Fake test key (min 24 chars after prefix)
       };
 
       const secrets = detectSecrets(props);
