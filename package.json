@@ -306,5 +306,7 @@
     "node": ">=20.0.0"
   },
   "dependencies": {},
-  "devDependencies": {}
+  "devDependencies": {
+    "@axe-core/playwright": "^4.10.0"
+  }
 }
