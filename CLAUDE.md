@@ -11,7 +11,7 @@ Pulse is a lightweight, declarative JavaScript framework for building reactive S
 - **Accessibility-first** - built-in a11y helpers, auto-ARIA, and audit tools
 - **Optional SASS support** - automatic SCSS compilation if `sass` is installed
 
-**Version:** See package.json | **License:** MIT | **Node.js:** >= 18.0.0
+**Version:** See package.json | **License:** MIT | **Node.js:** >= 20.0.0
 
 ## Quick Commands
 
@@ -170,7 +170,7 @@ This project targets **macOS**. Do not use Linux-only commands.
 
 **Development environment:**
 - OS: macOS (Darwin)
-- Node.js: >= 18.0.0
+- Node.js: >= 20.0.0
 - Package manager: npm (not yarn/pnpm)
 - Shell: bash/zsh
 

@@ -303,7 +303,7 @@
     "url": "https://github.com/vincenthirtz/pulse-js-framework/issues"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.0.0"
   },
   "dependencies": {},
   "devDependencies": {}
