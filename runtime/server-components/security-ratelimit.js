@@ -597,11 +597,13 @@ export class RateLimiter {
    * @private
    */
   async #checkBucket(key, config) {
-    // Get or create mutex for this bucket key
-    if (!this.#bucketLocks.has(key)) {
-      this.#bucketLocks.set(key, createMutex());
+    // Get or create mutex for this bucket key (double-checked locking pattern)
+    // This ensures we never create multiple mutexes for the same key
+    let lock = this.#bucketLocks.get(key);
+    if (!lock) {
+      lock = createMutex();
+      this.#bucketLocks.set(key, lock);
     }
-    const lock = this.#bucketLocks.get(key);
 
     // CRITICAL: Lock this bucket for the entire check-consume-save cycle
     // This prevents race conditions where multiple concurrent requests
