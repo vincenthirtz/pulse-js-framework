@@ -214,20 +214,20 @@ describe('Server Actions - Server Runtime', () => {
 
   test('executeServerAction times out', async () => {
     const handler = async () => {
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 500));
       return { success: true };
     };
     registerServerAction('slow', handler);
 
     await assert.rejects(
-      executeServerAction('slow', [], { timeout: 10 }),
+      executeServerAction('slow', [], { timeout: 50 }),
       /timeout/
     );
   });
 
   test('executeServerAction uses default timeout', async () => {
     const handler = async () => {
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise(resolve => setTimeout(resolve, 50));
       return { success: true };
     };
     registerServerAction('fast', handler);

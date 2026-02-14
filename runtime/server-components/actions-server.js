@@ -154,21 +154,28 @@ export async function executeServerAction(actionId, args, context = {}) {
 
   // Execute with timeout
   const timeout = context.timeout || 30000;
+  let timeoutId;
   const timeoutPromise = new Promise((_, reject) => {
-    setTimeout(() => reject(new Error('Server Action timeout')), timeout);
+    timeoutId = setTimeout(() => reject(new Error('Server Action timeout')), timeout);
   });
 
-  const result = await Promise.race([
-    handler(...args, context),
-    timeoutPromise
-  ]);
+  try {
+    const result = await Promise.race([
+      handler(...args, context),
+      timeoutPromise
+    ]);
+    clearTimeout(timeoutId);  // Clean up timeout
 
-  // Validate result is JSON-serializable (no functions, symbols, etc.)
-  if (hasNonSerializableData(result)) {
-    throw new Error('Server Action result must be JSON-serializable');
+    // Validate result is JSON-serializable (no functions, symbols, etc.)
+    if (hasNonSerializableData(result)) {
+      throw new Error('Server Action result must be JSON-serializable');
+    }
+
+    return result;
+  } catch (error) {
+    clearTimeout(timeoutId);  // Clean up timeout on error
+    throw error;
   }
-
-  return result;
 }
 
 // ============================================================
