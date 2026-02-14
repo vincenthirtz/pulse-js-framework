@@ -21,8 +21,25 @@
  * });
  */
 export function createMutex() {
-  let locked = false;
   const queue = [];
+  let running = false;
+
+  async function processQueue() {
+    // If already running, don't start another processor
+    if (running) return;
+
+    // Mark as running
+    running = true;
+
+    // Process queue one task at a time
+    while (queue.length > 0) {
+      const task = queue.shift();
+      await task();
+    }
+
+    // Mark as not running
+    running = false;
+  }
 
   return {
     /**
@@ -32,27 +49,21 @@ export function createMutex() {
      * @returns {Promise<any>} Result of the function
      */
     async lock(fn) {
-      // Wait for lock to become available
-      while (locked) {
-        await new Promise(resolve => queue.push(resolve));
-      }
+      // Wrap the function call in a promise we control
+      return new Promise((resolve, reject) => {
+        // Enqueue our task
+        queue.push(async () => {
+          try {
+            const result = await fn();
+            resolve(result);
+          } catch (error) {
+            reject(error);
+          }
+        });
 
-      // Acquire lock
-      locked = true;
-
-      try {
-        // Execute critical section
-        return await fn();
-      } finally {
-        // Release lock
-        locked = false;
-
-        // Wake up next waiter
-        const next = queue.shift();
-        if (next) {
-          next();
-        }
-      }
+        // Start processing queue (will skip if already running)
+        processQueue();
+      });
     }
   };
 }

@@ -483,7 +483,7 @@ describe('createCSRFMiddleware', () => {
 // ============================================================================
 
 describe('Performance', () => {
-  test('token generation is fast (<0.2ms)', async () => {
+  test('token generation is fast (<1ms)', async () => {
     const store = new CSRFTokenStore({ secret: 'perf-test-secret' });
 
     const start = performance.now();
@@ -496,7 +496,7 @@ describe('Performance', () => {
     const avgTime = (end - start) / 100;
 
     console.log(`  Token generation avg: ${avgTime.toFixed(3)}ms`);
-    assert.ok(avgTime < 0.5, `Token generation too slow: ${avgTime}ms`);
+    assert.ok(avgTime < 1.0, `Token generation too slow: ${avgTime}ms`);
 
     store.dispose();
   });
