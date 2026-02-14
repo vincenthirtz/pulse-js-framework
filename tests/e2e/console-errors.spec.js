@@ -23,6 +23,7 @@ const ROUTES = [
   '/devtools',
   '/mobile',
   '/ssr',
+  '/server-components',
   '/http',
   '/sse',
   '/persistence',
@@ -162,10 +163,11 @@ test.describe('Localized Pages', () => {
       test(`${locale}${route} - No console errors`, async ({ page }) => {
         await page.goto(`${BASE_URL}${locale}${route}`, {
           waitUntil: 'networkidle',
-          timeout: 30000,
+          timeout: 45000,
         });
 
-        await page.waitForTimeout(500);
+        // Wait longer for translations to load
+        await page.waitForTimeout(1500);
 
         if (consoleErrors.length > 0) {
           console.error(`❌ Console errors on ${locale}${route}:`, consoleErrors);
@@ -181,6 +183,9 @@ test.describe('Interactive Features', () => {
   test('Search modal - No errors', async ({ page }) => {
     await page.goto(BASE_URL, { waitUntil: 'networkidle' });
 
+    // Wait for translations to load
+    await page.waitForTimeout(1000);
+
     const consoleErrors = [];
     page.on('console', msg => {
       if (msg.type() === 'error') {
@@ -193,10 +198,10 @@ test.describe('Interactive Features', () => {
     // Open search (Ctrl+K works on both Linux CI and macOS)
     await page.keyboard.press('Control+K');
 
-    // Wait for modal to become visible (it exists in DOM but has display:none)
-    await page.waitForSelector('[role="dialog"][style*="flex"], [role="dialog"]:not([style*="display: none"])', {
+    // Wait for modal to become visible - use simpler selector and visibility check
+    await page.waitForSelector('.search-overlay[role="dialog"]', {
       state: 'visible',
-      timeout: 5000,
+      timeout: 10000,
     });
 
     // Type search query

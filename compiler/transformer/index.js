@@ -53,6 +53,8 @@ export class Transformer {
     this.actionNames = new Set();
     this.importedComponents = new Map();
     this.scopeId = this.options.scopeStyles ? generateScopeId() : null;
+    this.directive = this.ast.directive || null;  // 'use client' | 'use server' | null
+    this.componentId = this.ast.page?.name || 'Component';
 
     // Track a11y feature usage for conditional imports
     this.usesA11y = {

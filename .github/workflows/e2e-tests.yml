@@ -44,6 +44,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install E2E test dependencies
+        run: npm install --no-save @axe-core/playwright
+
       - name: Get Playwright version
         id: playwright-version
         run: echo "PLAYWRIGHT_VERSION=$(npx playwright --version | awk '{print $2}')" >> $GITHUB_OUTPUT

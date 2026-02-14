@@ -27,6 +27,8 @@ export default {
     contextDesc: 'Innspýting háðra',
     ssr: '🖥️ SSR',
     ssrDesc: 'Netþjóns-hliðar teikning og hydrering',
+    serverComponents: '🌐 Netþjónaíhlutir',
+    serverComponentsDesc: 'React-stíll netþjónaíhlutir og aðgerðir',
     devtools: '🛠️ DevTools',
     devtoolsDesc: 'Villuleit og afkastamæling',
     internals: '⚙️ Innri virkni',

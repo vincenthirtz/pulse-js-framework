@@ -3,7 +3,7 @@
  */
 
 import { el, effect } from '/runtime/index.js';
-import { t, locale } from '../state.js';
+import { t, locale, translations } from '../state.js';
 
 export function PersistencePage() {
   const page = el('.page.docs-page');
@@ -616,6 +616,7 @@ withPersistence(store, myAdapter, { key: 'my-key' });</code></pre>
   // Apply i18n translations
   effect(() => {
     locale.get();
+    translations.get();
     page.querySelectorAll('[data-i18n]').forEach(el => {
       const key = el.getAttribute('data-i18n');
       el.textContent = t(key);

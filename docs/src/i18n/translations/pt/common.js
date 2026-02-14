@@ -27,6 +27,8 @@ export default {
     contextDesc: 'Injeção de dependências',
     ssr: '🖥️ SSR',
     ssrDesc: 'Renderização do lado do servidor e hidratação',
+    serverComponents: '🌐 Componentes do Servidor',
+    serverComponentsDesc: 'Componentes do servidor estilo React & ações',
     devtools: '🛠️ DevTools',
     devtoolsDesc: 'Depuração e profiling',
     internals: '⚙️ Internos',

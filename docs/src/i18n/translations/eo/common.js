@@ -27,6 +27,8 @@ export default {
     contextDesc: 'Dependeca injektado',
     ssr: '🖥️ SSR',
     ssrDesc: 'Servila flanka renderado kaj hidratado',
+    serverComponents: '🌐 Servila Komponantoj',
+    serverComponentsDesc: 'React-stila servila komponantoj kaj agoj',
     devtools: '🛠️ DevTools',
     devtoolsDesc: 'Sencimigado kaj efikeco-profilado',
     internals: '⚙️ Internaj',

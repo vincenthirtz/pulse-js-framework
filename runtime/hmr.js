@@ -56,11 +56,13 @@ import { setCurrentModule, clearCurrentModule, disposeModule } from './pulse.js'
  */
 export function createHMRContext(moduleId) {
   // Check if HMR is available (Vite dev server)
-  if (typeof import.meta === 'undefined' || !import.meta.hot) {
+  // Also check globalThis for testing purposes (since import.meta can't be mocked in Node.js ESM)
+  const hot = (typeof import.meta !== 'undefined' && import.meta.hot) ||
+              (typeof globalThis !== 'undefined' && globalThis.import?.meta?.hot);
+
+  if (!hot) {
     return createNoopContext();
   }
-
-  const hot = import.meta.hot;
 
   // Initialize data storage if not present
   if (!hot.data) {

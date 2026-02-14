@@ -53,6 +53,8 @@ class MockHot {
       // Clear data object without creating new reference
       Object.keys(this.data).forEach(key => delete this.data[key]);
     }
+    // Re-establish reference on global hot object (in case tests broke it)
+    globalThis.import.meta.hot.data = this.data;
     this._disposeCallbacks = [];
     this._acceptCallbacks = [];
   }
@@ -102,12 +104,14 @@ describe('createHMRContext - With import.meta.hot', () => {
   test('initializes hot.data if not present (lines 66-68)', () => {
     // Remove hot.data to test initialization
     delete globalThis.import.meta.hot.data;
-    mockHot.data = undefined;
 
     const hmr = createHMRContext('test-module');
 
     assert.ok(globalThis.import.meta.hot.data, 'Should initialize hot.data');
     assert.strictEqual(typeof hmr.data, 'object');
+
+    // Restore mock data reference
+    mockHot.data = globalThis.import.meta.hot.data;
   });
 });
 
@@ -454,10 +458,13 @@ describe('HMR - Edge Cases', () => {
   });
 
   test('preservePulse key is scoped with __pulse_ prefix (line 87)', () => {
-    
+
 
     const hmr = createHMRContext('test-module');
     const count = hmr.preservePulse('count', 5);
+
+    // Verify dispose callback was registered
+    assert.strictEqual(mockHot._disposeCallbacks.length, 1, 'Dispose callback should be registered');
 
     mockHot.triggerDispose();
 

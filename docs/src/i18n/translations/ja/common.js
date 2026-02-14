@@ -27,6 +27,8 @@ export default {
     contextDesc: '依存性注入',
     ssr: '🖥️ SSR',
     ssrDesc: 'サーバーサイドレンダリングとハイドレーション',
+    serverComponents: '🌐 サーバーコンポーネント',
+    serverComponentsDesc: 'React スタイルのサーバーコンポーネントとアクション',
     devtools: '🛠️ DevTools',
     devtoolsDesc: 'デバッグとプロファイリング',
     internals: '⚙️ 内部構造',
