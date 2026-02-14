@@ -111,8 +111,11 @@ describe('TokenBucket - Bucket Persistence and Refill', () => {
 
     // First 100 should succeed, rest should fail
     const allowed = results.filter(r => r.allowed).length;
-    assert.ok(allowed <= 100);
-    assert.ok(allowed >= 95); // Allow some variance due to timing
+    if (allowed > 100) {
+      console.error(`  [DEBUG] OVERFLOW! Allowed ${allowed}/150 requests (limit was 100)`);
+    }
+    assert.ok(allowed <= 100, `Allowed ${allowed} requests when limit was 100`);
+    assert.ok(allowed >= 95, `Allowed only ${allowed} requests when expecting ~100`); // Allow some variance due to timing
   });
 
   test('concurrent requests from different IPs', async () => {

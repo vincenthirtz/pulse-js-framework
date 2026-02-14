@@ -21,25 +21,10 @@
  * });
  */
 export function createMutex() {
-  const queue = [];
-  let running = false;
-
-  async function processQueue() {
-    // If already running, don't start another processor
-    if (running) return;
-
-    // Mark as running
-    running = true;
-
-    // Process queue one task at a time
-    while (queue.length > 0) {
-      const task = queue.shift();
-      await task();
-    }
-
-    // Mark as not running
-    running = false;
-  }
+  // Promise-chain pattern: the ONLY correct way to implement mutex in JavaScript
+  // Each lock() captures the current chain, updates it to their own promise,
+  // then waits for the previous chain before executing
+  let chain = Promise.resolve();
 
   return {
     /**
@@ -48,21 +33,25 @@ export function createMutex() {
      * @param {Function} fn - Function to execute (can be async)
      * @returns {Promise<any>} Result of the function
      */
-    async lock(fn) {
-      // Wrap the function call in a promise we control
-      return new Promise((resolve, reject) => {
-        // Enqueue our task
-        queue.push(async () => {
-          try {
-            const result = await fn();
-            resolve(result);
-          } catch (error) {
-            reject(error);
-          }
-        });
+    lock(fn) {
+      // Create completion promise
+      let unlock;
+      const ready = new Promise(resolve => {
+        unlock = resolve;
+      });
 
-        // Start processing queue (will skip if already running)
-        processQueue();
+      // CRITICAL: These two lines MUST be synchronous (no await between them)
+      // to prevent race conditions
+      const prevChain = chain;  // Capture current chain
+      chain = ready;             // Update chain to our promise
+
+      // Return a promise that waits for previous, executes, then unlocks
+      return prevChain.then(async () => {
+        try {
+          return await fn();
+        } finally {
+          unlock();  // Release next waiter
+        }
       });
     }
   };
