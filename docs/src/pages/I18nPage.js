@@ -3,7 +3,7 @@
  */
 
 import { el, effect } from '/runtime/index.js';
-import { t, locale } from '../state.js';
+import { t, locale, translations } from '../state.js';
 
 export function I18nPage() {
   const page = el('.page.docs-page');
@@ -346,6 +346,7 @@ i18n.loadMessages('en', {
 // Lazy-load translations on locale change
 effect(async () => {
   const loc = i18n.locale.get();
+    translations.get();
   if (loc !== 'en') {
     const msgs = await fetch(\`/locales/\${loc}.json\`).then(r => r.json());
     i18n.loadMessages(loc, msgs);
@@ -792,6 +793,7 @@ setTimeout(async () => {
   // Apply i18n translations
   effect(() => {
     locale.get();
+    translations.get();
     page.querySelectorAll('[data-i18n]').forEach(el => {
       const key = el.getAttribute('data-i18n');
       el.textContent = t(key);

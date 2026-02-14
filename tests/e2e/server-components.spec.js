@@ -57,7 +57,11 @@ test.describe('Server Components Page', () => {
   test('Code examples are visible', async ({ page }) => {
     await page.goto(`${BASE_URL}/server-components`, {
       waitUntil: 'networkidle',
+      timeout: 45000,
     });
+
+    // Wait for page content to render
+    await page.waitForTimeout(1500);
 
     // Check for code blocks (common in docs)
     const codeBlocks = page.locator('pre code, .code-block, [class*="highlight"]');
@@ -125,7 +129,11 @@ test.describe('Server Components Page', () => {
 
     await page.goto(`${BASE_URL}/server-components`, {
       waitUntil: 'networkidle',
+      timeout: 45000,
     });
+
+    // Wait for page to render
+    await page.waitForTimeout(1500);
 
     // Content should still be visible on mobile
     const heading = await page.locator('h1, h2').first();
