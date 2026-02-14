@@ -64,7 +64,7 @@ describe('CSRFTokenStore', () => {
     const result = await store.validate(token);
 
     assert.strictEqual(result.valid, true);
-    assert.strictEqual(result.reason, undefined);
+    assert.strictEqual(result.reason, null);
   });
 
   test('rejects missing token', async () => {
