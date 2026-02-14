@@ -219,15 +219,17 @@ describe('Server Actions - Server Runtime', () => {
     };
     registerServerAction('slow', handler);
 
+    // Increased timeout from 50ms to 100ms for Node 18 compatibility
     await assert.rejects(
-      executeServerAction('slow', [], { timeout: 50 }),
+      executeServerAction('slow', [], { timeout: 100 }),
       /timeout/
     );
   });
 
   test('executeServerAction uses default timeout', async () => {
     const handler = async () => {
-      await new Promise(resolve => setTimeout(resolve, 50));
+      // Increased from 50ms to 100ms for Node 18 compatibility
+      await new Promise(resolve => setTimeout(resolve, 100));
       return { success: true };
     };
     registerServerAction('fast', handler);

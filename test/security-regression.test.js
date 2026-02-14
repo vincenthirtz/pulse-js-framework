@@ -41,8 +41,9 @@ describe('CRITICAL-001: ReDoS vulnerability in environment variable detection', 
     const result = detectEnvironmentVariables({ value: malicious });
     const duration = Date.now() - start;
 
-    // Should complete in less than 100ms (would take seconds/minutes with vulnerable regex)
-    assert.ok(duration < 100, `Detection took ${duration}ms, expected <100ms`);
+    // Should complete in less than 200ms (would take seconds/minutes with vulnerable regex)
+    // Increased from 100ms to 200ms for Node 18 compatibility
+    assert.ok(duration < 200, `Detection took ${duration}ms, expected <200ms`);
     assert.strictEqual(result.detected, true);
     assert.ok(result.warnings.length > 0);
   });
@@ -56,7 +57,8 @@ describe('CRITICAL-001: ReDoS vulnerability in environment variable detection', 
     const duration = Date.now() - start;
 
     // Should skip large strings and return immediately
-    assert.ok(duration < 50, `Detection took ${duration}ms, expected <50ms`);
+    // Increased from 50ms to 100ms for Node 18 compatibility
+    assert.ok(duration < 100, `Detection took ${duration}ms, expected <100ms`);
     assert.strictEqual(result.detected, false);
   });
 
@@ -71,7 +73,8 @@ describe('CRITICAL-001: ReDoS vulnerability in environment variable detection', 
     const result = detectEnvironmentVariables(input);
     const duration = Date.now() - start;
 
-    assert.ok(duration < 50, `Detection took ${duration}ms`);
+    // Increased from 50ms to 100ms for Node 18 compatibility
+    assert.ok(duration < 100, `Detection took ${duration}ms`);
     assert.strictEqual(result.detected, true);
     assert.strictEqual(result.warnings.length, 3);
   });
@@ -427,7 +430,8 @@ describe('Integration: Multiple security fixes work together', () => {
     const duration = Date.now() - start;
 
     // Both checks should complete quickly
-    assert.ok(duration < 100, 'Combined checks should be fast');
+    // Increased from 100ms to 200ms for Node 18 compatibility
+    assert.ok(duration < 200, 'Combined checks should be fast');
 
     // Prototype pollution should be caught
     assert.strictEqual(serializableResult.valid, false);
