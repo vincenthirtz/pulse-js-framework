@@ -23,6 +23,7 @@ const ROUTES = [
   '/devtools',
   '/mobile',
   '/ssr',
+  '/server-components',
   '/http',
   '/sse',
   '/persistence',
