@@ -405,12 +405,123 @@ export default {
         'SASS/LESS/Stylus support'
       ]
     },
+    electronApp: {
+      title: 'Electron App',
+      desc: 'Desktop notes application built with Electron and Pulse.',
+      features: [
+        'Desktop application with Electron',
+        'Note management with persistence',
+        'System tray integration',
+        'Native file system access',
+        'Cross-platform (Windows, macOS, Linux)'
+      ]
+    },
+    serverActions: {
+      title: 'Server Actions',
+      desc: 'Server Actions with token bucket rate limiting and CSRF protection.',
+      features: [
+        'Server Actions RPC mechanism',
+        'Token bucket rate limiting',
+        'CSRF token validation',
+        'Express middleware integration',
+        'Per-action and per-user limits'
+      ]
+    },
+    sassDemo: {
+      title: 'SASS/SCSS Demo',
+      desc: 'Demonstrates SASS/SCSS preprocessor with variables, mixins, extend, and color functions.',
+      features: [
+        '$variables for colors and spacing',
+        '@mixin / @include reusable styles',
+        '@extend with placeholder selectors',
+        'Color functions (lighten, darken)',
+        '@each loop for theme generation'
+      ]
+    },
+    formValidation: {
+      title: 'Form Validation',
+      desc: 'Comprehensive form validation with sync/async validators, file upload, and draft persistence.',
+      features: [
+        'useForm() with validation schema',
+        'Async username availability check',
+        'File upload with drag-and-drop',
+        'Draft auto-save to localStorage',
+        'Password strength indicator'
+      ]
+    },
+    a11yShowcase: {
+      title: 'Accessibility Showcase',
+      desc: 'Interactive demo of built-in a11y features: ARIA widgets, focus management, announcements, and contrast checking.',
+      features: [
+        'ARIA widgets (modal, tabs, accordion, menu)',
+        'Focus trapping and roving tabindex',
+        'Screen reader announcements',
+        'User preference detection',
+        'WCAG contrast checker'
+      ]
+    },
+    graphqlDemo: {
+      title: 'GraphQL Client',
+      desc: 'Blog app with GraphQL queries, mutations, SWR caching, and optimistic updates.',
+      features: [
+        'useQuery() with reactive variables',
+        'useMutation() with loading states',
+        'SWR-style query caching',
+        'Cache invalidation and refetch',
+        'Mock GraphQL backend'
+      ]
+    },
+    contextApi: {
+      title: 'Context API',
+      desc: 'Theme, auth, and locale contexts with nested providers and dependency injection.',
+      features: [
+        'createContext() and useContext()',
+        'Reactive context values with pulses',
+        'provideMany() for multiple contexts',
+        'Nested provider overrides',
+        'Theme, auth, and i18n patterns'
+      ]
+    },
+    ssrDemo: {
+      title: 'Server-Side Rendering',
+      desc: 'SSR workflow demo with renderToString, hydration, state serialization, and SSR-safe patterns.',
+      features: [
+        'renderToStringSync() live demo',
+        'State serialization and transfer',
+        'ClientOnly / ServerOnly rendering',
+        'Express server setup patterns',
+        'Hydration status tracking'
+      ]
+    },
+    asyncPatterns: {
+      title: 'Async Patterns',
+      desc: 'Async primitives: useAsync, SWR caching, live polling, and race condition handling.',
+      features: [
+        'useAsync() with loading/error/abort',
+        'useResource() SWR caching',
+        'usePolling() for live data',
+        'Race condition prevention',
+        'Configurable retry with backoff'
+      ]
+    },
     runLocally: 'Run Examples Locally',
     runLocallyDesc: 'Clone the repository and run any example with the dev server:',
     createYourOwn: 'Create Your Own',
     createYourOwnDesc: 'Start a new Pulse project with the CLI:',
     mobileExamples: 'Mobile Examples',
     mobileExamplesDesc: 'Examples demonstrating native mobile features:'
+  },
+
+  // Showroom page
+  showroom: {
+    title: '🖼️ Showroom',
+    intro: 'Browse and preview all Pulse examples in one place. Select an example to load it live below.',
+    selectLabel: 'Choose an example',
+    openNewTab: 'Open in new tab',
+    categoryApps: 'App Examples',
+    categoryCss: 'CSS Preprocessors',
+    categoryTools: 'Build Tools',
+    categoryAdvanced: 'Advanced'
   },
 
   // Playground page

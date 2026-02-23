@@ -47,6 +47,8 @@ export default {
     mobileDesc: 'Android og iOS öpp',
     examplesPage: '✨ Dæmi',
     examplesDesc: 'Sýnishorn',
+    showroom: '🖼️ Sýningarherbergi',
+    showroomDesc: 'Forskoðun á öllum dæmum',
     playground: '🎮 Leikvöllur',
     playgroundDesc: 'Gagnvirkt sandkassa',
     changelog: '📋 Breytingaskrá',

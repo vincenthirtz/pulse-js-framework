@@ -40,6 +40,7 @@ import { AnimationPage } from './pages/AnimationPage.js';
 import { PortalPage } from './pages/PortalPage.js';
 import { ServiceWorkerPage } from './pages/ServiceWorkerPage.js';
 import { ServerComponentsPage } from './pages/ServerComponentsPage.js';
+import { ShowroomPage } from './pages/ShowroomPage.js';
 
 // Re-export i18n for convenience
 export { locale, localePath, t, setLocale, getPathWithoutLocale, translations } from './i18n/index.js';
@@ -159,6 +160,7 @@ export const navStructure = [
     labelKey: 'nav.examples',
     children: [
       { path: '/examples', labelKey: 'nav.examplesPage', descKey: 'nav.examplesDesc', handler: ExamplesPage },
+      { path: '/showroom', labelKey: 'nav.showroom', descKey: 'nav.showroomDesc', handler: ShowroomPage },
       { path: '/playground', labelKey: 'nav.playground', descKey: 'nav.playgroundDesc', handler: PlaygroundPage }
     ]
   },

@@ -47,6 +47,8 @@ export default {
     mobileDesc: 'Apps Android e iOS',
     examplesPage: '✨ Ejemplos',
     examplesDesc: 'Aplicaciones de ejemplo',
+    showroom: '🖼️ Vitrina',
+    showroomDesc: 'Vista previa de todos los ejemplos',
     playground: '🎮 Sandbox',
     playgroundDesc: 'Entorno interactivo',
     changelog: '📋 Historial',

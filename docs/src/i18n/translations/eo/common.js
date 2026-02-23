@@ -47,6 +47,8 @@ export default {
     mobileDesc: 'Android kaj iOS aplikaĵoj',
     examplesPage: '✨ Ekzemploj',
     examplesDesc: 'Ekzemplaj aplikaĵoj',
+    showroom: '🖼️ Montrosalono',
+    showroomDesc: 'Antaŭvido de ĉiuj ekzemploj',
     playground: '🎮 Ludejo',
     playgroundDesc: 'Interaga sabloludejo',
     changelog: '📋 Ŝanĝoprotokolo',

@@ -47,6 +47,8 @@ export default {
     mobileDesc: 'AndroidとiOSアプリ',
     examplesPage: '✨ サンプル',
     examplesDesc: 'サンプルアプリケーション',
+    showroom: '🖼️ ショールーム',
+    showroomDesc: '全サンプルのライブプレビュー',
     playground: '🎮 プレイグラウンド',
     playgroundDesc: 'インタラクティブサンドボックス',
     changelog: '📋 変更履歴',

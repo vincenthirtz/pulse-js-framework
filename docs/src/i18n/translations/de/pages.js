@@ -402,12 +402,123 @@ export default {
         'Integrierter Dev-Server'
       ]
     },
+    electronApp: {
+      title: 'Electron-App',
+      desc: 'Desktop-Notizen-Anwendung mit Electron und Pulse.',
+      features: [
+        'Desktop-Anwendung mit Electron',
+        'Notizverwaltung mit Persistenz',
+        'System-Tray-Integration',
+        'Nativer Dateisystemzugriff',
+        'Plattformuebergreifend (Windows, macOS, Linux)'
+      ]
+    },
+    serverActions: {
+      title: 'Server-Aktionen',
+      desc: 'Server-Aktionen mit Token-Bucket-Ratenbegrenzung und CSRF-Schutz.',
+      features: [
+        'Server-Aktionen RPC-Mechanismus',
+        'Token-Bucket-Ratenbegrenzung',
+        'CSRF-Token-Validierung',
+        'Express-Middleware-Integration',
+        'Limits pro Aktion und pro Benutzer'
+      ]
+    },
+    sassDemo: {
+      title: 'SASS/SCSS Demo',
+      desc: 'SASS/SCSS preprocessor with variables, mixins, extend, and color functions.',
+      features: [
+        '$variables for colors and spacing',
+        '@mixin / @include reusable styles',
+        '@extend with placeholder selectors',
+        'Color functions (lighten, darken)',
+        '@each loop for theme generation'
+      ]
+    },
+    formValidation: {
+      title: 'Form Validation',
+      desc: 'Form validation with sync/async validators, file upload, and draft persistence.',
+      features: [
+        'useForm() with validation schema',
+        'Async username availability check',
+        'File upload with drag-and-drop',
+        'Draft auto-save to localStorage',
+        'Password strength indicator'
+      ]
+    },
+    a11yShowcase: {
+      title: 'Barrierefreiheit Showcase',
+      desc: 'Interaktive Demo der integrierten a11y-Funktionen: ARIA-Widgets, Fokus-Management, Ansagen und Kontrastprüfung.',
+      features: [
+        'ARIA-Widgets (Modal, Tabs, Akkordeon, Menü)',
+        'Fokus-Falle und wandernder Tabindex',
+        'Screenreader-Ansagen',
+        'Erkennung von Benutzereinstellungen',
+        'WCAG-Kontrastprüfer'
+      ]
+    },
+    graphqlDemo: {
+      title: 'GraphQL-Client',
+      desc: 'Blog-App mit GraphQL-Abfragen, Mutationen, SWR-Caching und optimistischen Updates.',
+      features: [
+        'useQuery() mit reaktiven Variablen',
+        'useMutation() mit Ladezuständen',
+        'SWR-Abfrage-Caching',
+        'Cache-Invalidierung und Neuladen',
+        'Simuliertes GraphQL-Backend'
+      ]
+    },
+    contextApi: {
+      title: 'Context API',
+      desc: 'Theme-, Auth- und Locale-Kontexte mit verschachtelten Providern und Dependency Injection.',
+      features: [
+        'createContext() und useContext()',
+        'Reaktive Kontextwerte mit Pulses',
+        'provideMany() für mehrere Kontexte',
+        'Überschreibung verschachtelter Provider',
+        'Theme-, Auth- und i18n-Muster'
+      ]
+    },
+    ssrDemo: {
+      title: 'Server-Side Rendering',
+      desc: 'SSR-Demo mit renderToString, Hydratation, State-Serialisierung und SSR-sicheren Mustern.',
+      features: [
+        'Live-Demo von renderToStringSync()',
+        'State-Serialisierung und -Transfer',
+        'ClientOnly / ServerOnly Rendering',
+        'Express-Server-Konfigurationsmuster',
+        'Hydratation-Status-Verfolgung'
+      ]
+    },
+    asyncPatterns: {
+      title: 'Asynchrone Muster',
+      desc: 'Async-Primitive: useAsync, SWR-Caching, Live-Polling und Race-Condition-Handling.',
+      features: [
+        'useAsync() mit Laden/Fehler/Abbruch',
+        'useResource() SWR-Caching',
+        'usePolling() für Live-Daten',
+        'Race-Condition-Prävention',
+        'Konfigurierbarer Retry mit Backoff'
+      ]
+    },
     runLocally: 'Beispiele lokal ausführen',
     runLocallyDesc: 'Klonen Sie das Repository und führen Sie ein Beispiel mit dem Dev-Server aus:',
     createYourOwn: 'Eigenes erstellen',
     createYourOwnDesc: 'Starten Sie ein neues Pulse-Projekt mit dem CLI:',
     mobileExamples: 'Mobile Beispiele',
     mobileExamplesDesc: 'Beispiele, die native mobile Funktionen demonstrieren:'
+  },
+
+  // Showroom page
+  showroom: {
+    title: '🖼️ Showroom',
+    intro: 'Durchsuchen und testen Sie alle Pulse-Beispiele an einem Ort. Wählen Sie ein Beispiel aus, um es unten live zu laden.',
+    selectLabel: 'Beispiel auswählen',
+    openNewTab: 'In neuem Tab öffnen',
+    categoryApps: 'App-Beispiele',
+    categoryCss: 'CSS-Präprozessoren',
+    categoryTools: 'Build-Tools',
+    categoryAdvanced: 'Fortgeschritten'
   },
 
   // Playground page
