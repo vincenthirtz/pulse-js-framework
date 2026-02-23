@@ -104,6 +104,30 @@ Specialized AI agents for developing the Pulse JS framework. Each skill is optim
 
 ---
 
+### 🔍 [project-auditor](./project-auditor/)
+
+**The auditor** - Runs comprehensive project audits across 7 domains.
+
+**Expertise:**
+- Security vulnerability scanning (XSS, injection, prototype pollution)
+- Performance bottleneck detection (memory leaks, unbatched updates)
+- Architecture consistency (layer violations, zero-dep compliance)
+- Accessibility compliance (ARIA, keyboard, screen readers)
+- Code quality analysis (dead code, complexity, conventions)
+- Test coverage gaps and quality issues
+- Documentation accuracy and completeness
+
+**Invocation:**
+```bash
+/project-auditor run full audit
+/project-auditor audit security
+/project-auditor audit performance on runtime/
+```
+
+**Outputs:** Health score (0-100), severity-rated findings, improvement roadmap
+
+---
+
 ### 📚 [docs-manager](./docs-manager/)
 
 **The documentarian** - Maintains documentation consistency and quality.
@@ -122,6 +146,29 @@ Specialized AI agents for developing the Pulse JS framework. Each skill is optim
 
 ---
 
+### 📦 [examples-manager](./examples-manager/)
+
+**The examples curator** - Manages, audits, improves, and creates example projects.
+
+**Expertise:**
+- Example project quality and consistency audits
+- Feature coverage tracking (framework modules → examples)
+- New example creation for uncovered features
+- Example improvement and modernization
+- Documentation integration (ExamplesPage, i18n, netlify.toml)
+
+**Invocation:**
+```bash
+/examples-manager audit all examples
+/examples-manager create example for form-validation
+/examples-manager improve dashboard example
+/examples-manager check example coverage
+```
+
+**Outputs:** Coverage matrix, quality reports, new/improved example projects
+
+---
+
 ## Quick Decision Guide
 
 | Task Type | Recommended Skill |
@@ -135,7 +182,15 @@ Specialized AI agents for developing the Pulse JS framework. Each skill is optim
 | **Refactor (small)** | senior-developer |
 | **Refactor (major)** | lead-developer |
 | **Update docs** | docs-manager |
+| **Full project audit** | project-auditor |
+| **Security audit** | project-auditor or security-reviewer |
+| **Performance audit** | project-auditor |
+| **Pre-release check** | project-auditor |
 | **Performance optimization** | lead-developer |
+| **Audit examples** | examples-manager |
+| **Create new example** | examples-manager |
+| **Improve examples** | examples-manager |
+| **Example coverage check** | examples-manager |
 
 ## Skill Coordination
 
@@ -273,7 +328,9 @@ lead-developer (Orchestrator)
     ├── senior-developer (Implementation)
     ├── qa-testing (Testing & Quality)
     ├── security-reviewer (Security)
-    └── docs-manager (Documentation)
+    ├── project-auditor (Audits & Health Checks)
+    ├── docs-manager (Documentation)
+    └── examples-manager (Example Projects)
 ```
 
 ## Validation
@@ -306,7 +363,9 @@ See existing skills for examples.
 - **senior-developer** - See `.claude/skills/senior-developer/`
 - **qa-testing** - See `.claude/skills/qa-testing/`
 - **security-reviewer** - See `.claude/skills/security-reviewer/`
+- **project-auditor** - See `.claude/skills/project-auditor/`
 - **docs-manager** - See `.claude/skills/docs-manager/`
+- **examples-manager** - See `.claude/skills/examples-manager/`
 
 ---
 

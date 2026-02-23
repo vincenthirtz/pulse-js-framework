@@ -24,7 +24,7 @@ view {
       @if (todo.createdAt) {
         span.time-ago "{formatTimeAgo(todo.createdAt)}"
       }
-      button.destroy @click(onDelete && onDelete(todo.id)) "×"
+      button.destroy[aria-label="Delete todo"] @click(onDelete && onDelete(todo.id)) "×"
     }
     input.edit[value={editText}] @input(onEditTextChange && onEditTextChange(event.target.value)) @keydown(handleEditKeydown(event)) @blur(onSaveEdit && onSaveEdit())
   }

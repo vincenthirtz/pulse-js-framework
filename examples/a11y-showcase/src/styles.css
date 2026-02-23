@@ -1,0 +1,173 @@
+/* ── Reset & Base ───────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.6;
+  color: #1a1a2e;
+  background: #f0f0f5;
+}
+
+.app { max-width: 900px; margin: 0 auto; padding: 20px; }
+
+/* Keyboard focus outlines */
+.keyboard-user *:focus {
+  outline: 3px solid #646cff;
+  outline-offset: 2px;
+}
+
+*:focus:not(:focus-visible) { outline: none; }
+*:focus-visible { outline: 3px solid #646cff; outline-offset: 2px; }
+
+/* ── Header ────────────────────────────────── */
+header { text-align: center; padding: 30px 0 20px; }
+header h1 { font-size: 2em; color: #1a1a2e; }
+.subtitle { color: #666; margin-top: 4px; }
+
+/* ── Navigation Tabs ───────────────────────── */
+nav { margin: 20px 0; }
+nav ul { display: flex; gap: 4px; list-style: none; flex-wrap: wrap; justify-content: center; }
+nav button {
+  padding: 8px 16px; border: 2px solid #ddd; border-radius: 8px 8px 0 0;
+  background: #fff; cursor: pointer; font-size: 0.9em; transition: all 0.2s;
+}
+nav button:hover { background: #e8e8ff; border-color: #646cff; }
+nav button.active, nav button[aria-selected="true"] {
+  background: #646cff; color: #fff; border-color: #646cff;
+}
+
+/* ── Sections ──────────────────────────────── */
+section { background: #fff; border-radius: 12px; padding: 30px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+section h2 { font-size: 1.5em; margin-bottom: 10px; color: #1a1a2e; }
+section h3 { font-size: 1.1em; margin: 20px 0 8px; color: #333; }
+section p { margin-bottom: 12px; color: #555; }
+
+/* ── Widget Demos ──────────────────────────── */
+.widget-demo { padding: 16px; border: 1px solid #e0e0e0; border-radius: 8px; margin-bottom: 16px; background: #fafafa; }
+
+/* Disclosure */
+.disclosure-trigger { padding: 8px 16px; border: 1px solid #646cff; border-radius: 6px; background: #f0f0ff; color: #646cff; cursor: pointer; }
+.disclosure-content { padding: 12px; margin-top: 8px; }
+.disclosure-content[aria-hidden="true"] { display: none; }
+
+/* Accordion */
+.accordion-trigger {
+  display: block; width: 100%; padding: 12px 16px; border: 1px solid #ddd;
+  background: #fff; text-align: left; cursor: pointer; font-size: 1em; margin-top: -1px;
+}
+.accordion-trigger:first-child { border-radius: 6px 6px 0 0; }
+.accordion-trigger[aria-expanded="true"] { background: #f0f0ff; color: #646cff; font-weight: 600; }
+.accordion-panel { padding: 12px 16px; border: 1px solid #ddd; border-top: none; }
+.accordion-panel[aria-hidden="true"] { display: none; }
+
+/* Tabs */
+.tabs { display: flex; border-bottom: 2px solid #ddd; }
+.tabs button { padding: 8px 16px; border: none; background: transparent; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; }
+.tabs button[aria-selected="true"] { color: #646cff; border-bottom-color: #646cff; font-weight: 600; }
+.tab-panel { padding: 16px 0; }
+.tab-panel[aria-hidden="true"] { display: none; }
+
+/* Tooltip */
+.tooltip-wrapper { position: relative; display: inline-block; }
+.tooltip { position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); padding: 6px 12px; background: #333; color: #fff; border-radius: 4px; font-size: 0.85em; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+.tooltip[data-visible="true"] { opacity: 1; }
+
+/* Menu */
+.menu-wrapper { position: relative; }
+.menu { position: absolute; top: 100%; left: 0; background: #fff; border: 1px solid #ddd; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); list-style: none; min-width: 150px; z-index: 10; display: none; }
+.menu[aria-hidden="false"] { display: block; }
+.menu li { padding: 8px 16px; cursor: pointer; }
+.menu li:hover, .menu li:focus { background: #f0f0ff; color: #646cff; }
+
+/* ── Focus Demo ────────────────────────────── */
+.focus-demo { display: flex; gap: 8px; margin: 12px 0; }
+.focus-demo button { padding: 8px 16px; border: 1px solid #ddd; border-radius: 6px; background: #fff; cursor: pointer; }
+.hint { font-size: 0.85em; color: #888; font-style: italic; }
+
+/* Toolbar */
+.toolbar { display: flex; gap: 4px; padding: 8px; background: #f0f0f0; border-radius: 6px; }
+.toolbar button { padding: 6px 12px; border: 1px solid #ddd; border-radius: 4px; background: #fff; cursor: pointer; }
+.toolbar button:focus { background: #646cff; color: #fff; }
+
+/* ── Announcements ─────────────────────────── */
+.announce-form { margin: 12px 0; }
+.announce-form label { display: block; margin-bottom: 4px; font-weight: 600; }
+.announce-form input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 1em; margin-bottom: 8px; }
+.announce-buttons { display: flex; gap: 8px; }
+.announce-buttons button { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; background: #646cff; color: #fff; }
+.announce-buttons button.assertive { background: #e74c3c; }
+
+.notifications { min-height: 60px; }
+.notification { padding: 8px 12px; background: #e8f5e9; border-left: 3px solid #4caf50; border-radius: 4px; margin-bottom: 6px; animation: fadeIn 0.3s; }
+
+.sr-demo { padding: 12px; background: #f9f9f9; border-radius: 6px; }
+.sr-demo a { font-size: 1.2em; text-decoration: none; }
+
+/* ── Preferences ───────────────────────────── */
+.prefs-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+.pref-card { padding: 16px; background: #f8f8ff; border-radius: 8px; border: 1px solid #e0e0e0; }
+.pref-card h3 { margin-bottom: 6px; font-size: 1em; }
+.pref-value { font-weight: 600; color: #646cff; }
+
+/* ── Contrast Checker ──────────────────────── */
+.contrast-form { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 16px; }
+.color-input { display: flex; align-items: center; gap: 8px; }
+.color-input label { font-weight: 600; min-width: 120px; }
+.color-input input[type=color] { width: 40px; height: 40px; border: 1px solid #ddd; border-radius: 6px; padding: 2px; cursor: pointer; }
+.color-input input[type=text] { width: 90px; padding: 6px; border: 1px solid #ddd; border-radius: 4px; font-family: monospace; }
+
+.contrast-preview { padding: 20px; border-radius: 8px; margin-bottom: 16px; border: 1px solid #ddd; }
+.preview-text { font-size: 1.2em; margin-bottom: 8px; }
+.preview-small { font-size: 0.85em; }
+
+.contrast-results { display: flex; gap: 20px; flex-wrap: wrap; }
+.contrast-results .label { font-weight: 600; }
+.contrast-results .value { font-size: 1.2em; font-weight: 700; }
+.pass { color: #2e7d32; font-weight: 700; }
+.fail { color: #c62828; font-weight: 700; }
+
+/* ── Audit ─────────────────────────────────── */
+.audit-pass { padding: 16px; background: #e8f5e9; border-radius: 8px; color: #2e7d32; font-weight: 600; }
+.audit-results { margin-top: 16px; }
+.issue-list { list-style: none; }
+.issue { padding: 8px 12px; margin-bottom: 6px; border-radius: 4px; }
+.issue-error { background: #fce4ec; border-left: 3px solid #c62828; }
+.issue-warning { background: #fff3e0; border-left: 3px solid #ef6c00; }
+.issue code { background: #f0f0f0; padding: 2px 6px; border-radius: 3px; font-size: 0.85em; }
+
+/* ── Modal ─────────────────────────────────── */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+  display: flex; align-items: center; justify-content: center; z-index: 100;
+}
+.modal {
+  background: #fff; border-radius: 12px; padding: 30px;
+  max-width: 450px; width: 90%; box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+}
+.modal h2 { margin-bottom: 12px; }
+.modal label { display: block; margin: 12px 0 4px; font-weight: 600; }
+.modal input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; }
+.modal-actions { display: flex; gap: 8px; margin-top: 20px; justify-content: flex-end; }
+.modal-actions button { padding: 8px 20px; border: none; border-radius: 6px; cursor: pointer; background: #646cff; color: #fff; }
+.modal-actions .secondary { background: #eee; color: #333; }
+
+/* ── Buttons ───────────────────────────────── */
+button { font-family: inherit; }
+section > button { padding: 10px 20px; border: none; border-radius: 6px; background: #646cff; color: #fff; cursor: pointer; font-size: 1em; }
+section > button:hover { background: #535bf2; }
+section > button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* ── Animations ────────────────────────────── */
+@keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+@media (prefers-color-scheme: dark) {
+  body { background: #1a1a2e; color: #e0e0e0; }
+  section { background: #2a2a3e; }
+  header h1 { color: #e0e0e0; }
+  nav button { background: #2a2a3e; border-color: #444; color: #e0e0e0; }
+  nav button.active { background: #646cff; border-color: #646cff; }
+}

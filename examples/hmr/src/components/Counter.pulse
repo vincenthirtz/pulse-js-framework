@@ -15,8 +15,8 @@ view {
     h2 "Counter (Preserved)"
     .counter-display "{count.get()}"
     .button-group {
-      button.btn @click(onDecrement && onDecrement()) "-"
-      button.btn.primary @click(onIncrement && onIncrement()) "+"
+      button.btn[aria-label="Decrement counter"] @click(onDecrement && onDecrement()) "-"
+      button.btn.primary[aria-label="Increment counter"] @click(onIncrement && onIncrement()) "+"
     }
     .info "This value survives HMR updates"
   }

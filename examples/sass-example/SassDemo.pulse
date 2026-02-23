@@ -1,0 +1,234 @@
+@page SassDemo
+
+state {
+  count: 0
+  theme: 'purple'
+}
+
+view {
+  .sass-app {
+    h1 "SASS/SCSS CSS Example"
+
+    .theme-switcher {
+      span "Theme:"
+      button.theme-btn.purple @click(theme = 'purple') "Purple"
+      button.theme-btn.blue @click(theme = 'blue') "Blue"
+      button.theme-btn.green @click(theme = 'green') "Green"
+    }
+
+    .counter-display {
+      "Count: {count}"
+    }
+
+    .button-group {
+      button.btn.decrement @click(count--) "-"
+      button.btn.reset @click(count = 0) "Reset"
+      button.btn.increment @click(count++) "+"
+    }
+
+    .features {
+      h2 "SASS Features Used"
+      ul {
+        li "$variables for colors and spacing"
+        li "@mixin / @include for reusable styles"
+        li "Nesting with & parent reference"
+        li "@extend for style inheritance"
+        li "Color functions (lighten, darken, mix)"
+        li "@each loop for theme generation"
+      }
+    }
+
+    .info {
+      p "This example uses SASS/SCSS CSS preprocessor for styling."
+      p "Install with: npm install -D sass"
+    }
+  }
+}
+
+style {
+  // SASS variables
+  $primary: #7c3aed;
+  $success: #10b981;
+  $danger: #ef4444;
+  $neutral: #6b7280;
+  $spacing: 20px;
+  $radius: 8px;
+
+  // Theme color map
+  $themes: (
+    purple: #7c3aed,
+    blue: #3b82f6,
+    green: #10b981
+  );
+
+  // Mixins
+  @mixin button-base {
+    padding: $spacing * 0.6 $spacing;
+    border-radius: $radius;
+    border: none;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      opacity: 0.85;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+  }
+
+  @mixin flex-center($gap: $spacing) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: $gap;
+  }
+
+  // Placeholder selector for card styles
+  %card-style {
+    padding: $spacing;
+    border-radius: $radius;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  .sass-app {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: $spacing * 2;
+    font-family: system-ui, -apple-system, sans-serif;
+
+    h1 {
+      color: $primary;
+      text-align: center;
+      margin-bottom: $spacing;
+      font-size: 32px;
+    }
+
+    .theme-switcher {
+      @include flex-center(10px);
+      margin-bottom: $spacing * 2;
+
+      span {
+        font-weight: 600;
+        color: $neutral;
+      }
+
+      .theme-btn {
+        padding: 6px 16px;
+        border: 2px solid transparent;
+        border-radius: $radius;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        transition: all 0.2s;
+
+        // @each loop generates theme button styles
+        @each $name, $color in $themes {
+          &.#{$name} {
+            background: lighten($color, 35%);
+            color: $color;
+
+            &:hover {
+              background: lighten($color, 25%);
+              border-color: $color;
+            }
+          }
+        }
+      }
+    }
+
+    .counter-display {
+      font-size: 48px;
+      font-weight: bold;
+      text-align: center;
+      margin: $spacing * 2 0;
+      padding: $spacing * 1.5;
+      background: linear-gradient(135deg, $primary, darken($primary, 15%));
+      color: white;
+      border-radius: $radius;
+      box-shadow: 0 4px 12px rgba($primary, 0.3);
+    }
+
+    .button-group {
+      @include flex-center;
+      margin-bottom: $spacing * 2;
+
+      .btn {
+        @include button-base;
+        min-width: 80px;
+
+        &.increment {
+          background: $success;
+          color: white;
+        }
+
+        &.decrement {
+          background: $danger;
+          color: white;
+        }
+
+        &.reset {
+          background: $neutral;
+          color: white;
+        }
+      }
+    }
+
+    .features {
+      @extend %card-style;
+      background: #faf5ff;
+      margin-bottom: $spacing * 2;
+
+      h2 {
+        color: $primary;
+        font-size: 18px;
+        margin-bottom: $spacing * 0.5;
+      }
+
+      ul {
+        list-style: none;
+        padding: 0;
+      }
+
+      li {
+        padding: 6px 0;
+        color: #4b5563;
+        line-height: 1.5;
+
+        // @if conditional (example of control directive)
+        @if $spacing > 10px {
+          font-size: 14px;
+        } @else {
+          font-size: 12px;
+        }
+
+        &::before {
+          content: "✓ ";
+          color: $success;
+          font-weight: bold;
+        }
+      }
+    }
+
+    .info {
+      @extend %card-style;
+      background: #f9fafb;
+      border-left: 4px solid $primary;
+
+      p {
+        margin: 8px 0;
+        color: #4b5563;
+        line-height: 1.6;
+
+        &:first-child {
+          font-weight: 600;
+        }
+      }
+    }
+  }
+}

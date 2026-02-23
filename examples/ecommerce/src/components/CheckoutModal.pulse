@@ -15,8 +15,8 @@ props {
 view {
   .modal-overlay.checkout-overlay[style="display: {show ? 'flex' : 'none'}"] @click(handleOverlayClick(event)) {
     @if (show) {
-      .modal.checkout-modal {
-        button.modal-close @click(onClose && onClose()) "×"
+      .modal.checkout-modal[role=dialog][aria-modal=true][aria-label="Checkout"] {
+        button.modal-close[aria-label="Close checkout"] @click(onClose && onClose()) "×"
         h2.checkout-title "💳 Checkout"
 
         .checkout-summary {

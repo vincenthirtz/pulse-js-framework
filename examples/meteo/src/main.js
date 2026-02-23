@@ -187,13 +187,13 @@ function isFavorite() {
 function SearchBar() {
   const container = el('.search-bar');
 
-  const input = el('input[type=text][placeholder="Search city..."]');
+  const input = el('input[type=text][placeholder="Search city..."]', { 'aria-label': 'Search city' });
   input.addEventListener('input', (e) => searchInput.set(e.target.value));
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') search();
   });
 
-  const btn = el('button.search-btn', '🔍');
+  const btn = el('button.search-btn', { 'aria-label': 'Search' }, '🔍');
   btn.addEventListener('click', search);
 
   container.appendChild(input);
@@ -220,7 +220,7 @@ function FavoritesList() {
       const name = el('span.fav-name', fav);
       name.addEventListener('click', () => fetchWeather(fav));
 
-      const removeBtn = el('button.fav-remove', '×');
+      const removeBtn = el('button.fav-remove', { 'aria-label': `Remove ${fav} from favorites` }, '×');
       removeBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         removeFromFavorites(fav);
@@ -266,7 +266,7 @@ function CurrentWeather() {
     const header = el('.weather-header');
     const location = el('h2.location', `${data.city}, ${data.country}`);
 
-    const favBtn = el('button.fav-btn');
+    const favBtn = el('button.fav-btn', { 'aria-label': isFavorite() ? 'Remove from favorites' : 'Add to favorites' });
     favBtn.innerHTML = isFavorite() ? '⭐' : '☆';
     favBtn.title = isFavorite() ? 'Remove from favorites' : 'Add to favorites';
     favBtn.addEventListener('click', () => {
@@ -286,8 +286,9 @@ function CurrentWeather() {
     main.appendChild(el('.weather-icon', info.icon));
 
     const tempContainer = el('.temp-container');
-    const temp = el('.temperature', `${convertTemp(data.temp)}${getUnitSymbol()}`);
+    const temp = el('.temperature', { role: 'button', 'aria-label': 'Toggle temperature unit', tabindex: '0' }, `${convertTemp(data.temp)}${getUnitSymbol()}`);
     temp.addEventListener('click', toggleUnit);
+    temp.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleUnit(); } });
     temp.title = 'Click to toggle °C/°F';
     tempContainer.appendChild(temp);
     tempContainer.appendChild(el('.weather-desc', info.desc));

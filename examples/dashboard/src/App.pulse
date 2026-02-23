@@ -119,12 +119,12 @@ view {
 
       .main-wrapper {
         header.header {
-          button.header-toggle @click(toggleSidebar()) "☰"
+          button.header-toggle[aria-label="Toggle sidebar"] @click(toggleSidebar()) "☰"
           .header-search {
             input[type=search][placeholder="Search..."][value={searchQuery}] @input(setSearchQuery(event.target.value))
           }
           .header-right {
-            button.header-btn.theme-toggle @click(toggleTheme()) "{theme === 'dark' ? '🌙' : '☀️'}"
+            button.header-btn.theme-toggle[aria-label="Toggle theme"] @click(toggleTheme()) "{theme === 'dark' ? '🌙' : '☀️'}"
             button.header-btn.notif-btn {
               span "🔔"
               @if (notifications.length > 0) {
@@ -536,12 +536,12 @@ view {
       }
 
       @if (modalOpen) {
-        .modal-backdrop @click(closeModalBackdrop(event)) {
+        .modal-backdrop[role=dialog][aria-modal=true] @click(closeModalBackdrop(event)) {
           .modal-container {
             .modal {
               .modal-header {
                 h3 "{getModalTitle()}"
-                button.modal-close @click(closeModal()) "×"
+                button.modal-close[aria-label="Close dialog"] @click(closeModal()) "×"
               }
               .modal-body {
                 @if (modalType === 'confirm') {

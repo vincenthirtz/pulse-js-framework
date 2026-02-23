@@ -17,7 +17,7 @@ view {
   header.header {
     .title-row {
       h1 "✨ todos"
-      button.dark-toggle[title="{darkMode ? 'Light mode' : 'Dark mode'}"] @click(onToggleDarkMode && onToggleDarkMode()) "{darkMode ? '☀️' : '🌙'}"
+      button.dark-toggle[title="{darkMode ? 'Light mode' : 'Dark mode'}"][aria-label="Toggle dark mode"] @click(onToggleDarkMode && onToggleDarkMode()) "{darkMode ? '☀️' : '🌙'}"
     }
     .progress-container {
       .progress-bar[class="{progress === 100 ? 'complete' : ''}"][style="width: {progress}%"]
