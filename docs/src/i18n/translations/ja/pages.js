@@ -402,12 +402,123 @@ export default {
         '組み込み開発サーバー'
       ]
     },
+    electronApp: {
+      title: 'Electronアプリ',
+      desc: 'ElectronとPulseで構築されたデスクトップノートアプリケーション。',
+      features: [
+        'Electronデスクトップアプリ',
+        '永続化付きノート管理',
+        'システムトレイ統合',
+        'ネイティブファイルシステムアクセス',
+        'クロスプラットフォーム対応'
+      ]
+    },
+    serverActions: {
+      title: 'サーバーアクション',
+      desc: 'トークンバケットレート制限とCSRF保護付きサーバーアクション。',
+      features: [
+        'サーバーアクションRPCメカニズム',
+        'トークンバケットレート制限',
+        'CSRFトークン検証',
+        'Expressミドルウェア統合',
+        'アクション別・ユーザー別制限'
+      ]
+    },
+    sassDemo: {
+      title: 'SASS/SCSS Demo',
+      desc: 'SASS/SCSS preprocessor with variables, mixins, extend, and color functions.',
+      features: [
+        '$variables for colors and spacing',
+        '@mixin / @include reusable styles',
+        '@extend with placeholder selectors',
+        'Color functions (lighten, darken)',
+        '@each loop for theme generation'
+      ]
+    },
+    formValidation: {
+      title: 'Form Validation',
+      desc: 'Form validation with sync/async validators, file upload, and draft persistence.',
+      features: [
+        'useForm() with validation schema',
+        'Async username availability check',
+        'File upload with drag-and-drop',
+        'Draft auto-save to localStorage',
+        'Password strength indicator'
+      ]
+    },
+    a11yShowcase: {
+      title: 'アクセシビリティショーケース',
+      desc: 'ARIAウィジェット、フォーカス管理、アナウンス、コントラストチェックなどのa11y機能のインタラクティブデモ。',
+      features: [
+        'ARIAウィジェット（モーダル、タブ、アコーディオン、メニュー）',
+        'フォーカストラップとローバータブインデックス',
+        'スクリーンリーダーアナウンス',
+        'ユーザー設定の検出',
+        'WCAGコントラストチェッカー'
+      ]
+    },
+    graphqlDemo: {
+      title: 'GraphQLクライアント',
+      desc: 'GraphQLクエリ、ミューテーション、SWRキャッシュ、楽観的更新を備えたブログアプリ。',
+      features: [
+        'リアクティブ変数によるuseQuery()',
+        'ローディング状態付きuseMutation()',
+        'SWRスタイルのクエリキャッシュ',
+        'キャッシュ無効化とリフェッチ',
+        'モックGraphQLバックエンド'
+      ]
+    },
+    contextApi: {
+      title: 'コンテキストAPI',
+      desc: 'ネストされたプロバイダーと依存性注入によるテーマ、認証、ロケールコンテキスト。',
+      features: [
+        'createContext()とuseContext()',
+        'パルスによるリアクティブコンテキスト値',
+        '複数コンテキスト用provideMany()',
+        'ネストされたプロバイダーのオーバーライド',
+        'テーマ、認証、i18nパターン'
+      ]
+    },
+    ssrDemo: {
+      title: 'サーバーサイドレンダリング',
+      desc: 'renderToString、ハイドレーション、状態シリアライズ、SSRセーフパターンのデモ。',
+      features: [
+        'renderToStringSync()のライブデモ',
+        '状態のシリアライズと転送',
+        'ClientOnly / ServerOnlyレンダリング',
+        'Expressサーバー設定パターン',
+        'ハイドレーション状態の追跡'
+      ]
+    },
+    asyncPatterns: {
+      title: '非同期パターン',
+      desc: '非同期プリミティブ：useAsync、SWRキャッシュ、ライブポーリング、レースコンディション処理。',
+      features: [
+        'ローディング/エラー/中断付きuseAsync()',
+        'useResource() SWRキャッシュ',
+        'ライブデータ用usePolling()',
+        'レースコンディションの防止',
+        'バックオフ付き設定可能なリトライ'
+      ]
+    },
     runLocally: 'ローカルで実行',
     runLocallyDesc: 'マシンでサンプルプロジェクトを実行するには：',
     createYourOwn: '自分で作成',
     createYourOwnDesc: '新しいPulseプロジェクトを開始：',
     mobileExamples: '📱 モバイルサンプル',
     mobileExamplesDesc: 'PulseはWebView経由でモバイルプラットフォームでも実行できます。'
+  },
+
+  // Showroom page
+  showroom: {
+    title: '🖼️ ショールーム',
+    intro: 'すべてのPulseサンプルを一箇所で閲覧・プレビューできます。サンプルを選択すると、下にライブで読み込まれます。',
+    selectLabel: 'サンプルを選択',
+    openNewTab: '新しいタブで開く',
+    categoryApps: 'アプリサンプル',
+    categoryCss: 'CSSプリプロセッサー',
+    categoryTools: 'ビルドツール',
+    categoryAdvanced: '上級'
   },
 
   // Playground page
@@ -1439,5 +1550,11 @@ export default {
     errorHandlingDesc: 'Handle service worker registration and update errors:',
     fullExample: 'Complete Example',
     fullExampleDesc: 'PWA with update notifications and offline support:'
+  },
+
+  // Server Components page
+  serverComponents: {
+    title: '🌐 サーバーコンポーネント',
+    intro: 'Pulse用のReactスタイルのサーバーコンポーネントアーキテクチャ。コンポーネントレベルのコード分割、サーバーアクション、CSRF保護とレート制限を含む包括的なセキュリティ機能を備えたハイブリッドアプリケーションを構築します。'
   }
 };

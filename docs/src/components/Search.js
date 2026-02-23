@@ -10,7 +10,7 @@
  */
 
 import { el, effect, pulse } from '/runtime/index.js';
-import { searchOpen, navStructure, navigateLocale, t, locale } from '../state.js';
+import { searchOpen, navStructure, navigateLocale, t, locale, translations } from '../state.js';
 
 // Search state
 const searchQuery = pulse('');
@@ -436,6 +436,7 @@ export function SearchModal() {
     searchQuery.get();
     selectedIndex.get();
     locale.get();
+    translations.get();
     renderResults();
   });
 

@@ -402,12 +402,123 @@ export default {
         'Servidor de desarrollo integrado'
       ]
     },
+    electronApp: {
+      title: 'Aplicacion Electron',
+      desc: 'Aplicacion de escritorio de notas construida con Electron y Pulse.',
+      features: [
+        'Aplicacion de escritorio con Electron',
+        'Gestion de notas con persistencia',
+        'Integracion con bandeja del sistema',
+        'Acceso nativo al sistema de archivos',
+        'Multiplataforma (Windows, macOS, Linux)'
+      ]
+    },
+    serverActions: {
+      title: 'Acciones de Servidor',
+      desc: 'Acciones de Servidor con limitacion de tasa token bucket y proteccion CSRF.',
+      features: [
+        'Mecanismo RPC Acciones de Servidor',
+        'Limitacion de tasa token bucket',
+        'Validacion de token CSRF',
+        'Integracion middleware Express',
+        'Limites por accion y por usuario'
+      ]
+    },
+    sassDemo: {
+      title: 'SASS/SCSS Demo',
+      desc: 'SASS/SCSS preprocessor with variables, mixins, extend, and color functions.',
+      features: [
+        '$variables for colors and spacing',
+        '@mixin / @include reusable styles',
+        '@extend with placeholder selectors',
+        'Color functions (lighten, darken)',
+        '@each loop for theme generation'
+      ]
+    },
+    formValidation: {
+      title: 'Form Validation',
+      desc: 'Form validation with sync/async validators, file upload, and draft persistence.',
+      features: [
+        'useForm() with validation schema',
+        'Async username availability check',
+        'File upload with drag-and-drop',
+        'Draft auto-save to localStorage',
+        'Password strength indicator'
+      ]
+    },
+    a11yShowcase: {
+      title: 'Vitrina de Accesibilidad',
+      desc: 'Demo interactiva de características a11y: widgets ARIA, gestión de foco, anuncios y verificación de contraste.',
+      features: [
+        'Widgets ARIA (modal, pestañas, acordeón, menú)',
+        'Trampa de foco y tabindex itinerante',
+        'Anuncios para lectores de pantalla',
+        'Detección de preferencias del usuario',
+        'Verificador de contraste WCAG'
+      ]
+    },
+    graphqlDemo: {
+      title: 'Cliente GraphQL',
+      desc: 'App de blog con consultas GraphQL, mutaciones, caché SWR y actualizaciones optimistas.',
+      features: [
+        'useQuery() con variables reactivas',
+        'useMutation() con estados de carga',
+        'Caché de consultas estilo SWR',
+        'Invalidación de caché y recarga',
+        'Backend GraphQL simulado'
+      ]
+    },
+    contextApi: {
+      title: 'API de Contexto',
+      desc: 'Contextos de tema, auth y locale con proveedores anidados e inyección de dependencias.',
+      features: [
+        'createContext() y useContext()',
+        'Valores de contexto reactivos con pulses',
+        'provideMany() para múltiples contextos',
+        'Sobreescritura de proveedores anidados',
+        'Patrones de tema, auth e i18n'
+      ]
+    },
+    ssrDemo: {
+      title: 'Renderizado del Lado del Servidor',
+      desc: 'Demo SSR con renderToString, hidratación, serialización de estado y patrones SSR-safe.',
+      features: [
+        'Demo en vivo de renderToStringSync()',
+        'Serialización y transferencia de estado',
+        'Renderizado ClientOnly / ServerOnly',
+        'Patrones de configuración Express',
+        'Seguimiento del estado de hidratación'
+      ]
+    },
+    asyncPatterns: {
+      title: 'Patrones Asíncronos',
+      desc: 'Primitivas async: useAsync, caché SWR, polling en vivo y manejo de condiciones de carrera.',
+      features: [
+        'useAsync() con carga/error/cancelación',
+        'useResource() caché SWR',
+        'usePolling() para datos en vivo',
+        'Prevención de condiciones de carrera',
+        'Reintento configurable con backoff'
+      ]
+    },
     runLocally: 'Ejecutar ejemplos localmente',
     runLocallyDesc: 'Clona el repositorio y ejecuta cualquier ejemplo con el servidor de desarrollo:',
     createYourOwn: 'Crea el tuyo',
     createYourOwnDesc: 'Inicia un nuevo proyecto Pulse con el CLI:',
     mobileExamples: 'Ejemplos móviles',
     mobileExamplesDesc: 'Ejemplos que demuestran características móviles nativas:'
+  },
+
+  // Showroom page
+  showroom: {
+    title: '🖼️ Vitrina',
+    intro: 'Explora y previsualiza todos los ejemplos de Pulse en un solo lugar. Selecciona un ejemplo para cargarlo a continuación.',
+    selectLabel: 'Elegir un ejemplo',
+    openNewTab: 'Abrir en nueva pestaña',
+    categoryApps: 'Aplicaciones',
+    categoryCss: 'Preprocesadores CSS',
+    categoryTools: 'Herramientas de build',
+    categoryAdvanced: 'Avanzado'
   },
 
   // Playground page
@@ -1440,5 +1551,11 @@ export default {
     errorHandlingDesc: 'Handle service worker registration and update errors:',
     fullExample: 'Complete Example',
     fullExampleDesc: 'PWA with update notifications and offline support:'
+  },
+
+  // Server Components page
+  serverComponents: {
+    title: '🌐 Componentes del Servidor',
+    intro: 'Arquitectura de componentes del servidor estilo React para Pulse. Construya aplicaciones híbridas con división a nivel de componentes, Server Actions, y características de seguridad completas incluyendo protección CSRF y limitación de velocidad.'
   }
 };

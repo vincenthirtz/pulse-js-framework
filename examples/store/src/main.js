@@ -9,8 +9,8 @@
  * - createModuleStore for namespaced state
  */
 
-import { pulse, effect, computed, batch, onCleanup } from '../../runtime/index.js';
-import { el, mount, onMount, onUnmount } from '../../runtime/dom.js';
+import { pulse, effect, computed, batch, onCleanup } from '../../../runtime/index.js';
+import { el, mount, onMount, onUnmount } from '../../../runtime/dom.js';
 import {
   createStore,
   createActions,
@@ -19,7 +19,7 @@ import {
   historyPlugin,
   loggerPlugin,
   createModuleStore
-} from '../../runtime/store.js';
+} from '../../../runtime/store.js';
 
 // =============================================================================
 // Store Setup
@@ -244,7 +244,7 @@ function Header() {
   // Search
   const search = el('.search-container');
   const searchIcon = el('span.search-icon', '🔍');
-  const searchInput = el('input.search-input[type=text][placeholder="Search notes..."]');
+  const searchInput = el('input.search-input[type=text][placeholder="Search notes..."]', { 'aria-label': 'Search notes' });
   searchInput.addEventListener('input', (e) => noteActions.setSearch(e.target.value));
   effect(() => {
     searchInput.value = notesStore.searchQuery.get();
@@ -257,7 +257,7 @@ function Header() {
   const actions = el('.header-actions');
 
   // Undo/Redo buttons
-  const undoBtn = el('button.icon-btn[title="Undo (Ctrl+Z)"]', '↩️');
+  const undoBtn = el('button.icon-btn[title="Undo (Ctrl+Z)"]', { 'aria-label': 'Undo' }, '↩️');
   undoBtn.addEventListener('click', () => notesStore.$undo());
   effect(() => {
     undoBtn.disabled = !notesStore.$canUndo();
@@ -265,7 +265,7 @@ function Header() {
   });
   actions.appendChild(undoBtn);
 
-  const redoBtn = el('button.icon-btn[title="Redo (Ctrl+Y)"]', '↪️');
+  const redoBtn = el('button.icon-btn[title="Redo (Ctrl+Y)"]', { 'aria-label': 'Redo' }, '↪️');
   redoBtn.addEventListener('click', () => notesStore.$redo());
   effect(() => {
     redoBtn.disabled = !notesStore.$canRedo();
@@ -274,7 +274,7 @@ function Header() {
   actions.appendChild(redoBtn);
 
   // Theme toggle
-  const themeBtn = el('button.icon-btn[title="Toggle theme"]');
+  const themeBtn = el('button.icon-btn[title="Toggle theme"]', { 'aria-label': 'Toggle theme' });
   effect(() => {
     themeBtn.textContent = settingsModule.ui.theme.get() === 'dark' ? '🌙' : '☀️';
   });
@@ -282,7 +282,7 @@ function Header() {
   actions.appendChild(themeBtn);
 
   // New note button
-  const newBtn = el('button.btn.primary', '+ New Note');
+  const newBtn = el('button.btn.primary', { 'aria-label': 'Create new note' }, '+ New Note');
   newBtn.addEventListener('click', () => noteActions.addNote());
   actions.appendChild(newBtn);
 
@@ -483,7 +483,7 @@ function NoteEditor() {
     const toolbar = el('.editor-toolbar');
 
     // Category selector
-    const catSelect = el('select.category-select');
+    const catSelect = el('select.category-select', { 'aria-label': 'Note category' });
     for (const c of CATEGORIES) {
       const opt = el('option');
       opt.value = c.id;
@@ -497,12 +497,12 @@ function NoteEditor() {
     toolbar.appendChild(catSelect);
 
     // Pin button
-    const pinBtn = el(`button.toolbar-btn${note.pinned ? '.active' : ''}`, note.pinned ? '📌 Pinned' : '📌 Pin');
+    const pinBtn = el(`button.toolbar-btn${note.pinned ? '.active' : ''}`, { 'aria-label': note.pinned ? 'Unpin note' : 'Pin note', 'aria-pressed': String(note.pinned) }, note.pinned ? '📌 Pinned' : '📌 Pin');
     pinBtn.addEventListener('click', () => noteActions.togglePin(note.id));
     toolbar.appendChild(pinBtn);
 
     // Delete button
-    const deleteBtn = el('button.toolbar-btn.danger', '🗑️ Delete');
+    const deleteBtn = el('button.toolbar-btn.danger', { 'aria-label': 'Delete note' }, '🗑️ Delete');
     deleteBtn.addEventListener('click', () => {
       if (confirm('Delete this note?')) {
         noteActions.deleteNote(note.id);
@@ -513,7 +513,7 @@ function NoteEditor() {
     editor.appendChild(toolbar);
 
     // Title input
-    const titleInput = el('input.note-title-input[type=text][placeholder="Note title..."]');
+    const titleInput = el('input.note-title-input[type=text][placeholder="Note title..."]', { 'aria-label': 'Note title' });
     titleInput.value = note.title;
     titleInput.addEventListener('input', (e) => {
       noteActions.updateNote(note.id, { title: e.target.value });
@@ -521,7 +521,7 @@ function NoteEditor() {
     editor.appendChild(titleInput);
 
     // Content textarea with auto-save indicator
-    const contentArea = el('textarea.note-content-area[placeholder="Start writing..."]');
+    const contentArea = el('textarea.note-content-area[placeholder="Start writing..."]', { 'aria-label': 'Note content' });
     contentArea.value = note.content;
     contentArea.style.fontSize = `${settingsModule.ui.editorFontSize.get()}px`;
 

@@ -4,7 +4,7 @@
  * News sources: L'Équipe & Sports.fr style
  */
 
-import { pulse, effect, mount, el } from '/runtime/index.js';
+import { pulse, effect, mount, el, on, text } from '/runtime/index.js';
 import { createHttp } from '/runtime/http.js';
 
 // =============================================================================
@@ -262,20 +262,26 @@ export const CATEGORIES = [
 function Header() {
   const header = el('header.header');
 
-  const logo = el('.logo');
-  logo.innerHTML = '<span class="logo-icon">⚽</span><span class="logo-text">Sport<span class="accent">Actu</span></span>';
+  const logo = el('.logo', [
+    el('span.logo-icon', '\u26BD\uFE0F'),
+    el('span.logo-text', [
+      'Sport',
+      el('span.accent', 'Actu')
+    ])
+  ]);
   header.appendChild(logo);
 
   // Sources badge
-  const sources = el('.sources-badge');
-  sources.innerHTML = '<small>Sources: L\'Équipe • Sports.fr</small>';
+  const sources = el('.sources-badge', [
+    el('small', "Sources: L'Équipe • Sports.fr")
+  ]);
   header.appendChild(sources);
 
   // Search
   const searchBox = el('.search-box');
   const searchInput = el('input.search-input[type=text][placeholder="Rechercher..."]');
   let searchTimeout;
-  searchInput.addEventListener('input', (e) => {
+  on(searchInput, 'input', (e) => {
     clearTimeout(searchTimeout);
     searchTimeout = setTimeout(() => setSearch(e.target.value), 300);
   });
@@ -288,20 +294,20 @@ function Header() {
   // Favorites toggle
   const favBtn = el('button.icon-btn');
   effect(() => {
-    favBtn.innerHTML = showFavorites.get() ? '❤️' : '🤍';
+    favBtn.textContent = showFavorites.get() ? '\u2764\uFE0F' : '\uD83E\uDD0D';
     favBtn.title = showFavorites.get() ? 'Voir tout' : 'Favoris';
     favBtn.className = `icon-btn ${showFavorites.get() ? 'active' : ''}`;
   });
-  favBtn.addEventListener('click', toggleShowFavorites);
+  on(favBtn, 'click', toggleShowFavorites);
   actions.appendChild(favBtn);
 
   // Dark mode toggle
   const darkBtn = el('button.icon-btn');
   effect(() => {
-    darkBtn.innerHTML = darkMode.get() ? '☀️' : '🌙';
+    darkBtn.textContent = darkMode.get() ? '\u2600\uFE0F' : '\uD83C\uDF19';
     darkBtn.title = darkMode.get() ? 'Mode clair' : 'Mode sombre';
   });
-  darkBtn.addEventListener('click', toggleDarkMode);
+  on(darkBtn, 'click', toggleDarkMode);
   actions.appendChild(darkBtn);
 
   header.appendChild(actions);
@@ -313,15 +319,17 @@ function CategoryFilter() {
   const nav = el('nav.categories');
 
   for (const cat of CATEGORIES) {
-    const btn = el('button.category-btn');
-    btn.innerHTML = `${cat.icon} <span>${cat.name}</span>`;
+    const btn = el('button.category-btn', [
+      cat.icon + ' ',
+      el('span', cat.name)
+    ]);
     btn.dataset.category = cat.id;
 
     effect(() => {
       btn.className = `category-btn ${category.get() === cat.id ? 'active' : ''}`;
     });
 
-    btn.addEventListener('click', () => setCategory(cat.id));
+    on(btn, 'click', () => setCategory(cat.id));
     nav.appendChild(btn);
   }
 
@@ -344,14 +352,16 @@ function NewsCard(article) {
     handball: '#0891b2'
   };
   imageBox.style.background = `linear-gradient(135deg, ${colors[article.category] || '#3b82f6'}, #8b5cf6)`;
-  imageBox.innerHTML = `<span class="image-emoji">${article.image}</span>`;
+  imageBox.appendChild(el('span.image-emoji', article.image));
   card.appendChild(imageBox);
 
   // Content
   const content = el('.news-content');
 
-  const meta = el('.news-meta');
-  meta.innerHTML = `<span class="source">${article.source}</span><span class="time">${article.time}</span>`;
+  const meta = el('.news-meta', [
+    el('span.source', article.source),
+    el('span.time', article.time)
+  ]);
   content.appendChild(meta);
 
   const title = el('h3.news-title', article.title);
@@ -366,18 +376,18 @@ function NewsCard(article) {
   const favBtn = el('button.card-btn.fav-btn');
   effect(() => {
     const isFav = favorites.get().includes(article.id);
-    favBtn.innerHTML = isFav ? '❤️' : '🤍';
+    favBtn.textContent = isFav ? '\u2764\uFE0F' : '\uD83E\uDD0D';
     favBtn.className = `card-btn fav-btn ${isFav ? 'active' : ''}`;
   });
-  favBtn.addEventListener('click', (e) => {
+  on(favBtn, 'click', (e) => {
     e.stopPropagation();
     toggleFavorite(article.id);
   });
   actions.appendChild(favBtn);
 
-  const shareBtn = el('button.card-btn', '📤');
+  const shareBtn = el('button.card-btn', '\uD83D\uDCE4');
   shareBtn.title = 'Partager';
-  shareBtn.addEventListener('click', (e) => {
+  on(shareBtn, 'click', (e) => {
     e.stopPropagation();
     if (navigator.share) {
       navigator.share({ title: article.title, text: article.summary, url: article.url });
@@ -393,7 +403,7 @@ function NewsCard(article) {
 
   // Make card clickable - open source URL
   card.style.cursor = 'pointer';
-  card.addEventListener('click', () => {
+  on(card, 'click', () => {
     window.open(article.url, '_blank');
   });
 
@@ -404,34 +414,39 @@ function NewsList() {
   const container = el('.news-container');
 
   effect(() => {
-    container.innerHTML = '';
+    container.textContent = '';
     const state = newsState.get();
 
     if (state.loading) {
-      const loader = el('.loader');
-      loader.innerHTML = '<div class="spinner"></div><p>Chargement des actualités...</p>';
+      const loader = el('.loader', [
+        el('.spinner'),
+        el('p', 'Chargement des actualit\u00E9s...')
+      ]);
       container.appendChild(loader);
       return;
     }
 
     if (state.error) {
-      const error = el('.error-state');
-      error.innerHTML = `<span class="error-icon">⚠️</span><p>${state.error}</p><button class="retry-btn">Réessayer</button>`;
-      error.querySelector('.retry-btn').addEventListener('click', fetchNews);
-      container.appendChild(error);
+      const retryBtn = el('button.retry-btn', 'R\u00E9essayer');
+      on(retryBtn, 'click', fetchNews);
+      const errorEl = el('.error-state', [
+        el('span.error-icon', '\u26A0\uFE0F'),
+        el('p', state.error),
+        retryBtn
+      ]);
+      container.appendChild(errorEl);
       return;
     }
 
     const articles = getFilteredNews();
 
     if (articles.length === 0) {
-      const empty = el('.empty-state');
       const isShowingFavorites = showFavorites.get();
-      empty.innerHTML = `
-        <span class="empty-icon">${isShowingFavorites ? '💔' : '🔍'}</span>
-        <p>${isShowingFavorites ? 'Aucun favori' : 'Aucun article trouvé'}</p>
-        <span class="empty-hint">${isShowingFavorites ? 'Ajoutez des articles en favoris avec ❤️' : 'Essayez une autre catégorie ou recherche'}</span>
-      `;
+      const empty = el('.empty-state', [
+        el('span.empty-icon', isShowingFavorites ? '\uD83D\uDC94' : '\uD83D\uDD0D'),
+        el('p', isShowingFavorites ? 'Aucun favori' : 'Aucun article trouv\u00E9'),
+        el('span.empty-hint', isShowingFavorites ? 'Ajoutez des articles en favoris avec \u2764\uFE0F' : 'Essayez une autre cat\u00E9gorie ou recherche')
+      ]);
       container.appendChild(empty);
       return;
     }
@@ -460,11 +475,19 @@ function App() {
   app.appendChild(NewsList());
 
   // Footer
-  const footer = el('footer.footer');
-  footer.innerHTML = `
-    <div>Sources: <a href="https://www.lequipe.fr" target="_blank">L'Équipe</a> • <a href="https://www.sports.fr" target="_blank">Sports.fr</a></div>
-    <div>Built with ✨ <strong>Pulse Framework</strong> • Zero-Dependency HTTP Client</div>
-  `;
+  const footer = el('footer.footer', [
+    el('div', [
+      'Sources: ',
+      el('a[href=https://www.lequipe.fr][target=_blank]', "L'\u00C9quipe"),
+      ' \u2022 ',
+      el('a[href=https://www.sports.fr][target=_blank]', 'Sports.fr')
+    ]),
+    el('div', [
+      'Built with \u2728 ',
+      el('strong', 'Pulse Framework'),
+      ' \u2022 Zero-Dependency HTTP Client'
+    ])
+  ]);
   app.appendChild(footer);
 
   return app;

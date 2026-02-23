@@ -4,16 +4,14 @@
  * This example demonstrates using Stylus CSS preprocessor with Pulse framework.
  *
  * To run:
- * 1. Install Stylus: npm install -D stylus
- * 2. Compile: pulse compile Counter.pulse
- * 3. Serve: pulse dev
+ * 1. (Optional) Install Stylus for full styles: npm install -D stylus
+ * 2. Serve: pulse dev
  */
 
-import { mount } from '../../runtime/dom.js';
-import Counter from './Counter.js';
+import Counter from './Counter.pulse';
 
 // Mount the counter app
-mount('#app', Counter());
+Counter.mount('#app');
 
 console.log('✨ Pulse + Stylus Example Running!');
 console.log('📦 Stylus features used:');

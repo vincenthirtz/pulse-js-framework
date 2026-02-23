@@ -8,6 +8,7 @@
 
 import { TokenType } from '../lexer.js';
 import { ParserError, SUGGESTIONS, getDocsUrl } from '../../runtime/errors.js';
+import { parseDirective, validateDirective } from '../directives.js';
 
 // ============================================================
 // AST Node Types
@@ -192,6 +193,7 @@ export class Parser {
    */
   parse() {
     const program = new ASTNode(NodeType.Program, {
+      directive: null,  // 'use client' | 'use server' | null
       imports: [],
       page: null,
       route: null,
@@ -203,6 +205,10 @@ export class Parser {
       router: null,
       store: null
     });
+
+    // Parse file-level directive (must be first)
+    program.directive = parseDirective(this);
+    validateDirective(program.directive, program);
 
     while (!this.is(TokenType.EOF)) {
       // Import declarations (must come first)

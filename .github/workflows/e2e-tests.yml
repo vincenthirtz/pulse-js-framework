@@ -44,6 +44,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install E2E test dependencies
+        run: npm install --no-save @axe-core/playwright
+
       - name: Get Playwright version
         id: playwright-version
         run: echo "PLAYWRIGHT_VERSION=$(npx playwright --version | awk '{print $2}')" >> $GITHUB_OUTPUT
@@ -67,7 +70,7 @@ jobs:
         id: e2e
         env:
           PLAYWRIGHT_BASE_URL: ${{ github.event.inputs.url || 'https://pulse-js.fr' }}
-        run: npx playwright test --project=${{ matrix.browser }}
+        run: npx playwright test --project=${{ matrix.browser }} --grep-invert "Examples Health Check"
 
       - name: Upload Playwright report
         if: always()
@@ -91,9 +94,78 @@ jobs:
             echo "- View [detailed report](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
           fi
 
+  # ──────────────────────────────────────────────────────────────────────
+  # Examples Health Check
+  # Starts the Pulse dev server for each example project and verifies
+  # it loads and renders without JavaScript errors.
+  # No example-level npm install — only the framework's own dependencies.
+  # ──────────────────────────────────────────────────────────────────────
+  examples:
+    name: Examples Health Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Get Playwright version
+        id: playwright-version
+        run: echo "PLAYWRIGHT_VERSION=$(npx playwright --version | awk '{print $2}')" >> $GITHUB_OUTPUT
+
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ steps.playwright-version.outputs.PLAYWRIGHT_VERSION }}
+
+      - name: Install Playwright Chromium
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: Install Playwright system deps only
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+
+      - name: Run examples health check
+        id: examples
+        run: npx playwright test tests/e2e/examples.spec.js --project=chromium
+
+      - name: Upload examples report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: examples-health-report
+          path: playwright-report/
+          retention-days: 30
+
+      - name: Upload examples summary
+        if: always()
+        run: |
+          echo "## 🧩 Examples Health Check" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Tested **19 example projects** with Pulse dev server (no external dependencies)." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.examples.outcome }}" = "success" ]; then
+            echo "✅ All examples load and render without errors" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Some examples failed" >> $GITHUB_STEP_SUMMARY
+            echo "- View [detailed report](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+          fi
+
   notify:
     name: Notify Results
-    needs: e2e
+    needs: [e2e, examples]
     if: always()
     runs-on: ubuntu-latest
 
@@ -104,4 +176,9 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Tested URL: **${{ github.event.inputs.url || 'https://pulse-js.fr' }}**" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "View individual browser reports in the artifacts." >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| E2E (docs site) | ${{ needs.e2e.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Examples Health | ${{ needs.examples.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "View individual reports in the artifacts." >> $GITHUB_STEP_SUMMARY

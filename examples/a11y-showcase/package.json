@@ -1,0 +1,10 @@
+{
+  "name": "pulse-example-a11y-showcase",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node ../../cli/index.js dev",
+    "build": "node ../../cli/index.js build"
+  }
+}

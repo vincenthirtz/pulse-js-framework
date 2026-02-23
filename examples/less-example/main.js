@@ -4,16 +4,14 @@
  * This example demonstrates using LESS CSS preprocessor with Pulse framework.
  *
  * To run:
- * 1. Install LESS: npm install -D less
- * 2. Compile: pulse compile LessDemo.pulse
- * 3. Serve: pulse dev
+ * 1. (Optional) Install LESS for full styles: npm install -D less
+ * 2. Serve: pulse dev
  */
 
-import { mount } from '../../runtime/dom.js';
-import LessDemo from './LessDemo.js';
+import LessDemo from './LessDemo.pulse';
 
 // Mount the demo app
-mount('#app', LessDemo());
+LessDemo.mount('#app');
 
 console.log('✨ Pulse + LESS Example Running!');
 console.log('📦 LESS features used:');

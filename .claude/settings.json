@@ -1,0 +1,11 @@
+{
+  "hooks": {
+    "postToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "pattern": "runtime/.*\\.js$",
+        "command": "node --test test/ 2>&1 | tail -5"
+      }
+    ]
+  }
+}

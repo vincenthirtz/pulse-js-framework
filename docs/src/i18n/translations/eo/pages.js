@@ -402,12 +402,123 @@ export default {
         'Enkonstruita programista servilo'
       ]
     },
+    electronApp: {
+      title: 'Electron-Aplikajo',
+      desc: 'Labortabla notaplikajo konstruita per Electron kaj Pulse.',
+      features: [
+        'Labortabla aplikajo kun Electron',
+        'Notadministrado kun persisteco',
+        'Sistema pleto-integrigxo',
+        'Indiĝena dosiersistema aliro',
+        'Plurplatforma (Windows, macOS, Linux)'
+      ]
+    },
+    serverActions: {
+      title: 'Servilo-Agoj',
+      desc: 'Servilo-Agoj kun jetona sitelo-tarifado kaj CSRF-protekto.',
+      features: [
+        'Servilo-Agoj RPC-mekanismo',
+        'Jetona sitelo-tariflimigo',
+        'CSRF-jetona validigo',
+        'Express-mezprogramara integrigxo',
+        'Limoj per ago kaj per uzanto'
+      ]
+    },
+    sassDemo: {
+      title: 'SASS/SCSS Demo',
+      desc: 'SASS/SCSS preprocessor with variables, mixins, extend, and color functions.',
+      features: [
+        '$variables for colors and spacing',
+        '@mixin / @include reusable styles',
+        '@extend with placeholder selectors',
+        'Color functions (lighten, darken)',
+        '@each loop for theme generation'
+      ]
+    },
+    formValidation: {
+      title: 'Form Validation',
+      desc: 'Form validation with sync/async validators, file upload, and draft persistence.',
+      features: [
+        'useForm() with validation schema',
+        'Async username availability check',
+        'File upload with drag-and-drop',
+        'Draft auto-save to localStorage',
+        'Password strength indicator'
+      ]
+    },
+    a11yShowcase: {
+      title: 'Alirebleco-Montro',
+      desc: 'Interaga demonstro de a11y-funkcioj: ARIA-fenestraĵoj, fokusa administrado, anoncoj kaj kontrasta kontrolo.',
+      features: [
+        'ARIA-fenestraĵoj (modalo, langetoj, akordeono, menuo)',
+        'Fokusa kaptilo kaj migranta tab-indekso',
+        'Ekranlegila anoncoj',
+        'Detekto de uzantaj preferoj',
+        'WCAG kontrasta kontrolilo'
+      ]
+    },
+    graphqlDemo: {
+      title: 'GraphQL-Kliento',
+      desc: 'Bloga aplikaĵo kun GraphQL-demandoj, mutacioj, SWR-kaŝmemoro kaj optimismaj ĝisdatigoj.',
+      features: [
+        'useQuery() kun reagaj variabloj',
+        'useMutation() kun ŝargaj statoj',
+        'SWR-stila demanda kaŝmemoro',
+        'Kaŝmemora malvalidigo kaj reŝargo',
+        'Simulita GraphQL-backend'
+      ]
+    },
+    contextApi: {
+      title: 'Kunteksta API',
+      desc: 'Temaj, aŭtentikigaj kaj lokaj kuntekstoj kun nestitaj provizantoj kaj dependeca injekto.',
+      features: [
+        'createContext() kaj useContext()',
+        'Reagaj kuntekstaj valoroj kun pulsoj',
+        'provideMany() por pluraj kuntekstoj',
+        'Superskribo de nestitaj provizantoj',
+        'Temaj, aŭtentikigaj kaj i18n-ŝablonoj'
+      ]
+    },
+    ssrDemo: {
+      title: 'Servila Bildado',
+      desc: 'SSR-demonstro kun renderToString, hidratado, stata seriigo kaj SSR-sekuraj ŝablonoj.',
+      features: [
+        'Viva demonstro de renderToStringSync()',
+        'Stata seriigo kaj transdono',
+        'ClientOnly / ServerOnly bildado',
+        'Express-servila agorda ŝablonoj',
+        'Hidratada stata spurado'
+      ]
+    },
+    asyncPatterns: {
+      title: 'Nesinkronaj Ŝablonoj',
+      desc: 'Nesinkronaj primitivoj: useAsync, SWR-kaŝmemoro, viva sondado kaj kunkuraj kondiĉoj.',
+      features: [
+        'useAsync() kun ŝargado/eraro/ĉesigo',
+        'useResource() SWR-kaŝmemoro',
+        'usePolling() por vivaj datumoj',
+        'Prevento de kunkuraj kondiĉoj',
+        'Agordebla reprovo kun backoff'
+      ]
+    },
     runLocally: 'Ruli Ekzemplojn Loke',
     runLocallyDesc: 'Por ruli la ekzemplajn projektojn sur via maŝino:',
     createYourOwn: 'Kreu Vian Propran',
     createYourOwnDesc: 'Komenci novan Pulse projekton:',
     mobileExamples: '📱 Poŝtelefonaj Ekzemploj',
     mobileExamplesDesc: 'Pulse ankaŭ povas ruli sur poŝtelefonaj platformoj per WebView.'
+  },
+
+  // Showroom page
+  showroom: {
+    title: '🖼️ Montrosalono',
+    intro: 'Foliumu kaj antaŭrigardu ĉiujn Pulse-ekzemplojn en unu loko. Elektu ekzemplon por ŝargi ĝin sube.',
+    selectLabel: 'Elektu ekzemplon',
+    openNewTab: 'Malfermi en nova langeto',
+    categoryApps: 'Aplikaj ekzemploj',
+    categoryCss: 'CSS-antaŭtraktiloj',
+    categoryTools: 'Konstruaj iloj',
+    categoryAdvanced: 'Altnivela'
   },
 
   // Playground page
@@ -1439,5 +1550,11 @@ export default {
     errorHandlingDesc: 'Handle service worker registration and update errors:',
     fullExample: 'Complete Example',
     fullExampleDesc: 'PWA with update notifications and offline support:'
+  },
+
+  // Server Components page
+  serverComponents: {
+    title: '🌐 Servila Komponantoj',
+    intro: 'React-stila servila komponanta arkitekturo por Pulse. Konstruu hibridajn aplikaĵojn kun komponanto-nivela kodo-fendo, Servila Agoj, kaj ampleksaj sekurecaj trajtoj inkluzive de CSRF protekto kaj rapidec-limigo.'
   }
 };

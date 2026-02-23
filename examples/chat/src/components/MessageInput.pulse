@@ -27,14 +27,14 @@ view {
     @if (editingMessage) {
       .edit-indicator {
         span "✏️ Editing message"
-        button.cancel-edit-btn @click(onCancelEdit && onCancelEdit()) "Cancel"
+        button.cancel-edit-btn[aria-label="Cancel editing"] @click(onCancelEdit && onCancelEdit()) "Cancel"
       }
     }
 
     .input-row {
-      button.emoji-toggle @click(onToggleEmoji && onToggleEmoji()) "😊"
+      button.emoji-toggle[aria-label="Toggle emoji picker"] @click(onToggleEmoji && onToggleEmoji()) "😊"
       input.message-input[type=text][placeholder="Type a message..."][value={inputText}] @input(onInputChange && onInputChange(event.target.value)) @keydown(handleKeydown(event))
-      button.send-btn @click(handleSend()) "{editingMessage ? '✓' : '📤'}"
+      button.send-btn[aria-label="Send message"] @click(handleSend()) "{editingMessage ? '✓' : '📤'}"
     }
   }
 }

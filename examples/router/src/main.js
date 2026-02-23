@@ -3,7 +3,7 @@
  * Demonstrates the SPA routing system
  */
 
-import { pulse, effect, el, mount } from '/runtime/index.js';
+import { pulse, effect, el, on, mount } from '/runtime/index.js';
 import { createRouter } from '/runtime/router.js';
 
 // =============================================================================
@@ -46,36 +46,41 @@ function logout() {
 // =============================================================================
 
 function HomePage() {
-  const page = el('.page.home');
-  page.innerHTML = `
-    <h1>🏠 Welcome to Pulse Router Demo</h1>
-    <p class="intro">This example demonstrates the Pulse routing system with:</p>
-    <ul class="features">
-      <li>✅ Basic navigation</li>
-      <li>✅ Route parameters (<code>/users/:id</code>)</li>
-      <li>✅ Query parameters (<code>?search=...</code>)</li>
-      <li>✅ Protected routes (requires login)</li>
-      <li>✅ 404 handling</li>
-      <li>✅ Active link styling</li>
-    </ul>
-    <div class="cards">
-      <div class="card" onclick="window.router.navigate('/users')">
-        <span class="icon">👥</span>
-        <h3>Users</h3>
-        <p>Browse user profiles</p>
-      </div>
-      <div class="card" onclick="window.router.navigate('/posts')">
-        <span class="icon">📝</span>
-        <h3>Posts</h3>
-        <p>Read blog posts</p>
-      </div>
-      <div class="card" onclick="window.router.navigate('/dashboard')">
-        <span class="icon">📊</span>
-        <h3>Dashboard</h3>
-        <p>Protected area</p>
-      </div>
-    </div>
-  `;
+  const usersCard = el('.card', [
+    el('span.icon', '👥'),
+    el('h3', 'Users'),
+    el('p', 'Browse user profiles')
+  ]);
+  on(usersCard, 'click', () => router.navigate('/users'));
+
+  const postsCard = el('.card', [
+    el('span.icon', '📝'),
+    el('h3', 'Posts'),
+    el('p', 'Read blog posts')
+  ]);
+  on(postsCard, 'click', () => router.navigate('/posts'));
+
+  const dashboardCard = el('.card', [
+    el('span.icon', '📊'),
+    el('h3', 'Dashboard'),
+    el('p', 'Protected area')
+  ]);
+  on(dashboardCard, 'click', () => router.navigate('/dashboard'));
+
+  const page = el('.page.home', [
+    el('h1', '🏠 Welcome to Pulse Router Demo'),
+    el('p.intro', 'This example demonstrates the Pulse routing system with:'),
+    el('ul.features', [
+      el('li', ['✅ Basic navigation']),
+      el('li', ['✅ Route parameters (', el('code', '/users/:id'), ')']),
+      el('li', ['✅ Query parameters (', el('code', '?search=...'), ')']),
+      el('li', ['✅ Protected routes (requires login)']),
+      el('li', ['✅ 404 handling']),
+      el('li', ['✅ Active link styling'])
+    ]),
+    el('.cards', [usersCard, postsCard, dashboardCard])
+  ]);
+
   return page;
 }
 
@@ -109,7 +114,7 @@ function UsersPage() {
   const list = el('.user-list');
 
   effect(() => {
-    list.innerHTML = '';
+    list.textContent = '';
     const query = router.query.get();
     const searchTerm = (query.search || '').toLowerCase();
 
@@ -119,20 +124,19 @@ function UsersPage() {
     );
 
     if (filtered.length === 0) {
-      list.innerHTML = '<p class="empty">No users found</p>';
+      list.appendChild(el('p.empty', 'No users found'));
       return;
     }
 
     for (const user of filtered) {
-      const card = el('.user-card');
-      card.innerHTML = `
-        <span class="avatar">${user.avatar}</span>
-        <div class="info">
-          <h3>${user.name}</h3>
-          <p>${user.role}</p>
-        </div>
-      `;
-      card.addEventListener('click', () => router.navigate(`/users/${user.id}`));
+      const card = el('.user-card', [
+        el('span.avatar', user.avatar),
+        el('.info', [
+          el('h3', user.name),
+          el('p', user.role)
+        ])
+      ]);
+      on(card, 'click', () => router.navigate(`/users/${user.id}`));
       list.appendChild(card);
     }
   });
@@ -145,31 +149,33 @@ function UserDetailPage() {
   const page = el('.page.user-detail');
 
   effect(() => {
+    page.textContent = '';
     const params = router.params.get();
     const userId = parseInt(params.id);
     const user = users.find(u => u.id === userId);
 
     if (!user) {
-      page.innerHTML = `
-        <h1>❌ User Not Found</h1>
-        <p>User with ID ${params.id} doesn't exist.</p>
-        <button onclick="window.router.navigate('/users')">← Back to Users</button>
-      `;
+      const backBtn = el('button', '← Back to Users');
+      on(backBtn, 'click', () => router.navigate('/users'));
+      page.appendChild(el('h1', '❌ User Not Found'));
+      page.appendChild(el('p', ['User with ID ', el('code', String(params.id)), ' doesn\'t exist.']));
+      page.appendChild(backBtn);
       return;
     }
 
-    page.innerHTML = `
-      <button class="back-btn" onclick="window.router.navigate('/users')">← Back</button>
-      <div class="user-profile">
-        <span class="avatar large">${user.avatar}</span>
-        <h1>${user.name}</h1>
-        <p class="role">${user.role}</p>
-        <div class="details">
-          <p><strong>Email:</strong> ${user.email}</p>
-          <p><strong>ID:</strong> ${user.id}</p>
-        </div>
-      </div>
-    `;
+    const backBtn = el('button.back-btn', '← Back');
+    on(backBtn, 'click', () => router.navigate('/users'));
+
+    page.appendChild(backBtn);
+    page.appendChild(el('.user-profile', [
+      el('span.avatar.large', user.avatar),
+      el('h1', user.name),
+      el('p.role', user.role),
+      el('.details', [
+        el('p', [el('strong', 'Email: '), user.email]),
+        el('p', [el('strong', 'ID: '), String(user.id)])
+      ])
+    ]));
   });
 
   return page;
@@ -184,13 +190,12 @@ function PostsPage() {
   const list = el('.post-list');
 
   for (const post of posts) {
-    const card = el('.post-card');
-    card.innerHTML = `
-      <h3>${post.title}</h3>
-      <p class="meta">By ${post.author} • ${post.date}</p>
-      <p class="excerpt">${post.excerpt}</p>
-    `;
-    card.addEventListener('click', () => router.navigate(`/posts/${post.id}`));
+    const card = el('.post-card', [
+      el('h3', post.title),
+      el('p.meta', `By ${post.author} \u2022 ${post.date}`),
+      el('p.excerpt', post.excerpt)
+    ]);
+    on(card, 'click', () => router.navigate(`/posts/${post.id}`));
     list.appendChild(card);
   }
 
@@ -202,31 +207,33 @@ function PostDetailPage() {
   const page = el('.page.post-detail');
 
   effect(() => {
+    page.textContent = '';
     const params = router.params.get();
     const postId = parseInt(params.id);
     const post = posts.find(p => p.id === postId);
 
     if (!post) {
-      page.innerHTML = `
-        <h1>❌ Post Not Found</h1>
-        <p>Post with ID ${params.id} doesn't exist.</p>
-        <button onclick="window.router.navigate('/posts')">← Back to Posts</button>
-      `;
+      const backBtn = el('button', '← Back to Posts');
+      on(backBtn, 'click', () => router.navigate('/posts'));
+      page.appendChild(el('h1', '❌ Post Not Found'));
+      page.appendChild(el('p', ['Post with ID ', el('code', String(params.id)), ' doesn\'t exist.']));
+      page.appendChild(backBtn);
       return;
     }
 
-    page.innerHTML = `
-      <button class="back-btn" onclick="window.router.navigate('/posts')">← Back</button>
-      <article>
-        <h1>${post.title}</h1>
-        <p class="meta">By ${post.author} • ${post.date}</p>
-        <div class="content">
-          <p>${post.excerpt}</p>
-          <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.</p>
-          <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident.</p>
-        </div>
-      </article>
-    `;
+    const backBtn = el('button.back-btn', '← Back');
+    on(backBtn, 'click', () => router.navigate('/posts'));
+
+    page.appendChild(backBtn);
+    page.appendChild(el('article', [
+      el('h1', post.title),
+      el('p.meta', `By ${post.author} \u2022 ${post.date}`),
+      el('.content', [
+        el('p', post.excerpt),
+        el('p', 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.'),
+        el('p', 'Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident.')
+      ])
+    ]));
   });
 
   return page;
@@ -236,26 +243,30 @@ function DashboardPage() {
   const page = el('.page.dashboard');
 
   effect(() => {
+    page.textContent = '';
     const user = currentUser.get();
-    page.innerHTML = `
-      <h1>📊 Dashboard</h1>
-      <p class="welcome">Welcome back, <strong>${user?.name || 'User'}</strong>!</p>
-      <div class="stats">
-        <div class="stat">
-          <span class="value">42</span>
-          <span class="label">Projects</span>
-        </div>
-        <div class="stat">
-          <span class="value">128</span>
-          <span class="label">Tasks</span>
-        </div>
-        <div class="stat">
-          <span class="value">8</span>
-          <span class="label">Team Members</span>
-        </div>
-      </div>
-      <p class="note">🔒 This is a protected route. Only visible when logged in.</p>
-    `;
+
+    page.appendChild(el('h1', '📊 Dashboard'));
+    page.appendChild(el('p.welcome', [
+      'Welcome back, ',
+      el('strong', user?.name || 'User'),
+      '!'
+    ]));
+    page.appendChild(el('.stats', [
+      el('.stat', [
+        el('span.value', '42'),
+        el('span.label', 'Projects')
+      ]),
+      el('.stat', [
+        el('span.value', '128'),
+        el('span.label', 'Tasks')
+      ]),
+      el('.stat', [
+        el('span.value', '8'),
+        el('span.label', 'Team Members')
+      ])
+    ]));
+    page.appendChild(el('p.note', '🔒 This is a protected route. Only visible when logged in.'));
   });
 
   return page;
@@ -265,12 +276,15 @@ function NotFoundPage() {
   const page = el('.page.not-found');
 
   effect(() => {
+    page.textContent = '';
     const path = router.path.get();
-    page.innerHTML = `
-      <h1>404</h1>
-      <p>Page not found: <code>${path}</code></p>
-      <button onclick="window.router.navigate('/')">Go Home</button>
-    `;
+
+    const homeBtn = el('button', 'Go Home');
+    on(homeBtn, 'click', () => router.navigate('/'));
+
+    page.appendChild(el('h1', '404'));
+    page.appendChild(el('p', ['Page not found: ', el('code', path)]));
+    page.appendChild(homeBtn);
   });
 
   return page;
@@ -301,9 +315,6 @@ router.beforeEach((to, from) => {
   }
   return true; // Allow navigation
 });
-
-// Expose router globally for onclick handlers
-window.router = router;
 
 // =============================================================================
 // App Layout
@@ -370,17 +381,16 @@ function App() {
   // Footer with route info
   const footer = el('footer');
   effect(() => {
+    footer.textContent = '';
     const path = router.path.get();
     const params = router.params.get();
     const query = router.query.get();
 
-    footer.innerHTML = `
-      <div class="route-info">
-        <span><strong>Path:</strong> ${path}</span>
-        <span><strong>Params:</strong> ${JSON.stringify(params)}</span>
-        <span><strong>Query:</strong> ${JSON.stringify(query)}</span>
-      </div>
-    `;
+    footer.appendChild(el('.route-info', [
+      el('span', [el('strong', 'Path: '), path]),
+      el('span', [el('strong', 'Params: '), JSON.stringify(params)]),
+      el('span', [el('strong', 'Query: '), JSON.stringify(query)])
+    ]));
   });
   app.appendChild(footer);
 

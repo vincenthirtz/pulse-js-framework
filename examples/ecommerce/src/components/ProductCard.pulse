@@ -22,7 +22,7 @@ view {
       }
       .product-stock[class="{product.stock < 10 ? 'low-stock' : ''}"] "{product.stock} in stock"
     }
-    button.add-to-cart-btn @click(handleAddToCart(event)) "🛒 Add to Cart"
+    button.add-to-cart-btn[aria-label="Add to cart"] @click(handleAddToCart(event)) "🛒 Add to Cart"
   }
 }
 

@@ -17,7 +17,7 @@ view {
     h2 "Notes (Preserved)"
 
     .input-row {
-      input[type=text][placeholder="Add a note..."]
+      input[type=text][placeholder="Add a note..."][aria-label="New note text"]
         @input(onInputChange && onInputChange(event.target.value))
         @keydown(event.key === 'Enter' && onAdd && onAdd())
       button.btn.primary @click(onAdd && onAdd()) "Add"
@@ -34,7 +34,7 @@ view {
             .note-text "{note.text}"
             .note-time "{note.timestamp}"
           }
-          button.delete-btn @click(onDelete && onDelete(note.id)) "x"
+          button.delete-btn[aria-label="Delete note"] @click(onDelete && onDelete(note.id)) "x"
         }
       }
     }

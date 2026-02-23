@@ -402,12 +402,123 @@ export default {
         'Innbyggður þróunarþjónn'
       ]
     },
+    electronApp: {
+      title: 'Electron Forrit',
+      desc: 'Skrifbordsglosaforrit byggt med Electron og Pulse.',
+      features: [
+        'Skrifbordsforrit med Electron',
+        'Glosastjornun med vistun',
+        'Kerfisbakki samthaetting',
+        'Innfaeddur skraarkerfisadgangur',
+        'Fjolvettvangur (Windows, macOS, Linux)'
+      ]
+    },
+    serverActions: {
+      title: 'Thjonadisadgerdir',
+      desc: 'Thjonadisadgerdir med token bucket takmarkun og CSRF vorn.',
+      features: [
+        'Thjonadisadgerdir RPC virkni',
+        'Token bucket takmarkun',
+        'CSRF toka stathfesting',
+        'Express millihugbunadar samthaetting',
+        'Takmork per adgerd og per notanda'
+      ]
+    },
+    sassDemo: {
+      title: 'SASS/SCSS Demo',
+      desc: 'SASS/SCSS preprocessor with variables, mixins, extend, and color functions.',
+      features: [
+        '$variables for colors and spacing',
+        '@mixin / @include reusable styles',
+        '@extend with placeholder selectors',
+        'Color functions (lighten, darken)',
+        '@each loop for theme generation'
+      ]
+    },
+    formValidation: {
+      title: 'Form Validation',
+      desc: 'Form validation with sync/async validators, file upload, and draft persistence.',
+      features: [
+        'useForm() with validation schema',
+        'Async username availability check',
+        'File upload with drag-and-drop',
+        'Draft auto-save to localStorage',
+        'Password strength indicator'
+      ]
+    },
+    a11yShowcase: {
+      title: 'Aðgengissýning',
+      desc: 'Gagnvirk sýning á a11y eiginleikum: ARIA-viðmót, fókusstjórnun, tilkynningar og andstæðuprófun.',
+      features: [
+        'ARIA-viðmót (modal, flipar, harmonikka, valmynd)',
+        'Fókusgildra og hreyfanleg flipavísun',
+        'Tilkynningar fyrir skjálesara',
+        'Greining á notendastillingum',
+        'WCAG andstæðuprófari'
+      ]
+    },
+    graphqlDemo: {
+      title: 'GraphQL-biðlari',
+      desc: 'Bloggforrit með GraphQL-fyrirspurnum, breytingum, SWR-skyndiminni og bjartsýnum uppfærslum.',
+      features: [
+        'useQuery() með hvarfgengnum breytum',
+        'useMutation() með hleðsluástandi',
+        'SWR-stíl fyrirspurnarskyndiminni',
+        'Ógildun skyndiminnis og endurnýjun',
+        'Hermdir GraphQL-bakendi'
+      ]
+    },
+    contextApi: {
+      title: 'Context API',
+      desc: 'Þema-, auðkenningar- og staðsetningarsamhengi með földuðum veitendum og ósjálfstæðisinnspýtingu.',
+      features: [
+        'createContext() og useContext()',
+        'Hvarfgengin samhengisgildi með pulsum',
+        'provideMany() fyrir mörg samhengi',
+        'Yfirskrifun á földuðum veitendum',
+        'Þema-, auðkenningar- og i18n-mynstur'
+      ]
+    },
+    ssrDemo: {
+      title: 'Þjónateikning',
+      desc: 'SSR-sýning með renderToString, vökvun, stöðuraðgreining og SSR-örugg mynstur.',
+      features: [
+        'Lifandi sýning á renderToStringSync()',
+        'Stöðuraðgreining og flutningur',
+        'ClientOnly / ServerOnly teikning',
+        'Express-þjóna uppsetningarmynstur',
+        'Rakning á vökvunarstöðu'
+      ]
+    },
+    asyncPatterns: {
+      title: 'Ósamstillt mynstur',
+      desc: 'Ósamstillt frumeiningar: useAsync, SWR-skyndiminni, lifandi könnun og meðhöndlun keppnisaðstæðna.',
+      features: [
+        'useAsync() með hleðslu/villu/hætta',
+        'useResource() SWR-skyndiminni',
+        'usePolling() fyrir lifandi gögn',
+        'Forvarnir gegn keppnisaðstæðum',
+        'Stillanleg endurtilraun með backoff'
+      ]
+    },
     runLocally: 'Keyra Dæmi Staðbundið',
     runLocallyDesc: 'Til að keyra sýnishornaverkefni á vélinni þinni:',
     createYourOwn: 'Búðu Til Þitt Eigið',
     createYourOwnDesc: 'Byrjaðu nýtt Pulse verkefni:',
     mobileExamples: '📱 Farsímadæmi',
     mobileExamplesDesc: 'Pulse getur einnig keyrt á farsímapöllum gegnum WebView.'
+  },
+
+  // Showroom page
+  showroom: {
+    title: '🖼️ Sýningarherbergi',
+    intro: 'Skoðaðu og forskoðaðu öll Pulse dæmi á einum stað. Veldu dæmi til að hlaða því hér að neðan.',
+    selectLabel: 'Veldu dæmi',
+    openNewTab: 'Opna í nýjum flipa',
+    categoryApps: 'Forritadæmi',
+    categoryCss: 'CSS-forvinnslur',
+    categoryTools: 'Byggingarverkfæri',
+    categoryAdvanced: 'Ítarlegt'
   },
 
   // Playground page
@@ -1439,5 +1550,11 @@ export default {
     errorHandlingDesc: 'Handle service worker registration and update errors:',
     fullExample: 'Complete Example',
     fullExampleDesc: 'PWA with update notifications and offline support:'
+  },
+
+  // Server Components page
+  serverComponents: {
+    title: '🌐 Netþjónaíhlutir',
+    intro: 'React-stíll netþjónaíhlutahönnun fyrir Pulse. Byggja blendingsforrit með íhlutalega kóða skiptingu, Server Actions, og alhliða öryggiseiginleikar þar með talið CSRF vörn og takmörkun á beiðnum.'
   }
 };

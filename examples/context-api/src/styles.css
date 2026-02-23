@@ -1,0 +1,76 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.6; transition: background 0.3s, color 0.3s;
+}
+
+.app { max-width: 800px; margin: 0 auto; padding: 20px; }
+
+header { text-align: center; padding: 30px 0 20px; }
+header h1 { font-size: 2em; }
+.subtitle { opacity: 0.7; margin-top: 4px; }
+
+section { margin-bottom: 30px; padding: 24px; border-radius: 12px; background: rgba(128,128,128,0.06); }
+section h2 { font-size: 1.3em; margin-bottom: 8px; }
+section p { opacity: 0.8; margin-bottom: 12px; }
+
+/* Theme Toggle */
+.theme-toggle { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+.theme-toggle button {
+  padding: 6px 14px; border: 1px solid currentColor; border-radius: 20px;
+  background: transparent; cursor: pointer; font-size: 0.9em; opacity: 0.6;
+  color: inherit; transition: all 0.2s; text-transform: capitalize;
+}
+.theme-toggle button.active { opacity: 1; background: rgba(100,108,255,0.15); border-color: #646cff; }
+
+/* Themed Card */
+.themed-card { padding: 20px; border-radius: 10px; border: 1px solid; margin: 12px 0; transition: all 0.3s; }
+
+/* User Badge */
+.user-badge { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 8px; background: rgba(128,128,128,0.1); margin-bottom: 12px; }
+.user-badge.logged-out { opacity: 0.6; }
+.avatar { width: 40px; height: 40px; border-radius: 50%; background: #646cff; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.2em; }
+.avatar-small { width: 28px; height: 28px; border-radius: 50%; background: #646cff; color: #fff; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.8em; }
+.user-info { display: flex; flex-direction: column; }
+.name { font-weight: 600; }
+.role { font-size: 0.85em; opacity: 0.7; text-transform: capitalize; }
+.logout { margin-left: auto; padding: 4px 12px; border: 1px solid; border-radius: 6px; background: transparent; cursor: pointer; color: inherit; opacity: 0.7; }
+
+/* Login Panel */
+.login-panel { margin: 12px 0; }
+.user-list { display: flex; gap: 8px; flex-wrap: wrap; }
+.user-option {
+  display: flex; align-items: center; gap: 8px; padding: 8px 16px;
+  border: 1px solid rgba(128,128,128,0.3); border-radius: 8px;
+  background: transparent; cursor: pointer; color: inherit; transition: all 0.2s;
+}
+.user-option:hover { background: rgba(100,108,255,0.1); border-color: #646cff; }
+
+/* Admin Panel */
+.admin-panel { padding: 16px; border-radius: 8px; background: rgba(100,108,255,0.08); margin-top: 12px; }
+.admin-panel h4 { color: #646cff; margin-bottom: 6px; }
+.admin-panel ul { margin-left: 20px; }
+.admin-panel.restricted { opacity: 0.7; background: rgba(255,100,100,0.08); }
+
+/* Locale */
+.locale-switcher { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.locale-switcher button {
+  padding: 4px 10px; border: 1px solid currentColor; border-radius: 4px;
+  background: transparent; cursor: pointer; font-size: 0.85em; opacity: 0.6;
+  color: inherit;
+}
+.locale-switcher button.active { opacity: 1; background: rgba(100,108,255,0.15); }
+.localized { padding: 16px; border-radius: 8px; background: rgba(128,128,128,0.06); }
+.localized h3 { font-size: 1.5em; margin-bottom: 4px; }
+
+/* Multi Context */
+.context-values { display: flex; gap: 8px; flex-wrap: wrap; }
+.tag { padding: 4px 12px; border-radius: 20px; background: rgba(100,108,255,0.1); font-size: 0.9em; font-family: monospace; }
+
+/* Nested Providers */
+.nested-box { padding: 16px; border-radius: 8px; border: 1px solid; transition: all 0.3s; }
+.nested-inner { padding: 16px; border-radius: 8px; border: 1px solid; margin-top: 12px; transition: all 0.3s; }
+.nested-inner select { padding: 4px 8px; border: 1px solid currentColor; border-radius: 4px; background: transparent; color: inherit; margin-top: 8px; }
+
+*:focus-visible { outline: 3px solid #646cff; outline-offset: 2px; }

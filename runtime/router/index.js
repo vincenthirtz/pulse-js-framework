@@ -12,6 +12,7 @@ export * from './lazy.js';
 export * from './guards.js';
 export * from './history.js';
 export * from './utils.js';
+export * from './psc-integration.js';
 
 // Default export for backward compatibility
 import {
@@ -22,6 +23,14 @@ import {
 } from './core.js';
 import { lazy, preload } from './lazy.js';
 import { matchRoute, parseQuery, buildQueryString } from './utils.js';
+import {
+  fetchPSCPayload,
+  navigatePSC,
+  prefetchPSC,
+  clearPSCCache,
+  getPSCCacheStats,
+  configurePSCCache
+} from './psc-integration.js';
 
 export default {
   createRouter,
@@ -32,5 +41,12 @@ export default {
   parseQuery,
   buildQueryString,
   onBeforeLeave,
-  onAfterEnter
+  onAfterEnter,
+  // PSC Integration
+  fetchPSCPayload,
+  navigatePSC,
+  prefetchPSC,
+  clearPSCCache,
+  getPSCCacheStats,
+  configurePSCCache
 };

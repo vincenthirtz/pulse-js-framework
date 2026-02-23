@@ -257,6 +257,51 @@
   to = "/examples/parcel-example/index.html"
   status = 200
 
+[[redirects]]
+  from = "/examples/electron/*"
+  to = "/examples/electron/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/examples/server-actions-ratelimit/*"
+  to = "/examples/server-actions-ratelimit/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/examples/sass-example/*"
+  to = "/examples/sass-example/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/examples/form-validation/*"
+  to = "/examples/form-validation/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/examples/a11y-showcase/*"
+  to = "/examples/a11y-showcase/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/examples/graphql/*"
+  to = "/examples/graphql/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/examples/context-api/*"
+  to = "/examples/context-api/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/examples/ssr/*"
+  to = "/examples/ssr/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/examples/async-patterns/*"
+  to = "/examples/async-patterns/index.html"
+  status = 200
+
 # Main SPA fallback (must be last - only applies if file doesn't exist)
 [[redirects]]
   from = "/*"

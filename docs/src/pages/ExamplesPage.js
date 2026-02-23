@@ -268,6 +268,150 @@ export function ExamplesPage() {
           ${t('examples.viewDemo')}
         </a>
       </div>
+
+      <div class="example-card">
+        <div class="example-icon">🖥️</div>
+        <h3>${t('examples.electronApp.title')}</h3>
+        <p>${t('examples.electronApp.desc')}</p>
+        <ul class="example-features">
+          <li>✓ ${t('examples.electronApp.features.0')}</li>
+          <li>✓ ${t('examples.electronApp.features.1')}</li>
+          <li>✓ ${t('examples.electronApp.features.2')}</li>
+          <li>✓ ${t('examples.electronApp.features.3')}</li>
+          <li>✓ ${t('examples.electronApp.features.4')}</li>
+        </ul>
+        <a href="/examples/electron/" class="btn btn-primary">
+          ${t('examples.viewDemo')}
+        </a>
+      </div>
+
+      <div class="example-card">
+        <div class="example-icon">🔒</div>
+        <h3>${t('examples.serverActions.title')}</h3>
+        <p>${t('examples.serverActions.desc')}</p>
+        <ul class="example-features">
+          <li>✓ ${t('examples.serverActions.features.0')}</li>
+          <li>✓ ${t('examples.serverActions.features.1')}</li>
+          <li>✓ ${t('examples.serverActions.features.2')}</li>
+          <li>✓ ${t('examples.serverActions.features.3')}</li>
+          <li>✓ ${t('examples.serverActions.features.4')}</li>
+        </ul>
+        <a href="/examples/server-actions-ratelimit/" class="btn btn-primary">
+          ${t('examples.viewDemo')}
+        </a>
+      </div>
+
+      <div class="example-card">
+        <div class="example-icon">🎨</div>
+        <h3>${t('examples.sassDemo.title')}</h3>
+        <p>${t('examples.sassDemo.desc')}</p>
+        <ul class="example-features">
+          <li>✓ ${t('examples.sassDemo.features.0')}</li>
+          <li>✓ ${t('examples.sassDemo.features.1')}</li>
+          <li>✓ ${t('examples.sassDemo.features.2')}</li>
+          <li>✓ ${t('examples.sassDemo.features.3')}</li>
+          <li>✓ ${t('examples.sassDemo.features.4')}</li>
+        </ul>
+        <a href="/examples/sass-example/" class="btn btn-primary">
+          ${t('examples.viewDemo')}
+        </a>
+      </div>
+
+      <div class="example-card">
+        <div class="example-icon">📋</div>
+        <h3>${t('examples.formValidation.title')}</h3>
+        <p>${t('examples.formValidation.desc')}</p>
+        <ul class="example-features">
+          <li>✓ ${t('examples.formValidation.features.0')}</li>
+          <li>✓ ${t('examples.formValidation.features.1')}</li>
+          <li>✓ ${t('examples.formValidation.features.2')}</li>
+          <li>✓ ${t('examples.formValidation.features.3')}</li>
+          <li>✓ ${t('examples.formValidation.features.4')}</li>
+        </ul>
+        <a href="/examples/form-validation/" class="btn btn-primary">
+          ${t('examples.viewDemo')}
+        </a>
+      </div>
+
+      <div class="example-card">
+        <div class="example-icon">♿</div>
+        <h3>${t('examples.a11yShowcase.title')}</h3>
+        <p>${t('examples.a11yShowcase.desc')}</p>
+        <ul class="example-features">
+          <li>✓ ${t('examples.a11yShowcase.features.0')}</li>
+          <li>✓ ${t('examples.a11yShowcase.features.1')}</li>
+          <li>✓ ${t('examples.a11yShowcase.features.2')}</li>
+          <li>✓ ${t('examples.a11yShowcase.features.3')}</li>
+          <li>✓ ${t('examples.a11yShowcase.features.4')}</li>
+        </ul>
+        <a href="/examples/a11y-showcase/" class="btn btn-primary">
+          ${t('examples.viewDemo')}
+        </a>
+      </div>
+
+      <div class="example-card">
+        <div class="example-icon">🔮</div>
+        <h3>${t('examples.graphqlDemo.title')}</h3>
+        <p>${t('examples.graphqlDemo.desc')}</p>
+        <ul class="example-features">
+          <li>✓ ${t('examples.graphqlDemo.features.0')}</li>
+          <li>✓ ${t('examples.graphqlDemo.features.1')}</li>
+          <li>✓ ${t('examples.graphqlDemo.features.2')}</li>
+          <li>✓ ${t('examples.graphqlDemo.features.3')}</li>
+          <li>✓ ${t('examples.graphqlDemo.features.4')}</li>
+        </ul>
+        <a href="/examples/graphql/" class="btn btn-primary">
+          ${t('examples.viewDemo')}
+        </a>
+      </div>
+
+      <div class="example-card">
+        <div class="example-icon">🎯</div>
+        <h3>${t('examples.contextApi.title')}</h3>
+        <p>${t('examples.contextApi.desc')}</p>
+        <ul class="example-features">
+          <li>✓ ${t('examples.contextApi.features.0')}</li>
+          <li>✓ ${t('examples.contextApi.features.1')}</li>
+          <li>✓ ${t('examples.contextApi.features.2')}</li>
+          <li>✓ ${t('examples.contextApi.features.3')}</li>
+          <li>✓ ${t('examples.contextApi.features.4')}</li>
+        </ul>
+        <a href="/examples/context-api/" class="btn btn-primary">
+          ${t('examples.viewDemo')}
+        </a>
+      </div>
+
+      <div class="example-card">
+        <div class="example-icon">🖥️</div>
+        <h3>${t('examples.ssrDemo.title')}</h3>
+        <p>${t('examples.ssrDemo.desc')}</p>
+        <ul class="example-features">
+          <li>✓ ${t('examples.ssrDemo.features.0')}</li>
+          <li>✓ ${t('examples.ssrDemo.features.1')}</li>
+          <li>✓ ${t('examples.ssrDemo.features.2')}</li>
+          <li>✓ ${t('examples.ssrDemo.features.3')}</li>
+          <li>✓ ${t('examples.ssrDemo.features.4')}</li>
+        </ul>
+        <a href="/examples/ssr/" class="btn btn-primary">
+          ${t('examples.viewDemo')}
+        </a>
+      </div>
+
+      <div class="example-card">
+        <div class="example-icon">⏳</div>
+        <h3>${t('examples.asyncPatterns.title')}</h3>
+        <p>${t('examples.asyncPatterns.desc')}</p>
+        <ul class="example-features">
+          <li>✓ ${t('examples.asyncPatterns.features.0')}</li>
+          <li>✓ ${t('examples.asyncPatterns.features.1')}</li>
+          <li>✓ ${t('examples.asyncPatterns.features.2')}</li>
+          <li>✓ ${t('examples.asyncPatterns.features.3')}</li>
+          <li>✓ ${t('examples.asyncPatterns.features.4')}</li>
+        </ul>
+        <a href="/examples/async-patterns/" class="btn btn-primary">
+          ${t('examples.viewDemo')}
+        </a>
+      </div>
     </div>
 
     <section class="doc-section">

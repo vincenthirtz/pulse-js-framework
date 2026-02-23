@@ -11,7 +11,7 @@ Pulse is a lightweight, declarative JavaScript framework for building reactive S
 - **Accessibility-first** - built-in a11y helpers, auto-ARIA, and audit tools
 - **Optional SASS support** - automatic SCSS compilation if `sass` is installed
 
-**Version:** See package.json | **License:** MIT | **Node.js:** >= 18.0.0
+**Version:** See package.json | **License:** MIT | **Node.js:** >= 20.0.0
 
 ## Quick Commands
 
@@ -49,6 +49,11 @@ pulse test --coverage   # Run tests with coverage
 pulse test --watch      # Watch mode
 pulse test --create <name>  # Generate test file
 
+# Automated Test Generation (Claude Code)
+./scripts/generate-missing-tests.sh  # Generate tests for uncovered code
+# Requires: Claude Code CLI (npm install -g @anthropic/claude-code)
+# See docs/coverage-automation.md for details
+
 # Project Tools
 pulse doctor            # Run project diagnostics
 pulse doctor --verbose  # Detailed diagnostics
@@ -85,6 +90,120 @@ pulse dev               # Local server at http://localhost:3000
 pulse build             # Generate minified dist/ folder
 pulse preview           # Serve dist/ at http://localhost:4173
 ```
+
+## Git Workflow
+
+When committing and pushing, always pull/rebase first to handle remote changes:
+
+```bash
+# Before pushing, always rebase
+git pull --rebase origin <branch>
+git push origin <branch>
+
+# Example workflow
+git add -A
+git commit -m "feat: implement feature"
+git pull --rebase origin develop  # Rebase before push
+git push origin develop
+```
+
+**Why rebase?** This prevents merge commits and keeps history clean when multiple developers (or CI/CD) are pushing to the same branch.
+
+## Claude Skills
+
+Custom skills are located in `.claude/skills/` with `SKILL.md` format (not `skill.json`). Always check this directory structure before creating or loading skills.
+
+**Skill structure:**
+```
+.claude/
+└── skills/
+    └── my-skill/
+        └── SKILL.md    # Skill definition (NOT skill.json)
+```
+
+To invoke a skill, use: `/skill-name`
+
+**Available skills in this project:**
+- `/lead-developer` - Orchestrates multi-phase workflows
+- `/software-architect` - Architecture and design decisions
+- `/senior-developer` - Feature implementation
+- `/qa-testing` - Test writing and validation
+- `/security-reviewer` - Security audits
+
+## Working with Large File Sets
+
+When working with large batches of files (e.g., translations across 7+ languages), **process files incrementally** rather than reading all files at once to avoid hitting prompt length limits.
+
+**Bad approach:**
+```javascript
+// DON'T: Read all language files at once
+const files = await Promise.all([
+  readFile('en.json'), readFile('fr.json'), readFile('es.json'),
+  readFile('de.json'), readFile('it.json'), readFile('pt.json'), readFile('ja.json')
+]);
+// This can hit context limits!
+```
+
+**Good approach:**
+```javascript
+// DO: Process one file at a time
+for (const lang of ['en', 'fr', 'es', 'de', 'it', 'pt', 'ja']) {
+  const content = await readFile(`${lang}.json`);
+  // Process and write
+  await writeFile(`${lang}.json`, updated);
+  // Commit incrementally if needed
+}
+```
+
+## Environment
+
+This project targets **macOS**. Do not use Linux-only commands.
+
+**Common pitfalls:**
+
+| Linux Command | macOS Alternative |
+|---------------|-------------------|
+| `timeout 5s cmd` | `gtimeout 5s cmd` (install via `brew install coreutils`) |
+| `date -d "..."` | `date -j -f "..." "..."` |
+| `readlink -f` | `greadlink -f` (coreutils) |
+| `sed -i` | `sed -i ''` (requires empty string for BSD sed) |
+
+**Development environment:**
+- OS: macOS (Darwin)
+- Node.js: >= 20.0.0
+- Package manager: npm (not yarn/pnpm)
+- Shell: bash/zsh
+
+## Efficiency Guidelines
+
+When editing many files with similar changes, **prefer batch approaches** (sed, Task agents) over repeated Edit tool calls on individual files.
+
+**Inefficient:**
+```javascript
+// DON'T: Repeated Edit tool calls
+Edit('file1.js', old1, new1);
+Edit('file2.js', old2, new2);
+Edit('file3.js', old3, new3);
+// ... 20 more files
+```
+
+**Efficient:**
+```bash
+# DO: Use sed for batch replacements
+find src/ -name '*.js' -exec sed -i '' 's/oldPattern/newPattern/g' {} +
+
+# OR: Use Task agent for complex logic
+Task({
+  subagent_type: 'general-purpose',
+  prompt: 'Apply the transformation to all JS files in src/',
+  description: 'Batch file transformation'
+});
+```
+
+**When to use each approach:**
+- **Edit tool**: 1-3 files with unique changes
+- **sed/awk**: 4+ files with pattern-based changes
+- **Task agent**: Complex logic requiring file reading + analysis
 
 ## Architecture
 
@@ -1979,6 +2098,721 @@ app.register(createFastifyPlugin({
 }));
 ```
 
+### Server Components (runtime/server-components/)
+
+React Server Components-style architecture for Pulse. Enables component-level code splitting with 'use client' and 'use server' directives.
+
+```javascript
+import {
+  // PSC Wire Format
+  serializeToPSC, reconstructPSCTree, PSCNodeType,
+  // Server Rendering
+  renderServerComponent, renderServerComponentToHTML,
+  // Client Component Loading
+  loadClientComponent, preloadClientComponent, hydrateClientComponents,
+  // Server Actions
+  registerAction, createActionInvoker, useServerAction, bindFormAction,
+  registerServerAction, executeServerAction, createServerActionMiddleware
+} from 'pulse-js-framework/runtime/server-components';
+
+// === Component Types ===
+
+// Server Component (runs only on server, zero client bundle)
+export function UserList() {
+  'use server';
+
+  // Can access database, filesystem, secrets
+  const users = await db.users.findAll();
+
+  return el('ul.users', users.map(user =>
+    el('li', [
+      el('span', user.name),
+      // Embed Client Component for interactivity
+      UserActions({ userId: user.id })
+    ])
+  ));
+}
+
+// Client Component (runs on client, interactive)
+export function UserActions({ userId }) {
+  'use client';
+
+  const deleted = pulse(false);
+
+  const handleDelete = async () => {
+    await deleteUser(userId);  // Server Action
+    deleted.set(true);
+  };
+
+  return when(
+    () => !deleted.get(),
+    () => el('button', { onclick: handleDelete }, 'Delete')
+  );
+}
+
+// Shared Component (no directive, runs on both server and client)
+export function Avatar({ url, name }) {
+  return el('img.avatar', {
+    src: url,
+    alt: name,
+    width: 48,
+    height: 48
+  });
+}
+
+// === PSC Wire Format ===
+
+// Server: Serialize component tree to JSON
+const payload = serializeToPSC(serverComponentTree, {
+  clientManifest: {
+    UserActions: { chunk: '/client-UserActions.js', exports: ['default'] }
+  }
+});
+
+// Client: Reconstruct DOM from PSC payload
+const domTree = await reconstructPSCTree(payload);
+mount('#app', domTree);
+
+// === Server-Side Rendering with Server Components ===
+
+import express from 'express';
+import { renderServerComponent, serializeToPSC } from 'pulse-js-framework/runtime/server-components';
+
+const app = express();
+
+app.get('/dashboard', async (req, res) => {
+  // Render Server Component (runs async components, DB queries, etc.)
+  const tree = await renderServerComponent(Dashboard, { userId: req.user.id });
+
+  // Serialize to PSC wire format
+  const payload = serializeToPSC(tree, { clientManifest });
+
+  res.json(payload);
+});
+
+// === Client Component Loading ===
+
+// Preload Client Component chunk (on hover, etc.)
+await preloadClientComponent('UserActions');
+
+// Load and instantiate Client Component
+const component = await loadClientComponent('UserActions', { userId: 123 });
+
+// Hydrate all Client Components in server-rendered tree
+hydrateClientComponents(document.body);
+
+// === Build Tool Integration ===
+
+// Vite (automatically detects 'use client' directives)
+import pulsePlugin from 'pulse-js-framework/vite';
+import pulseServerComponents from 'pulse-js-framework/vite/server-components';
+
+export default {
+  plugins: [
+    pulsePlugin(),
+    pulseServerComponents({
+      manifestPath: 'dist/.pulse-manifest.json'
+    })
+  ]
+};
+
+// Webpack
+import { addServerComponentsSupport } from 'pulse-js-framework/webpack/server-components';
+
+module.exports = {
+  plugins: [
+    addServerComponentsSupport({
+      manifestPath: 'dist/.pulse-manifest.json',
+      base: '/assets'
+    })
+  ]
+};
+
+// Rollup
+import pulseServerComponents from 'pulse-js-framework/rollup/server-components';
+
+export default {
+  plugins: [
+    pulseServerComponents({
+      manifestPath: 'dist/.pulse-manifest.json'
+    })
+  ]
+};
+```
+
+### Server Actions (runtime/server-components/actions.js)
+
+Secure RPC mechanism for invoking server-side functions from Client Components. Server Actions are async functions marked with 'use server' that execute on the server but can be called from the client.
+
+```javascript
+import {
+  // Client-side
+  registerAction, createActionInvoker, useServerAction, bindFormAction,
+  // Server-side
+  registerServerAction, executeServerAction,
+  // Middleware
+  createServerActionMiddleware, createFastifyActionPlugin, createHonoActionMiddleware
+} from 'pulse-js-framework/runtime/server-components';
+
+// === Server-Side: Define Server Actions ===
+
+// In .pulse file or .js module with 'use server'
+async function createUser(data) {
+  'use server';
+
+  // Validate input
+  const validated = validateUserInput(data);
+
+  // Database access (only on server)
+  const user = await db.users.create(validated);
+
+  // Return serializable data
+  return { id: user.id, name: user.name, email: user.email };
+}
+
+async function deleteUser(id) {
+  'use server';
+
+  await db.users.delete(id);
+  return { success: true };
+}
+
+// Register actions (build tool does this automatically)
+registerServerAction('UserForm$createUser', createUser);
+registerServerAction('UserActions$deleteUser', deleteUser);
+
+// === Client-Side: Invoke Server Actions ===
+
+// Option 1: Direct invocation
+const createUser = createActionInvoker('UserForm$createUser');
+const user = await createUser({ name: 'John', email: 'john@example.com' });
+
+// Option 2: Reactive hook (recommended)
+const { invoke, data, loading, error, reset } = useServerAction('UserForm$createUser');
+
+// Use in effects
+effect(() => {
+  if (loading.get()) console.log('Submitting...');
+  if (error.get()) console.log('Error:', error.get().message);
+  if (data.get()) console.log('Success:', data.get());
+});
+
+// Call the action
+await invoke({ name: 'John', email: 'john@example.com' });
+
+// Reset state
+reset();
+
+// Option 3: Progressive enhancement for forms
+const form = document.querySelector('#user-form');
+
+bindFormAction(form, 'UserForm$createUser', {
+  resetOnSuccess: true,
+  onSuccess: (result) => {
+    console.log('User created:', result);
+    showNotification('User created successfully!');
+  },
+  onError: (error) => {
+    console.error('Failed:', error);
+    showError(error.message);
+  }
+});
+
+// === Server-Side: Setup Middleware ===
+
+// Express
+import express from 'express';
+import { createServerActionMiddleware } from 'pulse-js-framework/runtime/server-components';
+
+const app = express();
+app.use(express.json());
+
+app.use(createServerActionMiddleware({
+  csrfValidation: true,          // Enable CSRF protection (default: true)
+  endpoint: '/_actions',          // Actions endpoint (default: '/_actions')
+  onError: (error, req, res) => {
+    logger.error('Action failed:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+}));
+
+// Fastify
+import Fastify from 'fastify';
+import { createFastifyActionPlugin } from 'pulse-js-framework/runtime/server-components';
+
+const fastify = Fastify();
+fastify.register(createFastifyActionPlugin, {
+  csrfValidation: true
+});
+
+// Hono
+import { Hono } from 'hono';
+import { createHonoActionMiddleware } from 'pulse-js-framework/runtime/server-components';
+
+const app = new Hono();
+app.use('/_actions', createHonoActionMiddleware({
+  csrfValidation: true
+}));
+
+// === Security Features ===
+
+// 1. CSRF Protection (automatic)
+// Server Actions require valid CSRF token from meta tag or cookie
+<meta name="csrf-token" content="${csrfToken}">
+
+// 2. JSON Serialization Validation
+// Arguments and return values must be JSON-serializable (no functions, symbols, etc.)
+await invoke({ name: 'John' });          // ✓ Valid
+await invoke({ callback: () => {} });    // ✗ Throws error
+
+// 3. Timeout Protection (default: 30s)
+registerServerAction('slowAction', async (data, context) => {
+  // Override timeout for this action
+  context.timeout = 60000;  // 60 seconds
+
+  const result = await longRunningOperation(data);
+  return result;
+});
+
+// 4. Error Handling
+try {
+  const result = await invoke({ data });
+} catch (error) {
+  // Errors from server are properly serialized
+  console.error('Action failed:', error.message);
+}
+
+// 5. Rate Limiting (Token Bucket Algorithm)
+// Flexible rate limiting with O(1) complexity
+app.use(createServerActionMiddleware({
+  csrfValidation: true,
+
+  // Per-action rate limits (different limits per action)
+  rateLimitPerAction: {
+    'createUser': { maxRequests: 5, windowMs: 60000 },    // 5/min
+    'sendEmail': { maxRequests: 10, windowMs: 60000 },    // 10/min
+    'default': { maxRequests: 20, windowMs: 60000 }       // 20/min default
+  },
+
+  // Per-user rate limits (by IP or user ID)
+  rateLimitPerUser: {
+    maxRequests: 100,
+    windowMs: 60000  // 100/min per user
+  },
+
+  // Global rate limits (across all actions)
+  rateLimitGlobal: {
+    maxRequests: 10000,
+    windowMs: 60000  // 10k/min total
+  },
+
+  // Custom user identification
+  rateLimitIdentify: (context) => {
+    return context.userId || context.ip || 'anonymous';
+  },
+
+  // Bypass for trusted IPs
+  rateLimitTrustedIPs: ['127.0.0.1', '::1']
+}));
+
+// Distributed rate limiting (Redis for multi-server)
+import { createClient } from 'redis';
+import { RedisRateLimitStore } from 'pulse-js-framework/runtime/server-components';
+
+const redisClient = createClient({ url: 'redis://localhost:6379' });
+await redisClient.connect();
+
+app.use(createServerActionMiddleware({
+  rateLimitPerUser: { maxRequests: 100, windowMs: 60000 },
+  rateLimitStore: new RedisRateLimitStore(redisClient, { prefix: 'myapp:ratelimit:' })
+}));
+
+// Client-side automatic retry on rate limit
+const createUser = createActionInvoker('createUser', {
+  maxRetries: 3,      // Retry up to 3 times
+  autoRetry: true     // Automatically retry on 429
+});
+
+try {
+  const user = await createUser({ name: 'John' });
+} catch (error) {
+  if (PSCRateLimitError.isRateLimitError(error)) {
+    console.error(`Rate limited. Retry after ${Math.ceil(error.retryAfter / 1000)}s`);
+  }
+}
+
+// Rate limit response headers
+// X-RateLimit-Limit: 100          # Max requests allowed
+// X-RateLimit-Remaining: 95       # Remaining requests
+// X-RateLimit-Reset: 2026-02-14T10:30:00Z  # When limit resets
+// Retry-After: 30                 # Seconds to wait (on 429)
+
+// === Complete Example: User Management Form ===
+
+// UserForm.pulse (Server Component with Server Actions)
+@page UserForm
+
+'use server';
+
+actions {
+  async createUser(data) {
+    'use server';
+
+    // Validate
+    const errors = validateUser(data);
+    if (errors) {
+      throw new Error(JSON.stringify(errors));
+    }
+
+    // Create user in database
+    const user = await db.users.create({
+      name: data.name,
+      email: data.email,
+      role: data.role
+    });
+
+    // Send welcome email (server-side only)
+    await sendWelcomeEmail(user.email);
+
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email
+    };
+  }
+
+  async deleteUser(id) {
+    'use server';
+
+    await db.users.delete(id);
+    return { success: true };
+  }
+}
+
+view {
+  .user-form {
+    h1 "Create User"
+
+    form#user-form {
+      input[name=name][placeholder="Name"][required]
+      input[name=email][type=email][placeholder="Email"][required]
+      select[name=role] {
+        option[value=user] "User"
+        option[value=admin] "Admin"
+      }
+      button[type=submit] "Create User"
+    }
+
+    // Client Component for interactivity
+    UserFormHandler
+  }
+}
+
+// UserFormHandler.pulse (Client Component)
+'use client';
+
+state {
+  submitting: false
+  result: null
+  error: null
+}
+
+actions {
+  async handleSubmit(event) {
+    event.preventDefault();
+
+    submitting = true;
+    error = null;
+
+    const formData = new FormData(event.target);
+    const data = Object.fromEntries(formData.entries());
+
+    try {
+      result = await createUser(data);  // Server Action
+      event.target.reset();
+    } catch (err) {
+      error = err.message;
+    } finally {
+      submitting = false;
+    }
+  }
+}
+
+view {
+  .form-handler {
+    @if(submitting) {
+      .spinner "Submitting..."
+    }
+
+    @if(error) {
+      .error "Error: {error}"
+    }
+
+    @if(result) {
+      .success "User created: {result.name}"
+    }
+  }
+}
+
+// === Server Actions with Context ===
+
+// Access request context in Server Actions
+registerServerAction('createPost', async (data, context) => {
+  // Context includes: req, res, session, user
+  const userId = context.user?.id;
+
+  if (!userId) {
+    throw new Error('Unauthorized');
+  }
+
+  const post = await db.posts.create({
+    ...data,
+    authorId: userId
+  });
+
+  return post;
+});
+```
+
+### Server Components Security
+
+The Server Components module includes comprehensive security features to protect against data leaks, XSS attacks, and DoS vulnerabilities. Security validation is **automatically applied** to all Client Component props and Server Action responses.
+
+#### Security Layers
+
+| Layer | Protection | Auto-Applied |
+|-------|------------|--------------|
+| **Secret Detection** | Detects API keys, tokens, passwords in prop keys/values | ✅ Yes (warns) |
+| **XSS Sanitization** | Blocks `<script>`, event handlers, `javascript:` URLs | ✅ Yes |
+| **Size Validation** | Prevents DoS via oversized props (1MB limit) | ✅ Yes (throws) |
+| **Error Sanitization** | Removes sensitive data from error stack traces | ✅ Yes |
+
+#### Prop Security Validation
+
+```javascript
+import { validatePropSecurity } from 'pulse-js-framework/runtime/server-components';
+
+// Automatic validation in serializer (already integrated)
+markClientBoundary(element, 'MyComponent', props);
+// ✅ Automatically runs validatePropSecurity()
+
+// Manual validation (if needed)
+const result = validatePropSecurity(props, 'MyComponent', {
+  detectSecrets: true,       // Warn on detected secrets (default: true)
+  sanitizeXSS: true,          // Sanitize XSS patterns (default: true)
+  validateSizes: true,        // Enforce size limits (default: true)
+  throwOnSecrets: false       // Warn only, don't block (default: false)
+});
+
+if (!result.valid) {
+  console.error('Security errors:', result.errors);
+}
+if (result.warnings.length > 0) {
+  console.warn('Security warnings:', result.warnings);
+}
+
+// Use sanitized props
+const sanitizedProps = result.sanitized;
+```
+
+**Secret Detection Patterns (60+ patterns):**
+- Generic patterns: `apiKey`, `secret`, `token`, `password`, `privateKey`
+- Service-specific: Stripe keys, GitHub tokens, PEM keys
+- High-entropy values: Base64 40+ chars, hex SHA-256/512
+- Connection strings: `postgres://`, `mongodb://`, `redis://`
+
+**XSS Sanitization:**
+- Script tags: `<script>` → `&lt;script`
+- Event handlers: `onclick=` → `data-blocked-event=`
+- JavaScript URLs: `javascript:alert(1)` → `blocked:alert(1)`
+- VBScript URLs: `vbscript:` → `blocked:`
+- Data HTML: `data:text/html` → `data:text/plain`
+
+**Size Limits (DoS Protection):**
+```javascript
+import { PROP_SIZE_LIMITS } from 'pulse-js-framework/runtime/server-components';
+
+PROP_SIZE_LIMITS.MAX_DEPTH;         // 20 levels
+PROP_SIZE_LIMITS.MAX_STRING_LENGTH; // 100KB per string
+PROP_SIZE_LIMITS.MAX_ARRAY_LENGTH;  // 10K items
+PROP_SIZE_LIMITS.MAX_OBJECT_KEYS;   // 1K keys per object
+PROP_SIZE_LIMITS.MAX_TOTAL_SIZE;    // 1MB total JSON size
+```
+
+#### Error Sanitization
+
+Server Actions automatically sanitize errors before sending to clients:
+
+```javascript
+import {
+  sanitizeError,
+  sanitizeStackTrace,
+  sanitizeErrorMessage,
+  createProductionSafeError
+} from 'pulse-js-framework/runtime/server-components';
+
+// Automatic in Server Actions middleware (already integrated)
+// All errors from Server Actions are sanitized
+
+// Manual error sanitization (if needed)
+try {
+  await riskyOperation();
+} catch (error) {
+  const safe = sanitizeError(error, {
+    mode: 'production',         // or 'development', auto-detected from NODE_ENV
+    includeStack: false,         // Include stack trace (default: true in dev)
+    maxStackLines: 5,            // Truncate stack trace
+    redactMessages: true,        // Redact sensitive patterns
+    allowedProperties: ['code']  // Whitelist custom properties
+  });
+
+  res.status(500).json(safe);
+  // Client receives: { name: 'Error', message: 'sanitized message', code: 'ERR_CODE' }
+}
+
+// Production-safe error (minimal info)
+const safe = createProductionSafeError(error, 'Payment processing failed');
+// Client receives: { name: 'Error', message: 'Payment processing failed' }
+```
+
+**Error Sanitization Features:**
+
+1. **Stack Trace Filtering:**
+   - Removes `node_modules`, `node:internal`, user home directories
+   - Converts absolute paths to relative (`/Users/alice/app.js` → `app.js`)
+   - Filters anonymous function traces
+   - Truncates to configurable max lines (default: 5)
+
+2. **Message Redaction:**
+   - Connection strings: `postgres://user:pass@localhost/db` → `[REDACTED]`
+   - API keys and tokens: `sk_live_abc123` → `[REDACTED]`
+   - File paths: `/etc/secrets/api.json` → `[REDACTED]`
+   - Email addresses: `user@example.com` → `[REDACTED]`
+   - IP addresses: `192.168.1.100` → `[REDACTED]`
+   - Environment variables: `API_KEY=secret` → `[REDACTED]`
+
+3. **Property Filtering:**
+   - Removes: `request`, `response`, `headers`, `cookies`, `session`, `config`
+   - Preserves: `name`, `message`, `code`, `suggestion` (Pulse errors)
+
+#### Security Best Practices
+
+**DO:**
+- ✅ Pass only serializable data to Client Components (plain objects, arrays, primitives)
+- ✅ Use Server Actions for sensitive operations (database access, API calls)
+- ✅ Validate user input on the server (never trust client data)
+- ✅ Keep secrets in environment variables, not props
+- ✅ Use generic error messages in production (`createProductionSafeError()`)
+- ✅ Sanitize user-generated content before display (auto-handled by XSS sanitization)
+
+**DON'T:**
+- ❌ Pass secrets as props to Client Components (detected and warned)
+- ❌ Pass functions, symbols, or class instances as props (throws error)
+- ❌ Send unfiltered error objects to client (auto-sanitized)
+- ❌ Disable security features unless absolutely necessary
+- ❌ Trust data from Client Components without validation
+
+**Example: Secure Server Component**
+
+```javascript
+// ✅ GOOD: Secrets stay on server
+export function UserProfile({ userId }) {
+  'use server';
+
+  // Server-side only - secrets never sent to client
+  const apiKey = process.env.GITHUB_API_KEY;
+  const user = await fetch(`https://api.github.com/users/${userId}`, {
+    headers: { Authorization: `token ${apiKey}` }
+  }).then(r => r.json());
+
+  // Only send safe, public data to Client Component
+  return UserCard({
+    name: user.name,
+    avatar: user.avatar_url,
+    bio: user.bio
+  });
+}
+
+// ❌ BAD: Secret exposed to client
+export function UserProfile({ userId }) {
+  'use server';
+
+  const apiKey = process.env.GITHUB_API_KEY;
+
+  // DON'T: Passing secret to Client Component
+  return UserCard({
+    userId,
+    apiKey  // ⚠️ Security warning: detected secret in props
+  });
+}
+```
+
+**Example: Secure Server Action**
+
+```javascript
+// ✅ GOOD: Validation + error sanitization
+async function createPost(data) {
+  'use server';
+
+  // 1. Validate input (never trust client)
+  const errors = validatePostInput(data);
+  if (errors) {
+    throw new Error(JSON.stringify(errors));
+  }
+
+  try {
+    // 2. Server-only operations
+    const post = await db.posts.create({
+      ...data,
+      authorId: context.user?.id
+    });
+
+    // 3. Return safe data (no secrets)
+    return {
+      id: post.id,
+      title: post.title,
+      slug: post.slug
+    };
+  } catch (error) {
+    // 4. Error auto-sanitized by middleware
+    // Production: { name: 'Error', message: 'Database error' }
+    // Development: { name: 'Error', message: 'Connection failed...', stack: 'sanitized...' }
+    throw error;
+  }
+}
+```
+
+**Security Configuration**
+
+```javascript
+// Customize security settings (if needed)
+const result = validatePropSecurity(props, 'MyComponent', {
+  detectSecrets: true,       // Enable secret detection
+  sanitizeXSS: true,          // Enable XSS sanitization
+  validateSizes: true,        // Enable size limits
+  throwOnSecrets: false       // Warn instead of throw
+});
+
+// Error sanitization options
+const safe = sanitizeError(error, {
+  mode: 'production',         // Force production mode
+  includeStack: false,         // Never include stack
+  maxStackLines: 3,            // Shorter stack traces
+  redactMessages: true,        // Always redact
+  allowedProperties: []        // No custom properties
+});
+```
+
+**Environment Modes:**
+
+| Mode | Stack Traces | Error Details | Secret Detection |
+|------|--------------|---------------|------------------|
+| **Development** | ✅ Sanitized | Full (redacted) | Warns |
+| **Production** | ❌ None | Minimal | Warns |
+| **Test** | ✅ Sanitized | Full | Warns |
+
+Auto-detected via `process.env.NODE_ENV`.
+
 ### A11y (runtime/a11y.js)
 
 ```javascript
@@ -2793,6 +3627,23 @@ view {
 | `runtime/ssr-async.js` | Async data collection during SSR |
 | `runtime/ssr-mismatch.js` | Hydration mismatch detection (dev-mode DOM diff) |
 | `runtime/ssr-preload.js` | Preload hint generation from build manifest |
+| `runtime/server-components/index.js` | Server Components main entry (exports all APIs) |
+| `runtime/server-components/types.js` | PSC wire format types (PSCElement, PSCClientBoundary, PSCText) |
+| `runtime/server-components/serializer.js` | Tree → PSC serialization (serializeToPSC) |
+| `runtime/server-components/client.js` | PSC → DOM reconstruction (reconstructPSCTree, hydrateClientComponents) |
+| `runtime/server-components/server.js` | Server-side rendering (renderServerComponent) |
+| `runtime/server-components/actions.js` | Client-side Server Actions (createActionInvoker, useServerAction, bindFormAction) |
+| `runtime/server-components/actions-server.js` | Server-side middleware (createServerActionMiddleware, Fastify, Hono plugins) |
+| `runtime/server-components/security.js` | Prop validation (detectSecrets, sanitizeXSS, validateSizes) |
+| `runtime/server-components/security-validation.js` | Non-serializable detection, environment variable scanning |
+| `runtime/server-components/security-csrf.js` | CSRF protection (CSRFTokenStore, generateCSRFToken, validateCSRFToken) |
+| `runtime/server-components/security-ratelimit.js` | Token bucket rate limiting (RateLimiter, RedisRateLimitStore) |
+| `runtime/server-components/error-sanitizer.js` | Error sanitization for production (sanitizeError, sanitizeStackTrace) |
+| `runtime/server-components/security-errors.js` | Error classes (PSCError, PSCCSRFError, PSCRateLimitError) |
+| `compiler/directives.js` | 'use client'/'use server' directive detection |
+| `loader/vite-plugin-server-components.js` | Vite plugin for Server Components (manifest, build validation) |
+| `loader/webpack-loader-server-components.js` | Webpack loader for Server Components |
+| `loader/rollup-plugin-server-components.js` | Rollup plugin for Server Components |
 | `server/index.js` | Server middleware factory (createPulseHandler) |
 | `server/express.js` | Express adapter (createExpressMiddleware) |
 | `server/hono.js` | Hono adapter (createHonoMiddleware) |
@@ -2889,10 +3740,36 @@ import { diffNodes, logMismatches, MismatchType, getSuggestion } from 'pulse-js-
 // SSR Preload Hints
 import { generatePreloadHints, getRoutePreloads, parseBuildManifest, createPreloadMiddleware, hintsToHTML } from 'pulse-js-framework/runtime/ssr';
 
+// Server Components (React Server Components-style architecture)
+import {
+  // PSC Wire Format
+  serializeToPSC, reconstructPSCTree, PSCNodeType,
+  // Server Rendering
+  renderServerComponent, renderServerComponentToHTML,
+  // Client Component Loading
+  loadClientComponent, preloadClientComponent, hydrateClientComponents,
+  // Server Actions
+  createActionInvoker, useServerAction, bindFormAction,
+  registerServerAction, executeServerAction,
+  // Middleware
+  createServerActionMiddleware, createFastifyActionPlugin, createHonoActionMiddleware,
+  // Security
+  validatePropSecurity, sanitizeError, CSRFTokenStore, generateCSRFToken, validateCSRFToken,
+  // Rate Limiting
+  RateLimiter, RedisRateLimitStore, MemoryRateLimitStore,
+  // Errors
+  PSCError, PSCSerializationError, PSCSecurityError, PSCCSRFError, PSCRateLimitError
+} from 'pulse-js-framework/runtime/server-components';
+
 // Server Framework Adapters
 import { createExpressMiddleware } from 'pulse-js-framework/server/express';
 import { createHonoMiddleware } from 'pulse-js-framework/server/hono';
 import { createFastifyPlugin } from 'pulse-js-framework/server/fastify';
+
+// Build Tool Integrations (Server Components)
+import pulseServerComponents from 'pulse-js-framework/vite/server-components';     // Vite
+import { addServerComponentsSupport } from 'pulse-js-framework/webpack/server-components';  // Webpack
+import rollupServerComponents from 'pulse-js-framework/rollup/server-components';  // Rollup
 
 // Lite build (minimal bundle ~5KB)
 import { pulse, effect, computed, el, mount, list, when } from 'pulse-js-framework/runtime/lite';
@@ -2926,13 +3803,73 @@ import swcPlugin from 'pulse-js-framework/swc';           // SWC plugin
 
 ## Testing
 
+This project primarily uses **JavaScript** (not TypeScript). Tests use **Node.js built-in test runner** (`node:test`), not Jest or Mocha.
+
 Tests are in `test/` directory and cover the compiler (lexer, parser, transformer). Run with:
 
 ```bash
 npm test
 # or
 node --test test/*.js
+# With coverage
+npm test -- --coverage
 ```
+
+**Important testing guidelines:**
+
+1. **Use node:test** - Do NOT use Jest, Mocha, or other frameworks
+2. **Async cleanup** - Always provide cleanup for async operations to prevent hanging tests
+3. **Timeout handling** - Use `AbortSignal.timeout()` or explicit timeouts for async tests
+4. **Mock DOM** - Use the project's MockDOMAdapter for DOM-dependent tests
+5. **No hardcoded timing** - Avoid `setTimeout` in tests; use proper async patterns
+
+**Good async test pattern:**
+```javascript
+import { test, describe } from 'node:test';
+import assert from 'node:assert';
+
+test('async operation with cleanup', async (t) => {
+  const signal = AbortSignal.timeout(1000);  // Timeout after 1s
+
+  const resource = await setupResource({ signal });
+
+  // Cleanup on test end
+  t.after(() => resource.dispose());
+
+  const result = await resource.doWork();
+  assert.strictEqual(result, expected);
+});
+```
+
+**Mock DOM setup:**
+```javascript
+import { setAdapter, MockDOMAdapter, resetAdapter } from '../runtime/dom-adapter.js';
+
+describe('DOM tests', () => {
+  let mockAdapter;
+
+  beforeEach(() => {
+    mockAdapter = new MockDOMAdapter();
+    setAdapter(mockAdapter);
+  });
+
+  afterEach(() => {
+    resetAdapter();
+  });
+
+  test('creates element', () => {
+    const div = mockAdapter.createElement('div');
+    assert.strictEqual(div.tagName, 'DIV');
+  });
+});
+```
+
+**Common pitfalls to avoid:**
+- ❌ Using Jest/Mocha syntax (`expect()`, `jest.fn()`)
+- ❌ Async tests without cleanup (causes hangs)
+- ❌ Hardcoded `setTimeout(done, 100)` delays
+- ❌ Missing mock DOM setup for DOM-dependent code
+- ❌ Not handling promise rejections in async tests
 
 ## CSS Preprocessor Support (SASS/SCSS, LESS, and Stylus)
 

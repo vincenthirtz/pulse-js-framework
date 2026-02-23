@@ -354,10 +354,21 @@ const count: Pulse<number> = pulse(0);
 | [Chat App](examples/chat) | Real-time messaging |
 | [E-commerce](examples/ecommerce) | Shopping cart |
 | [Dashboard](examples/dashboard) | Admin UI |
+| [Weather App](examples/meteo) | API integration, async data fetching |
+| [Sports News](examples/sports) | HTTP client with interceptors |
 | [HMR Demo](examples/hmr) | Hot module replacement |
 | [Router Demo](examples/router) | SPA routing |
 | [Store Demo](examples/store) | State with undo/redo |
 | [Electron App](examples/electron) | Desktop notes app |
+| [Server Actions](examples/server-actions-ratelimit) | Rate limiting, CSRF protection |
+| [LESS Example](examples/less-example) | LESS preprocessor support |
+| [Stylus Example](examples/stylus-example) | Stylus preprocessor support |
+| [Webpack](examples/webpack-example) | Webpack 5 loader integration |
+| [Rollup](examples/rollup-example) | Rollup plugin with tree-shaking |
+| [ESBuild](examples/esbuild-example) | ESBuild ultra-fast builds |
+| [Parcel](examples/parcel-example) | Parcel zero-config bundling |
+| [SASS Example](examples/sass-example) | SASS/SCSS preprocessor support |
+| [Form Validation](examples/form-validation) | useForm, validators, file upload |
 
 ## Server-Side Rendering
 

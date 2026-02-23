@@ -457,6 +457,7 @@ const { html } = await renderToString(() => App(), {
   // Apply i18n translations
   effect(() => {
     locale.get();
+    translations.get();
     page.querySelectorAll('[data-i18n]').forEach(el => {
       const key = el.getAttribute('data-i18n');
       el.textContent = t(key);

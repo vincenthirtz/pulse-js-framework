@@ -13,6 +13,7 @@ export function generateExport(transformer) {
   const pageName = transformer.ast.page?.name || 'Component';
   const routePath = transformer.ast.route?.path || null;
   const hasInit = transformer.actionNames.has('init');
+  const directive = transformer.directive;
 
   const lines = ['// Export'];
   lines.push(`export const ${pageName} = {`);
@@ -20,6 +21,12 @@ export function generateExport(transformer) {
 
   if (routePath) {
     lines.push(`  route: ${JSON.stringify(routePath)},`);
+  }
+
+  // Add Server Component directive metadata
+  if (directive) {
+    lines.push(`  __directive: ${JSON.stringify(directive)},  // 'use client' or 'use server'`);
+    lines.push(`  __componentId: ${JSON.stringify(pageName)},`);
   }
 
   // Mount with reactive re-rendering (preserves focus)

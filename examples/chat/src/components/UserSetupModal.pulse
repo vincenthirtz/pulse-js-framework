@@ -18,7 +18,7 @@ state {
 view {
   .modal-overlay[style="display: {show ? 'flex' : 'none'}"] {
     @if (show) {
-      .modal.setup-modal {
+      .modal.setup-modal[role=dialog][aria-modal=true][aria-label="User setup"] {
         h2 "👋 Welcome to Pulse Chat!"
         p.setup-subtitle "Choose your name and avatar to get started"
 
