@@ -9,8 +9,8 @@
  * - createModuleStore for namespaced state
  */
 
-import { pulse, effect, computed, batch, onCleanup } from '../../runtime/index.js';
-import { el, mount, onMount, onUnmount } from '../../runtime/dom.js';
+import { pulse, effect, computed, batch, onCleanup } from '../../../runtime/index.js';
+import { el, mount, onMount, onUnmount } from '../../../runtime/dom.js';
 import {
   createStore,
   createActions,
@@ -19,7 +19,7 @@ import {
   historyPlugin,
   loggerPlugin,
   createModuleStore
-} from '../../runtime/store.js';
+} from '../../../runtime/store.js';
 
 // =============================================================================
 // Store Setup

@@ -6,16 +6,14 @@
  * mixins, functions, and modular architecture.
  *
  * To run:
- * 1. Install SASS: npm install -D sass
- * 2. Compile: pulse compile SassDemo.pulse
- * 3. Serve: pulse dev
+ * 1. (Optional) Install SASS for full styles: npm install -D sass
+ * 2. Serve: pulse dev
  */
 
-import { mount } from '../../runtime/dom.js';
-import SassDemo from './SassDemo.js';
+import SassDemo from './SassDemo.pulse';
 
 // Mount the demo app
-mount('#app', SassDemo());
+SassDemo.mount('#app');
 
 console.log('✨ Pulse + SASS/SCSS Example Running!');
 console.log('📦 SASS features used:');
