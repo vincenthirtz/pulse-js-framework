@@ -17,7 +17,8 @@
     { "include": "#block-router" },
     { "include": "#block-store" },
     { "include": "#block-routes" },
-    { "include": "#block-getters" }
+    { "include": "#block-getters" },
+    { "include": "#top-level-export" }
   ],
   "repository": {
 
@@ -76,6 +77,11 @@
           }
         }
       ]
+    },
+
+    "top-level-export": {
+      "match": "\\b(export)\\b",
+      "name": "keyword.control.export.pulse"
     },
 
     "imports": {
@@ -144,11 +150,48 @@
       "patterns": [
         {
           "name": "meta.route.pulse",
-          "match": "(@route)\\s+(\"[^\"]*\"|'[^']*')",
-          "captures": {
+          "begin": "(@route)\\s+(\")",
+          "beginCaptures": {
             "1": { "name": "keyword.control.route.pulse" },
-            "2": { "name": "string.quoted.pulse" }
-          }
+            "2": { "name": "punctuation.definition.string.begin.pulse" }
+          },
+          "end": "\"",
+          "endCaptures": {
+            "0": { "name": "punctuation.definition.string.end.pulse" }
+          },
+          "contentName": "string.quoted.double.pulse",
+          "patterns": [
+            { "include": "#route-params" }
+          ]
+        },
+        {
+          "name": "meta.route.pulse",
+          "begin": "(@route)\\s+(')",
+          "beginCaptures": {
+            "1": { "name": "keyword.control.route.pulse" },
+            "2": { "name": "punctuation.definition.string.begin.pulse" }
+          },
+          "end": "'",
+          "endCaptures": {
+            "0": { "name": "punctuation.definition.string.end.pulse" }
+          },
+          "contentName": "string.quoted.single.pulse",
+          "patterns": [
+            { "include": "#route-params" }
+          ]
+        }
+      ]
+    },
+
+    "route-params": {
+      "patterns": [
+        {
+          "match": "(:\\w+)",
+          "name": "variable.parameter.route.pulse"
+        },
+        {
+          "match": "(\\*\\w+)",
+          "name": "variable.parameter.wildcard.route.pulse"
         }
       ]
     },
@@ -240,6 +283,12 @@
         { "include": "#view-control-flow-if" },
         { "include": "#view-control-flow-else" },
         { "include": "#view-key-function" },
+        { "include": "#view-directive-a11y" },
+        { "include": "#view-directive-live" },
+        { "include": "#view-directive-focustrap" },
+        { "include": "#view-directive-model" },
+        { "include": "#view-directive-event" },
+        { "include": "#view-directive-router" },
         { "include": "#view-directive-with-args" },
         { "include": "#view-directive-no-args" },
         { "include": "#view-slot" },
@@ -283,7 +332,7 @@
     },
 
     "view-control-flow-for": {
-      "begin": "(@for)\\s*(\\()",
+      "begin": "(@(?:for|each))\\s*(\\()",
       "beginCaptures": {
         "1": { "name": "keyword.control.flow.pulse" },
         "2": { "name": "punctuation.section.arguments.begin.pulse" }
@@ -302,7 +351,7 @@
     },
 
     "view-control-flow-else": {
-      "match": "@else\\b",
+      "match": "@else(?:-if)?\\b",
       "name": "keyword.control.flow.pulse"
     },
 
@@ -310,6 +359,104 @@
       "begin": "\\b(key)\\s*(\\()",
       "beginCaptures": {
         "1": { "name": "keyword.other.key.pulse" },
+        "2": { "name": "punctuation.section.arguments.begin.pulse" }
+      },
+      "end": "\\)",
+      "endCaptures": {
+        "0": { "name": "punctuation.section.arguments.end.pulse" }
+      },
+      "patterns": [
+        { "include": "#expression" }
+      ]
+    },
+
+    "view-directive-a11y": {
+      "begin": "(@a11y)\\s*(\\()",
+      "beginCaptures": {
+        "1": { "name": "entity.other.attribute-name.directive.a11y.pulse" },
+        "2": { "name": "punctuation.section.arguments.begin.pulse" }
+      },
+      "end": "\\)",
+      "endCaptures": {
+        "0": { "name": "punctuation.section.arguments.end.pulse" }
+      },
+      "patterns": [
+        { "include": "#directive-key-value" },
+        { "include": "#expression" }
+      ]
+    },
+
+    "view-directive-live": {
+      "begin": "(@live)\\s*(\\()",
+      "beginCaptures": {
+        "1": { "name": "entity.other.attribute-name.directive.a11y.pulse" },
+        "2": { "name": "punctuation.section.arguments.begin.pulse" }
+      },
+      "end": "\\)",
+      "endCaptures": {
+        "0": { "name": "punctuation.section.arguments.end.pulse" }
+      },
+      "patterns": [
+        {
+          "match": "\\b(polite|assertive)\\b",
+          "name": "support.constant.aria.pulse"
+        },
+        { "include": "#expression" }
+      ]
+    },
+
+    "view-directive-focustrap": {
+      "begin": "(@focusTrap)\\s*(\\()",
+      "beginCaptures": {
+        "1": { "name": "entity.other.attribute-name.directive.a11y.pulse" },
+        "2": { "name": "punctuation.section.arguments.begin.pulse" }
+      },
+      "end": "\\)",
+      "endCaptures": {
+        "0": { "name": "punctuation.section.arguments.end.pulse" }
+      },
+      "patterns": [
+        { "include": "#directive-key-value" },
+        { "include": "#expression" }
+      ]
+    },
+
+    "view-directive-model": {
+      "begin": "(@model)((?:\\.[a-zA-Z]+)*)\\s*(\\()",
+      "beginCaptures": {
+        "1": { "name": "entity.other.attribute-name.directive.model.pulse" },
+        "2": { "name": "entity.other.attribute-name.modifier.pulse" },
+        "3": { "name": "punctuation.section.arguments.begin.pulse" }
+      },
+      "end": "\\)",
+      "endCaptures": {
+        "0": { "name": "punctuation.section.arguments.end.pulse" }
+      },
+      "patterns": [
+        { "include": "#expression" }
+      ]
+    },
+
+    "view-directive-event": {
+      "begin": "(@(?:click|dblclick|input|change|submit|blur|focus|keydown|keyup|keypress|mouseenter|mouseleave|mouseover|mouseout|mousedown|mouseup|wheel|scroll|resize|dragenter|dragover|dragleave|dragstart|dragend|drop|touchstart|touchend|touchmove|contextmenu|pointerdown|pointerup|pointermove|pointerenter|pointerleave))((?:\\.[a-zA-Z]+)*)\\s*(\\()",
+      "beginCaptures": {
+        "1": { "name": "entity.other.attribute-name.directive.event.pulse" },
+        "2": { "name": "entity.other.attribute-name.modifier.pulse" },
+        "3": { "name": "punctuation.section.arguments.begin.pulse" }
+      },
+      "end": "\\)",
+      "endCaptures": {
+        "0": { "name": "punctuation.section.arguments.end.pulse" }
+      },
+      "patterns": [
+        { "include": "#expression" }
+      ]
+    },
+
+    "view-directive-router": {
+      "begin": "(@(?:link|navigate))\\s*(\\()",
+      "beginCaptures": {
+        "1": { "name": "entity.other.attribute-name.directive.router.pulse" },
         "2": { "name": "punctuation.section.arguments.begin.pulse" }
       },
       "end": "\\)",
@@ -338,8 +485,32 @@
     },
 
     "view-directive-no-args": {
-      "match": "@(else|srOnly|client|server|mount|unmount|outlet|back|forward)\\b",
-      "name": "entity.other.attribute-name.directive.pulse"
+      "patterns": [
+        {
+          "match": "@(srOnly|focusTrap)\\b",
+          "name": "entity.other.attribute-name.directive.a11y.pulse"
+        },
+        {
+          "match": "@(client|server)\\b",
+          "name": "entity.other.attribute-name.directive.ssr.pulse"
+        },
+        {
+          "match": "@(outlet|back|forward|link|navigate)\\b",
+          "name": "entity.other.attribute-name.directive.router.pulse"
+        },
+        {
+          "match": "@(mount|unmount)\\b",
+          "name": "entity.other.attribute-name.directive.lifecycle.pulse"
+        }
+      ]
+    },
+
+    "directive-key-value": {
+      "match": "\\b([a-zA-Z][a-zA-Z0-9]*)\\s*(=)",
+      "captures": {
+        "1": { "name": "entity.other.attribute-name.directive-option.pulse" },
+        "2": { "name": "keyword.operator.assignment.pulse" }
+      }
     },
 
     "view-slot": {
@@ -398,6 +569,18 @@
       },
       "patterns": [
         {
+          "match": "(aria-[a-zA-Z][a-zA-Z0-9-]*)(?=\\s*[=\\]])",
+          "captures": {
+            "1": { "name": "entity.other.attribute-name.aria.pulse" }
+          }
+        },
+        {
+          "match": "(data-[a-zA-Z][a-zA-Z0-9-]*)(?=\\s*[=\\]])",
+          "captures": {
+            "1": { "name": "entity.other.attribute-name.data.pulse" }
+          }
+        },
+        {
           "match": "([a-zA-Z_][a-zA-Z0-9_:-]*)(?=\\s*[=\\]])",
           "captures": {
             "1": { "name": "entity.other.attribute-name.pulse" }
@@ -446,6 +629,7 @@
         { "include": "#numbers" },
         { "include": "#constants" },
         { "include": "#expression-keywords" },
+        { "include": "#expression-language-variables" },
         { "include": "#expression-event-variable" },
         { "include": "#expression-arrow-single-param" },
         { "include": "#expression-operators" },
@@ -460,8 +644,13 @@
     },
 
     "expression-keywords": {
-      "match": "\\b(if|else|return|typeof|instanceof|new|delete|void|in|of|async|await|throw|try|catch|finally|for|while|do|switch|case|default|break|continue|const|let|var|function|class|this|super|yield|from|import|export)\\b",
+      "match": "\\b(if|else|return|typeof|instanceof|new|delete|void|in|of|async|await|throw|try|catch|finally|for|while|do|switch|case|default|break|continue|const|let|var|function|class|yield|from|import|export)\\b",
       "name": "keyword.control.pulse"
+    },
+
+    "expression-language-variables": {
+      "match": "\\b(this|super|arguments)\\b",
+      "name": "variable.language.pulse"
     },
 
     "expression-event-variable": {
@@ -593,13 +782,30 @@
         { "include": "#style-stylus-mixin-call" },
         { "include": "#style-css-custom-property" },
         { "include": "#style-css-at-rule" },
+        { "include": "#style-css-media-keyword" },
         { "include": "#style-css-keyframes" },
         { "include": "#style-css-ampersand-pseudo" },
+        { "include": "#style-css-pseudo-element" },
+        { "include": "#style-css-pseudo-class-functional" },
+        { "include": "#style-css-pseudo-class" },
+        { "include": "#style-css-attribute-selector" },
+        { "include": "#style-css-combinator" },
+        { "include": "#css-class-selector" },
+        { "include": "#style-css-wildcard" },
+        { "include": "#style-css-tag-selector" },
+        { "include": "#style-css-keyframe-selector" },
+        { "include": "#style-css-percentage-selector" },
         { "include": "#style-css-property-name" },
         { "include": "#style-css-function" },
         { "include": "#style-css-color-hex" },
+        { "include": "#css-id-selector" },
         { "include": "#style-css-numeric-value" },
+        { "include": "#style-css-named-value" },
+        { "include": "#style-css-color-name" },
         { "include": "#style-css-important" },
+        { "include": "#style-css-semicolon" },
+        { "include": "#style-css-comma" },
+        { "include": "#style-css-string" },
         { "include": "#style-parent-selector" },
         { "include": "#style-nested-block" },
         { "include": "source.css" }
@@ -645,7 +851,7 @@
     },
 
     "style-sass-extend": {
-      "match": "(@extend)\\s+([.%][a-zA-Z_][\\w-]*)",
+      "match": "(@extends?)\\s+([.%][a-zA-Z_][\\w-]*)",
       "captures": {
         "1": { "name": "keyword.control.at-rule.scss" },
         "2": { "name": "entity.other.inherited-class.scss" }
@@ -666,7 +872,7 @@
     },
 
     "style-sass-at-rule": {
-      "match": "@(mixin|include|extend|function|return|if|else\\s+if|else|for|each|while|use|forward|at-root|error|warn|debug|content|apply)\\b",
+      "match": "@(mixin|include|extends?|function|return|if|else\\s+if|else|for|each|while|use|forward|at-root|error|warn|debug|content|apply)\\b",
       "name": "keyword.control.at-rule.scss"
     },
 
@@ -755,6 +961,11 @@
       "name": "keyword.control.at-rule.css"
     },
 
+    "style-css-media-keyword": {
+      "match": "\\b(and|or|not|only|all|print|screen|speech)\\b(?=\\s*[({]|\\s+[^:;{}])",
+      "name": "keyword.operator.logic.media.css"
+    },
+
     "style-css-keyframes": {
       "match": "(@keyframes)\\s+([a-zA-Z_][\\w-]*)",
       "captures": {
@@ -765,6 +976,22 @@
 
     "style-css-ampersand-pseudo": {
       "patterns": [
+        {
+          "match": "(&)(\\.)([a-zA-Z_][a-zA-Z0-9_-]*)",
+          "captures": {
+            "1": { "name": "entity.other.attribute-name.parent-selector.css" },
+            "2": { "name": "punctuation.definition.entity.css" },
+            "3": { "name": "entity.other.attribute-name.class.css" }
+          }
+        },
+        {
+          "match": "(&)(#)([a-zA-Z_][a-zA-Z0-9_-]*)",
+          "captures": {
+            "1": { "name": "entity.other.attribute-name.parent-selector.css" },
+            "2": { "name": "punctuation.definition.entity.css" },
+            "3": { "name": "entity.other.attribute-name.id.css" }
+          }
+        },
         {
           "match": "(&)(::)([a-z][\\w-]*)",
           "captures": {
@@ -858,9 +1085,173 @@
       "name": "keyword.other.important.css"
     },
 
+    "style-css-color-name": {
+      "match": "(?<=:\\s*|\\s)(aliceblue|antiquewhite|aqua|aquamarine|azure|beige|bisque|black|blanchedalmond|blue|blueviolet|brown|burlywood|cadetblue|chartreuse|chocolate|coral|cornflowerblue|cornsilk|crimson|cyan|darkblue|darkcyan|darkgoldenrod|darkgr[ae]y|darkgreen|darkkhaki|darkmagenta|darkolivegreen|darkorange|darkorchid|darkred|darksalmon|darkseagreen|darkslatebl|darkslategr[ae]y|darkturquoise|darkviolet|deeppink|deepskyblue|dimgr[ae]y|dodgerblue|firebrick|floralwhite|forestgreen|fuchsia|gainsboro|ghostwhite|gold|goldenrod|gr[ae]y|green|greenyellow|honeydew|hotpink|indianred|indigo|ivory|khaki|lavender|lavenderblush|lawngreen|lemonchiffon|lightblue|lightcoral|lightcyan|lightgoldenrodyellow|lightgr[ae]y|lightgreen|lightpink|lightsalmon|lightseagreen|lightskyblue|lightslategr[ae]y|lightsteelblue|lightyellow|lime|limegreen|linen|magenta|maroon|mediumaquamarine|mediumblue|mediumorchid|mediumpurple|mediumseagreen|mediumslateblue|mediumspringgreen|mediumturquoise|mediumvioletred|midnightblue|mintcream|mistyrose|moccasin|navajowhite|navy|oldlace|olive|olivedrab|orange|orangered|orchid|palegoldenrod|palegreen|paleturquoise|palevioletred|papayawhip|peachpuff|peru|pink|plum|powderblue|purple|rebeccapurple|red|rosybrown|royalblue|saddlebrown|salmon|sandybrown|seagreen|seashell|sienna|silver|skyblue|slateblue|slategr[ae]y|snow|springgreen|steelblue|tan|teal|thistle|tomato|turquoise|violet|wheat|white|whitesmoke|yellow|yellowgreen)\\b(?=\\s*[;!}\\n,)])",
+      "name": "support.constant.color.css"
+    },
+
+    "style-css-pseudo-element": {
+      "match": "(?<!&)(::)(before|after|first-line|first-letter|selection|placeholder|marker|backdrop|file-selector-button|target-text|spelling-error|grammar-error|cue|cue-region|part)\\b",
+      "captures": {
+        "1": { "name": "punctuation.definition.entity.css" },
+        "2": { "name": "entity.other.attribute-name.pseudo-element.css" }
+      }
+    },
+
+    "style-css-pseudo-class-functional": {
+      "begin": "(?<!&)(:)(not|is|where|has|nth-child|nth-last-child|nth-of-type|nth-last-of-type)\\s*(\\()",
+      "beginCaptures": {
+        "1": { "name": "punctuation.definition.entity.css" },
+        "2": { "name": "entity.other.attribute-name.pseudo-class.css" },
+        "3": { "name": "punctuation.section.function.begin.css" }
+      },
+      "end": "\\)",
+      "endCaptures": {
+        "0": { "name": "punctuation.section.function.end.css" }
+      },
+      "patterns": [
+        { "include": "#style-css-pseudo-class-functional" },
+        { "include": "#style-css-pseudo-class" },
+        { "include": "#style-css-pseudo-element" },
+        { "include": "#style-css-numeric-value" },
+        { "include": "#style-css-color-hex" },
+        { "include": "#style-sass-variable-ref" },
+        { "include": "#style-less-variable-ref" },
+        { "include": "#css-class-selector" },
+        { "include": "#css-id-selector" },
+        { "include": "#style-parent-selector" },
+        { "include": "#style-css-combinator" },
+        { "include": "#style-css-string" },
+        {
+          "match": "[+\\-]",
+          "name": "keyword.operator.arithmetic.css"
+        },
+        {
+          "match": "\\b(odd|even|n)\\b",
+          "name": "support.constant.property-value.css"
+        },
+        {
+          "match": "\\b[a-z][a-z-]*\\b",
+          "name": "entity.name.tag.css"
+        },
+        {
+          "match": "\\*",
+          "name": "entity.name.tag.wildcard.css"
+        },
+        { "include": "#attribute-brackets" }
+      ]
+    },
+
+    "style-css-pseudo-class": {
+      "match": "(?<!&)(:)(hover|focus|active|visited|link|focus-within|focus-visible|first-child|last-child|nth-child|nth-last-child|nth-of-type|nth-last-of-type|first-of-type|last-of-type|only-child|only-of-type|root|empty|not|is|where|has|any-link|local-link|target|target-within|scope|current|past|future|playing|paused|enabled|disabled|read-only|read-write|placeholder-shown|default|checked|indeterminate|valid|invalid|in-range|out-of-range|required|optional|blank|user-invalid|autofill|defined|popover-open)\\b",
+      "captures": {
+        "1": { "name": "punctuation.definition.entity.css" },
+        "2": { "name": "entity.other.attribute-name.pseudo-class.css" }
+      }
+    },
+
+    "style-css-combinator": {
+      "match": "(?<=[\\w\\]\\)\\*])\\s*([>+~])\\s*(?=[\\w.#\\[:*&])",
+      "captures": {
+        "1": { "name": "keyword.operator.combinator.css" }
+      }
+    },
+
+    "style-css-attribute-selector": {
+      "begin": "\\[",
+      "beginCaptures": {
+        "0": { "name": "punctuation.definition.entity.begin.css" }
+      },
+      "end": "\\]",
+      "endCaptures": {
+        "0": { "name": "punctuation.definition.entity.end.css" }
+      },
+      "patterns": [
+        {
+          "match": "([a-zA-Z_][a-zA-Z0-9_-]*)\\s*([~|^$*]?=)",
+          "captures": {
+            "1": { "name": "entity.other.attribute-name.css" },
+            "2": { "name": "keyword.operator.pattern.css" }
+          }
+        },
+        {
+          "match": "([a-zA-Z_][a-zA-Z0-9_-]*)(?=\\s*\\])",
+          "name": "entity.other.attribute-name.css"
+        },
+        { "include": "#style-css-string" },
+        {
+          "match": "[^\"]+'?[^\\]]*",
+          "name": "string.unquoted.css"
+        }
+      ]
+    },
+
+    "style-css-named-value": {
+      "match": "(?<=:\\s*)(none|auto|inherit|initial|unset|revert|revert-layer|normal|bold|bolder|lighter|italic|oblique|underline|overline|line-through|capitalize|uppercase|lowercase|block|inline|inline-block|flex|inline-flex|grid|inline-grid|table|table-row|table-cell|list-item|contents|flow-root|hidden|visible|scroll|clip|absolute|relative|fixed|sticky|static|center|left|right|top|bottom|start|end|stretch|baseline|space-between|space-around|space-evenly|wrap|nowrap|wrap-reverse|row|column|row-reverse|column-reverse|pointer|default|text|move|not-allowed|grab|grabbing|crosshair|help|wait|progress|cell|alias|copy|no-drop|all-scroll|col-resize|row-resize|n-resize|e-resize|s-resize|w-resize|nesw-resize|nwse-resize|ew-resize|ns-resize|zoom-in|zoom-out|solid|dashed|dotted|double|groove|ridge|inset|outset|transparent|currentColor|both|horizontal|vertical|collapse|separate|border-box|content-box|padding-box|contain|cover|fill|scale-down|break-all|break-word|keep-all|pre|pre-wrap|pre-line|break-spaces|ellipsis|ease|ease-in|ease-out|ease-in-out|linear|step-start|step-end|infinite|alternate|alternate-reverse|reverse|forwards|backwards|running|paused|normal|multiply|screen|overlay|darken|lighten|color-dodge|color-burn|hard-light|soft-light|difference|exclusion|hue|saturation|color|luminosity)(?=\\s*[;!}\\n])",
+      "name": "support.constant.property-value.css"
+    },
+
+    "style-css-semicolon": {
+      "match": ";",
+      "name": "punctuation.terminator.rule.css"
+    },
+
+    "style-css-comma": {
+      "match": ",",
+      "name": "punctuation.separator.list.comma.css"
+    },
+
+    "style-css-string": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.css",
+          "begin": "\"",
+          "beginCaptures": { "0": { "name": "punctuation.definition.string.begin.css" } },
+          "end": "\"",
+          "endCaptures": { "0": { "name": "punctuation.definition.string.end.css" } },
+          "patterns": [
+            { "match": "\\\\.", "name": "constant.character.escape.css" }
+          ]
+        },
+        {
+          "name": "string.quoted.single.css",
+          "begin": "'",
+          "beginCaptures": { "0": { "name": "punctuation.definition.string.begin.css" } },
+          "end": "'",
+          "endCaptures": { "0": { "name": "punctuation.definition.string.end.css" } },
+          "patterns": [
+            { "match": "\\\\.", "name": "constant.character.escape.css" }
+          ]
+        }
+      ]
+    },
+
     "style-parent-selector": {
       "match": "&",
       "name": "entity.other.attribute-name.parent-selector.css"
+    },
+
+    "style-css-wildcard": {
+      "match": "\\*(?!\\/)(?=[\\s{,.#\\[:+~>])",
+      "name": "entity.name.tag.wildcard.css"
+    },
+
+    "style-css-tag-selector": {
+      "match": "(?<![\\w-])\\b(a|abbr|address|area|article|aside|audio|b|base|bdi|bdo|blockquote|body|br|button|canvas|caption|cite|code|col|colgroup|data|datalist|dd|del|details|dfn|dialog|div|dl|dt|em|embed|fieldset|figcaption|figure|footer|form|h[1-6]|head|header|hgroup|hr|html|i|iframe|img|input|ins|kbd|label|legend|li|link|main|map|mark|math|menu|meta|meter|nav|noscript|object|ol|optgroup|option|output|p|param|picture|pre|progress|q|rp|rt|ruby|s|samp|script|search|section|select|slot|small|source|span|strong|style|sub|summary|sup|svg|table|tbody|td|template|textarea|tfoot|th|thead|time|title|tr|track|u|ul|var|video|wbr)\\b(?=\\s*[{.#\\[:>+~,]|\\s+[a-zA-Z.#&*\\[])",
+      "name": "entity.name.tag.css"
+    },
+
+    "style-css-keyframe-selector": {
+      "match": "\\b(from|to)\\b(?=\\s*\\{)",
+      "name": "entity.other.keyframe-offset.css"
+    },
+
+    "style-css-percentage-selector": {
+      "match": "\\b(\\d+(?:\\.\\d+)?)(%)(?=\\s*[{,])",
+      "captures": {
+        "1": { "name": "constant.numeric.css" },
+        "2": { "name": "keyword.other.unit.percentage.css" }
+      }
     },
 
     "block-router": {
@@ -951,9 +1342,36 @@
       "end": "\\}",
       "patterns": [
         { "include": "#comments" },
+        { "include": "#route-string" },
         { "include": "#strings" },
         { "include": "#component-reference" },
+        { "include": "#state-property" },
         { "include": "#routes-nested-braces" }
+      ]
+    },
+
+    "route-string": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.route.pulse",
+          "begin": "\"",
+          "beginCaptures": { "0": { "name": "punctuation.definition.string.begin.pulse" } },
+          "end": "\"",
+          "endCaptures": { "0": { "name": "punctuation.definition.string.end.pulse" } },
+          "patterns": [
+            { "include": "#route-params" }
+          ]
+        },
+        {
+          "name": "string.quoted.single.route.pulse",
+          "begin": "'",
+          "beginCaptures": { "0": { "name": "punctuation.definition.string.begin.pulse" } },
+          "end": "'",
+          "endCaptures": { "0": { "name": "punctuation.definition.string.end.pulse" } },
+          "patterns": [
+            { "include": "#route-params" }
+          ]
+        }
       ]
     },
 
@@ -962,8 +1380,12 @@
       "end": "\\}",
       "patterns": [
         { "include": "#comments" },
+        { "include": "#route-string" },
         { "include": "#strings" },
+        { "include": "#router-keywords" },
         { "include": "#component-reference" },
+        { "include": "#state-property" },
+        { "include": "#constants" },
         { "include": "#routes-nested-braces" }
       ]
     },
@@ -1002,10 +1424,7 @@
       },
       "patterns": [
         { "include": "#string-interpolation" },
-        {
-          "name": "constant.character.escape.pulse",
-          "match": "\\\\."
-        }
+        { "include": "#string-escapes" }
       ]
     },
 
@@ -1020,6 +1439,28 @@
         "0": { "name": "punctuation.definition.string.end.pulse" }
       },
       "patterns": [
+        { "include": "#string-escapes" }
+      ]
+    },
+
+    "string-escapes": {
+      "patterns": [
+        {
+          "name": "constant.character.escape.unicode.pulse",
+          "match": "\\\\u\\{[0-9a-fA-F]+\\}"
+        },
+        {
+          "name": "constant.character.escape.unicode.pulse",
+          "match": "\\\\u[0-9a-fA-F]{4}"
+        },
+        {
+          "name": "constant.character.escape.hex.pulse",
+          "match": "\\\\x[0-9a-fA-F]{2}"
+        },
+        {
+          "name": "constant.character.escape.pulse",
+          "match": "\\\\[0nrtfvb'\"\\\\]"
+        },
         {
           "name": "constant.character.escape.pulse",
           "match": "\\\\."
@@ -1052,10 +1493,7 @@
             { "include": "#expression" }
           ]
         },
-        {
-          "name": "constant.character.escape.pulse",
-          "match": "\\\\."
-        }
+        { "include": "#string-escapes" }
       ]
     },
 
