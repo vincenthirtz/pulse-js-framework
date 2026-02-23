@@ -1,0 +1,71 @@
+/**
+ * BasicAsyncSection - Demonstrates useAsync hook
+ */
+
+import { useAsync } from '../../../../runtime/async.js'
+import { effect } from '../../../../runtime/index.js'
+import { mockFetch } from '../mock-api.js'
+
+@component BasicAsyncSection
+
+state {
+  userData: null
+  userLoading: false
+  userError: null
+  _hook: null
+}
+
+actions {
+  init() {
+    const hook = useAsync(
+      () => mockFetch('/api/users', { delay: 800 }),
+      { immediate: false, initialData: null }
+    )
+    _hook = hook
+    effect(() => { userData = hook.data.get() })
+    effect(() => { userLoading = hook.loading.get() })
+    effect(() => { userError = hook.error.get() })
+  }
+
+  fetchUsers() { if (_hook) _hook.execute() }
+  resetData() { if (_hook) _hook.reset() }
+  abortFetch() { if (_hook) _hook.abort() }
+}
+
+view {
+  section {
+    h2 "useAsync - Basic Async Operations"
+    p "Wraps any async function with reactive loading, error, and data states."
+
+    .controls {
+      button.primary[disabled={userLoading}] @click(fetchUsers()) "Fetch Users"
+      button @click(resetData()) "Reset"
+      button[disabled={!userLoading}] @click(abortFetch()) "Abort"
+    }
+
+    @if (userLoading) {
+      .loading { .spinner  span "Loading users..." }
+    }
+
+    @if (userError) {
+      .error "Error: {userError.message}"
+    }
+
+    @if (userData && !userLoading) {
+      .data-table {
+        table {
+          thead { tr { th "Name" th "Email" th "Status" } }
+          tbody {
+            @for (user of userData) {
+              tr {
+                td "{user.name}"
+                td "{user.email}"
+                td { span.status[class={user.status}] "{user.status}" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

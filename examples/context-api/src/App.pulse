@@ -1,0 +1,53 @@
+/**
+ * Pulse Context API Demo - Main App Component
+ * Orchestrates all context demo sections
+ */
+
+import ThemeSection from './components/ThemeSection.pulse'
+import AuthSection from './components/AuthSection.pulse'
+import LocaleSection from './components/LocaleSection.pulse'
+import MultiContextDemo from './components/MultiContextDemo.pulse'
+import NestedProviderDemo from './components/NestedProviderDemo.pulse'
+
+@page App
+
+view {
+  .app {
+    header {
+      h1 "Context API Demo"
+      p.subtitle "Dependency injection, theming, auth & i18n"
+    }
+
+    main {
+      section {
+        h2 "1. Theme Context"
+        p "Share theme state across components without prop drilling."
+        ThemeSection
+      }
+
+      section {
+        h2 "2. Auth Context"
+        p "Provide user state to the entire component tree."
+        AuthSection
+      }
+
+      section {
+        h2 "3. Locale Context"
+        p "Internationalization with reactive locale switching."
+        LocaleSection
+      }
+
+      section {
+        h2 "4. Multiple Contexts"
+        p "provideMany() provides multiple contexts at once. Components can read from any of them."
+        MultiContextDemo
+      }
+
+      section {
+        h2 "5. Nested Providers"
+        p "Inner providers can override outer ones for specific subtrees."
+        NestedProviderDemo
+      }
+    }
+  }
+}

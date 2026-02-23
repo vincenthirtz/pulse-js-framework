@@ -1,0 +1,102 @@
+/**
+ * PostList - Displays list of posts with filtering and like mutation
+ */
+
+import { useQuery, useMutation } from '../../../../runtime/graphql.js'
+import { effect, pulse } from '../../../../runtime/index.js'
+import { currentView, selectedPostId, GET_POSTS, LIKE_POST } from '../graphql-setup.js'
+
+@component PostList
+
+state {
+  posts: []
+  loading: true
+  error: null
+  authorFilter: ""
+  _refetch: null
+}
+
+actions {
+  init() {
+    const authorPulse = pulse('')
+    const query = useQuery(
+      GET_POSTS,
+      () => ({ author: authorPulse.get() || undefined, limit: 20 }),
+      { staleTime: 5000 }
+    )
+    this._authorPulse = authorPulse
+    _refetch = () => query.refetch()
+
+    effect(() => {
+      const d = query.data.get()
+      posts = d ? (d.posts || []) : []
+    })
+    effect(() => { loading = query.loading.get() })
+    effect(() => { error = query.error.get() })
+  }
+
+  setFilter(e) {
+    authorFilter = e.target.value
+    this._authorPulse.set(authorFilter)
+  }
+
+  refresh() { if (_refetch) _refetch() }
+
+  async likePost(postId, e) {
+    e.stopPropagation()
+    const { mutate } = useMutation(LIKE_POST)
+    await mutate({ id: postId })
+    if (_refetch) _refetch()
+  }
+
+  viewPost(id) {
+    selectedPostId.set(id)
+    currentView.set('detail')
+  }
+
+  goToCreate() {
+    currentView.set('create')
+  }
+}
+
+view {
+  .post-list {
+    .list-header {
+      h2 "Posts"
+      .list-controls {
+        select[aria-label="Filter by author"] @change(setFilter(event)) {
+          option[value=""] "All Authors"
+          option[value=Alice] "Alice"
+          option[value=Bob] "Bob"
+        }
+        button @click(refresh()) "Refresh"
+        button.primary @click(goToCreate()) "+ New Post"
+      }
+    }
+
+    @if (loading) {
+      .loading { .spinner  span "Loading posts..." }
+    }
+
+    @if (error) {
+      .error "Error: {error.message || 'Failed to load'}"
+    }
+
+    @if (!loading && posts.length > 0) {
+      .posts {
+        @for (post of posts) {
+          article.post-card @click(viewPost(post.id)) {
+            h3 "{post.title}"
+            .post-meta {
+              span.author "{post.author}"
+              span.date "{post.createdAt}"
+            }
+            .post-actions {
+              button.like-btn @click(likePost(post.id, event)) "{'\u2665'} {post.likes}"
+            }
+          }
+        }
+      }
+    }
+  }
+}

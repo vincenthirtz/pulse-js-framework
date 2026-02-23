@@ -1,0 +1,21 @@
+/**
+ * CacheInfo - Cache status sidebar
+ */
+
+import { client } from '../graphql-setup.js'
+
+@component CacheInfo
+
+actions {
+  clearCache() {
+    client.invalidateAll()
+  }
+}
+
+view {
+  aside.cache-info {
+    h3 "Cache Status"
+    p.cache-hint "Queries are cached with SWR pattern. Stale data shows instantly while fresh data loads."
+    button.small @click(clearCache()) "Clear Cache"
+  }
+}

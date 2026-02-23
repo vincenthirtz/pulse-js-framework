@@ -1,0 +1,78 @@
+/**
+ * CreatePost - Create new post form with mutation
+ */
+
+import { useMutation } from '../../../../runtime/graphql.js'
+import { currentView, client, CREATE_POST } from '../graphql-setup.js'
+
+@component CreatePost
+
+state {
+  title: ""
+  content: ""
+  author: ""
+  creating: false
+  createError: null
+}
+
+actions {
+  goBack() { currentView.set('list') }
+
+  setTitle(e) { title = e.target.value }
+  setContent(e) { content = e.target.value }
+  setAuthor(e) { author = e.target.value }
+
+  async handleSubmit(e) {
+    e.preventDefault()
+    if (!title.trim() || !content.trim()) return
+    creating = true
+    createError = null
+    try {
+      const { mutate } = useMutation(CREATE_POST)
+      await mutate({
+        input: {
+          title: title.trim(),
+          content: content.trim(),
+          author: author.trim() || 'Anonymous'
+        }
+      })
+      client.invalidate('gql:GetPosts')
+      currentView.set('list')
+    } catch(err) {
+      createError = err.message
+    } finally {
+      creating = false
+    }
+  }
+}
+
+view {
+  .create-post {
+    button.back-btn @click(goBack()) "\u2190 Back to Posts"
+    h2 "Create New Post"
+
+    form @submit(handleSubmit(event)) {
+      .form-group {
+        label[for=post-title] "Title"
+        input#post-title[type=text][placeholder="Post title"][required][value={title}] @input(setTitle(event))
+      }
+      .form-group {
+        label[for=post-author] "Author"
+        input#post-author[type=text][placeholder="Your name"][value={author}] @input(setAuthor(event))
+      }
+      .form-group {
+        label[for=post-content] "Content"
+        textarea#post-content[placeholder="Write your post..."][required][rows=6][value={content}] @input(setContent(event))
+      }
+
+      @if (createError) {
+        .error "Error: {createError}"
+      }
+
+      .form-actions {
+        button.secondary[type=button] @click(goBack()) "Cancel"
+        button.primary[type=submit][disabled={creating || !title.trim() || !content.trim()}] "{creating ? 'Creating...' : 'Create Post'}"
+      }
+    }
+  }
+}

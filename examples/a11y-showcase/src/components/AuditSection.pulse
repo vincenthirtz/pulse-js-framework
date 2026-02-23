@@ -1,0 +1,80 @@
+/**
+ * AuditSection - A11y audit tool
+ */
+
+import { validateA11y, announce } from '../../../../runtime/a11y.js'
+
+@component AuditSection
+
+state {
+  auditResults: null
+  auditing: false
+}
+
+actions {
+  runAudit() {
+    auditing = true
+    requestAnimationFrame(() => {
+      const issues = validateA11y(document.body)
+      auditResults = issues
+      auditing = false
+      const count = issues.length
+      announce('Audit complete. Found ' + count + ' issue' + (count !== 1 ? 's' : '') + '.')
+    })
+  }
+
+  hasResults() {
+    return auditResults !== null
+  }
+
+  getIssueCount() {
+    return auditResults ? auditResults.length : 0
+  }
+
+  getIssues() {
+    return auditResults || []
+  }
+
+  getIssueClass(issue) {
+    return issue.type === 'error' ? 'issue issue-error' : 'issue issue-warning'
+  }
+
+  getIssueLabel(issue) {
+    return issue.type === 'error' ? 'Error: ' : 'Warning: '
+  }
+
+  getIssueElement(issue) {
+    if (issue.element && issue.element.tagName) {
+      return ' (' + issue.element.tagName.toLowerCase() + ')'
+    }
+    return ''
+  }
+}
+
+view {
+  section#panel-audit[role=tabpanel] {
+    h2 "Accessibility Audit"
+    p "Run a live audit on the current page to detect accessibility issues."
+
+    button[disabled={auditing}] @click(runAudit()) "{auditing ? 'Auditing...' : 'Run A11y Audit'}"
+
+    @if (hasResults() && getIssueCount() === 0) {
+      .audit-pass { p "No accessibility issues found!" }
+    }
+
+    @if (hasResults() && getIssueCount() > 0) {
+      .audit-results {
+        p "Found {getIssueCount()} issue(s):"
+        ul.issue-list {
+          @for (issue of getIssues()) {
+            li[class={getIssueClass(issue)}] {
+              strong "{getIssueLabel(issue)}"
+              span "{issue.message}"
+              code "{getIssueElement(issue)}"
+            }
+          }
+        }
+      }
+    }
+  }
+}

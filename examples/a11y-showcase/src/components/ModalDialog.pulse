@@ -1,0 +1,56 @@
+/**
+ * ModalDialog - Modal with focus trap
+ */
+
+import { trapFocus, onEscapeKey } from '../../../../runtime/a11y.js'
+import { modalOpen, notify } from '../store.js'
+
+@component ModalDialog
+
+actions {
+  isOpen() {
+    return modalOpen.get()
+  }
+
+  close() {
+    modalOpen.set(false)
+  }
+
+  confirm() {
+    modalOpen.set(false)
+    notify('Modal confirmed')
+  }
+
+  onOverlayClick(e) {
+    if (e.target.classList.contains('modal-overlay')) {
+      modalOpen.set(false)
+    }
+  }
+
+  setupTrap() {
+    requestAnimationFrame(() => {
+      const modalEl = document.querySelector('[role=dialog]')
+      if (modalEl) {
+        trapFocus(modalEl, { autoFocus: true, returnFocus: true })
+        onEscapeKey(modalEl, () => modalOpen.set(false))
+      }
+    })
+  }
+}
+
+view {
+  @if (isOpen()) {
+    .modal-overlay @click(onOverlayClick(event)) {
+      .modal[role=dialog][aria-labelledby=modal-title][aria-modal=true] {
+        h2#modal-title "Modal Dialog"
+        p "Focus is trapped inside this dialog. Try pressing Tab."
+        label[for=modal-input] "Sample Input:"
+        input#modal-input[type=text][placeholder="Type here..."]
+        .modal-actions {
+          button @click(confirm()) "Confirm"
+          button.secondary @click(close()) "Cancel"
+        }
+      }
+    }
+  }
+}

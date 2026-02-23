@@ -1,0 +1,103 @@
+/**
+ * PostDetail - Single post view with comments
+ */
+
+import { useQuery, useMutation } from '../../../../runtime/graphql.js'
+import { effect, pulse, computed } from '../../../../runtime/index.js'
+import { currentView, selectedPostId, GET_POST, LIKE_POST, ADD_COMMENT } from '../graphql-setup.js'
+
+@component PostDetail
+
+state {
+  post: null
+  loading: true
+  commentText: ""
+  commentAuthor: ""
+  commenting: false
+  _refetch: null
+}
+
+actions {
+  init() {
+    const postId = computed(() => selectedPostId.get())
+    const query = useQuery(
+      GET_POST,
+      () => ({ id: postId.get() }),
+      { enabled: computed(() => !!postId.get()) }
+    )
+    _refetch = () => query.refetch()
+    effect(() => {
+      const d = query.data.get()
+      post = d ? d.post : null
+    })
+    effect(() => { loading = query.loading.get() })
+  }
+
+  goBack() { currentView.set('list') }
+
+  async handleLike() {
+    const { mutate } = useMutation(LIKE_POST)
+    await mutate({ id: selectedPostId.get() })
+    if (_refetch) _refetch()
+  }
+
+  async handleComment() {
+    const text = commentText.trim()
+    if (!text) return
+    commenting = true
+    const { mutate } = useMutation(ADD_COMMENT)
+    await mutate({
+      postId: selectedPostId.get(),
+      text: text,
+      author: commentAuthor || 'Anonymous'
+    })
+    commentText = ""
+    commenting = false
+    if (_refetch) _refetch()
+  }
+
+  setCommentText(e) { commentText = e.target.value }
+  setCommentAuthor(e) { commentAuthor = e.target.value }
+}
+
+view {
+  .post-detail {
+    button.back-btn @click(goBack()) "\u2190 Back to Posts"
+
+    @if (loading) {
+      .loading { .spinner  span "Loading post..." }
+    }
+
+    @if (!loading && post) {
+      article {
+        h2 "{post.title}"
+        .post-meta {
+          span.author "By {post.author}"
+          span.date "{post.createdAt}"
+          button.like-btn @click(handleLike()) "{'\u2665'} {post.likes}"
+        }
+        .post-content { p "{post.content}" }
+
+        .comments-section {
+          h3 "Comments ({post.comments ? post.comments.length : 0})"
+          .comments {
+            @for (c of post.comments) {
+              .comment {
+                strong "{c.author}"
+                p "{c.text}"
+              }
+            }
+          }
+
+          .comment-form {
+            input[type=text][placeholder="Your name (optional)"][aria-label="Comment author name"][value={commentAuthor}] @input(setCommentAuthor(event))
+            .comment-input-row {
+              input[type=text][placeholder="Write a comment..."][aria-label="Comment text"][value={commentText}] @input(setCommentText(event))
+              button[disabled={commenting || !commentText.trim()}] @click(handleComment()) "{commenting ? 'Posting...' : 'Post'}"
+            }
+          }
+        }
+      }
+    }
+  }
+}

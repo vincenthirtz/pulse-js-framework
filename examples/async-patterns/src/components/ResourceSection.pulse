@@ -1,0 +1,75 @@
+/**
+ * ResourceSection - Demonstrates useResource (SWR Pattern)
+ */
+
+import { useResource } from '../../../../runtime/async.js'
+import { effect } from '../../../../runtime/index.js'
+import { mockFetch } from '../mock-api.js'
+
+@component ResourceSection
+
+state {
+  userId: 1
+  user: null
+  resLoading: false
+  _resource: null
+}
+
+actions {
+  init() {
+    loadResource()
+  }
+
+  loadResource() {
+    const resource = useResource(
+      "user-" + userId,
+      () => mockFetch("/api/users/" + userId, { delay: 600 }),
+      { staleTime: 3000, refreshOnFocus: true, cacheTime: 60000 }
+    )
+    _resource = resource
+    effect(() => { user = resource.data.get() })
+    effect(() => { resLoading = resource.loading.get() })
+  }
+
+  selectUser(id) {
+    userId = id
+    loadResource()
+  }
+
+  refreshResource() {
+    if (_resource) _resource.execute()
+  }
+}
+
+view {
+  section {
+    h2 "useResource - SWR Pattern"
+    p "Stale-While-Revalidate: shows cached data instantly while fetching fresh data in the background."
+
+    .controls {
+      span "Select User:"
+      button[class={userId === 1 ? 'active' : ''}] @click(selectUser(1)) "User 1"
+      button[class={userId === 2 ? 'active' : ''}] @click(selectUser(2)) "User 2"
+      button[class={userId === 3 ? 'active' : ''}] @click(selectUser(3)) "User 3"
+      button[class={userId === 4 ? 'active' : ''}] @click(selectUser(4)) "User 4"
+      button @click(refreshResource()) "Refresh"
+    }
+
+    @if (resLoading && !user) {
+      .loading { .spinner  span "Loading..." }
+    }
+
+    @if (user) {
+      .user-card[class={resLoading ? 'refreshing' : ''}] {
+        @if (resLoading) { .refresh-indicator "Refreshing..." }
+        h3 "{user.name}"
+        p "{user.email}"
+        p "{user.bio}"
+        .user-stats {
+          span "Joined: {user.joinedAt}"
+          span "Posts: {user.posts}"
+        }
+      }
+    }
+  }
+}

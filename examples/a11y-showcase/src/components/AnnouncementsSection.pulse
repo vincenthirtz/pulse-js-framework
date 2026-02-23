@@ -1,0 +1,60 @@
+/**
+ * AnnouncementsSection - Screen reader announcements demo
+ */
+
+import { srOnly } from '../../../../runtime/a11y.js'
+import { notifications, notify } from '../store.js'
+
+@component AnnouncementsSection
+
+state {
+  messageInput: ""
+}
+
+actions {
+  getNotifications() {
+    return notifications.get()
+  }
+
+  setMessage(e) {
+    messageInput = e.target.value
+  }
+
+  announcePolitely() {
+    const msg = messageInput.trim()
+    if (msg) { notify(msg, 'polite'); messageInput = "" }
+  }
+
+  announceAssertively() {
+    const msg = messageInput.trim()
+    if (msg) { notify(msg, 'assertive'); messageInput = "" }
+  }
+}
+
+view {
+  section#panel-announcements[role=tabpanel] {
+    h2 "Screen Reader Announcements"
+    p "Send live region announcements to screen readers."
+
+    .announce-form {
+      label[for=announce-input] "Message to announce:"
+      input#announce-input[type=text][placeholder="Type a message..."][value={messageInput}] @input(setMessage(event))
+      .announce-buttons {
+        button @click(announcePolitely()) "Announce (Polite)"
+        button.assertive @click(announceAssertively()) "Announce (Assertive)"
+      }
+    }
+
+    h3 "Notification Log"
+    .notifications[aria-live=polite] {
+      @for (n of getNotifications()) {
+        .notification "{n.message}"
+      }
+    }
+
+    h3 "Screen Reader Only Content"
+    .sr-demo {
+      p "Links can have hidden text visible only to screen readers."
+    }
+  }
+}

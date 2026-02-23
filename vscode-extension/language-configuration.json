@@ -13,24 +13,52 @@
     { "open": "[", "close": "]" },
     { "open": "(", "close": ")" },
     { "open": "\"", "close": "\"", "notIn": ["string"] },
-    { "open": "'", "close": "'", "notIn": ["string"] }
+    { "open": "'", "close": "'", "notIn": ["string"] },
+    { "open": "`", "close": "`", "notIn": ["string", "comment"] },
+    { "open": "/*", "close": "*/", "notIn": ["string"] },
+    { "open": "/**", "close": " */", "notIn": ["string"] }
   ],
   "surroundingPairs": [
     { "open": "{", "close": "}" },
     { "open": "[", "close": "]" },
     { "open": "(", "close": ")" },
     { "open": "\"", "close": "\"" },
-    { "open": "'", "close": "'" }
+    { "open": "'", "close": "'" },
+    { "open": "`", "close": "`" }
+  ],
+  "colorizedBracketPairs": [
+    ["{", "}"],
+    ["[", "]"],
+    ["(", ")"]
   ],
   "folding": {
     "markers": {
-      "start": "^\\s*(state|view|style|actions|props|router|store|routes|getters)\\s*\\{",
-      "end": "^\\s*\\}"
+      "start": "^\\s*(state|view|style|actions|props|router|store|routes|getters)\\s*\\{|^\\s*@(?:if|for|each)\\s*\\(.*\\)\\s*\\{|^\\s*/\\*\\*",
+      "end": "^\\s*\\}|^\\s*\\*/"
     }
   },
   "indentationRules": {
-    "increaseIndentPattern": "^.*\\{[^}]*$",
+    "increaseIndentPattern": "^.*\\{[^}]*$|^\\s*@(?:if|for|each|else).*\\{\\s*$",
     "decreaseIndentPattern": "^\\s*\\}"
   },
-  "wordPattern": "(-?\\d*\\.\\d\\w*)|([^\\`\\~\\!\\@\\#\\%\\^\\&\\*\\(\\)\\-\\=\\+\\[\\{\\]\\}\\\\\\|\\;\\:\\'\\\"\\,\\.\\<\\>\\/\\?\\s]+)"
+  "onEnterRules": [
+    {
+      "beforeText": "^\\s*//",
+      "action": { "indent": "none", "appendText": "// " }
+    },
+    {
+      "beforeText": "^\\s*/\\*\\*(?!/).*$",
+      "action": { "indent": "none", "appendText": " * " }
+    },
+    {
+      "beforeText": "^\\s*\\*(?!/).*$",
+      "afterText": "^\\s*\\*/$",
+      "action": { "indent": "none", "appendText": " * " }
+    },
+    {
+      "beforeText": "^\\s*\\*/\\s*$",
+      "action": { "indent": "none", "removeText": 1 }
+    }
+  ],
+  "wordPattern": "(-?\\d*\\.\\d\\w*)|(@[a-zA-Z][a-zA-Z0-9]*)|([^\\`\\~\\!\\@\\#\\%\\^\\&\\*\\(\\)\\-\\=\\+\\[\\{\\]\\}\\\\\\|\\;\\:\\'\\\"\\,\\.\\<\\>\\/\\?\\s]+)"
 }

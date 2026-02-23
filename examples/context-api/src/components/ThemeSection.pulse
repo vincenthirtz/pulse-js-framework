@@ -1,0 +1,47 @@
+/**
+ * Theme Section - Theme toggle + themed card
+ * Demonstrates ThemeContext with useContext
+ */
+
+import { useContext } from '../../../../runtime/context.js'
+import { ThemeContext, themes } from '../contexts.js'
+
+@component ThemeSection
+
+state {
+  themeNames: ["light", "dark", "ocean"]
+}
+
+actions {
+  init() {
+    this._theme = useContext(ThemeContext)
+  }
+
+  getTheme() {
+    return this._theme.get()
+  }
+
+  setTheme(t) {
+    this._theme.set(t)
+  }
+
+  getColors() {
+    return themes[this._theme.get()] || themes.light
+  }
+}
+
+view {
+  .theme-section {
+    .theme-toggle {
+      span "Theme:"
+      @for (t of themeNames) {
+        button[aria-pressed={getTheme() === t ? "true" : "false"}][class={getTheme() === t ? "active" : ""}] @click(setTheme(t)) "{t}"
+      }
+    }
+
+    .themed-card[style="background: {getColors().card}; color: {getColors().text}; border-color: {getColors().border}"] {
+      h3[style="color: {getColors().accent}"] "Themed Component"
+      p "This card reads theme from context and applies colors reactively."
+    }
+  }
+}

@@ -1,0 +1,56 @@
+/**
+ * Nested Provider Demo - Inner provider override
+ * Demonstrates nested Provider overriding outer context
+ */
+
+import { useContext, Provider } from '../../../../runtime/context.js'
+import { ThemeContext, themes } from '../contexts.js'
+
+@component NestedProviderDemo
+
+state {
+  innerThemeOptions: ["light", "dark", "ocean"]
+  innerThemeValue: "ocean"
+}
+
+actions {
+  init() {
+    this._outerTheme = useContext(ThemeContext)
+  }
+
+  getOuterTheme() {
+    return this._outerTheme.get()
+  }
+
+  getOuterColors() {
+    return themes[this._outerTheme.get()] || themes.light
+  }
+
+  getInnerColors() {
+    return themes[innerThemeValue] || themes.light
+  }
+
+  setInnerTheme(value) {
+    innerThemeValue = value
+  }
+}
+
+view {
+  .nested-demo {
+    h3 "Nested Providers"
+    p "Inner provider overrides the outer one:"
+
+    .nested-box[style="background: {getOuterColors().card}; color: {getOuterColors().text}; border-color: {getOuterColors().border}"] {
+      p "Outer: {getOuterTheme()}"
+
+      .nested-inner[style="background: {getInnerColors().card}; color: {getInnerColors().text}; border-color: {getInnerColors().border}"] {
+        p "Inner: {innerThemeValue} (overridden)"
+        select[aria-label="Inner theme"] @change(setInnerTheme(event.target.value)) {
+          @for (t of innerThemeOptions) {
+            option[value={t}][selected={innerThemeValue === t}] "{t}"
+          }
+        }
+      }
+    }
+  }
+}
