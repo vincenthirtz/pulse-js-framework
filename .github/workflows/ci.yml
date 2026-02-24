@@ -394,10 +394,11 @@ jobs:
     name: Deploy to Netlify (Production)
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    needs: [build]
+    needs: [build, e2e-smoke]
     if: |
       always() &&
       needs.build.result == 'success' &&
+      (needs.e2e-smoke.result == 'success' || needs.e2e-smoke.result == 'skipped') &&
       github.ref == 'refs/heads/main' &&
       (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     permissions:
