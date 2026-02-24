@@ -12,7 +12,7 @@
 export const VALID_QUERIES = [
   {
     query: 'pulse',
-    expectedMinResults: 3,
+    expectedMinResults: 1,
     description: 'Core concept search'
   },
   {

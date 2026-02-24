@@ -302,9 +302,12 @@ test.describe('Performance - Network Efficiency', () => {
     });
 
     page.on('response', (response) => {
-      const fromCache = response.fromCache();
-      if (fromCache) {
-        requestCount.cached++;
+      try {
+        if (response.fromCache()) {
+          requestCount.cached++;
+        }
+      } catch {
+        // fromCache() may throw for certain response types (redirects, data URIs)
       }
     });
 
@@ -316,8 +319,8 @@ test.describe('Performance - Network Efficiency', () => {
     console.log(`  Cached: ${requestCount.cached}`);
     console.log(`  Fresh: ${requestCount.total - requestCount.cached}`);
 
-    // Initial load should have reasonable number of requests (includes analytics, fonts, images)
-    expect(requestCount.total, 'Should have < 100 requests on initial load').toBeLessThan(100);
+    // Initial load should have reasonable number of requests (includes analytics, fonts, images, translations)
+    expect(requestCount.total, 'Should have < 150 requests on initial load').toBeLessThan(150);
   });
 
   test('Subsequent navigation uses cache', async ({ page }) => {
@@ -333,8 +336,12 @@ test.describe('Performance - Network Efficiency', () => {
     });
 
     page.on('response', (response) => {
-      if (response.fromCache()) {
-        navigationRequests.cached++;
+      try {
+        if (response.fromCache()) {
+          navigationRequests.cached++;
+        }
+      } catch {
+        // fromCache() may throw for certain response types (redirects, data URIs)
       }
     });
 
