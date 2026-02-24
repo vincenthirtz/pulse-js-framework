@@ -253,7 +253,7 @@ jobs:
         run: npm ci
 
       - name: Install E2E test dependencies
-        run: npm install --no-save @axe-core/playwright
+        run: npm install --no-save @playwright/test @axe-core/playwright
 
       - name: Get Playwright version
         id: playwright-version
