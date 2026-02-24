@@ -18,6 +18,7 @@
 import { pulse, computed, effect, batch } from './pulse.js';
 import { loggers, createLogger } from './logger.js';
 import { Errors, createErrorMessage } from './errors.js';
+import { DANGEROUS_KEYS } from './security.js';
 
 const log = loggers.store;
 
@@ -53,11 +54,7 @@ const MAX_NESTING_DEPTH = 10;
  * @typedef {function(Store): Store} StorePlugin
  */
 
-/**
- * Dangerous property names that could cause prototype pollution
- * @type {Set<string>}
- */
-const DANGEROUS_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+// DANGEROUS_KEYS imported from security.js (single source of truth — 16 entries)
 
 /**
  * Invalid value types that cannot be stored in state

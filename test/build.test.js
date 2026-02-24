@@ -13,6 +13,7 @@ import { join } from 'path';
 import { test, describe, after } from 'node:test';
 import assert from 'node:assert';
 
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 // =============================================================================
 // JavaScript Minification Tests
 // =============================================================================
@@ -997,7 +998,7 @@ describe('previewBuild Tests', () => {
     try {
       const serverPromise = previewBuild(['5000']);
 
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await sleep(100);
 
       const output = mocks.logs.join(' ');
       if (output.includes('5000') || output.includes('Preview')) {
@@ -1023,7 +1024,7 @@ describe('previewBuild Tests', () => {
     try {
       const serverPromise = previewBuild([]);
 
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await sleep(100);
 
       const output = mocks.logs.join(' ');
       assert.ok(output.includes('4173') || output.includes('Preview') || output.length >= 0,
@@ -1233,4 +1234,4 @@ describe('copyDir Tests (via buildProject)', () => {
 });
 
 // Force clean exit after all tests complete (open handles from build operations)
-after(() => setTimeout(() => process.exit(0), 100));
+after(() => { process.exitCode = 0; });

@@ -28,6 +28,8 @@ import {
   onNetworkChange
 } from '../runtime/utils.js';
 
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
 // Simple test utilities
 let passed = 0;
 let failed = 0;
@@ -557,7 +559,7 @@ await testAsync('debounce preserves this context', async () => {
   }, 10);
 
   obj.getValue.call(obj);
-  await new Promise(r => setTimeout(r, 20));
+  await sleep(20);
 
   assertEqual(result, 42, 'Should preserve this context');
 });
@@ -571,7 +573,7 @@ await testAsync('debounce cancel can be called multiple times', async () => {
   debounced.cancel(); // Should not throw
   debounced.cancel();
 
-  await new Promise(r => setTimeout(r, 60));
+  await sleep(60);
   assertEqual(called, 0, 'Should remain cancelled');
 });
 
@@ -616,7 +618,7 @@ await testAsync('throttle schedules trailing call with arguments', async () => {
 
   throttled('second'); // Scheduled for later
 
-  await new Promise(r => setTimeout(r, 60));
+  await sleep(60);
   // The throttle implementation uses the args from when the timeout was scheduled
   assertEqual(lastArg, 'second', 'Should execute trailing call');
 });

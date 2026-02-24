@@ -518,7 +518,8 @@ export function createCSRFMiddleware(options = {}) {
     expiresIn = 3600000,
     rotateOnUse = false,
     headerName = 'x-csrf-token',
-    cookieName = 'csrf-token'
+    cookieName = 'csrf-token',
+    secureCookie = true
   } = options;
 
   // Use provided store or create new one
@@ -568,7 +569,7 @@ export function createCSRFMiddleware(options = {}) {
         // Update cookie if using double-submit pattern
         res.cookie?.(cookieName, newToken, {
           httpOnly: false,  // Client needs to read it
-          secure: process.env.NODE_ENV === 'production',
+          secure: secureCookie,
           sameSite: 'strict',
           maxAge: expiresIn
         });

@@ -6,7 +6,7 @@
  */
 
 import { createLogger } from './logger.js';
-import { sanitizeHtml } from './security.js';
+import { sanitizeHtml, DANGEROUS_KEYS, escapeHtml, sanitizeUrl } from './security.js';
 
 const log = createLogger('Security');
 
@@ -14,43 +14,9 @@ const log = createLogger('Security');
 // XSS Prevention
 // ============================================================================
 
-/**
- * HTML entity escape map
- * @private
- */
-const HTML_ESCAPES = {
-  '&': '&amp;',
-  '<': '&lt;',
-  '>': '&gt;',
-  '"': '&quot;',
-  "'": '&#39;'
-};
-
-/**
- * Regex for HTML special characters (auto-generated from HTML_ESCAPES keys)
- * @private
- */
-const HTML_ESCAPE_REGEX = new RegExp(`[${Object.keys(HTML_ESCAPES).join('')}]`, 'g');
-
-/**
- * Escape HTML special characters to prevent XSS attacks.
- * Use this when inserting untrusted content into HTML.
- *
- * @param {*} str - Value to escape (will be converted to string)
- * @returns {string} Escaped string safe for HTML insertion
- *
- * @example
- * escapeHtml('<script>alert("xss")</script>')
- * // Returns: '&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;'
- *
- * @example
- * // Safe to insert into HTML
- * element.innerHTML = `<div>${escapeHtml(userInput)}</div>`;
- */
-export function escapeHtml(str) {
-  if (str == null) return '';
-  return String(str).replace(HTML_ESCAPE_REGEX, char => HTML_ESCAPES[char]);
-}
+// escapeHtml and sanitizeUrl are imported from security.js (single source of truth)
+// and re-exported below for backward compatibility.
+export { escapeHtml, sanitizeUrl };
 
 /**
  * Unescape HTML entities back to their original characters.
@@ -101,6 +67,12 @@ export function dangerouslySetInnerHTML(element, html, options = {}) {
   if (sanitize) {
     element.innerHTML = sanitizeHtml(html, sanitizeOptions);
   } else {
+    if (typeof process === 'undefined' || process.env?.NODE_ENV !== 'production') {
+      log.warn(
+        'dangerouslySetInnerHTML() called without sanitization. ' +
+        'Pass { sanitize: true } to enable HTML sanitization and prevent XSS.'
+      );
+    }
     element.innerHTML = html;
   }
 }
@@ -249,95 +221,7 @@ export function safeSetAttribute(element, name, value, options = {}, domAdapter 
   return true;
 }
 
-// ============================================================================
-// URL Validation
-// ============================================================================
-
-/**
- * Validate and sanitize a URL to prevent javascript: and data: XSS.
- *
- * Security protections:
- * - Blocks javascript: URLs (including encoded variants)
- * - Blocks data: URLs by default (can be enabled)
- * - Blocks blob: URLs by default (can be enabled)
- * - Blocks vbscript: URLs
- * - Decodes URL before checking to prevent encoding bypass
- *
- * @param {string} url - URL to validate
- * @param {Object} [options] - Validation options
- * @param {boolean} [options.allowData=false] - Allow data: URLs
- * @param {boolean} [options.allowBlob=false] - Allow blob: URLs
- * @param {boolean} [options.allowRelative=true] - Allow relative URLs
- * @returns {string|null} Sanitized URL or null if invalid
- *
- * @example
- * const safeUrl = sanitizeUrl(userProvidedUrl);
- * if (safeUrl) {
- *   link.href = safeUrl;
- * }
- */
-export function sanitizeUrl(url, options = {}) {
-  const { allowData = false, allowBlob = false, allowRelative = true } = options;
-
-  if (url == null || url === '') return null;
-
-  const trimmed = String(url).trim();
-
-  // Decode URL to catch encoded attacks like &#x6a;avascript:
-  // Also handles %6A%61%76%61%73%63%72%69%70%74 encoding
-  let decoded = trimmed;
-  try {
-    // Decode HTML entities first (&#x6a; -> j)
-    decoded = decoded.replace(/&#x([0-9a-f]+);?/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
-    decoded = decoded.replace(/&#(\d+);?/g, (_, dec) => String.fromCharCode(parseInt(dec, 10)));
-    // Then decode URI encoding (%6A -> j)
-    decoded = decodeURIComponent(decoded);
-  } catch {
-    // If decoding fails, use original (malformed URLs will be blocked anyway)
-  }
-
-  // Normalize: lowercase and remove whitespace for protocol check
-  const normalized = decoded.toLowerCase().replace(/[\s\x00-\x1f]/g, '');
-
-  // Block dangerous protocols
-  const dangerousProtocols = ['javascript:', 'vbscript:', 'file:'];
-  for (const protocol of dangerousProtocols) {
-    if (normalized.startsWith(protocol)) {
-      return null;
-    }
-  }
-
-  // Check for data: protocol
-  if (normalized.startsWith('data:')) {
-    return allowData ? trimmed : null;
-  }
-
-  // Check for blob: protocol
-  if (normalized.startsWith('blob:')) {
-    return allowBlob ? trimmed : null;
-  }
-
-  // Allow relative URLs (must start with / or . to prevent //evil.com attacks)
-  if (allowRelative) {
-    if (trimmed.startsWith('/') && !trimmed.startsWith('//')) {
-      return trimmed;
-    }
-    if (trimmed.startsWith('./') || trimmed.startsWith('../')) {
-      return trimmed;
-    }
-    // URLs without protocol that don't start with // are relative
-    if (!trimmed.includes(':') && !trimmed.startsWith('//')) {
-      return trimmed;
-    }
-  }
-
-  // Only allow http: and https: protocols
-  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
-    return trimmed;
-  }
-
-  return null;
-}
+// sanitizeUrl is imported from security.js and re-exported at the top of this file.
 
 // ============================================================================
 // CSS Sanitization
@@ -515,7 +399,7 @@ export function deepClone(obj) {
 
   const clone = {};
   for (const key in obj) {
-    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+    if (Object.prototype.hasOwnProperty.call(obj, key) && !DANGEROUS_KEYS.has(key)) {
       clone[key] = deepClone(obj[key]);
     }
   }

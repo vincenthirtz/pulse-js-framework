@@ -166,10 +166,11 @@ export function sanitizeObjectKeys(obj, options = {}) {
 // =============================================================================
 
 /**
- * HTML entity escape map
- * @private
+ * HTML entity escape map.
+ * Single source of truth — imported by utils.js and error-sanitizer.js.
+ * @type {Object<string, string>}
  */
-const HTML_ESCAPES = {
+export const HTML_ESCAPES = {
   '&': '&amp;',
   '<': '&lt;',
   '>': '&gt;',
@@ -178,9 +179,16 @@ const HTML_ESCAPES = {
 };
 
 /**
+ * Pre-compiled regex for HTML special characters (generated from HTML_ESCAPES keys).
+ * @private
+ */
+const HTML_ESCAPE_REGEX = new RegExp(`[${Object.keys(HTML_ESCAPES).join('')}]`, 'g');
+
+/**
  * Escape HTML special characters to prevent XSS.
+ * Single source of truth — re-exported by utils.js.
  *
- * @param {string} str - String to escape
+ * @param {*} str - Value to escape (will be converted to string)
  * @returns {string} Escaped string safe for HTML insertion
  *
  * @example
@@ -189,7 +197,7 @@ const HTML_ESCAPES = {
  */
 export function escapeHtml(str) {
   if (str == null) return '';
-  return String(str).replace(/[&<>"']/g, char => HTML_ESCAPES[char]);
+  return String(str).replace(HTML_ESCAPE_REGEX, char => HTML_ESCAPES[char]);
 }
 
 /**
@@ -398,38 +406,36 @@ export function sanitizeUrl(url, options = {}) {
 
   const trimmed = String(url).trim();
 
-  // Decode URL to catch encoded attacks
+  // Decode URL to catch encoded attacks like &#x6a;avascript:
+  // Also handles %6A%61%76%61%73%63%72%69%70%74 encoding
   let decoded = trimmed;
   try {
-    // Decode HTML entities first
+    // Decode HTML entities first (&#x6a; -> j)
     decoded = decoded.replace(/&#x([0-9a-f]+);?/gi, (_, hex) =>
       String.fromCharCode(parseInt(hex, 16))
     );
     decoded = decoded.replace(/&#(\d+);?/g, (_, dec) =>
       String.fromCharCode(parseInt(dec, 10))
     );
-    // Then decode URI encoding
+    // Then decode URI encoding (%6A -> j)
     decoded = decodeURIComponent(decoded);
   } catch {
-    // Malformed URL - use original
+    // If decoding fails, use original (malformed URLs will be blocked anyway)
   }
 
-  // Normalize and check protocol
+  // Normalize: lowercase and remove whitespace for protocol check
   const normalized = decoded.toLowerCase().replace(/[\s\x00-\x1f]/g, '');
 
-  // Block javascript: protocol
-  if (normalized.startsWith('javascript:')) {
-    log.warn('Blocked javascript: URL');
-    return null;
+  // Block dangerous protocols
+  const dangerousProtocols = ['javascript:', 'vbscript:', 'file:'];
+  for (const protocol of dangerousProtocols) {
+    if (normalized.startsWith(protocol)) {
+      log.warn(`Blocked ${protocol} URL`);
+      return null;
+    }
   }
 
-  // Block vbscript: protocol
-  if (normalized.startsWith('vbscript:')) {
-    log.warn('Blocked vbscript: URL');
-    return null;
-  }
-
-  // Check data: URLs
+  // Check for data: protocol
   if (normalized.startsWith('data:')) {
     if (!allowData) {
       log.warn('Blocked data: URL (not allowed)');
@@ -440,20 +446,38 @@ export function sanitizeUrl(url, options = {}) {
       log.warn('Blocked dangerous data: URL');
       return null;
     }
+    return trimmed;
   }
 
-  // Check blob: URLs
-  if (normalized.startsWith('blob:') && !allowBlob) {
-    log.warn('Blocked blob: URL (not allowed)');
-    return null;
+  // Check for blob: protocol
+  if (normalized.startsWith('blob:')) {
+    if (!allowBlob) {
+      log.warn('Blocked blob: URL (not allowed)');
+      return null;
+    }
+    return trimmed;
   }
 
-  // Check for relative URLs
-  if (!trimmed.includes(':')) {
-    return allowRelative ? trimmed : null;
+  // Allow relative URLs (must start with / or . to prevent //evil.com attacks)
+  if (allowRelative) {
+    if (trimmed.startsWith('/') && !trimmed.startsWith('//')) {
+      return trimmed;
+    }
+    if (trimmed.startsWith('./') || trimmed.startsWith('../')) {
+      return trimmed;
+    }
+    // URLs without protocol that don't start with // are relative
+    if (!trimmed.includes(':') && !trimmed.startsWith('//')) {
+      return trimmed;
+    }
   }
 
-  return trimmed;
+  // Only allow http: and https: protocols
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    return trimmed;
+  }
+
+  return null;
 }
 
 // =============================================================================
@@ -468,6 +492,7 @@ export default {
   SAFE_PROTOCOLS,
   DEFAULT_ALLOWED_TAGS,
   DEFAULT_ALLOWED_ATTRS,
+  HTML_ESCAPES,
 
   // Validation
   isDangerousKey,

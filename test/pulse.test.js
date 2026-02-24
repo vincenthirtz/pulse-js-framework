@@ -36,6 +36,8 @@ import {
   createContext
 } from '../runtime/pulse.js';
 
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
 // =============================================================================
 // Pulse Class Tests
 // =============================================================================
@@ -1149,7 +1151,7 @@ describe('fromPromise Tests', () => {
 
     assert.ok(loading.get() === true, 'Should be loading initially');
 
-    await new Promise(r => setTimeout(r, 10));
+    await sleep(10);
 
     assert.strictEqual(value.get(), 42);
     assert.strictEqual(loading.get(), false);
@@ -1160,7 +1162,7 @@ describe('fromPromise Tests', () => {
     const testError = new Error('Test error');
     const { value, loading, error } = fromPromise(Promise.reject(testError));
 
-    await new Promise(r => setTimeout(r, 10));
+    await sleep(10);
 
     assert.strictEqual(loading.get(), false);
     assert.strictEqual(error.get(), testError);
@@ -1186,7 +1188,7 @@ describe('fromPromise Tests', () => {
     const data = { name: 'Alice', age: 30 };
     const { value, loading, error } = fromPromise(Promise.resolve(data));
 
-    await new Promise(r => setTimeout(r, 10));
+    await sleep(10);
 
     assert.strictEqual(value.get().name, 'Alice');
     assert.strictEqual(value.get().age, 30);
@@ -1197,7 +1199,7 @@ describe('fromPromise Tests', () => {
   test('fromPromise resolves with array value', async () => {
     const { value } = fromPromise(Promise.resolve([1, 2, 3]));
 
-    await new Promise(r => setTimeout(r, 10));
+    await sleep(10);
 
     assert.deepStrictEqual(value.get(), [1, 2, 3]);
   });
@@ -1205,7 +1207,7 @@ describe('fromPromise Tests', () => {
   test('fromPromise resolves with null', async () => {
     const { value, loading } = fromPromise(Promise.resolve(null), 'fallback');
 
-    await new Promise(r => setTimeout(r, 10));
+    await sleep(10);
 
     assert.strictEqual(value.get(), null);
     assert.strictEqual(loading.get(), false);
@@ -1214,7 +1216,7 @@ describe('fromPromise Tests', () => {
   test('fromPromise resolves with zero', async () => {
     const { value, loading } = fromPromise(Promise.resolve(0));
 
-    await new Promise(r => setTimeout(r, 10));
+    await sleep(10);
 
     assert.strictEqual(value.get(), 0);
     assert.strictEqual(loading.get(), false);
@@ -1224,7 +1226,7 @@ describe('fromPromise Tests', () => {
     const err = new TypeError('Network failure');
     const { error, loading } = fromPromise(Promise.reject(err));
 
-    await new Promise(r => setTimeout(r, 10));
+    await sleep(10);
 
     assert.ok(error.get() instanceof TypeError, 'Should preserve error type');
     assert.strictEqual(error.get().message, 'Network failure');
@@ -1243,7 +1245,7 @@ describe('fromPromise Tests', () => {
 
     assert.strictEqual(effectRuns, 1, 'Effect runs initially');
 
-    await new Promise(r => setTimeout(r, 10));
+    await sleep(10);
 
     // After promise resolves, both value and loading change (batched)
     assert.ok(effectRuns >= 2, 'Effect should re-run when promise resolves');
@@ -1260,7 +1262,7 @@ describe('fromPromise Tests', () => {
 
     assert.strictEqual(loading.get(), true, 'Should start loading');
 
-    await new Promise(r => setTimeout(r, 10));
+    await sleep(10);
 
     assert.strictEqual(loading.get(), false, 'Should stop loading after error');
   });
@@ -1268,7 +1270,7 @@ describe('fromPromise Tests', () => {
   test('fromPromise value unchanged on rejection', async () => {
     const { value } = fromPromise(Promise.reject(new Error('fail')), 'initial');
 
-    await new Promise(r => setTimeout(r, 10));
+    await sleep(10);
 
     assert.strictEqual(value.get(), 'initial', 'Value should remain initial on rejection');
   });

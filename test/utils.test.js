@@ -35,6 +35,8 @@ globalThis.document = globalThis.document || {
   }
 };
 
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
 // Simple test utilities
 let passed = 0;
 let failed = 0;
@@ -657,7 +659,7 @@ await testAsync('calls function after delay', async () => {
   debounced();
   assertEqual(called, 0, 'Should not be called immediately');
 
-  await new Promise(r => setTimeout(r, 60));
+  await sleep(60);
   assertEqual(called, 1, 'Should be called after delay');
 });
 
@@ -666,14 +668,14 @@ await testAsync('resets timer on subsequent calls', async () => {
   const debounced = debounce(() => called++, 50);
 
   debounced();
-  await new Promise(r => setTimeout(r, 30));
+  await sleep(30);
   debounced(); // Reset timer
-  await new Promise(r => setTimeout(r, 30));
+  await sleep(30);
   debounced(); // Reset timer again
 
   assertEqual(called, 0, 'Should not be called during resets');
 
-  await new Promise(r => setTimeout(r, 60));
+  await sleep(60);
   assertEqual(called, 1, 'Should be called only once after final delay');
 });
 
@@ -684,7 +686,7 @@ await testAsync('cancel prevents execution', async () => {
   debounced();
   debounced.cancel();
 
-  await new Promise(r => setTimeout(r, 60));
+  await sleep(60);
   assertEqual(called, 0, 'Should not be called after cancel');
 });
 
@@ -693,7 +695,7 @@ await testAsync('passes arguments correctly', async () => {
   const debounced = debounce((...args) => { receivedArgs = args; }, 50);
 
   debounced(1, 2, 3);
-  await new Promise(r => setTimeout(r, 60));
+  await sleep(60);
 
   assertDeepEqual(receivedArgs, [1, 2, 3]);
 });
@@ -728,7 +730,7 @@ await testAsync('allows calls after interval', async () => {
   const throttled = throttle(() => called++, 50);
 
   throttled(); // Called immediately
-  await new Promise(r => setTimeout(r, 60));
+  await sleep(60);
   throttled(); // Called after interval
 
   assertEqual(called, 2, 'Should be called after interval');
@@ -742,7 +744,7 @@ await testAsync('schedules trailing call', async () => {
   throttled(); // Scheduled for later
   throttled(); // Updates scheduled call
 
-  await new Promise(r => setTimeout(r, 60));
+  await sleep(60);
   assertEqual(called, 2, 'Should call trailing after interval');
 });
 
@@ -754,7 +756,7 @@ await testAsync('cancel prevents scheduled call', async () => {
   throttled(); // Scheduled
   throttled.cancel();
 
-  await new Promise(r => setTimeout(r, 60));
+  await sleep(60);
   assertEqual(called, 1, 'Should not call after cancel');
 });
 

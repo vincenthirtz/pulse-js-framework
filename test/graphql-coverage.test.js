@@ -750,4 +750,4 @@ describe('useSubscription Coverage Tests', () => {
 });
 
 // Force clean exit after all tests complete (open handles from subscriptions)
-after(() => setTimeout(() => process.exit(0), 100));
+after(() => { process.exitCode = 0; });

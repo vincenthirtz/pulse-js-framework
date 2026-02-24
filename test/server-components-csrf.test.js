@@ -19,6 +19,8 @@ import {
   createCSRFMiddleware
 } from '../runtime/server-components/security-csrf.js';
 
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
 // ============================================================================
 // CSRFTokenStore Tests
 // ============================================================================
@@ -92,7 +94,7 @@ describe('CSRFTokenStore', () => {
     const token = await store.generate({ expiresIn: 100 });
 
     // Wait for expiration
-    await new Promise(resolve => setTimeout(resolve, 150));
+    await sleep(150);
 
     const result = await store.validate(token);
 
@@ -195,7 +197,7 @@ describe('CSRFTokenStore', () => {
     assert.strictEqual(store.size(), 3);
 
     // Wait for expiration
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await sleep(100);
 
     // Run cleanup
     const removed = store.cleanup();
@@ -212,7 +214,7 @@ describe('CSRFTokenStore', () => {
     assert.strictEqual(store.size(), 2);
 
     // Wait for short-lived token to expire
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await sleep(100);
 
     // Run cleanup
     const removed = store.cleanup();
@@ -256,7 +258,7 @@ describe('CSRFTokenStore', () => {
 
   test('token contains increasing timestamps', async () => {
     const token1 = await store.generate();
-    await new Promise(resolve => setTimeout(resolve, 10));
+    await sleep(10);
     const token2 = await store.generate();
 
     const ts1 = parseInt(token1.split('.')[0], 10);
@@ -308,7 +310,7 @@ describe('validateCSRFToken', () => {
     const secret = 'test-secret';
     const token = await generateCSRFToken(secret, { expiresIn: 50 });
 
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await sleep(100);
 
     const result = await validateCSRFToken(token, secret, { expiresIn: 50 });
 
@@ -536,7 +538,7 @@ describe('Performance', () => {
     }
 
     // Wait for expiration
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await sleep(100);
 
     const start = performance.now();
     store.cleanup();

@@ -6,7 +6,7 @@
  * Uncovered lines: 652-653, 661-662, 672, 677-679, 687-688, 698-699
  */
 
-import { test, describe, beforeEach } from 'node:test';
+import { test, describe, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert';
 
 // =============================================================================
@@ -120,6 +120,13 @@ beforeEach(() => {
 
   // Ensure bridge is valid
   assert.strictEqual(isNativeAvailable(), true, 'Bridge should be valid for native tests');
+});
+
+afterEach(() => {
+  bridgeCallbacks.onPause.length = 0;
+  bridgeCallbacks.onResume.length = 0;
+  bridgeCallbacks.onBackButton.length = 0;
+  clearBridgeValidationCache();
 });
 
 // ============================================================================

@@ -19,7 +19,7 @@ import {
   provideMany
 } from '../runtime/context.js';
 
-import { test, describe, beforeEach } from 'node:test';
+import { test, describe, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert';
 
 // =============================================================================
@@ -28,6 +28,10 @@ import assert from 'node:assert';
 
 describe('createContext Tests', () => {
   beforeEach(() => {
+    resetContext();
+  });
+
+  afterEach(() => {
     resetContext();
   });
 
@@ -75,6 +79,10 @@ describe('useContext Tests', () => {
     resetContext();
   });
 
+  afterEach(() => {
+    resetContext();
+  });
+
   test('useContext returns default value when no provider', () => {
     const ThemeContext = createContext('light');
     const theme = useContext(ThemeContext);
@@ -117,6 +125,10 @@ describe('useContext Tests', () => {
 
 describe('Provider Tests', () => {
   beforeEach(() => {
+    resetContext();
+  });
+
+  afterEach(() => {
     resetContext();
   });
 
@@ -213,6 +225,10 @@ describe('Consumer Tests', () => {
     resetContext();
   });
 
+  afterEach(() => {
+    resetContext();
+  });
+
   test('Consumer renders with context value', () => {
     const ThemeContext = createContext('light');
     let renderedValue;
@@ -263,6 +279,10 @@ describe('Context Shorthand Tests', () => {
     resetContext();
   });
 
+  afterEach(() => {
+    resetContext();
+  });
+
   test('Context.Provider shorthand works', () => {
     const ThemeContext = createContext('light');
     let capturedTheme;
@@ -282,6 +302,10 @@ describe('Context Shorthand Tests', () => {
 
 describe('isContext Tests', () => {
   beforeEach(() => {
+    resetContext();
+  });
+
+  afterEach(() => {
     resetContext();
   });
 
@@ -306,6 +330,10 @@ describe('isContext Tests', () => {
 
 describe('getContextDepth Tests', () => {
   beforeEach(() => {
+    resetContext();
+  });
+
+  afterEach(() => {
     resetContext();
   });
 
@@ -356,6 +384,10 @@ describe('disposeContext Tests', () => {
     resetContext();
   });
 
+  afterEach(() => {
+    resetContext();
+  });
+
   test('disposeContext removes context from registry', () => {
     const ctx = createContext('test');
     assert.ok(isContext(ctx), 'Context should exist before dispose');
@@ -387,6 +419,10 @@ describe('disposeContext Tests', () => {
 
 describe('useContextSelector Tests', () => {
   beforeEach(() => {
+    resetContext();
+  });
+
+  afterEach(() => {
     resetContext();
   });
 
@@ -434,6 +470,10 @@ describe('useContextSelector Tests', () => {
 
 describe('provideMany Tests', () => {
   beforeEach(() => {
+    resetContext();
+  });
+
+  afterEach(() => {
     resetContext();
   });
 
@@ -497,6 +537,10 @@ describe('provideMany Tests', () => {
 
 describe('Integration Tests', () => {
   beforeEach(() => {
+    resetContext();
+  });
+
+  afterEach(() => {
     resetContext();
   });
 

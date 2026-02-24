@@ -557,4 +557,4 @@ describe('Resource Cache Stats Tests', () => {
 });
 
 // Force clean exit after all tests complete (open handles from async operations)
-after(() => setTimeout(() => process.exit(0), 100));
+after(() => { process.exitCode = 0; });

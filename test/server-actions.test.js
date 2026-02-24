@@ -43,6 +43,10 @@ describe('Server Actions - Client Runtime', () => {
     clearActionRegistry();
   });
 
+  afterEach(() => {
+    clearActionRegistry();
+  });
+
   test('registerAction adds to registry', () => {
     registerAction('test-action', { endpoint: '/_actions', method: 'POST' });
 
@@ -141,6 +145,10 @@ describe('Server Actions - Client Runtime', () => {
 
 describe('Server Actions - Server Runtime', () => {
   beforeEach(() => {
+    clearServerActions();
+  });
+
+  afterEach(() => {
     clearServerActions();
   });
 
@@ -266,6 +274,10 @@ describe('Server Actions - Server Runtime', () => {
 
 describe('Server Actions - Express Middleware', () => {
   beforeEach(() => {
+    clearServerActions();
+  });
+
+  afterEach(() => {
     clearServerActions();
   });
 

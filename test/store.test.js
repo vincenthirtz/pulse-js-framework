@@ -6,7 +6,7 @@
  * @module test/store
  */
 
-import { test, describe, beforeEach } from 'node:test';
+import { test, describe, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert';
 
 import { createMockLocalStorage } from './utils.js';
@@ -34,6 +34,7 @@ import { effect } from '../runtime/pulse.js';
 
 describe('Basic Store Tests', () => {
   beforeEach(clearStorage);
+  afterEach(clearStorage);
 
   test('creates store with initial state', () => {
     const store = createStore({
@@ -145,6 +146,7 @@ describe('Basic Store Tests', () => {
 
 describe('Persistence Tests', () => {
   beforeEach(clearStorage);
+  afterEach(clearStorage);
 
   test('persists state to localStorage', () => {
     const store = createStore(
@@ -200,6 +202,7 @@ describe('Persistence Tests', () => {
 
 describe('Actions Tests', () => {
   beforeEach(clearStorage);
+  afterEach(clearStorage);
 
   test('createActions binds actions to store', () => {
     const store = createStore({ count: 0 });
@@ -257,6 +260,7 @@ describe('Actions Tests', () => {
 
 describe('Getters Tests', () => {
   beforeEach(clearStorage);
+  afterEach(clearStorage);
 
   test('createGetters creates computed values', () => {
     const store = createStore({
@@ -309,6 +313,7 @@ describe('Getters Tests', () => {
 
 describe('Combined Stores Tests', () => {
   beforeEach(clearStorage);
+  afterEach(clearStorage);
 
   test('combineStores merges multiple stores', () => {
     const userStore = createStore({ name: 'John', email: 'john@example.com' });
@@ -330,6 +335,7 @@ describe('Combined Stores Tests', () => {
 
 describe('Module Store Tests', () => {
   beforeEach(clearStorage);
+  afterEach(clearStorage);
 
   test('createModuleStore creates namespaced modules', () => {
     const store = createModuleStore({
@@ -406,6 +412,7 @@ describe('Module Store Tests', () => {
 
 describe('Plugin Tests', () => {
   beforeEach(clearStorage);
+  afterEach(clearStorage);
 
   test('usePlugin applies plugin to store', () => {
     const store = createStore({ count: 0 });
@@ -509,6 +516,7 @@ describe('Plugin Tests', () => {
 
 describe('Nested Objects Tests', () => {
   beforeEach(clearStorage);
+  afterEach(clearStorage);
 
   test('handles nested object state', () => {
     const store = createStore({
@@ -554,6 +562,7 @@ describe('Nested Objects Tests', () => {
 
 describe('Edge Cases', () => {
   beforeEach(clearStorage);
+  afterEach(clearStorage);
 
   test('handles empty initial state', () => {
     const store = createStore({});
@@ -599,6 +608,7 @@ describe('Edge Cases', () => {
 
 describe('Error Path Tests', () => {
   beforeEach(clearStorage);
+  afterEach(clearStorage);
 
   test('action error does not corrupt store state', () => {
     const store = createStore({ count: 0, status: 'ok' });
@@ -806,6 +816,7 @@ describe('Error Path Tests', () => {
 
 describe('Validation Cache Tests', () => {
   beforeEach(clearStorage);
+  afterEach(clearStorage);
 
   test('$setState validates updates', () => {
     const store = createStore({ value: 'initial' });

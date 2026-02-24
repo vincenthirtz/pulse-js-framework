@@ -20,6 +20,8 @@ import {
 
 import { pulse, effect, batch } from '../runtime/pulse.js';
 
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
 // =============================================================================
 // createVersionedAsync Tests
 // =============================================================================
@@ -148,81 +150,87 @@ describe('createVersionedAsync Tests', () => {
     assert.ok(abortCalled === true, 'onAbort should be called on abort');
   });
 
-  test('createVersionedAsync.setTimeout executes only when current', async () => {
+  test('createVersionedAsync.setTimeout executes only when current', async (t) => {
     const controller = createVersionedAsync();
+    t.after(() => controller.cleanup());
     const ctx = controller.begin();
     let executed = false;
 
     ctx.setTimeout(() => { executed = true; }, 10);
 
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
     assert.ok(executed === true, 'Timeout should execute when still current');
   });
 
-  test('createVersionedAsync.setTimeout does not execute when stale', async () => {
+  test('createVersionedAsync.setTimeout does not execute when stale', async (t) => {
     const controller = createVersionedAsync();
+    t.after(() => controller.cleanup());
     const ctx = controller.begin();
     let executed = false;
 
     ctx.setTimeout(() => { executed = true; }, 30);
 
     // Make stale before timeout fires
-    await new Promise(r => setTimeout(r, 10));
+    await sleep(10);
     controller.begin();
 
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
     assert.ok(executed === false, 'Timeout should not execute when stale');
   });
 
-  test('createVersionedAsync.setTimeout clears on abort', async () => {
+  test('createVersionedAsync.setTimeout clears on abort', async (t) => {
     const controller = createVersionedAsync();
+    t.after(() => controller.cleanup());
     const ctx = controller.begin();
     let executed = false;
 
     ctx.setTimeout(() => { executed = true; }, 30);
 
     // Abort before timeout fires
-    await new Promise(r => setTimeout(r, 10));
+    await sleep(10);
     controller.abort();
 
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
     assert.ok(executed === false, 'Timeout should not execute after abort');
   });
 
-  test('createVersionedAsync.setInterval executes repeatedly when current', async () => {
+  test('createVersionedAsync.setInterval executes repeatedly when current', async (t) => {
     const controller = createVersionedAsync();
+    t.after(() => controller.cleanup());
     const ctx = controller.begin();
     let count = 0;
 
     ctx.setInterval(() => { count++; }, 15);
 
-    await new Promise(r => setTimeout(r, 80));
+    await sleep(80);
     controller.cleanup();
 
     assert.ok(count >= 3, `Interval should have executed multiple times (got ${count})`);
   });
 
-  test('createVersionedAsync.setInterval stops when stale', async () => {
+  test('createVersionedAsync.setInterval stops when stale', async (t) => {
     const controller = createVersionedAsync();
+    t.after(() => controller.cleanup());
     const ctx = controller.begin();
     let count = 0;
 
     ctx.setInterval(() => { count++; }, 15);
 
-    await new Promise(r => setTimeout(r, 40));
+    await sleep(40);
     const countBeforeStale = count;
 
     controller.begin(); // Make stale
 
-    await new Promise(r => setTimeout(r, 60));
+    await sleep(60);
     controller.cleanup();
 
     // Should have stopped incrementing
     assert.ok(count <= countBeforeStale + 1, `Count should not increase significantly after stale (${count} vs ${countBeforeStale})`);
   });
 
-  test('createVersionedAsync handles async race conditions', async () => {
+  test('createVersionedAsync handles async race conditions', async (t) => {
     const controller = createVersionedAsync();
+    t.after(() => controller.cleanup());
     let results = [];
 
     // Simulate two overlapping async operations
@@ -240,18 +248,19 @@ describe('createVersionedAsync Tests', () => {
     asyncOp('slow', 50);
 
     // Start fast operation that should win
-    await new Promise(r => setTimeout(r, 10));
+    await sleep(10);
     asyncOp('fast', 20);
 
-    await new Promise(r => setTimeout(r, 100));
+    await sleep(100);
 
     // Only the fast (later) one should have added result
     assert.strictEqual(results.length, 1, 'Only one result should be recorded');
     assert.strictEqual(results[0], 'fast', 'Fast operation should win');
   });
 
-  test('createVersionedAsync cleanup clears all timers', async () => {
+  test('createVersionedAsync cleanup clears all timers', async (t) => {
     const controller = createVersionedAsync();
+    t.after(() => controller.cleanup());
     const ctx = controller.begin();
     let timeoutExecuted = false;
     let intervalCount = 0;
@@ -260,10 +269,10 @@ describe('createVersionedAsync Tests', () => {
     ctx.setInterval(() => { intervalCount++; }, 20);
 
     // Cleanup before timers fire
-    await new Promise(r => setTimeout(r, 10));
+    await sleep(10);
     controller.cleanup();
 
-    await new Promise(r => setTimeout(r, 100));
+    await sleep(100);
 
     assert.ok(timeoutExecuted === false, 'Timeout should not execute after cleanup');
     assert.strictEqual(intervalCount, 0, 'Interval should not execute after cleanup');
@@ -287,7 +296,7 @@ describe('useAsync Tests', () => {
     assert.ok(loading.get() === true || executed, 'Should execute or start loading');
 
     // Wait for completion
-    await new Promise(r => setTimeout(r, 10));
+    await sleep(10);
     assert.strictEqual(data.get(), 'result');
   });
 
@@ -387,10 +396,10 @@ describe('useAsync Tests', () => {
     );
 
     execute();
-    await new Promise(r => setTimeout(r, 10));
+    await sleep(10);
     abort();
 
-    await new Promise(r => setTimeout(r, 100));
+    await sleep(100);
     // The request may still complete, but the state should be reset
   });
 
@@ -410,10 +419,10 @@ describe('useAsync Tests', () => {
     execute(50);
 
     // Start fast request that should win
-    await new Promise(r => setTimeout(r, 10));
+    await sleep(10);
     execute(10);
 
-    await new Promise(r => setTimeout(r, 100));
+    await sleep(100);
 
     // The last call should be the result
     assert.strictEqual(data.get(), 'result-2');
@@ -433,7 +442,7 @@ describe('useResource Tests', () => {
       async () => 'fetched-data'
     );
 
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
 
     assert.strictEqual(data.get(), 'fetched-data');
     assert.strictEqual(loading.get(), false);
@@ -450,12 +459,12 @@ describe('useResource Tests', () => {
 
     // First resource
     const r1 = useResource('cache-test', fetcher);
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
     assert.strictEqual(fetchCount, 1);
 
     // Second resource with same key should use cache
     const r2 = useResource('cache-test', fetcher);
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
 
     // Cache should have been used
     assert.strictEqual(r1.data.get(), 'cached-data');
@@ -474,11 +483,11 @@ describe('useResource Tests', () => {
       }
     );
 
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
     assert.strictEqual(data.get(), 'data-1');
 
     await refresh();
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
     assert.strictEqual(data.get(), 'data-2');
   });
 
@@ -490,7 +499,7 @@ describe('useResource Tests', () => {
       async () => ({ count: 0 })
     );
 
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
     assert.strictEqual(data.get().count, 0);
 
     mutate({ count: 5 });
@@ -507,7 +516,7 @@ describe('useResource Tests', () => {
       }
     );
 
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
     assert.ok(error.get() instanceof Error);
     assert.strictEqual(error.get().message, 'Fetch failed');
   });
@@ -526,11 +535,11 @@ describe('useResource Tests', () => {
       }
     );
 
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
     assert.strictEqual(data.get().id, 1);
 
     userId.set(2);
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
     assert.strictEqual(data.get().id, 2);
   });
 
@@ -540,7 +549,7 @@ describe('useResource Tests', () => {
     useResource('stats-test-1', async () => 'a');
     useResource('stats-test-2', async () => 'b');
 
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
 
     const stats = getResourceCacheStats();
     assert.ok(stats.size >= 2, 'Should have at least 2 cached items');
@@ -554,7 +563,7 @@ describe('useResource Tests', () => {
 // =============================================================================
 
 describe('usePolling Tests', () => {
-  test('usePolling fetches data at interval', async () => {
+  test('usePolling fetches data at interval', async (t) => {
     let callCount = 0;
 
     const { data, start, stop } = usePolling(
@@ -565,9 +574,10 @@ describe('usePolling Tests', () => {
       { interval: 30, immediate: true }
     );
 
+    t.after(() => stop());
     start();
 
-    await new Promise(r => setTimeout(r, 100));
+    await sleep(100);
 
     stop();
 
@@ -575,7 +585,7 @@ describe('usePolling Tests', () => {
     assert.ok(data.get().startsWith('data-'), 'Should have data');
   });
 
-  test('usePolling starts and stops', async () => {
+  test('usePolling starts and stops', async (t) => {
     let callCount = 0;
 
     const { isPolling, start, stop } = usePolling(
@@ -586,26 +596,28 @@ describe('usePolling Tests', () => {
       { interval: 20, immediate: true }
     );
 
+    t.after(() => stop());
+
     assert.strictEqual(isPolling.get(), false, 'Should not be polling initially');
 
     start();
     assert.strictEqual(isPolling.get(), true, 'Should be polling after start');
 
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
 
     stop();
     assert.strictEqual(isPolling.get(), false, 'Should not be polling after stop');
 
     const countAtStop = callCount;
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
 
     assert.strictEqual(callCount, countAtStop, 'Should not poll after stop');
   });
 
-  test('usePolling handles errors and max errors', async () => {
+  test('usePolling handles errors and max errors', async (t) => {
     let callCount = 0;
 
-    const { error, isPolling, start } = usePolling(
+    const { error, isPolling, start, stop } = usePolling(
       async () => {
         callCount++;
         throw new Error('Poll error');
@@ -613,16 +625,17 @@ describe('usePolling Tests', () => {
       { interval: 10, immediate: true, maxErrors: 3 }
     );
 
+    t.after(() => stop());
     start();
 
-    await new Promise(r => setTimeout(r, 100));
+    await sleep(100);
 
     // Should have stopped after max errors
     assert.strictEqual(isPolling.get(), false, 'Should stop after max errors');
     assert.ok(error.get() instanceof Error, 'Should have error');
   });
 
-  test('usePolling pause and resume', async () => {
+  test('usePolling pause and resume', async (t) => {
     let callCount = 0;
 
     const { start, stop, pause, resume, isPolling } = usePolling(
@@ -633,18 +646,19 @@ describe('usePolling Tests', () => {
       { interval: 20, immediate: true }
     );
 
+    t.after(() => stop());
     start();
-    await new Promise(r => setTimeout(r, 30));
+    await sleep(30);
     const countBeforePause = callCount;
 
     pause();
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
 
     // Should not have polled while paused
     assert.strictEqual(callCount, countBeforePause, 'Should not poll while paused');
 
     resume();
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
 
     assert.ok(callCount > countBeforePause, 'Should resume polling');
 
@@ -653,4 +667,4 @@ describe('usePolling Tests', () => {
 });
 
 // Force clean exit after all tests complete (open handles from async operations)
-after(() => setTimeout(() => process.exit(0), 100));
+after(() => { process.exitCode = 0; });

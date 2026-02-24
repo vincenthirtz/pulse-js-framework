@@ -6,7 +6,7 @@
  * Uncovered lines: 23-37,45-46,60-62,73,87-213,225-309,313-325,331-348,371-415,427-432
  */
 
-import { test, describe, beforeEach } from 'node:test';
+import { test, describe, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert';
 
 import { createDOM } from './mock-dom.js';
@@ -31,6 +31,15 @@ import { pulse } from '../runtime/pulse.js';
 describe('configureA11y - Configuration Management', () => {
   beforeEach(() => {
     // Reset to default
+    configureA11y({
+      enabled: true,
+      autoAria: true,
+      warnMissingAlt: true,
+      warnMissingLabel: true
+    });
+  });
+
+  afterEach(() => {
     configureA11y({
       enabled: true,
       autoAria: true,
@@ -89,6 +98,10 @@ describe('Auto-ARIA: Landmark Elements', () => {
     configureA11y({ enabled: true, autoAria: true, warnMissingLabel: true });
   });
 
+  afterEach(() => {
+    configureA11y({ enabled: true, autoAria: true, warnMissingLabel: true });
+  });
+
   test('main element without label (line 73)', () => {
     const main = el('main');
     assert.strictEqual(main.tagName.toLowerCase(), 'main');
@@ -130,6 +143,10 @@ describe('Auto-ARIA: Image Elements', () => {
     configureA11y({ enabled: true, autoAria: true, warnMissingAlt: true });
   });
 
+  afterEach(() => {
+    configureA11y({ enabled: true, autoAria: true, warnMissingAlt: true });
+  });
+
   test('img without alt (line 85-87)', () => {
     const img = el('img');
     assert.strictEqual(img.tagName.toLowerCase(), 'img');
@@ -164,6 +181,10 @@ describe('Auto-ARIA: Image Elements', () => {
 
 describe('Auto-ARIA: Form Controls', () => {
   beforeEach(() => {
+    configureA11y({ enabled: true, autoAria: true, warnMissingLabel: true });
+  });
+
+  afterEach(() => {
     configureA11y({ enabled: true, autoAria: true, warnMissingLabel: true });
   });
 
@@ -239,6 +260,10 @@ describe('Auto-ARIA: Link Elements', () => {
     configureA11y({ enabled: true, autoAria: true });
   });
 
+  afterEach(() => {
+    configureA11y({ enabled: true, autoAria: true });
+  });
+
   test('link without href gets role=button (lines 111-112)', () => {
     const link = el('a');
     assert.strictEqual(link.getAttribute('role'), 'button');
@@ -271,6 +296,10 @@ describe('Auto-ARIA: Link Elements', () => {
 
 describe('Auto-ARIA: List Elements', () => {
   beforeEach(() => {
+    configureA11y({ enabled: true, autoAria: true });
+  });
+
+  afterEach(() => {
     configureA11y({ enabled: true, autoAria: true });
   });
 
@@ -310,6 +339,10 @@ describe('Auto-ARIA: Table Elements', () => {
     configureA11y({ enabled: true, autoAria: true });
   });
 
+  afterEach(() => {
+    configureA11y({ enabled: true, autoAria: true });
+  });
+
   test('table without label (lines 131-133)', () => {
     const table = el('table');
     assert.strictEqual(table.tagName.toLowerCase(), 'table');
@@ -328,6 +361,10 @@ describe('Auto-ARIA: Table Elements', () => {
 
 describe('Auto-ARIA: Progress and Meter', () => {
   beforeEach(() => {
+    configureA11y({ enabled: true, autoAria: true });
+  });
+
+  afterEach(() => {
     configureA11y({ enabled: true, autoAria: true });
   });
 
@@ -360,6 +397,10 @@ describe('Auto-ARIA: Progress and Meter', () => {
 
 describe('applyRoleRequirements - Role-Specific ARIA', () => {
   beforeEach(() => {
+    configureA11y({ enabled: true, autoAria: true });
+  });
+
+  afterEach(() => {
     configureA11y({ enabled: true, autoAria: true });
   });
 

@@ -24,7 +24,7 @@ import assert from 'node:assert';
 // Helpers
 // =============================================================================
 
-const wait = (ms) => new Promise(r => setTimeout(r, ms));
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
 function createMockFile(name, size, type) {
   return { name, size, type };
@@ -63,7 +63,7 @@ describe('Async Validator Exception Handling', () => {
     const field = useField('test', [throwingRule]);
 
     const result = await field.validate();
-    await wait(50);
+    await sleep(50);
 
     assert.strictEqual(result, false);
     assert.strictEqual(field.error.get(), 'Network failure');
@@ -79,7 +79,7 @@ describe('Async Validator Exception Handling', () => {
     const field = useField('test', [throwingRule]);
 
     const result = await field.validate();
-    await wait(50);
+    await sleep(50);
 
     assert.strictEqual(result, false);
     assert.strictEqual(field.error.get(), 'Validation failed');
@@ -98,7 +98,7 @@ describe('Async Validator Exception Handling', () => {
     );
 
     const valid = await form.validateAll();
-    await wait(50);
+    await sleep(50);
 
     assert.strictEqual(valid, false);
     assert.strictEqual(form.fields.username.error.get(), 'Server unavailable');
@@ -110,7 +110,7 @@ describe('Async Validator Exception Handling', () => {
     // Test that when an async validator throws after its version becomes stale,
     // the error is not applied to the field.
     const asyncRule = validators.asyncCustom(async () => {
-      await wait(30);
+      await sleep(30);
       throw new Error('Stale error');
     }, { debounce: 10 });
 
@@ -120,13 +120,13 @@ describe('Async Validator Exception Handling', () => {
     field.validate();
 
     // Wait for debounce to pass but before the async throw
-    await wait(20);
+    await sleep(20);
 
     // Bump the version by resetting (cancels current validation)
     field.reset();
 
     // Wait for the async to throw
-    await wait(50);
+    await sleep(50);
 
     // Error from the stale validation should NOT be applied
     assert.strictEqual(field.error.get(), null);
@@ -169,7 +169,7 @@ describe('Draft Persistence Error Handling', () => {
 
     // Should not throw
     form.fields.name.value.set('some value');
-    await wait(50);
+    await sleep(50);
 
     // Form should still work even though draft save failed
     assert.strictEqual(form.fields.name.value.get(), 'some value');
@@ -207,7 +207,7 @@ describe('Draft Persistence Error Handling', () => {
     form.fields.callback.value.set(() => {}); // function
     form.fields.status.value.set('active');
 
-    await wait(50);
+    await sleep(50);
 
     const stored = JSON.parse(globalThis.localStorage.getItem('test-filter'));
     assert.strictEqual(stored.name, 'John');
@@ -228,7 +228,7 @@ describe('Draft Persistence Error Handling', () => {
     form.fields.name.value.set('John');
     form.fields.pending.value.set(Promise.resolve('something'));
 
-    await wait(50);
+    await sleep(50);
 
     const stored = JSON.parse(globalThis.localStorage.getItem('test-promise-filter'));
     assert.strictEqual(stored.name, 'John');
@@ -582,7 +582,7 @@ describe('useForm onChange Validation Modes', () => {
 
     // Wait for debounce (10ms) + async to complete
     // Note: debounce=0 becomes 300ms due to `rule.debounce || 300` in form.js
-    await wait(400);
+    await sleep(400);
 
     assert.ok(asyncCallCount > beforeCount, 'Async validator should be called via onChange');
     form.dispose();
@@ -798,7 +798,7 @@ describe('useForm Dispose and Cleanup', () => {
     form.dispose();
 
     // Wait for what would have been the debounce period
-    await wait(1100);
+    await sleep(1100);
 
     // Draft should NOT have been saved after dispose
     // (it may or may not depending on timing, but it shouldn't crash)
@@ -819,14 +819,14 @@ describe('useForm Dispose and Cleanup', () => {
     // Dispose while debounce is pending
     form.dispose();
 
-    await wait(600);
+    await sleep(600);
     assert.ok(true, 'Dispose cleans up async debounce timers');
   });
 
   test('field reset cancels pending async validation', async () => {
     let validationCompleted = false;
     const asyncRule = validators.asyncCustom(async () => {
-      await wait(100);
+      await sleep(100);
       validationCompleted = true;
       return true;
     }, { debounce: 0 });
@@ -842,7 +842,7 @@ describe('useForm Dispose and Cleanup', () => {
     // Reset immediately (should bump version counter)
     form.fields.name.reset();
 
-    await wait(150);
+    await sleep(150);
 
     // Field should be reset to initial value
     assert.strictEqual(form.fields.name.value.get(), 'test');
@@ -883,7 +883,7 @@ describe('useForm setValues / setValue Edge Cases', () => {
     );
 
     form.setValue('email', 'invalid', true);
-    await wait(50);
+    await sleep(50);
 
     assert.strictEqual(form.fields.email.error.get(), 'Invalid email address');
     form.dispose();
@@ -896,7 +896,7 @@ describe('useForm setValues / setValue Edge Cases', () => {
     );
 
     form.setValues({ email: 'invalid', name: '' }, true);
-    await wait(50);
+    await sleep(50);
 
     // At least email should have an error
     const errs = form.errors.get();
@@ -946,7 +946,7 @@ describe('Validator Error Message Fallback', () => {
 
     const field = useField('test', [rule]);
     const result = await field.validate();
-    await wait(50);
+    await sleep(50);
 
     assert.strictEqual(result, false);
     assert.strictEqual(field.error.get(), 'Async fallback message');
@@ -1075,7 +1075,7 @@ describe('Computed Form State', () => {
 
   test('isValidating tracks async validation in progress', async () => {
     const asyncRule = validators.asyncCustom(async () => {
-      await wait(50);
+      await sleep(50);
       return true;
     }, { debounce: 0 });
 
@@ -1087,13 +1087,13 @@ describe('Computed Form State', () => {
     assert.strictEqual(form.isValidating.get(), false);
 
     const validatePromise = form.fields.name.validate();
-    await wait(10);
+    await sleep(10);
 
     // Should be validating
     assert.strictEqual(form.isValidating.get(), true);
 
     await validatePromise;
-    await wait(10);
+    await sleep(10);
 
     assert.strictEqual(form.isValidating.get(), false);
     form.dispose();

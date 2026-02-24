@@ -30,6 +30,8 @@ import { el } from '../runtime/dom.js';
 // Mock requestAnimationFrame for CSS transition tests
 global.requestAnimationFrame = (fn) => setTimeout(fn, 0);
 
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
 // =============================================================================
 // Route Matching Tests
 // =============================================================================
@@ -626,7 +628,7 @@ describe('Lazy Loading Tests', () => {
     // First navigation
     await router.navigate('/cached');
     // Wait for lazy load to complete
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
     assert.strictEqual(loadCount, 1, 'Should load on first navigation');
 
     // Navigate away
@@ -634,7 +636,7 @@ describe('Lazy Loading Tests', () => {
 
     // Second navigation - should use cache
     await router.navigate('/cached');
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
     assert.strictEqual(loadCount, 1, 'Should not reload cached component');
   });
 
@@ -661,7 +663,7 @@ describe('Lazy Loading Tests', () => {
     router.outlet(container);
 
     await router.navigate('/render');
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
 
     assert.strictEqual(router.path.get(), '/render', 'Should navigate to render route');
     assert.ok(loaded, 'Should have loaded component');
@@ -694,7 +696,7 @@ describe('Lazy Loading Tests', () => {
     const navPromise = router.navigate('/loading');
 
     // Give time for loading component to appear
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
 
     // Resolve the load
     resolveLoad({ default: () => el('div.loaded', 'Loaded!') });
@@ -730,7 +732,7 @@ describe('Lazy Loading Tests', () => {
     await router.navigate('/error');
 
     // Give time for error handling
-    await new Promise(r => setTimeout(r, 100));
+    await sleep(100);
 
     assert.ok(errorHandled, 'Should handle error with error component');
   });
@@ -1057,7 +1059,7 @@ describe('Router Edge Cases Tests', () => {
       guardEnterCount++;
       if (to.path === '/slow') {
         // Simulate slow guard
-        await new Promise(r => setTimeout(r, 50));
+        await sleep(50);
       }
       return true;
     });
@@ -1241,7 +1243,7 @@ describe('Lazy Loading Edge Cases Tests', () => {
     const slowNav = router.navigate('/slow');
 
     // Quickly navigate away
-    await new Promise(r => setTimeout(r, 10));
+    await sleep(10);
     await router.navigate('/fast');
 
     // Wait for slow to complete
@@ -1282,7 +1284,7 @@ describe('Lazy Loading Edge Cases Tests', () => {
     await router.navigate('/timeout');
 
     // Wait for timeout
-    await new Promise(r => setTimeout(r, 100));
+    await sleep(100);
 
     // Error component should be shown
     assert.ok(errorShown, 'Error should be shown after timeout');
@@ -1314,7 +1316,7 @@ describe('Lazy Loading Edge Cases Tests', () => {
 
     // First attempt should fail
     await router.navigate('/retry');
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
     assert.strictEqual(attempts, 1, 'First attempt made');
   });
 
@@ -1346,19 +1348,19 @@ describe('Lazy Loading Edge Cases Tests', () => {
     const navPromise = router.navigate('/lazy');
 
     // Wait a bit then navigate away BEFORE load completes
-    await new Promise(r => setTimeout(r, 10));
+    await sleep(10);
     await router.navigate('/other');
 
     // Now complete the load (after navigation away)
     resolveLoad({ default: () => el('div.lazy-loaded', 'Loaded!') });
     await navPromise;
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
 
     assert.strictEqual(loadCount, 1, 'Should have loaded once');
 
     // Navigate back to the lazy route - should NOT trigger reload
     await router.navigate('/lazy');
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
 
     assert.strictEqual(loadCount, 1, 'Should use cached component, not reload');
     assert.strictEqual(router.path.get(), '/lazy', 'Should be on lazy route');
@@ -1400,11 +1402,11 @@ describe('Lazy Loading Edge Cases Tests', () => {
 
     // Navigate to both routes
     await router.navigate('/a');
-    await new Promise(r => setTimeout(r, 100));
+    await sleep(100);
     assert.ok(aLoaded, 'A should be loaded');
 
     await router.navigate('/b');
-    await new Promise(r => setTimeout(r, 100));
+    await sleep(100);
     assert.ok(bLoaded, 'B should be loaded');
   });
 });
@@ -1451,9 +1453,9 @@ describe('Navigation Stress Tests', () => {
     // Simulate rapid back/forward
     for (let i = 0; i < 10; i++) {
       window.history.back();
-      await new Promise(r => setTimeout(r, 5));
+      await sleep(5);
       window.history.forward();
-      await new Promise(r => setTimeout(r, 5));
+      await sleep(5);
     }
 
     // Should not crash
@@ -1669,7 +1671,7 @@ describe('Enhanced back/forward/go Tests (#73)', () => {
     router.start();
     await router.navigate('/a');
     router.back();
-    await new Promise(r => setTimeout(r, 120));
+    await sleep(120);
 
     const result = router.forward();
     assert.ok(result instanceof Promise, 'forward() should return a Promise');
@@ -1873,7 +1875,7 @@ describe('Route Aliases Tests (#68)', () => {
 
     await router.navigate('/fake');
     // Wait for outlet rendering
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
 
     // The handler from /real should execute even though we navigated to /fake
     assert.ok(handlerCalled, 'Aliased handler should be called');
@@ -2038,7 +2040,7 @@ describe('Navigation Loading State Tests (#72)', () => {
       },
       middleware: [
         async (ctx, next) => {
-          await new Promise(r => setTimeout(r, 10));
+          await sleep(10);
           await next();
         }
       ]
@@ -2145,7 +2147,7 @@ describe('Route Groups Tests (#71)', () => {
     router.outlet(container);
 
     await router.navigate('/dashboard');
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
 
     assert.ok(layoutCalled, 'Layout function should be called');
     assert.ok(layoutReceivedContent, 'Layout should receive content as Node');
@@ -2234,9 +2236,9 @@ describe('Route Groups Tests (#71)', () => {
     router.outlet(container);
 
     await router.navigate('/page-a');
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
     await router.navigate('/page-b');
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
 
     assert.ok(layoutCalledFor.includes('/page-a'), 'Layout called for page-a');
     assert.ok(layoutCalledFor.includes('/page-b'), 'Layout called for page-b');
@@ -2465,7 +2467,7 @@ describe('CSS Transition Config Tests (#66)', () => {
 
     // Navigate to /about first to have a view rendered
     await router.navigate('/about');
-    await new Promise(r => setTimeout(r, 100));
+    await sleep(100);
 
     // The about view should be rendered
     assert.ok(container.children.length > 0, 'Should have a view rendered');
@@ -2486,7 +2488,7 @@ describe('CSS Transition Config Tests (#66)', () => {
     router.outlet(container);
 
     await router.navigate('/page');
-    await new Promise(r => setTimeout(r, 100));
+    await sleep(100);
     assert.strictEqual(router.path.get(), '/page', 'Should navigate with default transition');
   });
 
@@ -2516,7 +2518,7 @@ describe('CSS Transition Config Tests (#66)', () => {
     router.outlet(container);
 
     await router.navigate('/page');
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
 
     // Without transition config, view should be rendered directly
     assert.strictEqual(router.path.get(), '/page', 'Should navigate normally without transitions');
@@ -2549,13 +2551,13 @@ describe('Lazy Cached Component Resolution', () => {
 
     // First load
     await router.navigate('/cached');
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
 
     // Navigate away and back to hit the cached branch (line 72-79)
     await router.navigate('/');
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
     await router.navigate('/cached');
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
 
     assert.strictEqual(router.path.get(), '/cached', 'Should use cached plain function');
   });
@@ -2579,11 +2581,11 @@ describe('Lazy Cached Component Resolution', () => {
     router.outlet(container);
 
     await router.navigate('/cached-default');
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
     await router.navigate('/');
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
     await router.navigate('/cached-default');
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
 
     assert.strictEqual(router.path.get(), '/cached-default', 'Should use cached module.default');
   });
@@ -2607,11 +2609,11 @@ describe('Lazy Cached Component Resolution', () => {
     router.outlet(container);
 
     await router.navigate('/cached-render');
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
     await router.navigate('/');
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
     await router.navigate('/cached-render');
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
 
     assert.strictEqual(router.path.get(), '/cached-render', 'Should use cached .render method');
   });
@@ -2634,11 +2636,11 @@ describe('Lazy Cached Component Resolution', () => {
     router.outlet(container);
 
     await router.navigate('/cached-obj');
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
     await router.navigate('/');
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
     await router.navigate('/cached-obj');
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
 
     assert.strictEqual(router.path.get(), '/cached-obj', 'Should return cached plain object');
   });
@@ -2673,7 +2675,7 @@ describe('Lazy Component.render During Load', () => {
     router.outlet(container);
 
     await router.navigate('/render-load');
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
 
     assert.strictEqual(router.path.get(), '/render-load', 'Should load .render component');
   });
@@ -2709,13 +2711,13 @@ describe('Lazy Load Error When Stale', () => {
     const navPromise = router.navigate('/stale');
 
     // Navigate away before load completes (makes loadCtx stale)
-    await new Promise(r => setTimeout(r, 10));
+    await sleep(10);
     await router.navigate('/other');
 
     // Now reject the load — should hit lines 152-154 (isStale check in catch)
     rejectLoad(new Error('Load failed but stale'));
     await navPromise;
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
 
     // Should be on /other, not showing error
     assert.strictEqual(router.path.get(), '/other', 'Should stay on /other ignoring stale error');
@@ -2965,7 +2967,7 @@ describe('Route Error Handler in Outlet', () => {
     router.outlet(container);
 
     await router.navigate('/broken');
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
 
     assert.ok(errorHandlerCalled, 'onRouteError handler should be called');
     // The error view should be rendered (custom error node)
@@ -2991,7 +2993,7 @@ describe('Route Error Handler in Outlet', () => {
     router.outlet(container);
 
     await router.navigate('/broken');
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
 
     assert.ok(handlerThrew, 'Error handler should have thrown');
     // Should fall through to default error rendering (div.route-error)
@@ -3012,7 +3014,7 @@ describe('Route Error Handler in Outlet', () => {
     router.outlet(container);
 
     await router.navigate('/broken');
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
 
     // Should fall through to default error el
     assert.ok(container.children.length > 0, 'Should render default error when handler returns non-Node');
@@ -3047,7 +3049,7 @@ describe('Route Error Handler in Outlet', () => {
     router.outlet(container);
 
     await router.navigate('/broken');
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
 
     const err = router.error.get();
     assert.ok(err !== null, 'routeError should be set');
@@ -3078,7 +3080,7 @@ describe('Layout Error in Outlet', () => {
     router.outlet(container);
 
     await router.navigate('/page');
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
 
     // Should still render the page content (without layout wrapping)
     assert.ok(container.children.length > 0, 'Should render page despite layout error');
@@ -3293,7 +3295,7 @@ describe('Catch-All Route Fallback', () => {
     router.outlet(container);
 
     await router.navigate('/totally/unknown/path');
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
 
     assert.ok(catchAllUsed, 'Catch-all route should handle unknown paths');
   });
@@ -3329,16 +3331,16 @@ describe('Outlet Abort Lazy Load', () => {
 
     // Navigate to lazy (starts loading)
     await router.navigate('/lazy');
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
 
     // The container should have a child with _pulseAbortLazyLoad
     // Now navigate away — this triggers removeOldView which calls _pulseAbortLazyLoad
     await router.navigate('/other');
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
 
     // Resolve after navigation to clean up
     resolveLoad({ default: () => el('div', 'Late') });
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
 
     assert.strictEqual(router.path.get(), '/other', 'Should have navigated away from lazy route');
   });
@@ -3392,7 +3394,7 @@ describe('Async Route with Layout', () => {
     router.outlet(container);
 
     await router.navigate('/async-layout');
-    await new Promise(r => setTimeout(r, 100));
+    await sleep(100);
 
     assert.ok(layoutCalled, 'Layout should be called for async route');
   });
@@ -3413,7 +3415,7 @@ describe('Async Route with Layout', () => {
     router.outlet(container);
 
     await router.navigate('/async-bad-layout');
-    await new Promise(r => setTimeout(r, 100));
+    await sleep(100);
 
     // Should still render (layout error caught, falls back to raw view)
     assert.ok(container.children.length > 0, 'Should render despite async layout error');
@@ -3485,7 +3487,7 @@ describe('Nested Route Children Inherit Layout', () => {
     router.outlet(container);
 
     await router.navigate('/parent/child');
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
 
     assert.ok(layoutCalled, 'Child should inherit parent layout');
   });
@@ -3516,7 +3518,7 @@ describe('PopState Handler', () => {
 
     // Simulate browser back button (triggers popstate)
     window.history.back();
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
 
     // handlePopState should update route to /page-a
     assert.strictEqual(router.path.get(), '/page-a', 'PopState should update route');
@@ -3536,7 +3538,7 @@ describe('PopState Handler', () => {
 
     // Go back to /search?q=test
     window.history.back();
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
 
     // Route should be restored
     assert.strictEqual(router.path.get(), '/search', 'Should restore path on popstate');
@@ -3563,7 +3565,7 @@ describe('Async Route Error in Outlet', () => {
     router.outlet(container);
 
     await router.navigate('/async-error');
-    await new Promise(r => setTimeout(r, 100));
+    await sleep(100);
 
     // The error should be set on the router
     const err = router.error.get();
@@ -3596,7 +3598,7 @@ describe('Link Click Modifier Keys', () => {
     event.metaKey = false;
     linkEl.dispatchEvent(event);
 
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
 
     // Should NOT navigate (allows default browser behavior)
     assert.strictEqual(router.path.get(), '/', 'Ctrl+click should not trigger router navigation');
@@ -3619,7 +3621,7 @@ describe('Link Click Modifier Keys', () => {
     event.metaKey = true;
     linkEl.dispatchEvent(event);
 
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
 
     assert.strictEqual(router.path.get(), '/', 'Meta+click should not trigger router navigation');
   });

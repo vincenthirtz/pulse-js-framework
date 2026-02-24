@@ -13,6 +13,7 @@
 
 import { loggers } from '../logger.js';
 import { RuntimeError } from '../errors.js';
+import { DANGEROUS_KEYS } from '../security.js';
 
 const log = loggers.dom;
 
@@ -39,11 +40,7 @@ const FORBIDDEN_CLASSES = [
   Date  // Serializes to string, loses type info - recommend explicit error
 ];
 
-/**
- * Dangerous object keys that can lead to prototype pollution.
- * These keys must be blocked to prevent security vulnerabilities.
- */
-const DANGEROUS_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+// DANGEROUS_KEYS imported from ../security.js (single source of truth — 16 entries)
 
 // ============================================================================
 // Constants - Environment Variable Patterns
