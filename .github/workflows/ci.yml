@@ -485,7 +485,7 @@ jobs:
       inputs.release_type != 'none'
     uses: ./.github/workflows/manual-release.yml
     with:
-      release_type: ${{ inputs.release_type }}
+      release_type: ${{ inputs.release_type || 'none' }}
     secrets: inherit
 
   # Discord notification on failure (main branch only)
