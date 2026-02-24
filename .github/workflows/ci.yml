@@ -79,7 +79,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     needs: [changes]
-    if: needs.changes.outputs.deps == 'true' || (github.event_name == 'workflow_dispatch' && inputs.full_run)
+    if: needs.changes.outputs.deps == 'true' || github.event_name == 'workflow_dispatch'
     steps:
       - name: Checkout repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -125,7 +125,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     needs: [changes]
-    if: needs.changes.outputs.src == 'true' || needs.changes.outputs.ci == 'true' || (github.event_name == 'workflow_dispatch' && inputs.full_run)
+    if: needs.changes.outputs.src == 'true' || needs.changes.outputs.ci == 'true' || github.event_name == 'workflow_dispatch'
 
     steps:
       - name: Checkout repository
@@ -155,7 +155,7 @@ jobs:
       needs.changes.outputs.tests == 'true' ||
       needs.changes.outputs.deps == 'true' ||
       needs.changes.outputs.ci == 'true' ||
-      (github.event_name == 'workflow_dispatch' && inputs.full_run)
+      github.event_name == 'workflow_dispatch'
 
     strategy:
       fail-fast: false
@@ -203,7 +203,7 @@ jobs:
       needs.changes.outputs.src == 'true' ||
       needs.changes.outputs.tests == 'true' ||
       needs.changes.outputs.deps == 'true' ||
-      (github.event_name == 'workflow_dispatch' && inputs.full_run)
+      github.event_name == 'workflow_dispatch'
 
     steps:
       - name: Checkout repository
@@ -265,7 +265,7 @@ jobs:
         needs.changes.outputs.src == 'true' ||
         needs.changes.outputs.tests == 'true' ||
         needs.changes.outputs.deps == 'true' ||
-        (github.event_name == 'workflow_dispatch' && inputs.full_run)
+        github.event_name == 'workflow_dispatch'
       )
 
     strategy:
@@ -480,8 +480,8 @@ jobs:
       actions: write
     if: |
       always() &&
-      (needs.test.result == 'success' || needs.test.result == 'skipped') &&
-      (needs.lint.result == 'success' || needs.lint.result == 'skipped') &&
+      needs.test.result == 'success' &&
+      needs.lint.result == 'success' &&
       needs.build.result == 'success' &&
       (needs.coverage.result == 'success' || needs.coverage.result == 'skipped') &&
       github.ref == 'refs/heads/main' &&
