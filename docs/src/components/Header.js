@@ -48,9 +48,12 @@ export function Header() {
 
   // Fetch GitHub stars count
   fetch('https://api.github.com/repos/vincenthirtz/pulse-js-framework')
-    .then(res => res.json())
+    .then(res => {
+      if (!res.ok) return null;
+      return res.json();
+    })
     .then(data => {
-      if (data.stargazers_count !== undefined) {
+      if (data && data.stargazers_count !== undefined) {
         const count = data.stargazers_count;
         starsBadge.querySelector('.star-count').textContent = count >= 1000 ? `${(count / 1000).toFixed(1)}k` : count;
       }

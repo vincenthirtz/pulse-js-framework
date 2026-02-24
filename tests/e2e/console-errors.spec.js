@@ -96,6 +96,9 @@ test.describe('Console Error Detection', () => {
         // Skip 403 on document navigation (Netlify preview edge function issue)
         if (isDocumentNav && is403) return;
 
+        // Skip GitHub API errors (rate limiting in CI without auth token)
+        if (url.includes('api.github.com')) return;
+
         networkErrors.push({
           url,
           status: response.status(),
