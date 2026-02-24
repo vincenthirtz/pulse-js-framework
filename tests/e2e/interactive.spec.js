@@ -43,7 +43,6 @@ test.describe('Interactive - Search Modal', () => {
 
     // Click backdrop
     await searchModal.closeWithBackdrop();
-    await page.waitForTimeout(500);
 
     // May or may not close depending on implementation
     // Just verify no errors occurred
@@ -112,7 +111,10 @@ test.describe('Interactive - Mobile Navigation', () => {
 
     const menuButton = page.locator('button[aria-label*="menu" i]').first();
     await menuButton.click();
-    await page.waitForTimeout(300);
+    await page.waitForFunction(
+      (btn) => btn.getAttribute('aria-expanded') === 'true',
+      await menuButton.elementHandle()
+    ).catch(() => {});
 
     // Check if menu is open (aria-expanded or visible menu)
     const expanded = await menuButton.getAttribute('aria-expanded');
@@ -122,7 +124,10 @@ test.describe('Interactive - Mobile Navigation', () => {
 
     // Close menu
     await menuButton.click();
-    await page.waitForTimeout(300);
+    await page.waitForFunction(
+      (btn) => btn.getAttribute('aria-expanded') === 'false',
+      await menuButton.elementHandle()
+    ).catch(() => {});
 
     const expandedAfter = await menuButton.getAttribute('aria-expanded');
     if (expandedAfter !== null) {
@@ -140,7 +145,7 @@ test.describe('Interactive - Mobile Navigation', () => {
     const navLink = page.locator('nav a[href="/getting-started"], nav a[href*="getting-started"]').first();
     if (await navLink.isVisible()) {
       await navLink.click();
-      await page.waitForTimeout(500);
+      await page.waitForURL('**/getting-started**', { timeout: 5000 }).catch(() => {});
 
       // Should navigate to getting started page
       expect(page.url()).toContain('getting-started');
@@ -157,7 +162,12 @@ test.describe('Interactive - Mobile Navigation', () => {
     const navLink = page.locator('nav a').first();
     if (await navLink.isVisible()) {
       await navLink.click();
-      await page.waitForTimeout(500);
+      await page.waitForFunction(
+        () => {
+          const btn = document.querySelector('button[aria-label*="menu" i]');
+          return !btn || btn.getAttribute('aria-expanded') === 'false';
+        }
+      ).catch(() => {});
 
       // Menu should auto-close
       const menuButton = page.locator('button[aria-label*="menu" i]').first();
@@ -177,7 +187,7 @@ test.describe('Interactive - Code Playground', () => {
     await basePage.goto('/playground');
 
     // Wait for playground to load
-    await page.waitForTimeout(2000);
+    await page.waitForSelector('textarea, [contenteditable="true"], .monaco-editor, .code-editor', { state: 'attached', timeout: 10000 }).catch(() => {});
 
     // Look for code editor
     const editor = page.locator('textarea, [contenteditable="true"], .monaco-editor, .code-editor').first();
@@ -196,7 +206,7 @@ test.describe('Interactive - Code Playground', () => {
     const basePage = new BasePage(page, BASE_URL);
     await basePage.goto('/playground');
 
-    await page.waitForTimeout(2000);
+    await page.waitForSelector('textarea, [contenteditable="true"], .monaco-editor, .code-editor', { state: 'attached', timeout: 10000 }).catch(() => {});
 
     const editor = page.locator('textarea, [contenteditable="true"]').first();
     if (await editor.isVisible()) {
@@ -300,7 +310,7 @@ test.describe('Interactive - Table of Contents', () => {
     const basePage = new BasePage(page, BASE_URL);
     await basePage.goto('/getting-started');
 
-    await page.waitForTimeout(500);
+    await page.waitForSelector('[data-toc] a.active, .table-of-contents a.active, [data-toc] a[aria-current="true"]', { state: 'attached', timeout: 3000 }).catch(() => {});
 
     // Check if any TOC link has active class
     const hasActiveLink = await page.evaluate(() => {
@@ -327,7 +337,6 @@ test.describe('Interactive - Table of Contents', () => {
     const collapseButton = page.locator('[aria-label*="collapse" i], [aria-label*="hide" i], .toc-toggle').first();
     if (await collapseButton.isVisible()) {
       await collapseButton.click();
-      await page.waitForTimeout(300);
 
       console.log('✅ TOC collapse/expand button found and working');
     }
@@ -407,7 +416,7 @@ test.describe('Interactive - Language Switcher', () => {
     const frLink = page.locator('a[href="/fr/getting-started"], a[href*="/fr"]').first();
     if (await frLink.isVisible()) {
       await frLink.click();
-      await page.waitForTimeout(1000);
+      await page.waitForURL('**/fr/**', { timeout: 5000 }).catch(() => {});
 
       expect(page.url()).toContain('/fr');
       expect(page.url()).toContain('getting-started');
@@ -418,7 +427,7 @@ test.describe('Interactive - Language Switcher', () => {
     const basePage = new BasePage(page, BASE_URL);
     await basePage.goto('/fr/');
 
-    await page.waitForTimeout(1500);
+    await page.waitForFunction(() => document.body.textContent && document.body.textContent.trim().length > 100, { timeout: 5000 }).catch(() => {});
 
     // Check if content is in French
     const bodyText = await page.evaluate(() => document.body.textContent);

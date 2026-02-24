@@ -40,8 +40,8 @@ test.describe('Server Components Page', () => {
       timeout: 30000,
     });
 
-    // Wait for content to load
-    await page.waitForTimeout(1000);
+    // Wait for content to render
+    await page.waitForSelector('h1, h2', { state: 'attached', timeout: 10000 }).catch(() => {});
 
     // Check that page title or heading is present
     const heading = await page.locator('h1, h2').first();
@@ -93,7 +93,8 @@ test.describe('Server Components Page', () => {
 
   test('Navigation to Server Components from sidebar', async ({ page }) => {
     // Start at home page
-    await page.goto(BASE_URL, { waitUntil: 'networkidle' });
+    await page.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('main, [role="main"]', { state: 'attached', timeout: 10000 }).catch(() => {});
 
     // Look for Server Components link in navigation
     const serverComponentsLink = page.locator('a[href*="server-components"]').first();
@@ -101,7 +102,7 @@ test.describe('Server Components Page', () => {
     // Click if visible
     if (await serverComponentsLink.isVisible()) {
       await serverComponentsLink.click();
-      await page.waitForTimeout(500);
+      await page.waitForURL('**/server-components**', { timeout: 5000 }).catch(() => {});
 
       // Verify URL changed
       expect(page.url()).toContain('server-components');
@@ -132,11 +133,12 @@ test.describe('Server Components Page', () => {
 
     await page.goto(`${BASE_URL}/server-components`, {
       waitUntil: 'domcontentloaded',
-      timeout: 45000,
+      timeout: 30000,
     });
 
-    // Wait for page to render
-    await page.waitForTimeout(1500);
+    // Wait for content to render and JS to load
+    await page.waitForSelector('h1, h2', { state: 'attached', timeout: 10000 }).catch(() => {});
+    await page.waitForLoadState('load', { timeout: 10000 }).catch(() => {});
 
     // Content should still be visible on mobile
     const heading = await page.locator('h1, h2').first();
@@ -165,7 +167,8 @@ test.describe('Server Components - Localized', () => {
         timeout: 30000,
       });
 
-      await page.waitForTimeout(500);
+      // Wait for content to render
+      await page.waitForSelector('main, [role="main"], h1', { state: 'attached', timeout: 10000 }).catch(() => {});
 
       if (consoleErrors.length > 0) {
         console.error(`❌ Console errors on ${locale}/server-components:`, consoleErrors);

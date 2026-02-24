@@ -168,27 +168,24 @@ export async function waitForTranslations(page, timeout = 2000) {
  */
 export async function navigateAndWait(page, url, options = {}) {
   const {
-    waitForNetworkIdle: shouldWaitNetwork = true,
+    waitForNetworkIdle: shouldWaitNetwork = false,
     waitForTranslations: shouldWaitTranslations = true,
-    timeout = 30000
+    timeout = 15000
   } = options;
 
-  try {
-    await page.goto(url, {
-      waitUntil: shouldWaitNetwork ? 'networkidle' : 'domcontentloaded',
-      timeout
-    });
-  } catch (error) {
-    // Fall back to domcontentloaded if networkidle times out
-    if (shouldWaitNetwork && error.message?.includes('Timeout')) {
-      await page.goto(url, {
-        waitUntil: 'domcontentloaded',
-        timeout
-      });
-    } else {
-      throw error;
-    }
-  }
+  await page.goto(url, {
+    waitUntil: shouldWaitNetwork ? 'networkidle' : 'domcontentloaded',
+    timeout
+  });
+
+  // Wait for main content to be attached
+  await page.waitForSelector('main, [role="main"], h1, h2', {
+    state: 'attached',
+    timeout: 10000
+  }).catch(() => {});
+
+  // Wait for all resources (scripts, CSS) to load — faster than networkidle
+  await page.waitForLoadState('load', { timeout: 10000 }).catch(() => {});
 
   if (shouldWaitTranslations) {
     await waitForTranslations(page);

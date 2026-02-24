@@ -230,7 +230,8 @@ test.describe('Performance - Memory Usage', () => {
     const basePage = new BasePage(page, BASE_URL);
     await basePage.goto('/');
 
-    await page.waitForTimeout(2000); // Let page settle
+    // Wait for page to fully settle
+    await page.waitForLoadState('load').catch(() => {});
 
     const memory = await checkMemoryUsage(page);
 
@@ -253,7 +254,6 @@ test.describe('Performance - Memory Usage', () => {
       await basePage.toggleTheme();
       await basePage.openSearch();
       await page.keyboard.press('Escape');
-      await page.waitForTimeout(100);
     }
 
     const finalMemory = await checkMemoryUsage(page);
@@ -410,7 +410,7 @@ test.describe('Performance - JavaScript Execution', () => {
           setTimeout(() => {
             observer.disconnect();
             resolve(tasks);
-          }, 5000);
+          }, 2000);
         });
       });
     } catch (error) {

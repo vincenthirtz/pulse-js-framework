@@ -139,7 +139,6 @@ export async function testTabOrder(page, expectedCount = null) {
   // Tab through elements
   for (let i = 0; i < Math.min(focusableElements.length, 10); i++) {
     await page.keyboard.press('Tab');
-    await page.waitForTimeout(100); // Small delay for focus to settle
   }
 
   // Should be able to tab backwards
@@ -169,7 +168,6 @@ export async function testSkipLinks(page) {
   if (focusedElement.tag === 'a' && focusedElement.href?.startsWith('#')) {
     // Press Enter to activate skip link
     await page.keyboard.press('Enter');
-    await page.waitForTimeout(300);
 
     // Verify it scrolled to target
     const targetId = focusedElement.href.substring(1);
@@ -198,7 +196,6 @@ export async function testEscapeKey(page, triggerSelector, contentSelector) {
 
   // Press Escape
   await page.keyboard.press('Escape');
-  await page.waitForTimeout(300);
 
   // Should be closed
   const isVisible = await page.locator(contentSelector).isVisible().catch(() => false);
@@ -327,7 +324,6 @@ export async function testFocusVisible(page, selector) {
 
   // Tab to element
   await element.focus();
-  await page.waitForTimeout(100);
 
   // Check for focus indicator (outline or box-shadow)
   const hasFocusIndicator = await element.evaluate(el => {

@@ -110,12 +110,18 @@ test.describe('Console Error Detection', () => {
   for (const route of ROUTES) {
     test(`${route || '/'} - No console errors`, async ({ page }) => {
       await page.goto(`${BASE_URL}${route}`, {
-        waitUntil: 'networkidle',
-        timeout: 30000,
+        waitUntil: 'domcontentloaded',
+        timeout: 15000,
       });
 
-      // Wait for any dynamic content to load
-      await page.waitForTimeout(1000);
+      // Wait for main content to render
+      await page.waitForSelector('main, [role="main"], h1', {
+        state: 'attached',
+        timeout: 10000,
+      }).catch(() => {});
+
+      // Wait for JS to fully execute (needed to catch console errors)
+      await page.waitForLoadState('load', { timeout: 10000 }).catch(() => {});
 
       // Report errors if any
       if (consoleErrors.length > 0) {
@@ -162,12 +168,15 @@ test.describe('Localized Pages', () => {
     for (const route of SAMPLE_ROUTES) {
       test(`${locale}${route} - No console errors`, async ({ page }) => {
         await page.goto(`${BASE_URL}${locale}${route}`, {
-          waitUntil: 'networkidle',
-          timeout: 45000,
+          waitUntil: 'domcontentloaded',
+          timeout: 15000,
         });
 
-        // Wait longer for translations to load
-        await page.waitForTimeout(1500);
+        // Wait for content to render (translations loaded)
+        await page.waitForFunction(
+          () => document.body.textContent && document.body.textContent.trim().length > 100,
+          { timeout: 10000 }
+        ).catch(() => {});
 
         if (consoleErrors.length > 0) {
           console.error(`❌ Console errors on ${locale}${route}:`, consoleErrors);
@@ -181,10 +190,10 @@ test.describe('Localized Pages', () => {
 
 test.describe('Interactive Features', () => {
   test('Search modal - No errors', async ({ page }) => {
-    await page.goto(BASE_URL, { waitUntil: 'networkidle' });
+    await page.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
 
-    // Wait for translations to load
-    await page.waitForTimeout(1000);
+    // Wait for main content to render
+    await page.waitForSelector('main, [role="main"]', { state: 'attached', timeout: 10000 }).catch(() => {});
 
     const consoleErrors = [];
     page.on('console', msg => {
@@ -212,7 +221,10 @@ test.describe('Interactive Features', () => {
 
     // Type search query
     await page.keyboard.type('pulse');
-    await page.waitForTimeout(500);
+    // Wait for search results to appear
+    await page.waitForSelector('.search-result, .search-results li, .search-overlay [role="list"] > *', {
+      state: 'attached', timeout: 3000
+    }).catch(() => {});
 
     // Close modal
     await page.keyboard.press('Escape');
@@ -224,7 +236,8 @@ test.describe('Interactive Features', () => {
     // Set mobile viewport
     await page.setViewportSize({ width: 375, height: 667 });
 
-    await page.goto(BASE_URL, { waitUntil: 'networkidle' });
+    await page.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('main, [role="main"]', { state: 'attached', timeout: 10000 }).catch(() => {});
 
     const consoleErrors = [];
     page.on('console', msg => {
@@ -235,29 +248,34 @@ test.describe('Interactive Features', () => {
     const menuButton = page.locator('button[aria-label*="menu"]').first();
     if (await menuButton.isVisible()) {
       await menuButton.click();
-      await page.waitForTimeout(500);
+      await page.waitForFunction(
+        () => {
+          const btn = document.querySelector('button[aria-label*="menu" i]');
+          return btn?.getAttribute('aria-expanded') === 'true';
+        },
+        { timeout: 3000 }
+      ).catch(() => {});
     }
 
     expect(consoleErrors).toHaveLength(0);
   });
 
   test('Code playground - No errors', async ({ page }) => {
-    await page.goto(`${BASE_URL}/playground`, { waitUntil: 'networkidle' });
+    await page.goto(`${BASE_URL}/playground`, { waitUntil: 'domcontentloaded' });
 
     const consoleErrors = [];
     page.on('console', msg => {
       if (msg.type() === 'error') consoleErrors.push(msg.text());
     });
 
-    // Wait for playground to load
-    await page.waitForTimeout(2000);
+    // Wait for playground editor to load
+    const codeEditor = page.locator('textarea, [contenteditable="true"]').first();
+    await codeEditor.waitFor({ state: 'attached', timeout: 10000 }).catch(() => {});
 
     // Try interacting with code editor if present
-    const codeEditor = page.locator('textarea, [contenteditable="true"]').first();
-    if (await codeEditor.isVisible()) {
+    if (await codeEditor.isVisible().catch(() => false)) {
       await codeEditor.click();
       await page.keyboard.type('// test');
-      await page.waitForTimeout(500);
     }
 
     expect(consoleErrors).toHaveLength(0);
@@ -269,7 +287,8 @@ test.describe('Accessibility Checks', () => {
     const violations = [];
 
     for (const route of ROUTES.slice(0, 5)) { // Test first 5 routes for a11y
-      await page.goto(`${BASE_URL}${route}`, { waitUntil: 'networkidle' });
+      await page.goto(`${BASE_URL}${route}`, { waitUntil: 'domcontentloaded' });
+      await page.waitForSelector('main, [role="main"]', { state: 'attached', timeout: 10000 }).catch(() => {});
 
       // Check for basic a11y issues
       const missingAltImages = await page.locator('img:not([alt])').count();

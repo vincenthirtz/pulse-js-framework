@@ -182,9 +182,9 @@ test.describe('Error Handling - Network Offline', () => {
 
     // Simulate intermittent connectivity
     await context.setOffline(true);
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(200);
     await context.setOffline(false);
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(100);
 
     // Should still be functional
     await basePage.goto('/api-reference');
@@ -218,7 +218,7 @@ test.describe('Error Handling - Slow Network', () => {
     });
 
     // Check for loading indicators
-    await page.waitForTimeout(200);
+    await page.waitForTimeout(100);
 
     // Look for common loading indicators
     let hasLoader = false;
@@ -270,7 +270,7 @@ test.describe('Error Handling - Slow Network', () => {
           setTimeout(() => {
             observer.disconnect();
             resolve(clsValue);
-          }, 3000);
+          }, 1500);
         });
       });
     } catch (error) {
@@ -297,14 +297,14 @@ test.describe('Error Handling - Large Content', () => {
 
     // Should be able to scroll to bottom
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-    await page.waitForTimeout(500);
+    await page.waitForFunction(() => window.scrollY > 100).catch(() => {});
 
     const scrollY = await page.evaluate(() => window.scrollY);
     expect(scrollY, 'Should scroll to bottom').toBeGreaterThan(100);
 
     // Scroll back to top
     await page.evaluate(() => window.scrollTo(0, 0));
-    await page.waitForTimeout(300);
+    await page.waitForFunction(() => window.scrollY < 50).catch(() => {});
 
     const topScrollY = await page.evaluate(() => window.scrollY);
     expect(topScrollY, 'Should scroll back to top').toBeLessThan(50);
@@ -340,7 +340,10 @@ test.describe('Error Handling - Large Content', () => {
 
     const searchInput = page.locator('.search-overlay input, dialog.search input').first();
     await searchInput.fill('pulse');
-    await page.waitForTimeout(1000);
+    // Wait for search results to appear
+    await page.waitForSelector('.search-result, .search-results li, .search-overlay [role="list"] > *', {
+      state: 'attached', timeout: 5000
+    }).catch(() => {});
 
     // Get result count
     const resultCount = await page.locator('.search-result, .search-results li, .search-overlay [role="list"] > *').count();
@@ -384,7 +387,7 @@ test.describe('Error Handling - Memory Leaks', () => {
     const routes = ['/', '/getting-started', '/api-reference', '/examples', '/'];
     for (const route of routes) {
       await basePage.goto(route);
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(100);
     }
 
     // Force garbage collection if available (Chrome only)
@@ -394,7 +397,7 @@ test.describe('Error Handling - Memory Leaks', () => {
       }
     });
 
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(200);
 
     // Get final memory
     const finalMemory = await page.evaluate(() => {
@@ -415,11 +418,10 @@ test.describe('Error Handling - Memory Leaks', () => {
 
     // Navigate to a page with interactive features
     await basePage.goto('/playground');
-    await page.waitForTimeout(2000);
+    await page.waitForSelector('textarea, [contenteditable="true"]', { state: 'attached', timeout: 10000 }).catch(() => {});
 
     // Navigate away
     await basePage.goto('/');
-    await page.waitForTimeout(500);
 
     // Should not have errors from cleanup issues
     const errors = await page.evaluate(() => {
@@ -448,8 +450,6 @@ test.describe('Error Handling - Browser Compatibility', () => {
     await page.keyboard.press('Escape');
     await basePage.toggleTheme();
 
-    await page.waitForTimeout(1000);
-
     if (unhandledRejections.length > 0) {
       console.error('❌ Unhandled promise rejections:', unhandledRejections);
     }
@@ -468,7 +468,6 @@ test.describe('Error Handling - Browser Compatibility', () => {
 
     const basePage = new BasePage(page, BASE_URL);
     await basePage.goto('/');
-    await page.waitForTimeout(1000);
 
     if (deprecationWarnings.length > 0) {
       console.warn('⚠️  Deprecation warnings:', deprecationWarnings);
@@ -506,7 +505,7 @@ test.describe('Error Handling - Edge Cases', () => {
       await page.waitForTimeout(100);
     }
 
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(200);
 
     // Final navigation should work
     await basePage.goto('/');
@@ -532,7 +531,7 @@ test.describe('Error Handling - Edge Cases', () => {
     await page.waitForTimeout(50);
     await searchInput.fill('pulse');
 
-    await page.waitForTimeout(1000);
+    await page.waitForSelector('.search-result, .search-results li', { state: 'attached', timeout: 5000 }).catch(() => {});
 
     // Should show results without errors
     const resultCount = await page.locator('.search-result, .search-results li').count();
@@ -550,7 +549,7 @@ test.describe('Error Handling - Edge Cases', () => {
     // Empty search should not crash
     const searchInput = page.locator('.search-overlay input, dialog.search input').first();
     await searchInput.fill('');
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(100);
 
     // Should show initial state or all results
     await page.keyboard.press('Escape');
@@ -569,7 +568,7 @@ test.describe('Error Handling - Edge Cases', () => {
 
     for (const query of specialQueries) {
       await searchInput.fill(query);
-      await page.waitForTimeout(300);
+      await page.waitForTimeout(100);
     }
 
     // Should not crash or throw errors

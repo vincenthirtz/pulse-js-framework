@@ -11,12 +11,12 @@ export default defineConfig({
   testMatch: '**/*.spec.js',
 
   // Maximum time one test can run
-  timeout: 60 * 1000,
+  timeout: 45 * 1000,
 
   // Parallel execution
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: 2, // Retry twice on failure
+  retries: process.env.CI ? 2 : 0,
 
   // Use all available CPU cores in CI
   workers: process.env.CI ? '100%' : 2,
@@ -44,8 +44,8 @@ export default defineConfig({
     video: 'off',
 
     // Timeout for actions
-    actionTimeout: 10 * 1000,
-    navigationTimeout: 30 * 1000,
+    actionTimeout: 5 * 1000,
+    navigationTimeout: 15 * 1000,
   },
 
   // Test on Chromium and Firefox only (fastest, most coverage)

@@ -68,7 +68,11 @@ export class SearchModal {
    */
   async search(query) {
     await this.page.locator(this.selectors.input).fill(query);
-    await this.page.waitForTimeout(500); // Debounce time for search
+    // Wait for search results or no-results indicator to appear
+    await this.page.waitForSelector(
+      `${this.selectors.resultItems}, ${this.selectors.noResults}`,
+      { state: 'attached', timeout: 3000 }
+    ).catch(() => {});
   }
 
   /**
@@ -98,7 +102,6 @@ export class SearchModal {
       throw new Error(`Result index ${index} out of bounds (total: ${results.length})`);
     }
     await results[index].click();
-    await this.page.waitForTimeout(500);
   }
 
   /**
@@ -126,7 +129,7 @@ export class SearchModal {
   async closeWithBackdrop() {
     // Click on overlay background (not on the modal content)
     await this.page.locator(this.selectors.overlay).click({ position: { x: 10, y: 10 } });
-    await this.page.waitForTimeout(500);
+    await this.waitForClose(3000).catch(() => {});
   }
 
   /**
@@ -149,7 +152,6 @@ export class SearchModal {
     const key = direction === 'down' ? 'ArrowDown' : 'ArrowUp';
     for (let i = 0; i < count; i++) {
       await this.page.keyboard.press(key);
-      await this.page.waitForTimeout(100);
     }
   }
 
@@ -158,7 +160,6 @@ export class SearchModal {
    */
   async selectHighlightedResult() {
     await this.page.keyboard.press('Enter');
-    await this.page.waitForTimeout(500);
   }
 
   /**
@@ -170,7 +171,6 @@ export class SearchModal {
 
     // Type search query
     await this.search('pulse');
-    await this.page.waitForTimeout(500);
 
     // Navigate down
     await this.navigateResults('down', 2);
@@ -191,7 +191,6 @@ export class SearchModal {
     // Tab through focusable elements
     for (let i = 0; i < 5; i++) {
       await this.page.keyboard.press('Tab');
-      await this.page.waitForTimeout(100);
 
       // Verify focus is still within modal
       const focusedElement = await this.page.evaluate(() => {

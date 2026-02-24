@@ -68,7 +68,6 @@ test.describe('Accessibility - Keyboard Navigation', () => {
     // Tab to first few interactive elements and check focus indicators
     for (let i = 0; i < 5; i++) {
       await page.keyboard.press('Tab');
-      await page.waitForTimeout(100);
 
       // Check if focused element has visible focus indicator
       const hasFocusIndicator = await page.evaluate(() => {
@@ -115,11 +114,11 @@ test.describe('Accessibility - Keyboard Navigation', () => {
     const menuButton = page.locator('button[aria-label*="menu" i]').first();
     if (await menuButton.isVisible()) {
       await menuButton.click();
-      await page.waitForTimeout(300);
+      await page.waitForFunction(() => { const btn = document.querySelector('button[aria-label*="menu" i]'); return btn?.getAttribute('aria-expanded') !== 'true'; }, { timeout: 3000 }).catch(() => {});
 
       // Press Escape
       await page.keyboard.press('Escape');
-      await page.waitForTimeout(300);
+      await page.waitForFunction(() => { const btn = document.querySelector('button[aria-label*="menu" i]'); return btn?.getAttribute('aria-expanded') !== 'true'; }, { timeout: 3000 }).catch(() => {});
 
       // Menu should be closed (check aria-expanded or visibility)
       const expanded = await menuButton.getAttribute('aria-expanded');
@@ -141,7 +140,6 @@ test.describe('Accessibility - Keyboard Navigation', () => {
 
       // Press arrow down
       await page.keyboard.press('ArrowDown');
-      await page.waitForTimeout(100);
 
       // Check if focus moved (implementation-dependent)
       const focusedTag = await page.evaluate(() => document.activeElement?.tagName);
@@ -271,7 +269,7 @@ test.describe('Accessibility - Color Contrast', () => {
     await page.evaluate(() => {
       document.documentElement.setAttribute('data-theme', 'light');
     });
-    await page.waitForTimeout(300);
+    await page.waitForFunction(() => document.documentElement.getAttribute('data-theme') === 'light', { timeout: 3000 }).catch(() => {});
 
     // Check main text contrast
     const mainText = page.locator('main p, main li').first();
@@ -290,7 +288,7 @@ test.describe('Accessibility - Color Contrast', () => {
     await page.evaluate(() => {
       document.documentElement.setAttribute('data-theme', 'dark');
     });
-    await page.waitForTimeout(300);
+    await page.waitForFunction(() => document.documentElement.getAttribute('data-theme') === 'dark', { timeout: 3000 }).catch(() => {});
 
     // Check main text contrast
     const mainText = page.locator('main p, main li').first();
@@ -362,7 +360,6 @@ test.describe('Accessibility - Interactive Elements', () => {
     // Tab through many elements without getting stuck
     for (let i = 0; i < 20; i++) {
       await page.keyboard.press('Tab');
-      await page.waitForTimeout(50);
 
       // Verify we can still interact with page
       const activeElement = await page.evaluate(() => document.activeElement?.tagName);
@@ -372,7 +369,6 @@ test.describe('Accessibility - Interactive Elements', () => {
     // Should be able to tab backwards too
     for (let i = 0; i < 10; i++) {
       await page.keyboard.press('Shift+Tab');
-      await page.waitForTimeout(50);
     }
   });
 });
@@ -429,7 +425,6 @@ test.describe('Accessibility - Mobile', () => {
     let found = false;
     for (let i = 0; i < 10 && !found; i++) {
       await page.keyboard.press('Tab');
-      await page.waitForTimeout(100);
 
       const activeElement = await page.evaluate(() => {
         const el = document.activeElement;
@@ -441,7 +436,7 @@ test.describe('Accessibility - Mobile', () => {
         found = true;
         // Activate with Enter
         await page.keyboard.press('Enter');
-        await page.waitForTimeout(300);
+        await page.waitForFunction(() => { const btn = document.querySelector('button[aria-label*="menu" i]'); return btn?.getAttribute('aria-expanded') === 'true'; }, { timeout: 3000 }).catch(() => {});
 
         // Menu should be open
         const menuOpen = await page.evaluate(() => {
