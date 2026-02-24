@@ -113,7 +113,7 @@ test.describe('Accessibility - Keyboard Navigation', () => {
     const menuButton = page.locator('button[aria-label*="menu" i]').first();
     if (await menuButton.isVisible()) {
       await menuButton.click();
-      await page.waitForFunction(() => { const btn = document.querySelector('button[aria-label*="menu" i]'); return btn?.getAttribute('aria-expanded') !== 'true'; }, { timeout: 3000 }).catch(() => {});
+      await page.waitForFunction(() => { const btn = document.querySelector('button[aria-label*="menu" i]'); return btn?.getAttribute('aria-expanded') === 'true'; }, { timeout: 3000 }).catch(() => {});
 
       // Press Escape
       await page.keyboard.press('Escape');

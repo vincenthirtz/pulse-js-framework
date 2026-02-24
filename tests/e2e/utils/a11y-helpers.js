@@ -233,7 +233,7 @@ export async function assertAriaAttributes(page, selector, expectedAttrs) {
  * @returns {Promise<{ratio: number, passes: boolean, foreground: string, background: string}>}
  */
 export async function checkColorContrast(page, selector) {
-  return await page.locator(selector).evaluate(element => {
+  return await page.locator(selector).first().evaluate(element => {
     const style = window.getComputedStyle(element);
     const fg = style.color;
 

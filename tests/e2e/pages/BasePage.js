@@ -212,7 +212,7 @@ export class BasePage {
     }
 
     const button = copyButtons[index];
-    await button.click();
+    await button.click({ force: true });
 
     // Check if clipboard was populated (requires clipboard permissions in browser)
     // We can't directly test clipboard in Playwright without permissions,

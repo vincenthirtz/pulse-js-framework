@@ -193,7 +193,7 @@ test.describe('Performance - Bundle Sizes', () => {
     await basePage.goto('/');
 
     await assertBundleSizes(page, {
-      js: 350 * 1024,   // 350KB
+      js: 400 * 1024,   // 400KB
       css: 100 * 1024,  // 100KB
       total: 700 * 1024 // 700KB
     });

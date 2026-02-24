@@ -165,7 +165,7 @@ export const navStructure = [
     ]
   },
   // Hidden routes (not in navigation but need routing)
-  { path: '/changelog', handler: ChangelogPage, hidden: true }
+  { path: '/changelog', labelKey: 'nav.changelog', handler: ChangelogPage, hidden: true }
 ];
 
 /**

@@ -40,10 +40,10 @@ test.describe('Server Components Page', () => {
     });
 
     // Wait for content to render
-    await page.waitForSelector('h1, h2', { state: 'attached', timeout: 10000 }).catch(() => {});
+    await page.waitForSelector('.page h1, .page h2, main h1, main h2', { state: 'attached', timeout: 10000 }).catch(() => {});
 
     // Check that page title or heading is present
-    const heading = await page.locator('h1, h2').first();
+    const heading = page.locator('.page h1, .page h2, main h1, main h2').first();
     await expect(heading).toBeVisible();
 
     // No console errors
@@ -136,11 +136,11 @@ test.describe('Server Components Page', () => {
     });
 
     // Wait for content to render and JS to load
-    await page.waitForSelector('h1, h2', { state: 'attached', timeout: 10000 }).catch(() => {});
+    await page.waitForSelector('.page h1, .page h2, main h1, main h2', { state: 'attached', timeout: 10000 }).catch(() => {});
     await page.waitForLoadState('load', { timeout: 10000 }).catch(() => {});
 
     // Content should still be visible on mobile
-    const heading = await page.locator('h1, h2').first();
+    const heading = page.locator('.page h1, .page h2, main h1, main h2').first();
     await expect(heading).toBeVisible();
 
     expect(consoleErrors).toHaveLength(0);
