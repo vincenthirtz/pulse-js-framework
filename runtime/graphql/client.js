@@ -8,6 +8,8 @@
 
 import { pulse, computed, batch } from '../pulse.js';
 import { createHttp, HttpError } from '../http.js';
+import { createWebSocket } from '../websocket.js';
+import { SubscriptionManager } from './subscriptions.js';
 import { ClientError } from '../errors.js';
 import { LRUCache } from '../lru-cache.js';
 import { InterceptorManager } from '../interceptor-manager.js';

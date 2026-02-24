@@ -240,9 +240,13 @@ test('trims whitespace', () => {
   assertEqual(sanitizeUrl('  https://example.com  '), 'https://example.com');
 });
 
+test('allows ftp protocol', () => {
+  assertEqual(sanitizeUrl('ftp://example.com'), 'ftp://example.com');
+});
+
 test('blocks other protocols', () => {
-  assertEqual(sanitizeUrl('ftp://example.com'), null);
   assertEqual(sanitizeUrl('file:///etc/passwd'), null);
+  assertEqual(sanitizeUrl('gopher://example.com'), null);
 });
 
 test('blocks vbscript: URLs', () => {
