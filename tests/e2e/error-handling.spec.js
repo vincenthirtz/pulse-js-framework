@@ -16,18 +16,28 @@ const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000';
  */
 async function openSearchModal(page) {
   const overlaySelector = '.search-overlay[role="dialog"], [role="dialog"].search, dialog.search';
-  await page.keyboard.press('ControlOrMeta+k');
-  try {
-    await page.waitForSelector(overlaySelector, { state: 'visible', timeout: 3000 });
-  } catch {
-    const searchBtn = page.locator('button.search-btn, button[aria-label*="search" i]').first();
-    if (await searchBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await searchBtn.click();
-    } else {
-      await page.keyboard.press('ControlOrMeta+k');
+
+  // Wait for SPA to be interactive (search handler must be registered)
+  await page.waitForSelector('button.search-btn, button[aria-label*="search" i]', {
+    state: 'visible',
+    timeout: 10000
+  }).catch(() => {});
+
+  // Try clicking the search button first (more reliable in CI)
+  const searchBtn = page.locator('button.search-btn, button[aria-label*="search" i]').first();
+  if (await searchBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+    await searchBtn.click();
+    try {
+      await page.waitForSelector(overlaySelector, { state: 'visible', timeout: 3000 });
+      return;
+    } catch {
+      // Continue to keyboard fallback
     }
-    await page.waitForSelector(overlaySelector, { state: 'visible', timeout: 5000 });
   }
+
+  // Fallback: keyboard shortcut
+  await page.keyboard.press('ControlOrMeta+k');
+  await page.waitForSelector(overlaySelector, { state: 'visible', timeout: 5000 });
 }
 
 test.describe('Error Handling - 404 Pages', () => {
@@ -69,9 +79,10 @@ test.describe('Error Handling - 404 Pages', () => {
       // Ignore navigation errors for 404
     });
 
-    // Wait for SPA to render (wildcard route renders home page)
-    await page.waitForSelector('header, nav, a[href="/"]', {
-      state: 'attached',
+    // Wait for SPA to fully render (wildcard route renders home page)
+    await page.waitForLoadState('load', { timeout: 10000 }).catch(() => {});
+    await page.waitForSelector('header button, nav a[href]', {
+      state: 'visible',
       timeout: 10000
     }).catch(() => {
       // If elements don't appear, the assertion below will fail
@@ -295,9 +306,15 @@ test.describe('Error Handling - Large Content', () => {
     // Go to a long page (changelog is typically long)
     await basePage.goto('/changelog');
 
+    // Wait for page content to be rendered (SPA needs time to inject content)
+    await page.waitForFunction(
+      () => document.body.scrollHeight > window.innerHeight,
+      { timeout: 10000 }
+    ).catch(() => {});
+
     // Should be able to scroll to bottom
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-    await page.waitForFunction(() => window.scrollY > 100).catch(() => {});
+    await page.waitForFunction(() => window.scrollY > 100, { timeout: 5000 }).catch(() => {});
 
     const scrollY = await page.evaluate(() => window.scrollY);
     expect(scrollY, 'Should scroll to bottom').toBeGreaterThan(100);

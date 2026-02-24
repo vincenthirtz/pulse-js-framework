@@ -190,6 +190,12 @@ export async function navigateAndWait(page, url, options = {}) {
   if (shouldWaitTranslations) {
     await waitForTranslations(page);
   }
+
+  // Wait for SPA to be fully interactive (header rendered with buttons)
+  await page.waitForSelector('header button, nav a[href]', {
+    state: 'visible',
+    timeout: 10000
+  }).catch(() => {});
 }
 
 /**

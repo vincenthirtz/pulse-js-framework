@@ -225,12 +225,18 @@ test.describe('Interactive - Code Blocks', () => {
     const basePage = new BasePage(page, BASE_URL);
     await basePage.goto('/getting-started');
 
+    // Wait for code blocks to be rendered by the SPA
+    await page.waitForSelector('pre code, .code-block', {
+      state: 'attached',
+      timeout: 10000
+    }).catch(() => {});
+
     const codeBlocks = await basePage.getCodeBlocks();
     expect(codeBlocks.length, 'Page should have code blocks').toBeGreaterThan(0);
 
     // Check if syntax highlighting is applied (look for .hljs or similar classes)
     const hasHighlighting = await page.evaluate(() => {
-      const blocks = document.querySelectorAll('pre code');
+      const blocks = document.querySelectorAll('pre code, .code-block code');
       return Array.from(blocks).some(block => {
         // Check for highlighting class or colored spans inside
         return block.className.includes('language-') ||
@@ -347,6 +353,12 @@ test.describe('Interactive - Theme Switcher', () => {
   test('Theme toggle works', async ({ page }) => {
     const basePage = new BasePage(page, BASE_URL);
     await basePage.goto('/');
+
+    // Wait for SPA to set data-theme attribute (defaults to "dark")
+    await page.waitForFunction(
+      () => document.documentElement.getAttribute('data-theme') !== null,
+      { timeout: 10000 }
+    ).catch(() => {});
 
     const initialTheme = await basePage.getCurrentTheme();
     console.log(`\n🎨 Initial theme: ${initialTheme}`);

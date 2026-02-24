@@ -229,15 +229,20 @@ jobs:
           fi
 
   e2e-smoke:
-    name: E2E Smoke Test
+    name: E2E Smoke (${{ matrix.shard }}/${{ strategy.job-total }})
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     needs: [changes, test]
     if: >-
       needs.changes.outputs.src == 'true' ||
       needs.changes.outputs.tests == 'true' ||
       needs.changes.outputs.deps == 'true' ||
       github.event_name == 'workflow_dispatch'
+
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
 
     steps:
       - name: Checkout repository
@@ -254,6 +259,9 @@ jobs:
 
       - name: Install E2E test dependencies
         run: npm install --no-save @playwright/test @axe-core/playwright
+
+      - name: Build docs site
+        run: npm run build:netlify
 
       - name: Get Playwright version
         id: playwright-version
@@ -274,16 +282,16 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: npx playwright install-deps chromium
 
-      - name: Run E2E smoke tests (Chromium only)
-        run: npx playwright test --project=chromium --grep-invert "Examples Health Check"
+      - name: Run E2E smoke tests (shard ${{ matrix.shard }}/3)
+        run: npx playwright test --project=chromium --grep-invert "Examples Health Check" --shard=${{ matrix.shard }}/3
         env:
-          PLAYWRIGHT_BASE_URL: 'https://pulse-js.fr'
+          PLAYWRIGHT_SERVE_DIR: './dist'
 
       - name: Upload Playwright report
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: e2e-smoke-report
+          name: e2e-smoke-report-shard-${{ matrix.shard }}
           path: playwright-report/
           retention-days: 7
 

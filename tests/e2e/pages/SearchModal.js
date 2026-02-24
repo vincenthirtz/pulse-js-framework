@@ -24,22 +24,27 @@ export class SearchModal {
    * Open search modal using keyboard shortcut, with fallback to clicking search button
    */
   async open() {
-    // Try keyboard shortcut first
-    await this.page.keyboard.press('ControlOrMeta+k');
+    // Wait for SPA to be interactive (search handler must be registered)
+    await this.page.waitForSelector('button.search-btn, button[aria-label*="search" i]', {
+      state: 'visible',
+      timeout: 10000
+    }).catch(() => {});
 
-    try {
-      await this.waitForOpen(3000);
-    } catch {
-      // Fallback: click the search button if keyboard shortcut didn't work
-      const searchBtn = this.page.locator('button.search-btn, button[aria-label*="search" i], button[aria-label*="recherche" i]').first();
-      if (await searchBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await searchBtn.click();
-      } else {
-        // Retry keyboard shortcut
-        await this.page.keyboard.press('ControlOrMeta+k');
+    // Try clicking the search button first (more reliable in CI than keyboard shortcuts)
+    const searchBtn = this.page.locator('button.search-btn, button[aria-label*="search" i], button[aria-label*="recherche" i]').first();
+    if (await searchBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await searchBtn.click();
+      try {
+        await this.waitForOpen(3000);
+        return;
+      } catch {
+        // Continue to keyboard fallback
       }
-      await this.waitForOpen(5000);
     }
+
+    // Fallback: keyboard shortcut
+    await this.page.keyboard.press('ControlOrMeta+k');
+    await this.waitForOpen(5000);
   }
 
   /**

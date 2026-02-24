@@ -130,6 +130,12 @@ export async function getFocusableElements(page) {
  * @param {number} expectedCount - Expected number of focusable elements
  */
 export async function testTabOrder(page, expectedCount = null) {
+  // Wait for SPA to render interactive elements
+  await page.waitForSelector('header button, nav a[href]', {
+    state: 'visible',
+    timeout: 10000
+  }).catch(() => {});
+
   const focusableElements = await getFocusableElements(page);
 
   if (expectedCount !== null) {

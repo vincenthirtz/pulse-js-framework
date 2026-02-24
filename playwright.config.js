@@ -6,6 +6,9 @@
 
 import { defineConfig, devices } from '@playwright/test';
 
+const serveDir = process.env.PLAYWRIGHT_SERVE_DIR;
+const baseURL = process.env.PLAYWRIGHT_BASE_URL || (serveDir ? 'http://localhost:4173' : 'http://localhost:3000');
+
 export default defineConfig({
   testDir: './tests/e2e',
   testMatch: '**/*.spec.js',
@@ -31,8 +34,7 @@ export default defineConfig({
   ],
 
   use: {
-    // Base URL from environment (set by GitHub Actions)
-    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000',
+    baseURL,
 
     // Collect trace on failure
     trace: 'retain-on-failure',
@@ -47,6 +49,15 @@ export default defineConfig({
     actionTimeout: 5 * 1000,
     navigationTimeout: 15 * 1000,
   },
+
+  // Serve the built site locally when PLAYWRIGHT_SERVE_DIR is set
+  ...(serveDir ? {
+    webServer: {
+      command: `npx serve ${serveDir} -l 4173 -s`,
+      port: 4173,
+      reuseExistingServer: !process.env.CI,
+    },
+  } : {}),
 
   // Test on Chromium and Firefox only (fastest, most coverage)
   projects: [
