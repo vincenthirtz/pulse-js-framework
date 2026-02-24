@@ -18,6 +18,14 @@ description: Software architecture agent for the Pulse JS framework. Use this sk
 - Evaluating bundle size impact of new features
 - Enforcing separation of concerns across layers (runtime, compiler, CLI)
 
+## Context Loading
+
+Before designing, load relevant context files from `.claude/context/`:
+- Architecture overview → already in CLAUDE.md
+- Module API details → `api-core.md`, `api-router-store.md`, etc.
+- Import paths → `export-map.md`
+- Performance/algorithms → `performance-algorithms.md`
+
 ## Bundled Resources
 
 | Resource | Description |

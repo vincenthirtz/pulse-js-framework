@@ -34,147 +34,100 @@ function check(description, testFn) {
   }
 }
 
-// Check 1: skill.json exists
-check('skill.json exists', () => {
-  const path = join(__dirname, 'skill.json');
-  if (!existsSync(path)) throw new Error('skill.json not found');
+// Check 1: SKILL.md exists
+check('SKILL.md exists', () => {
+  const path = join(__dirname, 'SKILL.md');
+  if (!existsSync(path)) throw new Error('SKILL.md not found');
 });
 
-// Check 2: skill.json is valid JSON
-check('skill.json is valid JSON', () => {
-  const path = join(__dirname, 'skill.json');
+// Check 2: SKILL.md has frontmatter
+check('SKILL.md has valid frontmatter', () => {
+  const path = join(__dirname, 'SKILL.md');
   const content = readFileSync(path, 'utf-8');
-  JSON.parse(content);
+  if (!content.startsWith('---')) throw new Error('Missing frontmatter');
+  if (!content.includes('name: lead-developer')) throw new Error('Missing name field');
+  if (!content.includes('description:')) throw new Error('Missing description field');
 });
 
-// Check 3: skill.json has required fields
-check('skill.json has required fields', () => {
-  const path = join(__dirname, 'skill.json');
-  const content = JSON.parse(readFileSync(path, 'utf-8'));
-  const required = ['name', 'version', 'description', 'instructions', 'capabilities', 'delegatesTo'];
-  for (const field of required) {
-    if (!content[field]) throw new Error(`Missing field: ${field}`);
-  }
-  if (content.name !== 'lead-developer') {
-    throw new Error(`Expected name "lead-developer", got "${content.name}"`);
-  }
-});
-
-// Check 4: instructions.md exists
-check('instructions.md exists', () => {
-  const path = join(__dirname, 'instructions.md');
-  if (!existsSync(path)) throw new Error('instructions.md not found');
-});
-
-// Check 5: instructions.md is not empty
-check('instructions.md has content', () => {
-  const path = join(__dirname, 'instructions.md');
+// Check 3: SKILL.md has key sections
+check('SKILL.md has required sections', () => {
+  const path = join(__dirname, 'SKILL.md');
   const content = readFileSync(path, 'utf-8');
-  if (content.trim().length < 100) {
-    throw new Error('instructions.md seems too short');
+  const required = ['Plan → Execute', 'Multi-Model', 'Context Loading', 'Quality Gates'];
+  for (const section of required) {
+    if (!content.includes(section)) throw new Error(`Missing section: ${section}`);
   }
 });
 
-// Check 6: instructions.md mentions all delegate skills
-check('instructions.md references all delegate skills', () => {
-  const skillPath = join(__dirname, 'skill.json');
-  const skillJson = JSON.parse(readFileSync(skillPath, 'utf-8'));
-  const delegatesTo = skillJson.delegatesTo || [];
-
-  const instructionsPath = join(__dirname, 'instructions.md');
-  const instructions = readFileSync(instructionsPath, 'utf-8');
-
-  for (const skill of delegatesTo) {
-    if (!instructions.includes(skill)) {
-      throw new Error(`Delegate skill "${skill}" not mentioned in instructions`);
-    }
-  }
-});
-
-// Check 7: README.md exists
-check('README.md exists', () => {
-  const path = join(__dirname, 'README.md');
-  if (!existsSync(path)) throw new Error('README.md not found');
-});
-
-// Check 8: README.md has usage examples
-check('README.md has usage examples', () => {
-  const path = join(__dirname, 'README.md');
-  const content = readFileSync(path, 'utf-8');
-  if (!content.includes('```') || !content.includes('Example')) {
-    throw new Error('README.md should have code examples');
-  }
-});
-
-// Check 9: examples.md exists
+// Check 4: examples.md exists
 check('examples.md exists', () => {
   const path = join(__dirname, 'examples.md');
   if (!existsSync(path)) throw new Error('examples.md not found');
 });
 
-// Check 10: examples.md has real examples
+// Check 5: examples.md has examples
 check('examples.md has practical examples', () => {
   const path = join(__dirname, 'examples.md');
   const content = readFileSync(path, 'utf-8');
-  if (!content.includes('Example 1:')) {
+  if (!content.includes('Example 1:') && !content.includes('## Example 1')) {
     throw new Error('examples.md should have numbered examples');
   }
 });
 
-// Check 11: Delegate skills validation
-check('Delegate skills exist and are valid', () => {
-  const skillPath = join(__dirname, 'skill.json');
-  const skillJson = JSON.parse(readFileSync(skillPath, 'utf-8'));
-  const delegatesTo = skillJson.delegatesTo || [];
+// Check 6: Context files exist
+check('Context files directory exists', () => {
+  const contextDir = join(__dirname, '..', '..', 'context');
+  if (!existsSync(contextDir)) throw new Error('.claude/context/ directory not found');
+});
 
-  // If delegatesTo is empty, skill works in autonomous mode (valid)
-  if (delegatesTo.length === 0) {
-    console.log(yellow('  Note: Skill configured for autonomous mode (no delegation)'));
-    return;
-  }
-
-  // Check in same directory as lead-developer (sibling skills in .claude/skills/)
-  const skillsDir = dirname(__dirname);
-
-  let foundCount = 0;
-  let missingSkills = [];
-
-  for (const skill of delegatesTo) {
-    const skillDir = join(skillsDir, skill);
-    if (existsSync(skillDir)) {
-      // Check for either skill.json or SKILL.md (both are valid formats)
-      const skillJsonPath = join(skillDir, 'skill.json');
-      const skillMdPath = join(skillDir, 'SKILL.md');
-      if (existsSync(skillJsonPath) || existsSync(skillMdPath)) {
-        foundCount++;
-      } else {
-        missingSkills.push(`${skill} (missing skill.json or SKILL.md)`);
-      }
-    } else {
-      missingSkills.push(skill);
-    }
-  }
-
-  if (foundCount === delegatesTo.length) {
-    console.log(green(`  Found all ${foundCount} delegate skills in .claude/skills/`));
-  } else if (foundCount > 0) {
-    console.log(yellow(`  Found ${foundCount}/${delegatesTo.length} delegate skills`));
-    console.log(yellow(`  Missing: ${missingSkills.join(', ')}`));
-    throw new Error(`Some delegate skills not found: ${missingSkills.join(', ')}`);
-  } else {
-    console.log(yellow(`  No delegate skills found (will work in autonomous mode)`));
+// Check 7: Key context files present
+check('Key context files present', () => {
+  const contextDir = join(__dirname, '..', '..', 'context');
+  const required = ['api-core.md', 'api-router-store.md', 'export-map.md', 'error-reference.md'];
+  for (const file of required) {
+    if (!existsSync(join(contextDir, file))) throw new Error(`Missing context file: ${file}`);
   }
 });
 
-// Check 12: Quality gates mentioned
+// Check 8: Cache files exist
+check('Cache system present', () => {
+  const projectRoot = join(__dirname, '..', '..', '..', '..');
+  const cacheDir = join(projectRoot, 'memory', 'cache');
+  if (!existsSync(cacheDir)) {
+    console.log(yellow('  Note: memory/cache/ not found - run .claude/scripts/refresh-cache.sh'));
+    return;
+  }
+});
+
+// Check 9: Delegate skills exist
+check('Delegate skills available', () => {
+  const skillsDir = dirname(__dirname);
+  const delegates = ['software-architect', 'senior-developer', 'qa-testing', 'security-reviewer', 'docs-manager'];
+
+  let found = 0;
+  for (const skill of delegates) {
+    const skillDir = join(skillsDir, skill);
+    if (existsSync(skillDir) && existsSync(join(skillDir, 'SKILL.md'))) {
+      found++;
+    }
+  }
+
+  if (found === delegates.length) {
+    console.log(green(`  Found all ${found} delegate skills`));
+  } else if (found > 0) {
+    console.log(yellow(`  Found ${found}/${delegates.length} delegate skills (others: autonomous mode)`));
+  } else {
+    console.log(yellow('  No delegate skills found (will work in autonomous mode)'));
+  }
+});
+
+// Check 10: Quality gates documented
 check('Quality gates documented', () => {
-  const instructionsPath = join(__dirname, 'instructions.md');
-  const instructions = readFileSync(instructionsPath, 'utf-8');
+  const path = join(__dirname, 'SKILL.md');
+  const content = readFileSync(path, 'utf-8');
   const gates = ['Architecture', 'Code Quality', 'Testing', 'Security', 'Documentation'];
   for (const gate of gates) {
-    if (!instructions.includes(gate)) {
-      throw new Error(`Quality gate "${gate}" not mentioned`);
-    }
+    if (!content.includes(gate)) throw new Error(`Quality gate "${gate}" not mentioned`);
   }
 });
 

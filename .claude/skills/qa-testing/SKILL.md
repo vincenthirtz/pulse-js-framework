@@ -17,6 +17,13 @@ description: Dedicated QA/Testing agent for the Pulse JS framework. Use this ski
 - Reviewing test quality (assertions, edge cases, isolation)
 - Troubleshooting CI test failures
 
+## Context Loading
+
+Load relevant `.claude/context/` files for the module being tested:
+- Testing patterns → CLAUDE.md "Testing" section
+- Module API → `api-core.md`, `api-router-store.md`, etc. (see CLAUDE.md context table)
+- Error codes → `error-reference.md`
+
 ## Bundled Resources
 
 | Resource | Description |
