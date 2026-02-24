@@ -4,8 +4,8 @@
 
 export const styles = `
 :root {
-  --primary: #818cf8;
-  --primary-dark: #6366f1;
+  --primary: #6366f1; /* WCAG AA: 4.56:1 on white text */
+  --primary-dark: #4f46e5;
   --bg: #0f172a;
   --bg-light: #1e293b;
   --card: #1e293b;

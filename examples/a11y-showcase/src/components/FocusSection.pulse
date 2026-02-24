@@ -1,0 +1,61 @@
+/**
+ * FocusSection - Focus management demos
+ */
+
+import { createRovingTabindex } from '../../../../runtime/a11y.js'
+import { modalOpen, isKeyboardUser } from '../store.js'
+
+@component FocusSection
+
+actions {
+  init() {
+    requestAnimationFrame(() => {
+      const toolbar = document.querySelector('.toolbar')
+      if (toolbar) {
+        createRovingTabindex(toolbar, {
+          selector: '[role="button"]',
+          orientation: 'horizontal',
+          loop: true
+        })
+      }
+    })
+  }
+
+  openModal() {
+    modalOpen.set(true)
+  }
+
+  isKeyboard() {
+    return isKeyboardUser.get()
+  }
+}
+
+view {
+  section#panel-focus[role=tabpanel] {
+    h2 "Focus Management"
+    p "Manage keyboard focus for modals, dialogs, and navigation."
+
+    h3 "Focus Trap (Modal)"
+    p "Click the button to open a modal with trapped focus. Tab stays within the dialog."
+    button @click(openModal()) "Open Modal"
+
+    h3 "Focus-Visible Detection"
+    p "{isKeyboard() ? 'Keyboard navigation detected - focus outlines are visible.' : 'Mouse navigation detected - focus outlines are minimal.'}"
+
+    .focus-demo {
+      button "Button 1"
+      button "Button 2"
+      button "Button 3"
+      p.hint "Try pressing Tab to navigate, then click with mouse."
+    }
+
+    h3 "Roving Tabindex"
+    p "Use arrow keys to navigate between items:"
+    .toolbar[role=toolbar][aria-label="Formatting tools"] {
+      button[role=button][tabindex="0"] "Bold"
+      button[role=button][tabindex="-1"] "Italic"
+      button[role=button][tabindex="-1"] "Underline"
+      button[role=button][tabindex="-1"] "Link"
+    }
+  }
+}

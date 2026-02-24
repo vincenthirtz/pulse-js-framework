@@ -557,6 +557,9 @@ export function transformElement(transformer, node, indent) {
     for (const child of node.children) {
       content.push(transformViewNode(transformer, child, 0).trim());
     }
+    if (content.length === 0) {
+      return `${pad}srOnly('')`;
+    }
     const contentCode = content.length === 1 ? content[0] : `[${content.join(', ')}]`;
     return `${pad}srOnly(${contentCode})`;
   }
@@ -669,7 +672,24 @@ export function transformElement(transformer, node, indent) {
     if (attr.isInterpolated) {
       // String with interpolation: "display: {show ? 'block' : 'none'}"
       // Convert to template literal: `display: ${show.get() ? 'block' : 'none'}`
-      const templateStr = attr.expr.replace(/\{/g, '${');
+      // Only convert top-level interpolation braces, not nested braces (e.g., object literals)
+      let templateStr = '';
+      let depth = 0;
+      for (let ci = 0; ci < attr.expr.length; ci++) {
+        const ch = attr.expr[ci];
+        if (ch === '{' && depth === 0) {
+          templateStr += '${';
+          depth = 1;
+        } else if (ch === '{' && depth > 0) {
+          templateStr += ch;
+          depth++;
+        } else if (ch === '}' && depth > 0) {
+          depth--;
+          templateStr += ch;
+        } else {
+          templateStr += ch;
+        }
+      }
       exprCode = '`' + transformExpressionString(transformer, templateStr) + '`';
     } else {
       // Pure expression: {searchQuery}
@@ -688,6 +708,7 @@ export function transformElement(transformer, node, indent) {
  * @returns {string} Scoped selector
  */
 export function addScopeToSelector(transformer, selector) {
+  if (!selector) return `.${transformer.scopeId}`;
   // If selector has classes, add scope class after the first class
   // Otherwise add it at the end
   if (selector.includes('.')) {
@@ -821,7 +842,7 @@ function expressionUsesState(transformer, node) {
 export function transformComponentCall(transformer, node, indent) {
   const pad = ' '.repeat(indent);
   const selectorParts = node.selector.match(/^([a-zA-Z][a-zA-Z0-9]*)/);
-  const componentName = selectorParts[1];
+  const componentName = selectorParts ? selectorParts[1] : node.selector;
 
   // Extract slots from children
   const slots = {};

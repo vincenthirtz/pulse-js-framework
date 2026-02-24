@@ -26,6 +26,8 @@ import { pulse, effect, computed, batch } from '../runtime/pulse.js';
 import { test, describe, beforeEach } from 'node:test';
 import assert from 'node:assert';
 
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
 // =============================================================================
 // Mock fetch for testing
 // =============================================================================
@@ -634,7 +636,7 @@ describe('useQuery Hook Tests', () => {
       assert.ok(loading.get() === true || status.get() === 'loading', 'Should be loading initially');
 
       // Wait for query to complete
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await sleep(50);
 
       assert.ok(data.get() !== null, 'Data should be populated');
       assert.strictEqual(data.get().users[0].id, 1, 'Should have user data');
@@ -659,7 +661,7 @@ describe('useQuery Hook Tests', () => {
 
       const { data, loading } = useQuery('query Test { value }', null, { immediate: false });
 
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await sleep(50);
 
       assert.strictEqual(mock.getCallCount(), 0, 'Should not make fetch call');
       assert.strictEqual(data.get(), null, 'Data should be null');
@@ -687,7 +689,7 @@ describe('useQuery Hook Tests', () => {
 
       const { data, refetch } = useQuery('query Test { count }');
 
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await sleep(50);
       assert.strictEqual(data.get().count, 1, 'Initial count should be 1');
 
       await refetch();
@@ -888,7 +890,7 @@ describe('useQuery Advanced Options Tests', () => {
       );
 
       // Wait for query to complete
-      await new Promise(r => setTimeout(r, 100));
+      await sleep(100);
 
       assert.strictEqual(loading.get(), false, 'Should not be loading');
       // The data could be the original or transformed, depending on timing
@@ -944,7 +946,7 @@ describe('useQuery Advanced Options Tests', () => {
       );
 
       // Wait for query to complete
-      await new Promise(r => setTimeout(r, 50));
+      await sleep(50);
 
       assert.strictEqual(isStale.get(), false, 'Should not be stale initially');
 
@@ -974,7 +976,7 @@ describe('useQuery Advanced Options Tests', () => {
       );
 
       // Wait for query to complete
-      await new Promise(r => setTimeout(r, 50));
+      await sleep(50);
 
       assert.ok(data.get() !== null, 'Should have data');
 
@@ -1012,7 +1014,7 @@ describe('useQuery Advanced Options Tests', () => {
       );
 
       // Wait for query to complete
-      await new Promise(r => setTimeout(r, 50));
+      await sleep(50);
 
       // Error should be set
       assert.ok(error.get() !== null || errorReceived !== null, 'Should have error');
@@ -1445,14 +1447,14 @@ describe('useSubscription Tests', () => {
       enabled.set(true);
 
       // Give effect time to run
-      await new Promise(r => setTimeout(r, 10));
+      await sleep(10);
 
       assert.strictEqual(subscribeCount, 1, 'Should subscribe when enabled');
 
       // Disable subscription
       enabled.set(false);
 
-      await new Promise(r => setTimeout(r, 10));
+      await sleep(10);
 
       assert.strictEqual(unsubscribeCount, 1, 'Should unsubscribe when disabled');
 

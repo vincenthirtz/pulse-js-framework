@@ -22,6 +22,8 @@ import {
   createMockLocalStorage
 } from './utils.js';
 
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
 // =============================================================================
 // Mock Setup - Run before any imports
 // =============================================================================
@@ -328,7 +330,7 @@ testAsync('createNativeStorage.get loads from localStorage', async () => {
   const theme = storage.get('theme', 'light');
 
   // Wait for async localStorage read
-  await new Promise(resolve => setTimeout(resolve, 50));
+  await sleep(50);
 
   assertEqual(theme.get(), 'dark', 'Should load value from localStorage');
 });
@@ -341,7 +343,7 @@ testAsync('createNativeStorage.get handles non-JSON values gracefully', async ()
   const value = storage.get('raw', 'default');
 
   // Wait for async read
-  await new Promise(resolve => setTimeout(resolve, 50));
+  await sleep(50);
 
   // Should fall back to raw string when JSON parse fails
   assertEqual(value.get(), 'not-json-string', 'Should use raw value when JSON parse fails');
@@ -353,13 +355,13 @@ testAsync('createNativeStorage.get persists changes to localStorage', async () =
   const theme = storage.get('theme', 'light');
 
   // Wait for initial effect setup
-  await new Promise(resolve => setTimeout(resolve, 50));
+  await sleep(50);
 
   // Change value
   theme.set('dark');
 
   // Wait for effect to persist
-  await new Promise(resolve => setTimeout(resolve, 50));
+  await sleep(50);
 
   assertEqual(
     mockStorage.storage.getItem('persist_theme'),

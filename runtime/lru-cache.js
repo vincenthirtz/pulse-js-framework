@@ -6,6 +6,8 @@
  * When capacity is reached, the least recently used item is evicted.
  */
 
+import { RuntimeError } from './errors.js';
+
 /**
  * LRU Cache implementation
  * Uses Map's insertion order for O(1) operations.
@@ -20,7 +22,7 @@ export class LRUCache {
    */
   constructor(capacity, options = {}) {
     if (capacity <= 0) {
-      throw new Error('LRU cache capacity must be greater than 0');
+      throw new RuntimeError('LRU cache capacity must be greater than 0', { code: 'INVALID_CAPACITY' });
     }
     this._capacity = capacity;
     this._cache = new Map();

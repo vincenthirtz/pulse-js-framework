@@ -7,11 +7,13 @@
  * @module test/integration
  */
 
-import { test, describe, beforeEach } from 'node:test';
+import { test, describe, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert';
 
 import { createMockLocalStorage } from './utils.js';
 import { createDOM, createMockWindow } from './mock-dom.js';
+
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
 // Setup mocks before importing modules
 const { storage: localStorage, clear: clearStorage } = createMockLocalStorage();
@@ -52,6 +54,12 @@ describe('Store Security Tests', () => {
     clearStorage();
     resetContext();
     onEffectError(null); // Clear any global error handler
+  });
+
+  afterEach(() => {
+    clearStorage();
+    resetContext();
+    onEffectError(null);
   });
 
   test('blocks __proto__ injection in persisted state', () => {
@@ -161,6 +169,12 @@ describe('Effect Error Handling Tests', () => {
     clearStorage();
     resetContext();
     onEffectError(null); // Clear any global error handler
+  });
+
+  afterEach(() => {
+    clearStorage();
+    resetContext();
+    onEffectError(null);
   });
 
   test('EffectError class contains context information', () => {
@@ -356,6 +370,12 @@ describe('Store Nested Objects Tests', () => {
     onEffectError(null);
   });
 
+  afterEach(() => {
+    clearStorage();
+    resetContext();
+    onEffectError(null);
+  });
+
   test('nested objects work correctly after persistence load', () => {
     // First, create a store and persist nested data using $setState
     // (which properly updates both parent and nested pulses)
@@ -420,6 +440,12 @@ describe('Store Nested Objects Tests', () => {
 
 describe('Router + Store Integration Tests', () => {
   beforeEach(() => {
+    clearStorage();
+    resetContext();
+    onEffectError(null);
+  });
+
+  afterEach(() => {
     clearStorage();
     resetContext();
     onEffectError(null);
@@ -496,6 +522,12 @@ describe('Async Integration Tests', () => {
     onEffectError(null);
   });
 
+  afterEach(() => {
+    clearStorage();
+    resetContext();
+    onEffectError(null);
+  });
+
   test('rapid store updates persist correctly', async () => {
     const store = createStore(
       { count: 0 },
@@ -510,7 +542,7 @@ describe('Async Integration Tests', () => {
     assert.strictEqual(store.count.get(), 49, 'Final value should be correct');
 
     // Wait for persistence effect
-    await new Promise(resolve => setTimeout(resolve, 10));
+    await sleep(10);
 
     const persisted = JSON.parse(localStorage.getItem('rapid-updates-test'));
     assert.strictEqual(persisted.count, 49, 'Persisted value should match');

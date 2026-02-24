@@ -1,0 +1,111 @@
+/**
+ * Auth Section - User badge, login panel, admin panel
+ * Demonstrates AuthContext with useContext
+ */
+
+import { useContext } from '../../../../runtime/context.js'
+import { AuthContext, mockUsers } from '../contexts.js'
+
+@component AuthSection
+
+state {
+  users: []
+}
+
+actions {
+  init() {
+    this._user = useContext(AuthContext)
+    users = [
+      { id: 1, name: "Alice", role: "admin", avatar: "A" },
+      { id: 2, name: "Bob", role: "editor", avatar: "B" },
+      { id: 3, name: "Charlie", role: "viewer", avatar: "C" }
+    ]
+  }
+
+  getUser() {
+    return this._user.get()
+  }
+
+  login(u) {
+    this._user.set(u)
+  }
+
+  logout() {
+    this._user.set(null)
+  }
+
+  getUserName() {
+    const u = this._user.get()
+    return u ? u.name : ""
+  }
+
+  getUserRole() {
+    const u = this._user.get()
+    return u ? u.role : ""
+  }
+
+  getUserAvatar() {
+    const u = this._user.get()
+    return u ? u.avatar : ""
+  }
+
+  isAdmin() {
+    const u = this._user.get()
+    return u && u.role === "admin"
+  }
+
+  isLoggedIn() {
+    return this._user.get() !== null
+  }
+}
+
+view {
+  .auth-section {
+    @if (isLoggedIn()) {
+      .user-badge {
+        .avatar "{getUserAvatar()}"
+        .user-info {
+          span.name "{getUserName()}"
+          span.role "{getUserRole()}"
+        }
+        button.logout @click(logout()) "Logout"
+      }
+    }
+    @if (!isLoggedIn()) {
+      .user-badge.logged-out {
+        span "Not logged in"
+      }
+    }
+
+    @if (!isLoggedIn()) {
+      .login-panel {
+        p "Select a user to log in:"
+        .user-list {
+          @for (u of users) {
+            button.user-option @click(login(u)) {
+              span.avatar-small "{u.avatar}"
+              span "{u.name} ({u.role})"
+            }
+          }
+        }
+      }
+    }
+
+    @if (isAdmin()) {
+      .admin-panel {
+        h4 "Admin Panel"
+        p "Only visible to admin users. You can manage settings here."
+        ul {
+          li "Manage users"
+          li "View analytics"
+          li "System settings"
+        }
+      }
+    }
+    @if (isLoggedIn() && !isAdmin()) {
+      .admin-panel.restricted {
+        p "Logged in as {getUserName()} ({getUserRole()}). Admin access required."
+      }
+    }
+  }
+}

@@ -8,16 +8,15 @@ import { expect } from '@playwright/test';
 import { navigateAndWait, waitForTranslations } from '../utils/common-helpers.js';
 
 export class BasePage {
-  constructor(page, baseURL) {
+  constructor(page) {
     this.page = page;
-    this.baseURL = baseURL;
 
     // Common selectors
     this.selectors = {
       // Header
       header: 'header',
       logo: 'header a[href="/"]',
-      themeToggle: 'button[aria-label*="theme" i], button[aria-label*="thème" i]',
+      themeToggle: 'button[aria-label*="theme" i], button[aria-label*="thème" i], button[aria-label*="mode" i], button.theme-btn',
       languageSelector: '[data-language-selector], select[aria-label*="language" i]',
       searchButton: 'button[aria-label*="search" i], button[aria-label*="recherche" i]',
       mobileMenuToggle: 'button[aria-label*="menu" i]',
@@ -49,8 +48,7 @@ export class BasePage {
    * @param {object} options - Navigation options
    */
   async goto(path, options = {}) {
-    const url = `${this.baseURL}${path}`;
-    await navigateAndWait(this.page, url, options);
+    await navigateAndWait(this.page, path, options);
   }
 
   /**
@@ -113,8 +111,13 @@ export class BasePage {
   async toggleTheme() {
     const themeButton = this.page.locator(this.selectors.themeToggle).first();
     if (await themeButton.isVisible()) {
+      const prevTheme = await this.getCurrentTheme();
       await themeButton.click();
-      await this.page.waitForTimeout(300); // Wait for theme transition
+      await this.page.waitForFunction(
+        (prev) => document.documentElement.getAttribute('data-theme') !== prev,
+        prevTheme,
+        { timeout: 3000 }
+      ).catch(() => {});
     }
   }
 
@@ -131,8 +134,9 @@ export class BasePage {
    * Open search modal
    */
   async openSearch() {
-    await this.page.keyboard.press('Control+K');
-    await this.page.waitForTimeout(300);
+    const overlaySelector = '.search-overlay[role="dialog"], [role="dialog"].search, dialog.search';
+    await this.page.keyboard.press('ControlOrMeta+k');
+    await this.page.waitForSelector(overlaySelector, { state: 'visible', timeout: 3000 }).catch(() => {});
   }
 
   /**
@@ -142,7 +146,13 @@ export class BasePage {
     const menuButton = this.page.locator(this.selectors.mobileMenuToggle).first();
     if (await menuButton.isVisible()) {
       await menuButton.click();
-      await this.page.waitForTimeout(300);
+      await this.page.waitForFunction(
+        () => {
+          const btn = document.querySelector('button[aria-label*="menu" i]');
+          return btn?.getAttribute('aria-expanded') === 'true';
+        },
+        { timeout: 3000 }
+      ).catch(() => {});
     }
   }
 
@@ -178,7 +188,6 @@ export class BasePage {
       const linkText = await link.textContent();
       if (linkText?.includes(text)) {
         await link.click();
-        await this.page.waitForTimeout(300);
         return;
       }
     }
@@ -203,8 +212,7 @@ export class BasePage {
     }
 
     const button = copyButtons[index];
-    await button.click();
-    await this.page.waitForTimeout(200);
+    await button.click({ force: true });
 
     // Check if clipboard was populated (requires clipboard permissions in browser)
     // We can't directly test clipboard in Playwright without permissions,
@@ -218,10 +226,9 @@ export class BasePage {
     await this.page.evaluate((sectionId) => {
       const element = document.getElementById(sectionId);
       if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        element.scrollIntoView({ behavior: 'instant', block: 'start' });
       }
     }, id);
-    await this.page.waitForTimeout(500);
   }
 
   /**
@@ -276,7 +283,7 @@ export class BasePage {
    * Check if link is internal
    */
   isInternalLink(href) {
-    return href.startsWith('/') || href.startsWith(this.baseURL);
+    return href.startsWith('/') || !href.startsWith('http');
   }
 
   /**
@@ -301,7 +308,10 @@ export class BasePage {
     const languageSelector = this.page.locator(this.selectors.languageSelector).first();
     if (await languageSelector.isVisible()) {
       await languageSelector.selectOption(locale);
-      await this.page.waitForTimeout(1000); // Wait for translations to load
+      await this.page.waitForFunction(
+        () => document.body.textContent && document.body.textContent.trim().length > 100,
+        { timeout: 5000 }
+      ).catch(() => {});
     }
   }
 

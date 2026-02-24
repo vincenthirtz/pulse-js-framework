@@ -220,11 +220,99 @@ jobs:
             COVERAGE=$(jq '.total.lines.pct' coverage/coverage-summary.json)
             echo "Coverage: $COVERAGE%"
             if (( $(echo "$COVERAGE < 70" | bc -l) )); then
-              echo "::warning::Coverage is below 70% ($COVERAGE%)"
+              echo "::error::Coverage is below 70% ($COVERAGE%)"
+              exit 1
             fi
           else
-            echo "::warning::Coverage summary not found"
+            echo "::error::Coverage summary not found"
+            exit 1
           fi
+
+  e2e-smoke:
+    name: E2E Smoke (${{ matrix.shard }}/${{ strategy.job-total }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [changes, build]
+    if: |
+      always() &&
+      needs.build.result == 'success' &&
+      (
+        needs.changes.outputs.src == 'true' ||
+        needs.changes.outputs.tests == 'true' ||
+        needs.changes.outputs.deps == 'true' ||
+        github.event_name == 'workflow_dispatch'
+      )
+
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install E2E test dependencies
+        run: npm install --no-save @playwright/test @axe-core/playwright
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+
+      - name: Extract build artifact
+        run: |
+          mkdir -p dist
+          tar -xzf dist.tar.gz -C dist
+          rm dist.tar.gz
+
+      - name: Get Playwright version
+        id: playwright-version
+        run: echo "PLAYWRIGHT_VERSION=$(npx playwright --version | awk '{print $2}')" >> $GITHUB_OUTPUT
+
+      - name: Restore Playwright browsers cache
+        id: playwright-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ steps.playwright-version.outputs.PLAYWRIGHT_VERSION }}
+
+      - name: Install Playwright Chromium
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: Install Playwright system deps only
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+
+      - name: Save Playwright browsers cache
+        if: always() && steps.playwright-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ steps.playwright-version.outputs.PLAYWRIGHT_VERSION }}
+
+      - name: Run E2E smoke tests (shard ${{ matrix.shard }}/3)
+        run: npx playwright test --project=chromium --grep-invert "Examples Health Check" --shard=${{ matrix.shard }}/3
+        env:
+          PLAYWRIGHT_SERVE_DIR: './dist'
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-smoke-report-shard-${{ matrix.shard }}
+          path: playwright-report/
+          retention-days: 7
 
   build:
     name: Build

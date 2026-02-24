@@ -24,6 +24,8 @@ import {
   createRovingTabindex
 } from '../runtime/a11y/focus.js';
 
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
 let dom;
 let container;
 
@@ -287,7 +289,7 @@ describe('trapFocus', () => {
     const release = trapFocus(container, { autoFocus: false, returnFocus: true });
 
     // Wait for async operations
-    await new Promise(resolve => setTimeout(resolve, 10));
+    await sleep(10);
 
     release();
 
@@ -306,7 +308,7 @@ describe('trapFocus', () => {
     const release = trapFocus(container, { autoFocus: true, returnFocus: false });
 
     // Wait for autoFocus via requestAnimationFrame
-    await new Promise(resolve => setTimeout(resolve, 10));
+    await sleep(10);
 
     // Focus should now be inside the container
     assert.strictEqual(dom.document.activeElement, button);
@@ -326,7 +328,7 @@ describe('trapFocus', () => {
     trapFocus(container, { autoFocus: true });
 
     // Wait for requestAnimationFrame
-    await new Promise(resolve => setTimeout(resolve, 10));
+    await sleep(10);
 
     assert.strictEqual(dom.document.activeElement, button1);
   });
@@ -339,7 +341,7 @@ describe('trapFocus', () => {
 
     trapFocus(container, { autoFocus: true, initialFocus: button2 });
 
-    await new Promise(resolve => setTimeout(resolve, 10));
+    await sleep(10);
 
     assert.strictEqual(dom.document.activeElement, button2);
   });

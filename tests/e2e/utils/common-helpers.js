@@ -168,9 +168,9 @@ export async function waitForTranslations(page, timeout = 2000) {
  */
 export async function navigateAndWait(page, url, options = {}) {
   const {
-    waitForNetworkIdle: shouldWaitNetwork = true,
+    waitForNetworkIdle: shouldWaitNetwork = false,
     waitForTranslations: shouldWaitTranslations = true,
-    timeout = 30000
+    timeout = 15000
   } = options;
 
   await page.goto(url, {
@@ -178,9 +178,24 @@ export async function navigateAndWait(page, url, options = {}) {
     timeout
   });
 
+  // Wait for main content to be attached
+  await page.waitForSelector('main, [role="main"], h1, h2', {
+    state: 'attached',
+    timeout: 10000
+  }).catch(() => {});
+
+  // Wait for all resources (scripts, CSS) to load — faster than networkidle
+  await page.waitForLoadState('load', { timeout: 10000 }).catch(() => {});
+
   if (shouldWaitTranslations) {
     await waitForTranslations(page);
   }
+
+  // Wait for SPA to be fully interactive (header rendered with buttons)
+  await page.waitForSelector('header button, nav a[href]', {
+    state: 'visible',
+    timeout: 10000
+  }).catch(() => {});
 }
 
 /**

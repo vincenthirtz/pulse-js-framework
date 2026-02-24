@@ -50,7 +50,7 @@ function stableStringify(obj) {
     return '[' + obj.map(stableStringify).join(',') + ']';
   }
   const keys = Object.keys(obj).sort();
-  return '{' + keys.map(k => `"${k}":${stableStringify(obj[k])}`).join(',') + '}';
+  return '{' + keys.map(k => `${JSON.stringify(k)}:${stableStringify(obj[k])}`).join(',') + '}';
 }
 
 /**

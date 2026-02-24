@@ -8,6 +8,9 @@ import assert from 'node:assert';
 
 import { pulse, effect, resetContext } from '../runtime/pulse.js';
 import { createStore } from '../runtime/store.js';
+
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
 import {
   createMemoryAdapter,
   createLocalStorageAdapter,
@@ -333,7 +336,7 @@ describe('withPersistence', () => {
     persistence.dispose();
 
     store.count.set(42);
-    await new Promise(r => setTimeout(r, 100));
+    await sleep(100);
 
     // Should not have saved after dispose
     const saved = await adapter.getItem('pulse-store');
@@ -676,7 +679,7 @@ describe('withPersistence — edge cases', () => {
     // May or may not be saved yet depending on effect timing
 
     // Wait for debounce
-    await new Promise(r => setTimeout(r, 100));
+    await sleep(100);
 
     saved = await adapter.getItem('pulse-store');
     assert.ok(saved);
@@ -693,7 +696,7 @@ describe('withPersistence — edge cases', () => {
     persistence.dispose();
 
     // Wait longer than debounce to verify no save happens
-    await new Promise(r => setTimeout(r, 100));
+    await sleep(100);
     const saved = await adapter.getItem('pulse-store');
     assert.strictEqual(saved, null);
   });

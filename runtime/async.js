@@ -795,6 +795,10 @@ export function usePolling(asyncFn, options) {
     onError
   } = options;
 
+  if (!interval || typeof interval !== 'number' || interval <= 0) {
+    throw new Error('usePolling: options.interval must be a positive number (milliseconds)');
+  }
+
   const data = pulse(null);
   const error = pulse(null);
   const isPolling = pulse(false);

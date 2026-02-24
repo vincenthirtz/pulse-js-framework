@@ -5,19 +5,15 @@ description: Examples management agent for the Pulse JS framework. Use this skil
 
 # Examples Manager for Pulse Framework
 
+## Context Loading
+
+Load `.claude/context/getting-started.md` for tutorial patterns and `.claude/context/export-map.md` for correct import paths.
+
 ## When to Use This Skill
 
-- **Auditing** existing examples for quality, consistency, and completeness
-- **Improving** existing examples (update outdated patterns, add README, enhance code)
-- **Creating** new example projects for uncovered framework features
-- **Updating** examples after framework API changes or new features
-- **Checking coverage** of framework features across examples
-- **Integrating** examples with docs (ExamplesPage.js, i18n, netlify.toml)
-- **Standardizing** example structure, naming, and conventions
+Auditing, improving, creating, or updating examples. Checking feature coverage. Integrating with docs (ExamplesPage.js, i18n, netlify.toml). Standardizing structure and conventions.
 
 ## Feature Coverage Matrix
-
-Maps framework modules to existing example projects. Use this to identify gaps.
 
 ### Core Runtime
 
@@ -47,67 +43,39 @@ Maps framework modules to existing example projects. Use this to identify gaps.
 | `runtime/ssr.js` | SSR, hydration, streaming | - | **MISSING** |
 | `runtime/logger.js` | Logging with namespaces | - | **MISSING** |
 
-### Server-Side
+### Compiler & Tooling
 
-| Module | Feature | Example | Status |
-|--------|---------|---------|--------|
-| `server-components/` | PSC, 'use client'/'use server' | - | **MISSING** |
-| `server-components/actions.js` | Server Actions, rate limiting | `server-actions-ratelimit/` | Covered |
-| `runtime/ssr.js` | renderToString, hydrate | - | **MISSING** |
-| `runtime/ssr-stream.js` | Streaming SSR | - | **MISSING** |
-
-### CSS Preprocessors
-
-| Preprocessor | Example | Status |
-|--------------|---------|--------|
-| SASS/SCSS | - | **MISSING** |
-| LESS | `less-example/` | Covered |
-| Stylus | `stylus-example/` | Covered |
-
-### Build Tools
-
-| Tool | Example | Status |
-|------|---------|--------|
-| Vite | (default in `pulse dev`) | Built-in |
-| Webpack | `webpack-example/` | Covered |
-| Rollup | `rollup-example/` | Covered |
-| Parcel | `parcel-example/` | Covered |
-| ESBuild | `esbuild-example/` | Covered |
-| SWC | - | **MISSING** |
-
-### Platforms
-
-| Platform | Example | Status |
-|----------|---------|--------|
-| Browser | All examples | Covered |
-| Electron | `electron/` | Covered |
-| iOS Native | `ios-pulse/` | Covered |
-| iOS WebView | `ios-webview/` | Covered |
-| Android Native | `android-pulse/` | Covered |
-| Android WebView | `android-webview/` | Covered |
-| TypeScript | - | **MISSING** |
+| Category | Item | Example | Status |
+|----------|------|---------|--------|
+| CSS Preprocessors | SASS/SCSS | - | **MISSING** |
+| CSS Preprocessors | LESS | `less-example/` | Covered |
+| CSS Preprocessors | Stylus | `stylus-example/` | Covered |
+| Build Tools | Webpack | `webpack-example/` | Covered |
+| Build Tools | Rollup | `rollup-example/` | Covered |
+| Build Tools | Parcel | `parcel-example/` | Covered |
+| Build Tools | ESBuild | `esbuild-example/` | Covered |
+| Build Tools | SWC | - | **MISSING** |
+| Platforms | Electron | `electron/` | Covered |
+| Platforms | iOS/Android | `ios-pulse/`, `android-pulse/` | Covered |
+| Platforms | TypeScript | - | **MISSING** |
 
 ## Missing Examples - Priority List
 
-Ranked by user value and feature importance:
-
-| Priority | Example Name | Key Features | Complexity |
-|----------|-------------|--------------|------------|
-| **P1** | `form-validation/` | useForm, validators, async validation, file upload, draft persistence | Medium |
-| **P1** | `sass-example/` | SASS/SCSS variables, mixins, nesting (parity with LESS/Stylus) | Low |
-| **P2** | `graphql/` | useQuery, useMutation, useSubscription, caching | Medium |
-| **P2** | `a11y-showcase/` | Widgets (modal, tabs, accordion, menu), focus trap, announcements, preferences | Medium |
-| **P2** | `context-api/` | Theme context, auth context, nested providers, provideMany | Low |
-| **P3** | `async-patterns/` | useAsync, useResource (SWR), usePolling, race condition handling | Medium |
-| **P3** | `ssr/` | renderToString, hydrate, state serialization, Express adapter | High |
-| **P3** | `lite/` | Minimal bundle (~5KB), core reactivity + DOM only | Low |
-| **P4** | `server-components/` | PSC wire format, 'use client'/'use server', client hydration | High |
-| **P4** | `devtools/` | Time-travel, dependency graph, profiling, a11y audit mode | Medium |
-| **P4** | `typescript/` | TypeScript project with type checking | Low |
+| Priority | Example | Key Features |
+|----------|---------|--------------|
+| P1 | `form-validation/` | useForm, validators, async validation, file upload, draft persistence |
+| P1 | `sass-example/` | SASS/SCSS variables, mixins, nesting |
+| P2 | `graphql/` | useQuery, useMutation, useSubscription, caching |
+| P2 | `a11y-showcase/` | Modal, tabs, accordion, focus trap, announcements |
+| P2 | `context-api/` | Theme context, auth context, nested providers |
+| P3 | `async-patterns/` | useAsync, useResource (SWR), usePolling, race conditions |
+| P3 | `ssr/` | renderToString, hydrate, state serialization, Express adapter |
+| P3 | `lite/` | Minimal bundle, core reactivity + DOM only |
+| P4 | `server-components/` | PSC wire format, 'use client'/'use server', hydration |
+| P4 | `devtools/` | Time-travel, dependency graph, profiling, a11y audit |
+| P4 | `typescript/` | TypeScript project with type checking |
 
 ## Example Quality Checklist
-
-Every example MUST have:
 
 ### Structure
 - [ ] `package.json` with `pulse-example-<name>` naming, `"type": "module"`
@@ -119,21 +87,18 @@ Every example MUST have:
 ### Code Quality
 - [ ] Comments explaining key patterns and framework features
 - [ ] No hardcoded API keys or secrets
-- [ ] No external dependencies beyond what the feature requires
-- [ ] Clean separation of concerns (components, pages, state)
+- [ ] Minimal external dependencies
 - [ ] Error handling for async operations
 - [ ] Accessible markup (proper ARIA, keyboard navigation)
 
 ### Integration
 - [ ] Entry in `docs/src/pages/ExamplesPage.js` (example card)
-- [ ] Translation keys in `docs/src/i18n/translations/en/pages.js` (and other languages)
-- [ ] Redirect rules in `netlify.toml` (if web-deployable)
-- [ ] Listed in project root `README.md` examples section (if exists)
+- [ ] Translation keys in all 7 language files (`en`, `fr`, `es`, `de`, `it`, `pt`, `ja`)
+- [ ] Redirect rule in `netlify.toml` (if web-deployable)
 
 ## Standard Templates
 
 ### package.json
-
 ```json
 {
   "name": "pulse-example-<name>",
@@ -148,7 +113,6 @@ Every example MUST have:
 ```
 
 ### index.html
-
 ```html
 <!DOCTYPE html>
 <html lang="en">
@@ -165,222 +129,69 @@ Every example MUST have:
 </html>
 ```
 
-### src/main.js (Module import pattern)
-
+### src/main.js
 ```javascript
 import { pulse, effect, el, mount } from '../../../runtime/index.js';
-// Import feature-specific modules
-import { createRouter } from '../../../runtime/router.js';
-
-// Boot application
+import { createRouter } from '../../../runtime/router.js'; // feature-specific
 import { App } from './App.js';
-
 mount('#app', App());
 ```
 
-### src/main.js (DSL pattern with .pulse files)
-
-```javascript
-import { compile } from '../../../compiler/index.js';
-
-// For .pulse file projects, main.js bootstraps the compiled app
-// The CLI handles compilation automatically in dev/build mode
-```
-
-### README.md Template
-
+### README.md
 ```markdown
 # Pulse Example: <Name>
 
-<One-sentence description of what this example demonstrates.>
+<One-sentence description.>
 
 ## Features Demonstrated
-
-- Feature 1 (from `runtime/module.js`)
+- Feature 1 (`runtime/module.js`)
 - Feature 2
-- Feature 3
 
 ## Getting Started
-
 \`\`\`bash
-cd examples/<name>
-npm run dev
+cd examples/<name> && npm run dev
 \`\`\`
-
 Open http://localhost:3000
 
 ## Key Files
-
 | File | Description |
 |------|-------------|
-| `src/App.pulse` | Main application component |
-| `src/components/X.pulse` | Description |
+| `src/App.pulse` | Main component |
 
 ## Framework APIs Used
-
-- `pulse()` - Reactive state
-- `effect()` - Side effects
-- `el()` - DOM creation
-
-## Learn More
-
-- [API Reference](https://pulse-js.fr/api-reference)
-- [Documentation](https://pulse-js.fr/core-concepts)
+- `pulse()`, `effect()`, `el()`
 ```
 
-## Audit Workflow
+## Workflows
 
-When invoked to audit examples, follow these steps:
+### Audit (3 phases)
+1. **Inventory** - List `examples/` dirs, check required files, identify features covered
+2. **Quality Check** - Imports correct? Comments? Error handling? A11y? README complete? Integration done?
+3. **Report** - Summary table with per-example scores, missing coverage, improvement recommendations
 
-### Phase 1: Inventory
+### Create New Example (5 steps)
+1. **Plan** - Identify features, design app concept, choose DSL vs plain JS
+2. **Scaffold** - Create dir, package.json, index.html, src/main.js, App.pulse/js, README.md
+3. **Implement** - Write component, add feature comments, error handling, a11y, sample data
+4. **Integrate** - ExamplesPage.js card, i18n keys (all 7 languages), netlify.toml redirect
+5. **Verify** - `npm run dev`, check functionality, keyboard navigation, README accuracy
 
-```
-1. List all directories in examples/
-2. For each directory:
-   a. Check for required files (package.json, index.html, src/main.js)
-   b. Read package.json for naming convention compliance
-   c. Check for README.md presence and quality
-   d. Identify which framework features are demonstrated
-3. Build coverage matrix (framework features → examples)
-```
-
-### Phase 2: Quality Check
-
-```
-For each example:
-1. Code quality:
-   - Are imports using correct relative paths?
-   - Are there comments explaining key patterns?
-   - Is error handling present for async operations?
-   - Is the code accessible (ARIA, keyboard, etc.)?
-2. Structure consistency:
-   - Does package.json follow naming convention?
-   - Is the directory structure standard?
-   - Does index.html have proper meta tags?
-3. Documentation:
-   - README present and complete?
-   - Features list accurate?
-   - Getting started instructions correct?
-4. Integration:
-   - Listed in ExamplesPage.js?
-   - Has i18n translation keys?
-   - Has netlify.toml redirect?
-```
-
-### Phase 3: Report
-
-```markdown
-# Examples Audit Report
-
-## Summary
-- Total examples: N
-- Quality score: X/100
-- Missing examples: N (from coverage matrix)
-- Examples needing improvement: N
-
-## Per-Example Results
-| Example | Structure | README | Code Quality | Integration | Score |
-|---------|-----------|--------|-------------|-------------|-------|
-| todo    | Pass      | Pass   | Good        | Full        | 95    |
-| ...     | ...       | ...    | ...         | ...         | ...   |
-
-## Missing Feature Coverage
-1. Form validation (P1)
-2. SASS/SCSS (P1)
-3. ...
-
-## Improvement Recommendations
-1. example-name: <what to improve>
-2. ...
-```
-
-## Creation Workflow
-
-When creating a new example, follow these steps:
-
-### Step 1: Plan
-
-```
-1. Identify the framework features to demonstrate
-2. Design the app concept (what does the user build?)
-3. List the files to create
-4. Determine if .pulse DSL or plain .js
-5. Check if external dependencies are needed
-```
-
-### Step 2: Scaffold
-
-```
-1. Create directory: examples/<name>/
-2. Create package.json from template
-3. Create index.html from template
-4. Create src/main.js
-5. Create src/App.pulse (or App.js)
-6. Create src/components/ (if needed)
-7. Create src/styles.css (if needed)
-8. Create README.md from template
-```
-
-### Step 3: Implement
-
-```
-1. Write the main application component
-2. Demonstrate key framework features with comments
-3. Add proper error handling
-4. Ensure accessibility
-5. Add meaningful sample data
-6. Keep code concise but educational
-```
-
-### Step 4: Integrate
-
-```
-1. Add example card to docs/src/pages/ExamplesPage.js
-2. Add i18n keys to docs/src/i18n/translations/en/pages.js
-3. Add i18n keys to all other language files (fr, es, de, it, pt, ja)
-4. Add redirect to netlify.toml (if web-deployable)
-5. Update examples section in docs navigation (if applicable)
-```
-
-### Step 5: Verify
-
-```
-1. Run: cd examples/<name> && npm run dev
-2. Check that the app loads and works correctly
-3. Check accessibility (keyboard navigation, screen reader)
-4. Verify all demonstrated features work
-5. Read README and verify accuracy
-```
-
-## Improvement Guidelines
-
-When improving existing examples:
-
-### Common Improvements
+### Improve Existing Example
 
 | Issue | Fix |
 |-------|-----|
-| Missing README | Create from template, list features demonstrated |
-| Outdated API usage | Update to current framework API patterns |
-| No comments | Add comments explaining key framework patterns |
-| Missing a11y | Add ARIA attributes, keyboard handlers, semantic HTML |
-| No error handling | Add try-catch for async, loading/error states |
-| Missing integration | Add to ExamplesPage.js, i18n, netlify.toml |
-| Hardcoded strings | Use meaningful variable names, add data constants |
-| No dark mode | Add `prefers-color-scheme` media query support |
+| Missing README | Create from template |
+| Outdated API | Update to current framework patterns |
+| No comments | Add framework pattern explanations |
+| Missing a11y | Add ARIA, keyboard handlers, semantic HTML |
+| No error handling | Add try-catch, loading/error states |
+| Missing integration | Add to ExamplesPage.js + i18n + netlify.toml |
 
-### Do NOT
-
-- Add unnecessary dependencies to examples
-- Over-engineer examples (keep them educational, not production-grade)
-- Change the fundamental concept of an existing example
-- Remove features that are currently demonstrated
-- Add features unrelated to the example's focus
+**Do NOT:** add unnecessary dependencies, over-engineer, change an example's core concept, add unrelated features.
 
 ## Integration Reference
 
-### ExamplesPage.js Card Pattern
-
+### ExamplesPage.js Card
 ```javascript
 <div class="example-card">
   <div class="example-icon">EMOJI</div>
@@ -388,32 +199,21 @@ When improving existing examples:
   <p>${t('examples.exampleKey.desc')}</p>
   <ul class="example-features">
     <li>${t('examples.exampleKey.features.0')}</li>
-    <li>${t('examples.exampleKey.features.1')}</li>
-    <li>${t('examples.exampleKey.features.2')}</li>
   </ul>
-  <a href="/examples/<name>/" class="btn btn-primary">
-    ${t('examples.viewDemo')}
-  </a>
+  <a href="/examples/<name>/" class="btn btn-primary">${t('examples.viewDemo')}</a>
 </div>
 ```
 
-### i18n Translation Keys Pattern
-
+### i18n Key Pattern (`docs/src/i18n/translations/en/pages.js`)
 ```javascript
-// In docs/src/i18n/translations/en/pages.js
 exampleKey: {
   title: 'Example Title',
-  desc: 'Short description of the example.',
-  features: [
-    'Feature 1 description',
-    'Feature 2 description',
-    'Feature 3 description'
-  ]
+  desc: 'Short description.',
+  features: ['Feature 1', 'Feature 2', 'Feature 3']
 }
 ```
 
-### netlify.toml Redirect Pattern
-
+### netlify.toml Redirect
 ```toml
 [[redirects]]
   from = "/examples/<name>/*"
@@ -421,49 +221,21 @@ exampleKey: {
   status = 200
 ```
 
-## Integration with Other Skills
-
-| Need | Delegate To | Example |
-|------|-------------|---------|
-| Architecture review for complex example | software-architect | SSR example design |
-| Implementation of example features | senior-developer | Form validation logic |
-| Tests for example code | qa-testing | Example integration tests |
-| Security review of example patterns | security-reviewer | Server Actions example |
-| Documentation updates for examples | docs-manager | ExamplesPage updates |
-| Full example creation workflow | lead-developer | End-to-end new example |
-
 ## Key Project Files
 
 | File | Purpose |
 |------|---------|
 | `examples/` | All example projects |
 | `docs/src/pages/ExamplesPage.js` | Documentation examples page |
-| `docs/src/i18n/translations/en/pages.js` | English translations for example cards |
-| `docs/src/i18n/translations/fr/pages.js` | French translations |
-| `docs/src/i18n/translations/es/pages.js` | Spanish translations |
-| `docs/src/i18n/translations/de/pages.js` | German translations |
-| `docs/src/i18n/translations/it/pages.js` | Italian translations |
-| `docs/src/i18n/translations/pt/pages.js` | Portuguese translations |
-| `docs/src/i18n/translations/ja/pages.js` | Japanese translations |
-| `netlify.toml` | Deployment redirects for examples |
-| `CLAUDE.md` | Framework API reference (source of truth for features) |
+| `docs/src/i18n/translations/*/pages.js` | Translations (en, fr, es, de, it, pt, ja) |
+| `netlify.toml` | Deployment redirects |
 
-## Commands
+## Troubleshooting
 
-This skill responds to:
-- "Audit all examples" - Run full quality audit
-- "Create example for <feature>" - Create new example project
-- "Improve <example-name>" - Enhance existing example
-- "Update examples for new API" - Update after framework changes
-- "Check example coverage" - Show feature coverage matrix
-- "List missing examples" - Show uncovered features by priority
-
-## Quick Troubleshooting
-
-| Issue | Cause | Solution |
-|-------|-------|----------|
-| Example won't start | Wrong relative import paths | Check `../../cli/index.js` and `../../../runtime/` paths |
-| Styles not loading | Missing CSS file reference | Add `<link>` in index.html or import in main.js |
-| .pulse compilation fails | Compiler API change | Check compiler/index.js for current compile() signature |
-| Example not in docs | Missing integration step | Add to ExamplesPage.js + i18n + netlify.toml |
-| Build tool example fails | Missing dev dependency | Check loader/ directory for current plugin API |
+| Issue | Solution |
+|-------|----------|
+| Example won't start | Check relative paths: `../../cli/index.js`, `../../../runtime/` |
+| Styles not loading | Add `<link>` in index.html or import in main.js |
+| .pulse compilation fails | Check `compiler/index.js` for current `compile()` signature |
+| Example not in docs | Add to ExamplesPage.js + i18n + netlify.toml |
+| Build tool example fails | Check `loader/` directory for current plugin API |

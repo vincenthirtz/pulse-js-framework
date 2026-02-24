@@ -1,0 +1,80 @@
+/**
+ * PollingSection - Demonstrates usePolling
+ */
+
+import { usePolling } from '../../../../runtime/async.js'
+import { effect } from '../../../../runtime/index.js'
+import { mockFetch } from '../mock-api.js'
+
+@component PollingSection
+
+state {
+  statusData: null
+  polling: false
+  _pollHook: null
+}
+
+actions {
+  init() {
+    const hook = usePolling(
+      () => mockFetch('/api/status', { delay: 200 }),
+      { interval: 2000, pauseOnHidden: true, pauseOnOffline: true, maxErrors: 3 }
+    )
+    _pollHook = hook
+    effect(() => { statusData = hook.data.get() })
+    effect(() => { polling = hook.isPolling.get() })
+  }
+
+  togglePolling() {
+    if (!_pollHook) return
+    if (polling) { _pollHook.stop() }
+    else { _pollHook.start() }
+  }
+
+  formatUptime(seconds) {
+    const h = Math.floor(seconds / 3600)
+    const m = Math.floor((seconds % 3600) / 60)
+    return h + "h " + m + "m"
+  }
+
+  formatNumber(num) {
+    return num.toLocaleString()
+  }
+}
+
+view {
+  section {
+    h2 "usePolling - Live Data"
+    p "Poll an endpoint at regular intervals. Pauses when tab is hidden or offline."
+
+    .controls {
+      button.primary @click(togglePolling()) "{polling ? 'Stop Polling' : 'Start Polling'}"
+      span.poll-status "{polling ? 'Polling every 2s' : 'Stopped'}"
+    }
+
+    @if (statusData) {
+      .status-grid {
+        .stat {
+          .stat-label "Uptime"
+          .stat-value "{formatUptime(statusData.uptime)}"
+        }
+        .stat {
+          .stat-label "Requests"
+          .stat-value "{formatNumber(statusData.requests)}"
+        }
+        .stat {
+          .stat-label "CPU"
+          .stat-value[class={parseFloat(statusData.cpu) > 80 ? 'high' : ''}] "{statusData.cpu}%"
+        }
+        .stat {
+          .stat-label "Memory"
+          .stat-value[class={parseFloat(statusData.memory) > 80 ? 'high' : ''}] "{statusData.memory}%"
+        }
+        .stat.wide {
+          .stat-label "Last Update"
+          .stat-value.small "{statusData.timestamp}"
+        }
+      }
+    }
+  }
+}

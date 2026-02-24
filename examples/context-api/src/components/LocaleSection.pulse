@@ -1,0 +1,52 @@
+/**
+ * Locale Section - Locale switcher + greeting
+ * Demonstrates LocaleContext with useContext
+ */
+
+import { useContext } from '../../../../runtime/context.js'
+import { LocaleContext, translations } from '../contexts.js'
+
+@component LocaleSection
+
+state {
+  locales: ["en", "fr", "es", "ja"]
+}
+
+actions {
+  init() {
+    this._locale = useContext(LocaleContext)
+  }
+
+  getLocale() {
+    return this._locale.get()
+  }
+
+  setLocale(l) {
+    this._locale.set(l)
+  }
+
+  getTranslation() {
+    return translations[this._locale.get()] || translations.en
+  }
+
+  getLanguageLabel() {
+    const t = translations[this._locale.get()] || translations.en
+    return t.language
+  }
+}
+
+view {
+  .locale-section {
+    .locale-switcher {
+      span "{getLanguageLabel()}:"
+      @for (l of locales) {
+        button[aria-pressed={getLocale() === l ? "true" : "false"}][class={getLocale() === l ? "active" : ""}] @click(setLocale(l)) "{l.toUpperCase()}"
+      }
+    }
+
+    .localized {
+      h3 "{getTranslation().greeting}"
+      p "{getTranslation().welcome}"
+    }
+  }
+}

@@ -1,7 +1,7 @@
 @page App
 
 state {
-  count: 0,
+  count: 0
   theme: 'dark'
 }
 

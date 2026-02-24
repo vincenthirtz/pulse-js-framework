@@ -33,6 +33,10 @@ describe('CSS Preprocessor - SASS', () => {
     resetPreprocessorCaches();
   });
 
+  test.afterEach(() => {
+    resetPreprocessorCaches();
+  });
+
   describe('hasSassSyntax', () => {
     test('detects SASS variables', () => {
       assert.strictEqual(hasSassSyntax('$primary: #333;'), true);
@@ -249,6 +253,10 @@ describe('CSS Preprocessor - LESS', () => {
     resetPreprocessorCaches();
   });
 
+  test.afterEach(() => {
+    resetPreprocessorCaches();
+  });
+
   describe('hasLessSyntax', () => {
     test('detects LESS variables', () => {
       assert.strictEqual(hasLessSyntax('@primary: #333;'), true);
@@ -447,6 +455,10 @@ describe('Preprocessor Auto-Detection', () => {
     resetPreprocessorCaches();
   });
 
+  test.afterEach(() => {
+    resetPreprocessorCaches();
+  });
+
   describe('detectPreprocessor', () => {
     test('detects SASS syntax', () => {
       assert.strictEqual(detectPreprocessor('$color: red;'), 'sass');
@@ -533,6 +545,10 @@ describe('Preprocessor Auto-Detection', () => {
 
 describe('CSS Preprocessor - Stylus', () => {
   test.beforeEach(() => {
+    resetPreprocessorCaches();
+  });
+
+  test.afterEach(() => {
     resetPreprocessorCaches();
   });
 
@@ -728,6 +744,10 @@ color = red
 
 describe('Preprocessor Auto-Detection (Extended)', () => {
   test.beforeEach(() => {
+    resetPreprocessorCaches();
+  });
+
+  test.afterEach(() => {
     resetPreprocessorCaches();
   });
 

@@ -9,6 +9,8 @@ import assert from 'node:assert';
 
 import { pulse, effect, resetContext } from '../runtime/pulse.js';
 
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
 // ============================================================================
 // Mock navigator.serviceWorker (for runtime/sw.js)
 // ============================================================================
@@ -417,7 +419,7 @@ describe('registerServiceWorker — full lifecycle', () => {
     const result = registerServiceWorker('/sw.js', { scope: '/app/' });
 
     // Wait for async registration
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
 
     assert.ok(registerCalled);
     assert.strictEqual(registeredUrl, '/sw.js');
@@ -448,7 +450,7 @@ describe('registerServiceWorker — full lifecycle', () => {
     const { registerServiceWorker } = await import('../runtime/sw.js');
     const result = registerServiceWorker('/sw.js');
 
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
     await result.update();
     assert.ok(updateCalled);
 
@@ -477,7 +479,7 @@ describe('registerServiceWorker — full lifecycle', () => {
     const { registerServiceWorker } = await import('../runtime/sw.js');
     const result = registerServiceWorker('/sw.js', { updateInterval: 60000 });
 
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
     const unregResult = await result.unregister();
 
     assert.ok(unregCalled);
@@ -502,7 +504,7 @@ describe('registerServiceWorker — full lifecycle', () => {
       onError: (err) => { errorReceived = err; },
     });
 
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
     assert.ok(errorReceived);
     assert.ok(errorReceived.message.includes('Registration failed'));
 
@@ -545,7 +547,7 @@ describe('registerServiceWorker — full lifecycle', () => {
       onUpdate: () => { onUpdateCalled = true; },
     });
 
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
 
     // Simulate updatefound
     for (const l of updateFoundListeners) l();
@@ -595,7 +597,7 @@ describe('registerServiceWorker — full lifecycle', () => {
       onActivate: () => { onActivateCalled = true; },
     });
 
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
 
     for (const l of updateFoundListeners) l();
     newWorker.state = 'activated';
@@ -633,7 +635,7 @@ describe('useServiceWorker — with mock navigator', () => {
     const { useServiceWorker } = await import('../runtime/sw.js');
     const result = useServiceWorker('/sw.js');
 
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
 
     assert.strictEqual(result.supported, true);
     assert.strictEqual(result.registered.get(), true);
@@ -663,7 +665,7 @@ describe('useServiceWorker — with mock navigator', () => {
     const { useServiceWorker } = await import('../runtime/sw.js');
     const result = useServiceWorker('/sw.js');
 
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
     await result.unregister();
 
     assert.strictEqual(result.registered.get(), false);
@@ -700,7 +702,7 @@ describe('useServiceWorker — with mock navigator', () => {
     const { useServiceWorker } = await import('../runtime/sw.js');
     const result = useServiceWorker('/sw.js');
 
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
     await result.skipWaiting();
 
     assert.deepStrictEqual(messageSent, { type: 'SKIP_WAITING' });
@@ -724,7 +726,7 @@ describe('useServiceWorker — with mock navigator', () => {
     const { useServiceWorker } = await import('../runtime/sw.js');
     const result = useServiceWorker('/sw.js');
 
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
 
     assert.ok(result.error.get());
 
@@ -764,7 +766,7 @@ describe('useServiceWorker — with mock navigator', () => {
     const { useServiceWorker } = await import('../runtime/sw.js');
     const result = useServiceWorker('/sw.js');
 
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
 
     // Simulate update
     for (const l of updateFoundListeners) l();

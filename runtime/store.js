@@ -18,6 +18,7 @@
 import { pulse, computed, effect, batch } from './pulse.js';
 import { loggers, createLogger } from './logger.js';
 import { Errors, createErrorMessage } from './errors.js';
+import { DANGEROUS_KEYS } from './security.js';
 
 const log = loggers.store;
 
@@ -53,11 +54,7 @@ const MAX_NESTING_DEPTH = 10;
  * @typedef {function(Store): Store} StorePlugin
  */
 
-/**
- * Dangerous property names that could cause prototype pollution
- * @type {Set<string>}
- */
-const DANGEROUS_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+// DANGEROUS_KEYS imported from security.js (single source of truth — 16 entries)
 
 /**
  * Invalid value types that cannot be stored in state
@@ -74,7 +71,7 @@ const INVALID_TYPES = new Set(['function', 'symbol']);
  * Uses WeakMap to allow garbage collection of unreferenced objects
  * @type {WeakMap<Object, {keys: string[], values: any[]}>}
  */
-const _validationCache = new WeakMap();
+let _validationCache = new WeakMap();
 
 /**
  * Check shallow equality between cached and current object
@@ -110,9 +107,7 @@ function _cacheObject(obj) {
  * @returns {void}
  */
 export function clearValidationCache() {
-  // WeakMap doesn't have clear(), but we can create a new one
-  // Since it's module-level, we just document that cache is auto-cleared
-  // when objects are garbage collected
+  _validationCache = new WeakMap();
 }
 
 /**
@@ -453,13 +448,27 @@ export function createStore(initialState = {}, options = {}) {
   }
 
   /**
+   * Get a tracked snapshot of the current state (registers reactive dependencies).
+   * Unlike getState() which uses peek(), this uses get() so effects re-run on changes.
+   * @private
+   * @returns {Object} Plain object with current values
+   */
+  function getTrackedState() {
+    const snapshot = {};
+    for (const [key, p] of Object.entries(pulses)) {
+      snapshot[key] = p.get();
+    }
+    return snapshot;
+  }
+
+  /**
    * Subscribe to all state changes
    * @param {function(Object): void} callback - Called with current state on each change
    * @returns {function(): void} Unsubscribe function
    */
   function subscribe(callback) {
     return effect(() => {
-      const state = getState();
+      const state = getTrackedState();
       callback(state);
     });
   }

@@ -1,0 +1,6 @@
+# Shared .gitignore for all example projects
+node_modules/
+dist/
+.parcel-cache/
+.DS_Store
+*.log

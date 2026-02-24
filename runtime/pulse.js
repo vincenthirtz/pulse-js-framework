@@ -20,6 +20,7 @@
 
 import { loggers } from './logger.js';
 import { Errors } from './errors.js';
+import { DANGEROUS_KEYS } from './security.js';
 
 const log = loggers.pulse;
 
@@ -1080,6 +1081,8 @@ export function createState(obj) {
   const pulses = {};
 
   for (const [key, value] of Object.entries(obj)) {
+    if (DANGEROUS_KEYS.has(key)) continue;
+
     if (Array.isArray(value)) {
       // Arrays get special handling with reactive methods
       pulses[key] = new Pulse(value);

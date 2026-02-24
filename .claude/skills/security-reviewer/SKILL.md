@@ -18,6 +18,11 @@ description: Security review agent for the Pulse JS framework. Use this skill to
 - Proposing secure alternatives to dangerous code patterns
 - Verifying that security utilities are used correctly
 
+## Context Loading
+
+Load `.claude/context/api-utils.md` for security utility API (escapeHtml, sanitizeUrl, safeSetAttribute).
+For server components security, load `.claude/context/api-ssr-server.md`.
+
 ## Bundled Resources
 
 | Resource | Description |

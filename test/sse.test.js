@@ -9,6 +9,8 @@ import assert from 'node:assert';
 import { pulse, effect, resetContext } from '../runtime/pulse.js';
 import { SSEError, createSSE, useSSE } from '../runtime/sse.js';
 
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
 // ============================================================================
 // Mock EventSource
 // ============================================================================
@@ -588,19 +590,19 @@ describe('createSSE — reconnection', () => {
     es.simulateError();
 
     // Wait for reconnect timer
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
 
     // Second attempt error
     es = MockEventSource.lastInstance;
     if (es) es.simulateError();
 
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
 
     // Third attempt error (attempt 2 = maxRetries)
     es = MockEventSource.lastInstance;
     if (es) es.simulateError();
 
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
 
     // Should have exhausted retries
     const err = sse.error.get();
@@ -622,7 +624,7 @@ describe('createSSE — reconnection', () => {
     es.simulateError();
 
     // Wait for reconnect
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
 
     // New EventSource should be created
     const es2 = MockEventSource.lastInstance;

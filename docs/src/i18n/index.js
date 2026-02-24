@@ -127,6 +127,7 @@ function resolveKey(obj, key) {
  * t('greeting', { name: 'John' }) // "Hello, John!"
  */
 export function t(key, params = {}) {
+  if (!key) return '';
   const currentTranslations = translations.get();
   let value = resolveKey(currentTranslations, key);
 

@@ -126,8 +126,7 @@ async function killServer(proc) {
   });
 }
 
-// Run tests serially to avoid port/resource conflicts
-test.describe.configure({ mode: 'serial' });
+// Each test uses a unique port so they can run in parallel
 
 test.describe('Examples Health Check', () => {
   // Increase timeout for server startup + page load
@@ -164,12 +163,18 @@ test.describe('Examples Health Check', () => {
           timeout: 15000,
         });
 
-        // Wait for JS to execute and render
-        await page.waitForTimeout(2000);
-
-        // 1. Check #app exists
+        // 1. Check #app exists and has rendered content
         const app = page.locator('#app');
-        await expect(app).toBeAttached({ timeout: 5000 });
+        await expect(app).toBeAttached({ timeout: 10000 });
+
+        // Wait for app to render children (not just the empty container)
+        await page.waitForFunction(
+          () => {
+            const el = document.getElementById('app');
+            return el && el.innerHTML.trim().length > 0;
+          },
+          { timeout: 10000 }
+        ).catch(() => {});
 
         // 2. Check #app has rendered content (not empty)
         const innerHTML = await app.innerHTML();

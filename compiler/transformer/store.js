@@ -53,7 +53,7 @@ export function transformStore(transformer, storeBlock, transformValue) {
     lines.push(stateProps);
     lines.push('}, {');
     lines.push(`  persist: ${storeBlock.persist},`);
-    lines.push(`  storageKey: '${storeBlock.storageKey}'`);
+    lines.push(`  storageKey: ${JSON.stringify(storeBlock.storageKey)}`);
     lines.push('});');
     lines.push('');
   }

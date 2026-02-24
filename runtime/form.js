@@ -40,6 +40,7 @@ function isLocalStorageAvailable() {
   try {
     return typeof localStorage !== 'undefined' && localStorage !== null;
   } catch {
+    // localStorage may throw in private browsing or restricted environments
     return false;
   }
 }
@@ -113,6 +114,7 @@ export const validators = {
         new URL(value);
         return true;
       } catch {
+        // URL constructor throws on invalid URLs — treat as validation failure
         return message;
       }
     }
@@ -641,6 +643,7 @@ export function useForm(initialValues, validationSchema = {}, options = {}) {
     try {
       return localStorage.getItem(persistKey) !== null;
     } catch {
+      // localStorage may be unavailable (private browsing, quota exceeded)
       return false;
     }
   })());
@@ -853,7 +856,7 @@ export function useForm(initialValues, validationSchema = {}, options = {}) {
       try {
         localStorage.removeItem(persistKey);
       } catch {
-        // Ignore
+        // localStorage may throw if storage is restricted; safe to ignore on cleanup
       }
     }
     hasDraft.set(false);
@@ -1616,15 +1619,17 @@ export function useFileField(options = {}) {
     // Revoke removed preview URL
     if (preview && canCreateObjectURL()) {
       const currentPreviews = previews.get();
+      // Revoke the URL at this file index (may be null for non-image files)
       if (currentPreviews[index]) {
         try {
           URL.revokeObjectURL(currentPreviews[index]);
         } catch {
-          // Ignore
+          // Object URL may already be revoked; safe to ignore
         }
       }
       const newPreviews = currentPreviews.filter((_, i) => i !== index);
-      previewUrls = previewUrls.filter((_, i) => i !== index);
+      // Rebuild previewUrls from the filtered previews to avoid index mismatch
+      previewUrls = newPreviews.filter(Boolean);
       previews.set(newPreviews);
     }
 

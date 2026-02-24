@@ -29,6 +29,8 @@ import {
   assert as assertTrue
 } from './utils.js';
 
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
 // =============================================================================
 // formatDuration Tests
 // =============================================================================
@@ -138,7 +140,7 @@ test('createTimer format returns formatted string', () => {
 testAsync('createTimer measures elapsed time', async () => {
   const timer = createTimer();
 
-  await new Promise(r => setTimeout(r, 50));
+  await sleep(50);
 
   const elapsed = timer.elapsed();
   assertTrue(elapsed >= 40, `Expected at least 40ms, got ${elapsed}ms`);
@@ -686,9 +688,9 @@ test('createTable handles null/undefined in cells', () => {
 
 testAsync('createTimer multiple timers independent', async () => {
   const timer1 = createTimer();
-  await new Promise(r => setTimeout(r, 20));
+  await sleep(20);
   const timer2 = createTimer();
-  await new Promise(r => setTimeout(r, 20));
+  await sleep(20);
 
   const elapsed1 = timer1.elapsed();
   const elapsed2 = timer2.elapsed();

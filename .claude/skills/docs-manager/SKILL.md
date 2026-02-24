@@ -14,6 +14,11 @@ description: Documentation management agent for the Pulse JS framework. Use this
 - Synchronizing documentation content with the docs website
 - Batch updating documentation pages from markdown sources
 
+## Context Loading
+
+Load `.claude/context/export-map.md` for correct import paths.
+Load relevant API context file for the module being documented (see CLAUDE.md context table).
+
 ## Core Responsibilities
 
 ### 1. Documentation Collection

@@ -1,0 +1,257 @@
+/**
+ * Pulse SSR Demo
+ * Demonstrates renderToString, hydrate, state serialization,
+ * ClientOnly/ServerOnly, and SSR-safe patterns.
+ */
+
+import { renderToStringSync, serializeState, deserializeState, isSSR, ClientOnly, ServerOnly } from '../../../runtime/ssr.js'
+import { el } from '../../../runtime/index.js'
+
+@page App
+
+state {
+  activeTab: "overview"
+  ssrOutput: ""
+  serializedState: ""
+  hydrationStatus: "idle"
+  showClient: false
+  clientCount: 0
+  mockPosts: [
+    { id: 1, title: "Introduction to SSR", excerpt: "Server-side rendering improves SEO and initial page load..." },
+    { id: 2, title: "Hydration Explained", excerpt: "Hydration attaches event listeners to server-rendered HTML..." },
+    { id: 3, title: "SSR vs CSR vs SSG", excerpt: "Choose the right rendering strategy for your application..." }
+  ]
+}
+
+actions {
+  setTab(id) {
+    activeTab = id
+  }
+
+  runSSRDemo() {
+    const html = renderToStringSync(() =>
+      el('div.ssr-content',
+        el('h2', 'Server-Rendered Page'),
+        el('p', 'This HTML was generated on the server.'),
+        el('ul',
+          mockPosts.map(post =>
+            el('li', el('h3', post.title), el('p', post.excerpt))
+          )
+        ),
+        el('footer', 'Rendered at: ' + new Date().toISOString())
+      )
+    )
+    ssrOutput = typeof html === 'string' ? html : String(html)
+
+    const state = {
+      posts: mockPosts,
+      renderedAt: new Date().toISOString(),
+      theme: 'light'
+    }
+    serializedState = serializeState(state)
+
+    hydrationStatus = 'hydrating'
+    setTimeout(() => { hydrationStatus = 'complete' }, 800)
+  }
+
+  formatState() {
+    try { return JSON.stringify(JSON.parse(serializedState), null, 2) }
+    catch(e) { return serializedState }
+  }
+
+  getHydrationClass() {
+    return 'hydration-status status-' + hydrationStatus
+  }
+
+  getHydrationText() {
+    if (hydrationStatus === 'hydrating') return 'Hydrating... (attaching event listeners)'
+    if (hydrationStatus === 'complete') return 'Hydration complete! App is interactive.'
+    return hydrationStatus
+  }
+
+  toggleClient() { showClient = !showClient }
+  incrementCount() { clientCount = clientCount + 1 }
+  decrementCount() { clientCount = clientCount - 1 }
+
+  getEnvironment() {
+    return isSSR() ? 'Server (SSR)' : 'Browser (Client)'
+  }
+}
+
+view {
+  .app {
+    header {
+      h1 "Server-Side Rendering"
+      p.subtitle "Pre-render Pulse apps for SEO and performance"
+    }
+
+    nav.tabs {
+      button[class={activeTab === 'overview' ? 'active' : ''}][role=tab][aria-selected={activeTab === 'overview' ? 'true' : 'false'}] @click(setTab('overview')) "Overview"
+      button[class={activeTab === 'render' ? 'active' : ''}][role=tab][aria-selected={activeTab === 'render' ? 'true' : 'false'}] @click(setTab('render')) "Live Demo"
+      button[class={activeTab === 'patterns' ? 'active' : ''}][role=tab][aria-selected={activeTab === 'patterns' ? 'true' : 'false'}] @click(setTab('patterns')) "Patterns"
+      button[class={activeTab === 'server' ? 'active' : ''}][role=tab][aria-selected={activeTab === 'server' ? 'true' : 'false'}] @click(setTab('server')) "Server Setup"
+    }
+
+    main {
+      @if (activeTab === "overview") {
+        .tab-content {
+          h2 "SSR Overview"
+          p "Server-Side Rendering pre-renders your Pulse app on the server, sending fully-formed HTML to the browser."
+
+          .benefits-grid {
+            .benefit {
+              .benefit-icon "SEO"
+              h3 "Search Engine Optimization"
+              p "Search engines see complete HTML content."
+            }
+            .benefit {
+              .benefit-icon "FCP"
+              h3 "First Contentful Paint"
+              p "Users see content immediately."
+            }
+            .benefit {
+              .benefit-icon "A11y"
+              h3 "Accessibility"
+              p "Content available before JS loads."
+            }
+            .benefit {
+              .benefit-icon "Perf"
+              h3 "Performance"
+              p "Faster time-to-interactive."
+            }
+          }
+
+          h3 "How It Works"
+          ol.steps {
+            li { strong "Server Render: " "renderToString() creates HTML using MockDOMAdapter" }
+            li { strong "Async Data: " "useAsync operations are collected and awaited" }
+            li { strong "HTML Output: " "MockNode tree is serialized to an HTML string" }
+            li { strong "State Transfer: " "State is serialized as JSON in a script tag" }
+            li { strong "Client Hydration: " "hydrate() attaches event listeners to existing DOM" }
+            li { strong "Interactive: " "App becomes fully interactive with no content flicker" }
+          }
+        }
+      }
+
+      @if (activeTab === "render") {
+        .tab-content {
+          h2 "Live SSR Demonstration"
+          p "Click the button to render a component to an HTML string:"
+
+          button.primary @click(runSSRDemo()) "Run SSR Render"
+
+          @if (ssrOutput) {
+            .output-section {
+              h3 "1. renderToStringSync() Output"
+              p "This HTML would be sent from the server:"
+              pre.code-block { code "{ssrOutput}" }
+            }
+          }
+
+          @if (serializedState) {
+            .output-section {
+              h3 "2. serializeState() Output"
+              p "State serialized for transfer to the client:"
+              pre.code-block { code "{formatState()}" }
+            }
+          }
+
+          @if (hydrationStatus !== "idle") {
+            .output-section {
+              h3 "3. Hydration Status"
+              .hydration-status[class={getHydrationClass()}] "{getHydrationText()}"
+            }
+          }
+        }
+      }
+
+      @if (activeTab === "patterns") {
+        .tab-content {
+          h2 "SSR-Safe Patterns"
+
+          .pattern {
+            h3 "Environment Detection"
+            p "Use isSSR() to guard browser-only code."
+            p "Current environment: {getEnvironment()}"
+          }
+
+          .pattern {
+            h3 "ClientOnly / ServerOnly"
+            p "Selectively render content based on environment."
+
+            .demo-box {
+              p "Client-only content (interactive):"
+              button @click(toggleClient()) "{showClient ? 'Hide Counter' : 'Show Counter'}"
+              @if (showClient) {
+                .client-widget {
+                  span "Count: {clientCount}"
+                  button @click(incrementCount()) "+"
+                  button @click(decrementCount()) "-"
+                }
+              }
+            }
+          }
+
+          .pattern {
+            h3 "Safe State Serialization"
+            p "serializeState handles special types and XSS prevention."
+          }
+        }
+      }
+
+      @if (activeTab === "server") {
+        .tab-content {
+          h2 "Server Setup"
+          p "Pulse includes adapters for popular server frameworks:"
+
+          .adapters {
+            .adapter { strong "Express" code "pulse-js-framework/server/express" }
+            .adapter { strong "Hono" code "pulse-js-framework/server/hono" }
+            .adapter { strong "Fastify" code "pulse-js-framework/server/fastify" }
+          }
+        }
+      }
+    }
+  }
+}
+
+style {
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #1a1a2e; background: #f0f0f5; }
+  .app { max-width: 850px; margin: 0 auto; padding: 20px; }
+  header { text-align: center; padding: 30px 0 20px; }
+  header h1 { font-size: 2em; color: #1a1a2e; }
+  .subtitle { color: #666; margin-top: 4px; }
+  .tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 2px solid #ddd; }
+  .tabs button { padding: 10px 18px; border: none; background: transparent; cursor: pointer; font-size: 0.95em; color: #666; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; }
+  .tabs button:hover { color: #646cff; }
+  .tabs button.active { color: #646cff; border-bottom-color: #646cff; font-weight: 600; }
+  .tab-content { background: #fff; border-radius: 12px; padding: 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+  .tab-content h2 { margin-bottom: 10px; }
+  .tab-content h3 { margin: 20px 0 8px; color: #333; }
+  .tab-content p { color: #555; margin-bottom: 12px; }
+  .benefits-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin: 16px 0; }
+  .benefit { padding: 16px; background: #f8f8ff; border-radius: 8px; text-align: center; }
+  .benefit-icon { font-size: 1.5em; font-weight: 700; color: #646cff; margin-bottom: 6px; }
+  .benefit h3 { font-size: 0.95em; margin-bottom: 4px; }
+  .benefit p { font-size: 0.85em; color: #666; margin: 0; }
+  .steps { margin: 16px 0; padding-left: 24px; }
+  .steps li { margin-bottom: 8px; }
+  .code-block { background: #1e1e2e; color: #cdd6f4; padding: 16px; border-radius: 8px; overflow-x: auto; font-family: 'SF Mono', Monaco, Consolas, monospace; font-size: 0.85em; margin: 8px 0 16px; white-space: pre; line-height: 1.5; }
+  .output-section { margin-top: 20px; padding-top: 16px; border-top: 1px solid #eee; }
+  .hydration-status { padding: 12px 16px; border-radius: 8px; font-weight: 600; transition: all 0.3s; }
+  .status-hydrating { background: #fff3e0; color: #e65100; }
+  .status-complete { background: #e8f5e9; color: #2e7d32; }
+  .pattern { margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid #eee; }
+  .pattern:last-child { border-bottom: none; }
+  .demo-box { padding: 16px; background: #f8f8ff; border-radius: 8px; margin: 12px 0; }
+  .client-widget { display: inline-flex; gap: 8px; align-items: center; margin-top: 8px; padding: 8px; background: #fff; border-radius: 6px; border: 1px solid #ddd; }
+  .adapters { display: flex; flex-direction: column; gap: 8px; }
+  .adapter { display: flex; gap: 12px; align-items: center; padding: 8px; background: #f8f8ff; border-radius: 6px; }
+  .adapter code { font-size: 0.85em; color: #646cff; }
+  button { font-family: inherit; }
+  button.primary { padding: 10px 20px; border: none; border-radius: 6px; background: #646cff; color: #fff; cursor: pointer; font-size: 1em; }
+  button.primary:hover { background: #535bf2; }
+  .client-widget button { padding: 4px 12px; border: 1px solid #ddd; border-radius: 4px; background: #fff; cursor: pointer; }
+  *:focus-visible { outline: 3px solid #646cff; outline-offset: 2px; }
+}

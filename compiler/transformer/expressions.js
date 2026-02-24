@@ -191,39 +191,83 @@ export function transformExpressionString(transformer, exprStr) {
   // invalid code like stateVar.get() = expr (LHS of assignment is not a reference)
   for (const stateVar of transformer.stateVars) {
     // Compound assignment: stateVar += expr -> stateVar.update(_v => _v + expr)
-    result = result.replace(
-      new RegExp(`\\b${stateVar}\\s*(\\+=|-=|\\*=|\\/=|&&=|\\|\\|=|\\?\\?=)\\s*`, 'g'),
-      (_match, op) => {
-        const baseOp = op.slice(0, -1); // Remove trailing '='
-        return `${stateVar}.update(_v => _v ${baseOp} `;
+    // Use bracket-balancing to find the end of the RHS expression
+    const compoundPattern = new RegExp(`\\b${stateVar}\\s*(\\+=|-=|\\*=|\\/=|&&=|\\|\\|=|\\?\\?=)\\s*`, 'g');
+    let compoundMatch;
+    const compoundReplacements = [];
+
+    while ((compoundMatch = compoundPattern.exec(result)) !== null) {
+      const op = compoundMatch[1];
+      const baseOp = op.slice(0, -1);
+      const rhsStart = compoundMatch.index + compoundMatch[0].length;
+
+      // Find end of RHS expression using bracket balancing
+      let depth = 0;
+      let endIdx = rhsStart;
+      for (let i = rhsStart; i < result.length; i++) {
+        const ch = result[i];
+        if (ch === '(' || ch === '[' || ch === '{') { depth++; endIdx = i + 1; continue; }
+        if (ch === ')' || ch === ']' || ch === '}') {
+          if (depth > 0) { depth--; endIdx = i + 1; continue; }
+          break; // closing bracket at depth 0 = boundary
+        }
+        if (depth === 0 && (ch === ';' || ch === ',')) break;
+        endIdx = i + 1;
       }
-    );
-    // Close the .update() call - find the end of the expression after the replacement
-    // This is handled by the fact that the expression continues after the replacement text
-    // and the closing paren is added by wrapping logic below.
+
+      const rhs = result.slice(rhsStart, endIdx).trim();
+      if (rhs) {
+        compoundReplacements.push({
+          start: compoundMatch.index,
+          end: endIdx,
+          replacement: `${stateVar}.update(_v => _v ${baseOp} ${rhs})`
+        });
+      }
+    }
+
+    // Apply compound replacements in reverse order
+    for (let i = compoundReplacements.length - 1; i >= 0; i--) {
+      const r = compoundReplacements[i];
+      result = result.slice(0, r.start) + r.replacement + result.slice(r.end);
+    }
 
     // Simple assignment: stateVar = expr -> stateVar.set(expr)
-    // Use negative lookbehind to skip compound assignments (already handled)
-    // Use negative lookahead to skip == and ===
-    result = result.replace(
-      new RegExp(`\\b${stateVar}\\s*=(?!=)`, 'g'),
-      `${stateVar}.set(`
-    );
-  }
+    // Use bracket-balancing to find the end of the RHS expression
+    const simplePattern = new RegExp(`\\b${stateVar}\\s*=(?!=)\\s*`, 'g');
+    let simpleMatch;
+    const simpleReplacements = [];
 
-  // If we inserted .set( or .update(, we need to close the parenthesis
-  // Find unclosed .set( and .update( calls and close them at end of expression
-  if (result.includes('.set(') || result.includes('.update(_v =>')) {
-    // For .update(_v => _v op expr), close with )
-    result = result.replace(
-      /\.update\(_v => _v [^\)]*$/,
-      (m) => m + ')'
-    );
-    // For .set(expr), close with )
-    result = result.replace(
-      /\.set\(([^)]*$)/,
-      (_m, expr) => `.set(${expr})`
-    );
+    while ((simpleMatch = simplePattern.exec(result)) !== null) {
+      const rhsStart = simpleMatch.index + simpleMatch[0].length;
+
+      let depth = 0;
+      let endIdx = rhsStart;
+      for (let i = rhsStart; i < result.length; i++) {
+        const ch = result[i];
+        if (ch === '(' || ch === '[' || ch === '{') { depth++; endIdx = i + 1; continue; }
+        if (ch === ')' || ch === ']' || ch === '}') {
+          if (depth > 0) { depth--; endIdx = i + 1; continue; }
+          break;
+        }
+        if (depth === 0 && (ch === ';' || ch === ',')) break;
+        endIdx = i + 1;
+      }
+
+      const rhs = result.slice(rhsStart, endIdx).trim();
+      if (rhs) {
+        simpleReplacements.push({
+          start: simpleMatch.index,
+          end: endIdx,
+          replacement: `${stateVar}.set(${rhs})`
+        });
+      }
+    }
+
+    // Apply simple replacements in reverse order
+    for (let i = simpleReplacements.length - 1; i >= 0; i--) {
+      const r = simpleReplacements[i];
+      result = result.slice(0, r.start) + r.replacement + result.slice(r.end);
+    }
   }
 
   // Transform state var reads (not already transformed to .get/.set/.update)
@@ -238,13 +282,16 @@ export function transformExpressionString(transformer, exprStr) {
   // Add optional chaining when followed by property access for nullable props
   // Props commonly receive null values (e.g., notification: null)
   for (const propVar of transformer.propVars) {
+    // Property access: propVar.x -> propVar.get()?.x
+    // Guard against already-transformed: skip if followed by .get( or .set(
     result = result.replace(
-      new RegExp(`\\b${propVar}\\b(?=\\.)`, 'g'),
+      new RegExp(`\\b${propVar}\\b(?=\\.(?!get\\(|set\\())`, 'g'),
       `${propVar}.get()?`
     );
     // Handle standalone prop var (not followed by property access)
+    // Guard: skip if already followed by .get or .set
     result = result.replace(
-      new RegExp(`\\b${propVar}\\b(?!\\.)`, 'g'),
+      new RegExp(`\\b${propVar}\\b(?!\\.(?:get|set)\\()(?!\\.)`, 'g'),
       `${propVar}.get()`
     );
   }
@@ -414,7 +461,6 @@ export function transformFunctionBody(transformer, tokens) {
 
       for (let i = exprStart; i < code.length; i++) {
         const ch = code[i];
-        const prevCh = i > 0 ? code[i-1] : '';
 
         // Handle string literals
         if (!inString && (ch === '"' || ch === "'" || ch === '`')) {
@@ -424,7 +470,13 @@ export function transformFunctionBody(transformer, tokens) {
           continue;
         }
         if (inString) {
-          if (ch === stringChar && prevCh !== '\\') {
+          if (ch === '\\') {
+            // Skip next character (escaped)
+            i++;
+            endIdx = i + 1;
+            continue;
+          }
+          if (ch === stringChar) {
             inString = false;
           }
           endIdx = i + 1;

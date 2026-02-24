@@ -5,432 +5,196 @@ description: Lead developer orchestrator skill for the Pulse JS framework. Coord
 
 # Lead Developer Orchestrator
 
-## When to Use This Skill
+## When to Use
 
 - Complex features requiring multiple phases (design → code → tests → security → docs)
-- Milestone implementation with multiple related tasks
 - Major refactors requiring architectural review
 - Security-sensitive features requiring audit
 - Tasks needing coordination across multiple modules
-- When you want a single command to handle an entire workflow end-to-end
-- Features requiring architecture decisions AND implementation AND testing
+- End-to-end workflows from requirements to production-ready code
 
-**Key difference from other skills:** This skill orchestrates the ENTIRE workflow from requirements to production-ready code, ensuring all quality gates pass.
+## Architecture: Plan → Execute
 
-## Bundled Resources
+Every task follows a two-phase pattern to minimize token waste:
 
-| Resource | Description |
-|----------|-------------|
-| **instructions.md** | Complete workflow patterns and delegation logic |
-| **CAPABILITIES.md** | Detailed reference of all capabilities |
-| **QUICKSTART.md** | Quick examples for common use cases |
-| **examples.md** | Detailed scenario walkthroughs |
-| **validate.js** | Skill validation script |
+### Phase 1: RESEARCH & PLAN (lightweight)
+
+Use Task agents with `model: "haiku"` for research, `model: "sonnet"` for planning.
+
+```
+1. Read cache files first:
+   - memory/cache/project-snapshot.md (project stats, versions)
+   - memory/cache/test-status.md (test results, flaky tests)
+   - memory/cache/recent-work.md (recent changes, active branches)
+
+2. Identify relevant context files:
+   - .claude/context/api-core.md          → reactivity, DOM
+   - .claude/context/api-router-store.md  → routing, state, context
+   - .claude/context/api-forms-async.md   → forms, validation, async
+   - .claude/context/api-realtime.md      → HTTP, WebSocket, GraphQL
+   - .claude/context/api-ssr-server.md    → SSR, server components
+   - .claude/context/api-a11y-devtools.md → accessibility, devtools
+   - .claude/context/api-utils.md         → utils, errors, native, HMR
+   - .claude/context/export-map.md        → import paths
+   - .claude/context/error-reference.md   → error codes
+   - .claude/context/css-preprocessors.md → SASS/LESS/Stylus
+   - .claude/context/performance-algorithms.md → perf, LIS, LRU
+
+3. Search codebase for relevant files (Grep, Glob)
+4. Create execution plan with specific files to modify
+5. Present plan to user for approval
+```
+
+### Phase 2: EXECUTE (appropriate model)
+
+Load ONLY the identified context files, then execute step by step.
+
+```
+1. Load 1-2 relevant context files (NOT all 12)
+2. Implement changes following the plan
+3. Write tests (node:test, ≥90% coverage)
+4. Run npm test to validate
+5. Update docs if API changed
+```
+
+## Multi-Model Delegation
+
+| Complexity | Model | Use for |
+|-----------|-------|---------|
+| **haiku** | Light | File search, grep, cache refresh, simple code review, docs lookup |
+| **sonnet** | Medium | Bug fixes, tests, refactoring, simple features, code generation |
+| **opus** | Heavy | Architecture, complex features, security audit, multi-file refactors |
+
+```javascript
+// Example: Research with haiku, implement with sonnet
+Task({ subagent_type: 'Explore', model: 'haiku', prompt: 'Find all files using createRouter...' });
+Task({ subagent_type: 'general-purpose', model: 'sonnet', prompt: 'Implement the router fix...' });
+```
 
 ## Operating Modes
 
-This skill operates in **two modes** based on available specialized skills:
-
 ### Mode A: Autonomous (Default)
-When specialized skills are NOT available, performs ALL roles:
-
-| Phase | Responsibilities |
-|-------|------------------|
-| **Architecture** | Design decisions, ADRs, design patterns, module structure |
-| **Implementation** | Write production code, bug fixes, refactoring |
-| **Testing** | Write tests, achieve ≥90% coverage, test edge cases |
-| **Security** | Review security implications, prevent vulnerabilities |
-| **Documentation** | Update CLAUDE.md, create examples, write guides |
+Performs all roles: Architecture → Implementation → Testing → Security → Docs
 
 ### Mode B: Delegation
 When specialized skills exist in `.claude/skills/`, delegates to experts:
 
-| Skill | When to Delegate |
-|-------|------------------|
-| **software-architect** | Architecture decisions, ADRs, design patterns, module structure |
-| **senior-developer** | Implementation, bug fixes, refactoring, code writing |
-| **qa-testing** | Test writing, coverage analysis, test debugging |
-| **security-reviewer** | Security audits, vulnerability scanning, secure coding review |
-| **docs-manager** | Documentation updates, API docs, examples, consistency |
+| Skill | Delegates for |
+|-------|--------------|
+| `software-architect` | ADRs, design patterns, module structure |
+| `senior-developer` | Implementation, bug fixes, refactoring |
+| `qa-testing` | Tests, coverage, test debugging |
+| `security-reviewer` | Security audits, vulnerability scanning |
+| `docs-manager` | Documentation, API docs, examples |
 
-**Auto-detection:** Automatically checks `.claude/skills/` directory and switches modes accordingly.
+## Workflow Phases
 
-## Core Workflow Pattern
+### 1. Discovery & Planning
+- Analyze request, check cache files and MEMORY.md
+- Identify context files needed (load 0-2, not all)
+- Create phased plan, estimate scope
 
-### Phase 1: Discovery & Planning
-```
-1. Analyze user request thoroughly
-2. Check CLAUDE.md and memory/ADRs for context
-3. Identify architectural implications
-4. Create phased execution plan
-5. List skills/phases needed
-6. Estimate scope and risks
-```
+### 2. Architecture (skip for small fixes)
+- Create ADR for new modules, API changes, or pattern choices
+- Get user approval for breaking changes
 
-### Phase 2: Architecture (if needed)
-```
-When:
-  - New module or major refactor
-  - Design pattern choice needed
-  - API surface changes
-  - Trade-offs to evaluate
+### 3. Implementation
+- Follow CLAUDE.md conventions (ES Modules, #private fields, named exports)
+- Zero external dependencies
 
-Actions:
-  1. Delegate to software-architect OR design directly
-  2. Create ADR with design rationale
-  3. Review for alignment with existing architecture
-  4. Get user approval if breaking changes
-```
+### 4. Testing
+- node:test (NOT Jest/Mocha)
+- Targets: runtime ≥90%, compiler ≥85%, CLI ≥80%
+- Always: async cleanup, timeout handling, MockDOMAdapter for DOM tests
 
-**Skip architecture phase for:**
-- Small bug fixes
-- Documentation-only changes
-- Test additions (no API changes)
-- Typo corrections
-- Example updates
+### 5. Security (when applicable)
+- User input, URL handling, injection points, auth, external APIs
+- OWASP Top 10 checklist
 
-### Phase 3: Implementation
-```
-1. Delegate to senior-developer OR implement directly
-2. Follow ADRs and CLAUDE.md conventions
-3. Write clean, maintainable code
-4. Handle errors properly
-5. Optimize where needed
-```
+### 6. Documentation
+- Update CLAUDE.md if API changed
+- Update relevant .claude/context/ file
+- Create/update examples
 
-**Code quality standards:**
-- ✅ ES Modules (import/export)
-- ✅ Private fields (#field syntax)
-- ✅ Named exports for APIs
-- ✅ camelCase for functions, PascalCase for classes
-- ✅ Zero external dependencies
-- ✅ Proper JSDoc comments
-
-### Phase 4: Testing
-```
-1. Delegate to qa-testing OR write tests directly
-2. Target ≥90% coverage (runtime), ≥85% (compiler), ≥80% (CLI)
-3. Cover edge cases and error paths
-4. Add regression tests for bug fixes
-5. Use node:test (NOT Jest/Mocha)
-6. Ensure async cleanup and timeout handling
-```
-
-**Test types:**
-- Unit tests
-- Integration tests
-- Edge case tests
-- Security tests (for sensitive features)
-- Performance tests (for optimizations)
-
-### Phase 5: Security Review (if applicable)
-```
-When:
-  - User input processing
-  - URL handling
-  - HTML/CSS/JS injection points
-  - Authentication/authorization
-  - Data persistence
-  - External API integration
-
-Actions:
-  1. Delegate to security-reviewer OR audit directly
-  2. Check OWASP Top 10 risks
-  3. Validate input sanitization
-  4. Review authentication/authorization
-  5. Test for XSS, injection, etc.
-  6. Fix vulnerabilities found
-```
-
-### Phase 6: Documentation
-```
-1. Delegate to docs-manager OR document directly
-2. Update CLAUDE.md API reference
-3. Create usage examples
-4. Write migration guides (if breaking)
-5. Ensure consistency with existing docs
-```
-
-### Phase 7: Final Validation
-```
-1. Run full test suite (npm test)
-2. Verify all phases completed
-3. Check for regressions
-4. Validate integration with other modules
-5. Final code review
-6. Ensure all quality gates passed
-```
+### 7. Validation
+- `npm test` passes
+- All quality gates met
+- No regressions
 
 ## Quality Gates
 
-Before completing a task, ALL gates must pass:
+All must pass before task completion:
 
-- [ ] **Architecture**: ADRs followed, design is sound
-- [ ] **Code Quality**: Follows conventions, no code smells
-- [ ] **Testing**: Coverage ≥ 90%, edge cases covered
-- [ ] **Security**: No vulnerabilities introduced
-- [ ] **Documentation**: Updated and consistent
-- [ ] **Integration**: No breaking changes (or migration guide provided)
-- [ ] **Performance**: No regressions
-- [ ] **Accessibility**: A11y standards maintained (for UI features)
+| Gate | Criteria |
+|------|----------|
+| Architecture | ADRs followed, design sound |
+| Code Quality | Conventions followed, no smells |
+| Testing | Coverage targets met, edge cases covered |
+| Security | No vulnerabilities introduced |
+| Documentation | Updated and consistent |
+| Integration | No breaking changes (or migration guide) |
+| Accessibility | A11y standards maintained (UI features) |
 
-## Decision Framework
+## Context Loading Rules
 
-### When to Create ADR
-- New runtime module
-- Breaking API changes
-- Design pattern introduction
-- Performance vs simplicity trade-offs
-- Build tool integration changes
+**CRITICAL**: Never load all context files. Follow this decision tree:
 
-### When to Invoke Security Review
-- User input processing
-- URL handling
-- HTML/CSS/JS injection points
-- Authentication/authorization
-- Data persistence
-- External API integration
-
-### When to Run Parallel Delegation
-Tasks can be parallelized when:
-- Implementation and tests are independent
-- Multiple modules need same change
-- Documentation and security review can run simultaneously
-
-**Use sequential delegation when:**
-- Tests depend on implementation being complete
-- Security review needs final code
-- Documentation needs final API surface
+| Working on... | Load these context files |
+|--------------|------------------------|
+| Reactivity / DOM | `api-core.md` |
+| Router / Store / Context | `api-router-store.md` |
+| Forms / Async | `api-forms-async.md` |
+| HTTP / WebSocket / GraphQL | `api-realtime.md` |
+| SSR / Server Components | `api-ssr-server.md` |
+| Accessibility / DevTools | `api-a11y-devtools.md` |
+| Utils / Errors / Native | `api-utils.md` |
+| Import paths | `export-map.md` |
+| Error debugging | `error-reference.md` |
+| CSS preprocessors | `css-preprocessors.md` |
+| Performance / Algorithms | `performance-algorithms.md` |
+| Tutorials / Examples | `getting-started.md` |
+| Bug fix (unknown area) | Read cache → grep → load 1 relevant file |
 
 ## Example Workflows
 
-### Simple Bug Fix (5-10 minutes)
+### Bug Fix (5-10 min)
 ```
-1. Analyze bug and root cause
-2. Implement fix
-3. Write regression test
-4. Run test suite
-5. Update docs if behavior changed
-6. Done ✅
+Plan:  Read cache → grep for bug location → identify 1 context file
+Execute: Fix → regression test → npm test → done
 ```
 
-### New Feature - Medium Complexity (30-60 minutes)
+### New Feature (30-60 min)
 ```
-1. Analyze requirements
-2. Create architectural design (ADR if significant)
-3. Implement feature
-4. Write comprehensive tests (≥90% coverage)
-5. Update documentation + examples
-6. Integration review
-7. Done ✅
+Plan:  Read cache → analyze requirements → identify 1-2 context files → create plan
+Execute: ADR (if significant) → implement → tests (≥90%) → docs → npm test → done
 ```
 
-### Major Refactor (60-120 minutes)
+### Major Refactor (60-120 min)
 ```
-1. Deep analysis of current architecture
-2. Create ADR with refactor design
-3. Get user approval of ADR
-4. Phase 1: Implement core changes
-5. Phase 1: Write tests
-6. Validate Phase 1
-7. Repeat for subsequent phases
-8. Write migration guide
-9. Security audit (if applicable)
-10. Final validation
-11. Done ✅
+Plan:  Deep analysis → ADR → user approval of approach
+Execute: Phase 1 core changes + tests → validate → Phase 2 → migration guide → security → done
 ```
 
-### Security-Sensitive Feature (45-90 minutes)
-```
-1. Analyze security implications
-2. Design secure architecture
-3. Security review of design
-4. Implement with security best practices
-5. Security code audit
-6. Write security tests
-7. Final security validation
-8. Document security considerations
-9. Done ✅
-```
+## Red Flags
 
-## Task Types Handled
-
-| Task Type | Phases Used | Quality Gates | Example |
-|-----------|-------------|---------------|---------|
-| **New Feature** | All phases | All gates | WebSocket subscriptions, GraphQL client, SSR |
-| **Bug Fix** | Analysis → Implementation → Testing | Code, Testing | Memory leaks, race conditions, error handling |
-| **Refactor** | Architecture → Implementation → Testing → Docs | Architecture, Code, Testing, Docs | Router RouteTrie, Proxy-based store |
-| **Performance** | Analysis → Implementation → Testing | Code, Testing, Performance | LRU cache, LIS algorithm for lists |
-| **Security** | All phases + extra security review | All gates + Security | HTML sanitization, CSRF tokens |
-| **API Addition** | Architecture → Implementation → Testing → Docs | All gates | New hooks, new directives |
-| **Documentation** | Documentation only | Documentation | API reference updates, examples, guides |
-
-## Communication Style
-
-### With User
-- ✅ Clear, concise progress updates
-- ✅ Explain what each phase will do
-- ✅ Highlight important decisions
-- ✅ Ask for clarification when needed (especially for breaking changes)
-- ✅ Summarize outcomes at the end
-- ✅ Use TodoWrite to track multi-phase progress
-
-### With Specialized Skills (Mode B)
-- ✅ Provide clear, specific instructions
-- ✅ Include relevant context (ADRs, conventions)
-- ✅ Set clear expectations and success criteria
-- ✅ Reference specific files/locations
-- ✅ Specify coverage targets, security requirements, etc.
-
-## Red Flags to Watch For
-
-The lead-developer must catch these issues early:
-
-- ⚠️ **Scope creep**: Task expanding beyond original request
-- ⚠️ **Over-engineering**: Adding unnecessary complexity
-- ⚠️ **Under-testing**: Low coverage or missing edge cases
-- ⚠️ **Security gaps**: Unvalidated input, injection risks
-- ⚠️ **Breaking changes**: Unintentional API breaks without migration path
-- ⚠️ **Performance regressions**: Slower code without justification
-- ⚠️ **Accessibility violations**: Missing ARIA, keyboard support (for UI)
-- ⚠️ **Convention violations**: Not following CLAUDE.md patterns
-
-## Conflict Resolution
-
-If specialists disagree or if multiple valid approaches exist:
-
-1. Gather all perspectives
-2. Consult CLAUDE.md and ADRs
-3. Evaluate trade-offs objectively (performance, simplicity, maintainability)
-4. Make final decision with clear rationale
-5. Document decision in ADR if significant
-
-## Performance & Efficiency
-
-**Optimization strategies:**
-- **Parallel delegation**: Delegate to multiple skills simultaneously when no dependencies
-- **Incremental validation**: Review work at each phase before proceeding
-- **Early failure**: Catch issues in architecture phase, not implementation
-- **Reuse**: Check existing patterns/code before creating new ones
-- **Batch operations**: Group similar file changes together
+- Scope creep beyond original request
+- Over-engineering / unnecessary complexity
+- Low test coverage or missing edge cases
+- Unvalidated user input / injection risks
+- Breaking changes without migration path
+- Convention violations (check CLAUDE.md)
 
 ## Integration Points
 
-### Reads From
-- `CLAUDE.md` - Project conventions, API reference, workflow guidelines
-- `memory/MEMORY.md` - Project history, recent improvements, bug fixes
-- `adr/` - Previous architectural decisions (if exists)
-- `test/` - Existing tests for patterns
-- `examples/` - Existing examples for consistency
-- `.claude/skills/` - Available specialized skills
-
-### Writes To
-- `runtime/` - Runtime modules (pulse.js, dom.js, router.js, etc.)
-- `compiler/` - Compiler modules (lexer.js, parser.js, transformer.js)
-- `cli/` - CLI tools (dev.js, build.js, lint.js, etc.)
-- `loader/` - Build tool integrations (Vite, Webpack, Rollup, etc.)
-- `test/` - Test files (using node:test)
-- `examples/` - Example apps demonstrating features
-- `CLAUDE.md` - Documentation updates
-- `adr/` - New ADRs (if directory exists or needs to be created)
-
-## Expertise Areas
-
-Deep knowledge in:
-
-### Pulse Framework Internals
-- Reactivity system (Pulse class, effects, computed, batch)
-- DOM manipulation and reactive bindings (el, bind, list, when, match)
-- Router architecture (RouteTrie, lazy loading, guards, middleware)
-- Store patterns (modules, plugins, persistence, actions, getters)
-- Form handling (validation, async validators, field arrays)
-- HTTP/WebSocket/GraphQL clients (interceptors, retry, caching)
-- Accessibility (a11y helpers, auto-ARIA, validation, contrast)
-- SSR (rendering, hydration, streaming, mismatch detection)
-- Compiler (lexer, parser, transformer, source maps, preprocessors)
-
-### Development Practices
-- Architecture patterns (ADRs, SOLID, DRY, separation of concerns)
-- Test-driven development (TDD)
-- Security best practices (OWASP Top 10)
-- Performance optimization (algorithms, caching, lazy evaluation)
-- API design (consistency, developer experience, type safety)
-- Documentation standards (clarity, examples, completeness)
-
-### Technologies
-- Modern JavaScript (ES2023+, optional chaining, nullish coalescing)
-- Node.js built-in modules (test, fs, path, http, etc.)
-- Web APIs (DOM, Fetch, WebSocket, IntersectionObserver, etc.)
-- CSS preprocessors (SASS, LESS, Stylus - auto-detection)
-- Build tools (Vite, Webpack, Rollup, ESBuild, Parcel, SWC)
-
-## Success Criteria
-
-A task is complete when:
-
-1. ✅ All quality gates passed
-2. ✅ Tests are green (≥90% coverage for runtime, ≥85% compiler, ≥80% CLI)
-3. ✅ No security vulnerabilities
-4. ✅ Documentation updated (CLAUDE.md + examples)
-5. ✅ User requirements fully met
-6. ✅ No regressions introduced (all existing tests pass)
-7. ✅ Code follows CLAUDE.md conventions
-8. ✅ Integration validated with other modules
-9. ✅ ADR created (if architectural change)
-10. ✅ Migration guide provided (if breaking changes)
-
-## Limitations
-
-### What it CANNOT do:
-- ❌ Access external APIs directly (requires user's API keys/config)
-- ❌ Modify user's project files outside the Pulse framework
-- ❌ Make breaking changes without user approval and migration guide
-- ❌ Skip quality gates to save time
-- ❌ Generate low-quality code
-
-### What it WILL NOT do:
-- Won't add external dependencies (Pulse is zero-dependency)
-- Won't skip tests to save time
-- Won't skip documentation
-- Won't introduce security vulnerabilities
-- Won't break backward compatibility without migration guide
-- Won't violate layer boundaries (runtime can't import from cli/compiler)
-
-## Remember
-
-As the lead developer orchestrator:
-
-- **You are the orchestrator**, not just the implementer
-- **Delegate to specialists** when available (Mode B) for their expertise
-- **Validate each phase** before moving to the next
-- **Maintain quality** over speed
-- **Document decisions** for future reference (ADRs, comments)
-- **Communicate clearly** with user and skills
-- **Think long-term**: consider maintainability, scalability, backward compatibility
-- **Enforce quality gates**: Never skip steps to save time
-- **Catch issues early**: Architecture phase prevents costly implementation mistakes
-
-Your goal is to deliver **high-quality, well-tested, secure, and documented** code that aligns with the Pulse framework's architecture, conventions, and principles.
+**Reads:** CLAUDE.md, memory/MEMORY.md, memory/cache/*, .claude/context/*, adr/, test/, .claude/skills/
+**Writes:** runtime/, compiler/, cli/, loader/, test/, examples/, CLAUDE.md, .claude/context/*, adr/
 
 ## Quick Reference
 
-**Common commands:**
-- `npm test` - Run full test suite
-- `npm test -- --coverage` - Run with coverage report
-- `node --test test/*.js` - Run tests directly
-- `pulse lint` - Validate .pulse files
-- `pulse analyze` - Bundle size analysis
-
-**Key files:**
-- `CLAUDE.md` - Primary reference for conventions
-- `memory/MEMORY.md` - Recent changes and bug fixes
-- `package.json` - Version, scripts, dependencies
-
-**Coverage targets:**
-- Runtime modules: ≥90%
-- Compiler modules: ≥85%
-- CLI modules: ≥80%
-
-**Test framework:**
-- Use: `node:test` (built-in)
-- NOT: Jest, Mocha, Vitest
+| Command | Purpose |
+|---------|---------|
+| `npm test` | Full test suite |
+| `npm test -- --coverage` | With coverage |
+| `pulse lint` | Validate .pulse files |
+| `pulse analyze` | Bundle analysis |
+| `.claude/scripts/refresh-cache.sh` | Refresh cache files |

@@ -1,0 +1,164 @@
+/**
+ * Pulse A11y Showcase - Main Application
+ * Demonstrates accessibility features: ARIA widgets, focus management,
+ * screen reader announcements, user preferences, and contrast checking.
+ */
+
+import WidgetsSection from './components/WidgetsSection.pulse'
+import FocusSection from './components/FocusSection.pulse'
+import AnnouncementsSection from './components/AnnouncementsSection.pulse'
+import PreferencesSection from './components/PreferencesSection.pulse'
+import ContrastSection from './components/ContrastSection.pulse'
+import AuditSection from './components/AuditSection.pulse'
+import ModalDialog from './components/ModalDialog.pulse'
+import { activeSection, isKeyboardUser, modalOpen } from './store.js'
+import { announcePolite } from '../../../runtime/a11y.js'
+
+@page App
+
+state {
+  sections: [
+    { id: "widgets", label: "ARIA Widgets" },
+    { id: "focus", label: "Focus Management" },
+    { id: "announcements", label: "Announcements" },
+    { id: "preferences", label: "Preferences" },
+    { id: "contrast", label: "Contrast Checker" },
+    { id: "audit", label: "A11y Audit" }
+  ]
+}
+
+actions {
+  getActiveSection() {
+    return activeSection.get()
+  }
+
+  setSection(id) {
+    activeSection.set(id)
+    announcePolite(id + ' section')
+  }
+
+  isKeyboard() {
+    return isKeyboardUser.get()
+  }
+}
+
+view {
+  .app[class={isKeyboard() ? 'keyboard-user' : ''}] {
+    header {
+      h1 "Accessibility Showcase"
+      p.subtitle "Pulse framework built-in a11y features"
+    }
+
+    nav#nav[aria-label="Section navigation"] {
+      ul[role=tablist] {
+        @for (s of sections) {
+          li[role=presentation] {
+            button[role=tab][aria-selected={getActiveSection() === s.id ? 'true' : 'false'}][class={getActiveSection() === s.id ? 'active' : ''}] @click(setSection(s.id)) "{s.label}"
+          }
+        }
+      }
+    }
+
+    main#main-content {
+      @if (getActiveSection() === "widgets") { WidgetsSection }
+      @if (getActiveSection() === "focus") { FocusSection }
+      @if (getActiveSection() === "announcements") { AnnouncementsSection }
+      @if (getActiveSection() === "preferences") { PreferencesSection }
+      @if (getActiveSection() === "contrast") { ContrastSection }
+      @if (getActiveSection() === "audit") { AuditSection }
+    }
+
+    ModalDialog
+  }
+}
+
+style {
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #1a1a2e; background: #f0f0f5; }
+  .app { max-width: 850px; margin: 0 auto; padding: 20px; }
+  header { text-align: center; padding: 30px 0 20px; }
+  header h1 { font-size: 2em; color: #1a1a2e; }
+  .subtitle { color: #666; margin-top: 4px; }
+
+  nav ul { display: flex; gap: 4px; margin-bottom: 20px; flex-wrap: wrap; justify-content: center; list-style: none; }
+  nav button { padding: 8px 16px; border: 2px solid #ddd; border-radius: 8px; background: #fff; cursor: pointer; font-size: 0.9em; transition: all 0.2s; font-family: inherit; }
+  nav button:hover { border-color: #646cff; background: #f0f0ff; }
+  nav button.active { background: #646cff; color: #fff; border-color: #646cff; }
+
+  section { background: #fff; border-radius: 12px; padding: 30px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+  section h2 { margin-bottom: 8px; }
+  section h3 { margin: 20px 0 8px; }
+  section p { color: #555; margin-bottom: 12px; }
+
+  button { font-family: inherit; padding: 8px 16px; border: 1px solid #ddd; border-radius: 6px; background: #fff; cursor: pointer; }
+  button:hover { background: #f0f0f0; }
+  button.primary { background: #646cff; color: #fff; border-color: #646cff; }
+  button.assertive { background: #e91e63; color: #fff; border-color: #e91e63; }
+
+  .widget-demo { padding: 16px; background: #f8f8ff; border-radius: 8px; margin: 12px 0; }
+  .disclosure-content { padding: 12px; background: #fff; border-radius: 6px; margin-top: 8px; }
+  .accordion-trigger { display: block; width: 100%; text-align: left; padding: 12px; font-weight: 600; border-bottom: 1px solid #eee; }
+  .accordion-panel { padding: 12px; display: none; }
+  .accordion-panel[aria-hidden="false"] { display: block; }
+  .tabs { display: flex; gap: 4px; border-bottom: 2px solid #ddd; margin-bottom: 8px; }
+  .tab-panel { padding: 12px; }
+  .tooltip-wrapper { position: relative; display: inline-block; }
+  .tooltip { position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); padding: 6px 12px; background: #333; color: #fff; border-radius: 4px; font-size: 0.85em; white-space: nowrap; display: none; }
+  .menu-wrapper { position: relative; }
+  .menu { position: absolute; top: 100%; left: 0; background: #fff; border: 1px solid #ddd; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: none; list-style: none; min-width: 150px; z-index: 100; }
+  .menu[aria-hidden="false"] { display: block; }
+  .menu li { padding: 8px 16px; cursor: pointer; }
+  .menu li:hover { background: #f0f0ff; }
+
+  .focus-demo { display: flex; gap: 8px; padding: 12px; background: #f8f8ff; border-radius: 8px; }
+  .toolbar { display: flex; gap: 4px; padding: 8px; background: #f8f8ff; border-radius: 8px; }
+  .hint { font-size: 0.85em; color: #888; margin-top: 8px; }
+
+  .announce-form { margin-bottom: 16px; }
+  .announce-form label { display: block; font-weight: 600; margin-bottom: 6px; }
+  .announce-form input { width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 1em; margin-bottom: 8px; }
+  .announce-buttons { display: flex; gap: 8px; }
+  .notifications { min-height: 60px; }
+  .notification { padding: 8px 12px; background: #e8f5e9; border-radius: 6px; margin: 4px 0; animation: slideIn 0.3s ease; }
+  @keyframes slideIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+  .sr-demo { padding: 12px; background: #f8f8ff; border-radius: 8px; }
+
+  .prefs-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+  .pref-card { padding: 16px; background: #f8f8ff; border-radius: 8px; }
+  .pref-card h3 { font-size: 1em; margin-bottom: 4px; }
+  .pref-value { font-weight: 600; color: #646cff; }
+
+  .contrast-form { display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
+  .color-input { display: flex; flex-direction: column; gap: 4px; }
+  .color-input label { font-weight: 600; font-size: 0.9em; }
+  .color-input input[type=color] { width: 60px; height: 40px; border: none; cursor: pointer; }
+  .color-input input[type=text] { width: 100px; padding: 6px; border: 1px solid #ddd; border-radius: 4px; font-family: monospace; }
+  .contrast-preview { padding: 20px; border-radius: 8px; margin-bottom: 16px; }
+  .preview-text { font-size: 1.2em; margin-bottom: 4px; }
+  .preview-small { font-size: 0.85em; }
+  .contrast-results { display: flex; gap: 20px; flex-wrap: wrap; }
+  .ratio, .level { display: flex; gap: 8px; align-items: center; }
+  .label { font-weight: 600; font-size: 0.9em; }
+  .value { font-size: 1.1em; font-weight: 700; }
+  .pass { color: #2e7d32; font-weight: 700; }
+  .fail { color: #c62828; font-weight: 700; }
+
+  .audit-pass { padding: 16px; background: #e8f5e9; border-radius: 8px; color: #2e7d32; }
+  .audit-results { margin-top: 12px; }
+  .issue-list { list-style: none; }
+  .issue { padding: 8px; border-radius: 4px; margin: 4px 0; }
+  .issue-error { background: #fce4ec; color: #c62828; }
+  .issue-warning { background: #fff3e0; color: #e65100; }
+  .issue code { font-size: 0.85em; color: #666; }
+
+  .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+  .modal { background: #fff; border-radius: 12px; padding: 30px; max-width: 460px; width: 90%; }
+  .modal h2 { margin-bottom: 12px; }
+  .modal label { display: block; font-weight: 600; margin: 12px 0 4px; }
+  .modal input { width: 100%; padding: 8px; border: 2px solid #ddd; border-radius: 6px; }
+  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+  .modal-actions .secondary { background: #f0f0f0; }
+
+  *:focus-visible { outline: 3px solid #646cff; outline-offset: 2px; }
+  .keyboard-user *:focus { outline: 3px solid #646cff; outline-offset: 2px; }
+}

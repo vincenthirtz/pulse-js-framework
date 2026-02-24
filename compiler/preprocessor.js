@@ -10,14 +10,18 @@
 
 import { createRequire } from 'module';
 
-// Cache for the sass module (null = not checked, false = not available, object = sass module)
+// Cache for the sass module (null = not checked, false = not available, object = module)
+// Separate sync/async caches so sync failure doesn't prevent async import from succeeding
 let sassModule = null;
+let sassModuleAsync = null;
 
-// Cache for the less module (null = not checked, false = not available, object = less module)
+// Cache for the less module
 let lessModule = null;
+let lessModuleAsync = null;
 
-// Cache for the stylus module (null = not checked, false = not available, object = stylus module)
+// Cache for the stylus module
 let stylusModule = null;
+let stylusModuleAsync = null;
 
 /**
  * Patterns that indicate SASS/SCSS syntax
@@ -62,9 +66,8 @@ const LESS_PATTERNS = [
  * Patterns that indicate Stylus syntax
  */
 const STYLUS_PATTERNS = [
-  /^[\w-]+\s*=/m,           // Variables without $ or @: primary-color = #333
+  /^[\w-]+\s*=\s+/m,        // Variables without $ or @: primary-color = #333 (require space after =)
   /^\s*[\w-]+\([^)]*\)$/m,  // Mixins without braces: button-style()
-  /^\s*[\w-]+$/m,           // Mixin calls without parens or semicolon
   /\{\s*\$[\w-]+\s*\}/,     // Interpolation: {$variable}
   /^\s*if\s+/m,             // Conditionals: if condition
   /^\s*unless\s+/m,         // Unless: unless condition
@@ -72,7 +75,7 @@ const STYLUS_PATTERNS = [
   /^\s*@css\s+\{/m,         // Literal CSS blocks: @css { }
   /^\s*@extends?\s+/m,      // Extend: @extend or @extends
   /^\s*\+[\w-]+/m,          // Mixin calls with +: +button-style
-  /arguments/,              // Stylus arguments variable
+  /\barguments\b/,           // Stylus arguments variable (word boundary)
   /^[\w-]+\s*\?=/m,         // Conditional assignment: var ?= value
 ];
 
@@ -188,18 +191,25 @@ export function tryLoadSassSync() {
  * @returns {Promise<object|false>} The sass module or false if not available
  */
 export async function tryLoadSass() {
-  // Return cached result if already checked
-  if (sassModule !== null) {
+  // Return cached async result first, then sync cache
+  if (sassModuleAsync !== null) {
+    return sassModuleAsync;
+  }
+  if (sassModule !== null && sassModule !== false) {
     return sassModule;
   }
 
   try {
     // Try to import sass from the user's project
-    sassModule = await import('sass');
-    return sassModule;
+    const mod = await import('sass');
+    sassModule = mod;
+    sassModuleAsync = mod;
+    return mod;
   } catch {
     // Fall back to sync require
-    return tryLoadSassSync();
+    const syncResult = tryLoadSassSync();
+    sassModuleAsync = syncResult || false;
+    return syncResult;
   }
 }
 
@@ -355,17 +365,22 @@ export function tryLoadLessSync() {
  * @returns {Promise<object|false>} The less module or false if not available
  */
 export async function tryLoadLess() {
-  // Return cached result if already checked
-  if (lessModule !== null) {
+  if (lessModuleAsync !== null) {
+    return lessModuleAsync;
+  }
+  if (lessModule !== null && lessModule !== false) {
     return lessModule;
   }
 
   try {
-    lessModule = await import('less');
-    return lessModule;
+    const mod = await import('less');
+    lessModule = mod;
+    lessModuleAsync = mod;
+    return mod;
   } catch {
-    // Fall back to sync require
-    return tryLoadLessSync();
+    const syncResult = tryLoadLessSync();
+    lessModuleAsync = syncResult || false;
+    return syncResult;
   }
 }
 
@@ -498,17 +513,22 @@ export function tryLoadStylusSync() {
  * @returns {Promise<object|false>} The stylus module or false if not available
  */
 export async function tryLoadStylus() {
-  // Return cached result if already checked
-  if (stylusModule !== null) {
+  if (stylusModuleAsync !== null) {
+    return stylusModuleAsync;
+  }
+  if (stylusModule !== null && stylusModule !== false) {
     return stylusModule;
   }
 
   try {
-    stylusModule = await import('stylus');
-    return stylusModule;
+    const mod = await import('stylus');
+    stylusModule = mod;
+    stylusModuleAsync = mod;
+    return mod;
   } catch {
-    // Fall back to sync require
-    return tryLoadStylusSync();
+    const syncResult = tryLoadStylusSync();
+    stylusModuleAsync = syncResult || false;
+    return syncResult;
   }
 }
 

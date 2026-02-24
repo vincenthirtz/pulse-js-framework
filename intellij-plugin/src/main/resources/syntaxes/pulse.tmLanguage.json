@@ -2,21 +2,54 @@
   "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
   "name": "Pulse",
   "scopeName": "source.pulse",
+  "fileTypes": ["pulse"],
   "patterns": [
     { "include": "#comments" },
+    { "include": "#use-directive" },
     { "include": "#imports" },
     { "include": "#page-declaration" },
     { "include": "#route-declaration" },
-    { "include": "#blocks" },
-    { "include": "#directives" },
-    { "include": "#strings" },
-    { "include": "#numbers" },
-    { "include": "#operators" },
-    { "include": "#identifiers" }
+    { "include": "#block-state" },
+    { "include": "#block-props" },
+    { "include": "#block-view" },
+    { "include": "#block-actions" },
+    { "include": "#block-style" },
+    { "include": "#block-router" },
+    { "include": "#block-store" },
+    { "include": "#block-routes" },
+    { "include": "#block-getters" }
   ],
   "repository": {
+
     "comments": {
       "patterns": [
+        {
+          "name": "comment.block.documentation.pulse",
+          "begin": "/\\*\\*(?!/)",
+          "beginCaptures": {
+            "0": { "name": "punctuation.definition.comment.pulse" }
+          },
+          "end": "\\*/",
+          "endCaptures": {
+            "0": { "name": "punctuation.definition.comment.pulse" }
+          },
+          "patterns": [
+            {
+              "match": "(@(?:param|returns?|type|typedef|template|see|example|throws?|deprecated|since|version|author|description|todo|fixme|note|link|default|enum|readonly|override|satisfies|property|prop|callback|fires|emits))\\b",
+              "name": "storage.type.class.jsdoc"
+            },
+            {
+              "match": "\\{[^}]+\\}",
+              "name": "entity.name.type.instance.jsdoc"
+            },
+            {
+              "match": "(?<=@param\\s)\\{[^}]*\\}\\s+([a-zA-Z_$][\\w$]*)",
+              "captures": {
+                "1": { "name": "variable.other.jsdoc" }
+              }
+            }
+          ]
+        },
         {
           "name": "comment.line.double-slash.pulse",
           "match": "//.*$"
@@ -24,10 +57,27 @@
         {
           "name": "comment.block.pulse",
           "begin": "/\\*",
-          "end": "\\*/"
+          "end": "\\*/",
+          "captures": {
+            "0": { "name": "punctuation.definition.comment.pulse" }
+          }
         }
       ]
     },
+
+    "use-directive": {
+      "patterns": [
+        {
+          "match": "(['\"])(use\\s+(?:client|server))(\\1)",
+          "captures": {
+            "1": { "name": "punctuation.definition.string.begin.pulse" },
+            "2": { "name": "keyword.control.directive.pulse" },
+            "3": { "name": "punctuation.definition.string.end.pulse" }
+          }
+        }
+      ]
+    },
+
     "imports": {
       "patterns": [
         {
@@ -47,18 +97,36 @@
               "match": "\\b(as)\\b"
             },
             {
-              "name": "variable.other.alias.pulse",
-              "match": "(?<=as\\s+)\\w+"
+              "begin": "\\{",
+              "beginCaptures": { "0": { "name": "punctuation.definition.block.pulse" } },
+              "end": "\\}",
+              "endCaptures": { "0": { "name": "punctuation.definition.block.pulse" } },
+              "patterns": [
+                {
+                  "name": "variable.other.readwrite.alias.pulse",
+                  "match": "\\b[a-zA-Z_$][\\w$]*\\b"
+                },
+                { "match": ",", "name": "punctuation.separator.comma.pulse" }
+              ]
+            },
+            {
+              "match": "(\\*)\\s+(as)\\s+([a-zA-Z_$][\\w$]*)",
+              "captures": {
+                "1": { "name": "keyword.operator.namespace.pulse" },
+                "2": { "name": "keyword.control.as.pulse" },
+                "3": { "name": "variable.other.alias.pulse" }
+              }
             },
             {
               "name": "entity.name.type.module.pulse",
-              "match": "\\b[A-Z][a-zA-Z0-9]*\\b"
+              "match": "(?<!\\.)\\b[A-Z][a-zA-Z0-9]*\\b"
             },
             { "include": "#strings" }
           ]
         }
       ]
     },
+
     "page-declaration": {
       "patterns": [
         {
@@ -71,6 +139,7 @@
         }
       ]
     },
+
     "route-declaration": {
       "patterns": [
         {
@@ -83,292 +152,777 @@
         }
       ]
     },
-    "blocks": {
+
+    "block-state": {
+      "name": "meta.block.state.pulse",
+      "begin": "\\b(state)\\s*\\{",
+      "beginCaptures": {
+        "1": { "name": "keyword.other.state.pulse" }
+      },
+      "end": "\\}",
       "patterns": [
-        {
-          "name": "meta.block.state.pulse",
-          "begin": "\\b(state)\\s*\\{",
-          "beginCaptures": {
-            "1": { "name": "keyword.other.state.pulse" }
-          },
-          "end": "\\}",
-          "patterns": [
-            { "include": "#comments" },
-            { "include": "#state-property" },
-            { "include": "#strings" },
-            { "include": "#numbers" }
-          ]
-        },
-        {
-          "name": "meta.block.props.pulse",
-          "begin": "\\b(props)\\s*\\{",
-          "beginCaptures": {
-            "1": { "name": "keyword.other.props.pulse" }
-          },
-          "end": "\\}",
-          "patterns": [
-            { "include": "#comments" },
-            { "include": "#state-property" }
-          ]
-        },
-        {
-          "name": "meta.block.view.pulse",
-          "begin": "\\b(view)\\s*\\{",
-          "beginCaptures": {
-            "1": { "name": "keyword.other.view.pulse" }
-          },
-          "end": "\\}",
-          "patterns": [
-            { "include": "#comments" },
-            { "include": "#directives" },
-            { "include": "#element-selector" },
-            { "include": "#component-reference" },
-            { "include": "#strings" },
-            { "include": "#interpolation" },
-            { "include": "#blocks" }
-          ]
-        },
-        {
-          "name": "meta.block.actions.pulse",
-          "begin": "\\b(actions)\\s*\\{",
-          "beginCaptures": {
-            "1": { "name": "keyword.other.actions.pulse" }
-          },
-          "end": "\\}",
-          "patterns": [
-            { "include": "#comments" },
-            { "include": "#function-declaration" },
-            { "include": "#strings" },
-            { "include": "#numbers" }
-          ]
-        },
-        {
-          "name": "meta.block.style.pulse",
-          "begin": "\\b(style)\\s*\\{",
-          "beginCaptures": {
-            "1": { "name": "keyword.other.style.pulse" }
-          },
-          "end": "\\}",
-          "contentName": "source.css.embedded.pulse",
-          "patterns": [
-            { "include": "source.css" }
-          ]
-        },
-        {
-          "name": "meta.block.router.pulse",
-          "begin": "\\b(router)\\s*\\{",
-          "beginCaptures": {
-            "1": { "name": "keyword.other.router.pulse" }
-          },
-          "end": "\\}",
-          "patterns": [
-            { "include": "#comments" },
-            { "include": "#router-keywords" },
-            { "include": "#strings" },
-            { "include": "#blocks" }
-          ]
-        },
-        {
-          "name": "meta.block.store.pulse",
-          "begin": "\\b(store)\\s*\\{",
-          "beginCaptures": {
-            "1": { "name": "keyword.other.store.pulse" }
-          },
-          "end": "\\}",
-          "patterns": [
-            { "include": "#comments" },
-            { "include": "#store-keywords" },
-            { "include": "#strings" },
-            { "include": "#blocks" }
-          ]
-        },
-        {
-          "name": "meta.block.routes.pulse",
-          "begin": "\\b(routes)\\s*\\{",
-          "beginCaptures": {
-            "1": { "name": "keyword.other.routes.pulse" }
-          },
-          "end": "\\}",
-          "patterns": [
-            { "include": "#comments" },
-            { "include": "#strings" },
-            { "include": "#component-reference" }
-          ]
-        },
-        {
-          "name": "meta.block.getters.pulse",
-          "begin": "\\b(getters)\\s*\\{",
-          "beginCaptures": {
-            "1": { "name": "keyword.other.getters.pulse" }
-          },
-          "end": "\\}",
-          "patterns": [
-            { "include": "#comments" },
-            { "include": "#function-declaration" }
-          ]
-        }
+        { "include": "#comments" },
+        { "include": "#state-property" },
+        { "include": "#strings" },
+        { "include": "#numbers" },
+        { "include": "#constants" },
+        { "include": "#state-nested-braces" },
+        { "include": "#state-nested-brackets" }
       ]
     },
-    "directives": {
-      "patterns": [
-        {
-          "name": "entity.other.attribute-name.directive.pulse",
-          "match": "@(click|change|input|submit|keydown|keyup|keypress|focus|blur|mouseover|mouseout|mouseenter|mouseleave)\\b"
-        },
-        {
-          "name": "entity.other.attribute-name.directive.pulse",
-          "match": "@(if|else|for|each|show|hide|bind|model|ref)\\b"
-        },
-        {
-          "name": "entity.other.attribute-name.directive.pulse",
-          "match": "@(link|outlet|navigate|back|forward)\\b"
-        },
-        {
-          "name": "keyword.control.slot.pulse",
-          "match": "\\b(slot)\\b"
-        }
-      ]
-    },
-    "element-selector": {
-      "patterns": [
-        {
-          "name": "entity.name.tag.pulse",
-          "match": "\\b(div|span|p|a|button|input|form|label|select|option|textarea|img|ul|ol|li|table|tr|td|th|thead|tbody|h1|h2|h3|h4|h5|h6|header|footer|nav|main|section|article|aside|figure|figcaption|video|audio|canvas|svg)\\b"
-        },
-        {
-          "name": "entity.other.attribute-name.class.pulse",
-          "match": "\\.[a-zA-Z][a-zA-Z0-9_-]*"
-        },
-        {
-          "name": "entity.other.attribute-name.id.pulse",
-          "match": "#[a-zA-Z][a-zA-Z0-9_-]*"
-        },
-        {
-          "name": "entity.other.attribute-name.attribute.pulse",
-          "begin": "\\[",
-          "end": "\\]",
-          "patterns": [
-            { "include": "#strings" }
-          ]
-        }
-      ]
-    },
-    "component-reference": {
-      "patterns": [
-        {
-          "name": "entity.name.type.component.pulse",
-          "match": "\\b[A-Z][a-zA-Z0-9]*\\b"
-        }
-      ]
-    },
+
     "state-property": {
+      "match": "([a-zA-Z_$][a-zA-Z0-9_$]*)\\s*(:)",
+      "captures": {
+        "1": { "name": "variable.other.property.pulse" },
+        "2": { "name": "punctuation.separator.key-value.pulse" }
+      }
+    },
+
+    "state-nested-braces": {
+      "begin": "\\{",
+      "end": "\\}",
+      "patterns": [
+        { "include": "#comments" },
+        { "include": "#state-property" },
+        { "include": "#strings" },
+        { "include": "#numbers" },
+        { "include": "#constants" },
+        { "include": "#state-nested-braces" },
+        { "include": "#state-nested-brackets" }
+      ]
+    },
+
+    "state-nested-brackets": {
+      "begin": "\\[",
+      "end": "\\]",
+      "patterns": [
+        { "include": "#strings" },
+        { "include": "#numbers" },
+        { "include": "#constants" },
+        { "include": "#state-nested-braces" },
+        { "include": "#state-nested-brackets" }
+      ]
+    },
+
+    "block-props": {
+      "name": "meta.block.props.pulse",
+      "begin": "\\b(props)\\s*\\{",
+      "beginCaptures": {
+        "1": { "name": "keyword.other.props.pulse" }
+      },
+      "end": "\\}",
+      "patterns": [
+        { "include": "#comments" },
+        { "include": "#state-property" },
+        { "include": "#strings" },
+        { "include": "#numbers" },
+        { "include": "#constants" }
+      ]
+    },
+
+    "block-view": {
+      "name": "meta.block.view.pulse",
+      "begin": "\\b(view)\\s*\\{",
+      "beginCaptures": {
+        "1": { "name": "keyword.other.view.pulse" }
+      },
+      "end": "\\}",
+      "patterns": [
+        { "include": "#view-body" }
+      ]
+    },
+
+    "view-body": {
+      "patterns": [
+        { "include": "#comments" },
+        { "include": "#view-directive-with-args" },
+        { "include": "#view-directive-no-args" },
+        { "include": "#view-slot" },
+        { "include": "#view-component-invocation" },
+        { "include": "#element-tag" },
+        { "include": "#css-class-selector" },
+        { "include": "#css-id-selector" },
+        { "include": "#attribute-brackets" },
+        { "include": "#component-reference" },
+        { "include": "#strings-with-interpolation" },
+        { "include": "#strings-single" },
+        { "include": "#template-string" },
+        { "include": "#view-nested-braces" },
+        { "include": "#numbers" },
+        { "include": "#operators" },
+        { "include": "#constants" }
+      ]
+    },
+
+    "view-nested-braces": {
+      "begin": "\\{",
+      "end": "\\}",
+      "patterns": [
+        { "include": "#view-body" }
+      ]
+    },
+
+    "view-directive-with-args": {
+      "begin": "(@[a-zA-Z][a-zA-Z0-9]*)\\s*(\\()",
+      "beginCaptures": {
+        "1": { "name": "entity.other.attribute-name.directive.pulse" },
+        "2": { "name": "punctuation.section.arguments.begin.pulse" }
+      },
+      "end": "\\)",
+      "endCaptures": {
+        "0": { "name": "punctuation.section.arguments.end.pulse" }
+      },
+      "patterns": [
+        { "include": "#expression" }
+      ]
+    },
+
+    "view-directive-no-args": {
+      "match": "@(else|srOnly|client|server|mount|unmount)\\b",
+      "name": "entity.other.attribute-name.directive.pulse"
+    },
+
+    "view-slot": {
+      "match": "\\b(slot)\\b",
+      "name": "keyword.control.slot.pulse"
+    },
+
+    "view-component-invocation": {
+      "begin": "\\b([A-Z][a-zA-Z0-9]*)\\s*(\\()",
+      "beginCaptures": {
+        "1": { "name": "entity.name.type.component.pulse" },
+        "2": { "name": "punctuation.section.arguments.begin.pulse" }
+      },
+      "end": "\\)",
+      "endCaptures": {
+        "0": { "name": "punctuation.section.arguments.end.pulse" }
+      },
+      "patterns": [
+        { "include": "#component-prop" },
+        { "include": "#expression" },
+        { "match": ",", "name": "punctuation.separator.comma.pulse" }
+      ]
+    },
+
+    "component-prop": {
+      "match": "\\b([a-zA-Z_$][a-zA-Z0-9_$]*)\\s*(=)(?!=)",
+      "captures": {
+        "1": { "name": "entity.other.attribute-name.pulse" },
+        "2": { "name": "keyword.operator.assignment.pulse" }
+      }
+    },
+
+    "element-tag": {
+      "match": "\\b(a|abbr|address|area|article|aside|audio|b|base|bdi|bdo|blockquote|body|br|button|canvas|caption|cite|code|col|colgroup|data|datalist|dd|del|details|dfn|dialog|div|dl|dt|em|embed|fieldset|figcaption|figure|footer|form|h[1-6]|head|header|hgroup|hr|html|i|iframe|img|input|ins|kbd|label|legend|li|link|main|map|mark|math|menu|meta|meter|nav|noscript|object|ol|optgroup|option|output|p|param|picture|pre|progress|q|rp|rt|ruby|s|samp|script|search|section|select|small|source|span|strong|sub|summary|sup|svg|table|tbody|td|template|textarea|tfoot|th|thead|time|title|tr|track|u|ul|var|video|wbr)\\b",
+      "name": "entity.name.tag.pulse"
+    },
+
+    "css-class-selector": {
+      "match": "\\.[a-zA-Z_][a-zA-Z0-9_-]*",
+      "name": "entity.other.attribute-name.class.css.pulse"
+    },
+
+    "css-id-selector": {
+      "match": "#[a-zA-Z_][a-zA-Z0-9_-]*",
+      "name": "entity.other.attribute-name.id.css.pulse"
+    },
+
+    "attribute-brackets": {
+      "begin": "\\[",
+      "beginCaptures": {
+        "0": { "name": "punctuation.section.attribute.begin.pulse" }
+      },
+      "end": "\\]",
+      "endCaptures": {
+        "0": { "name": "punctuation.section.attribute.end.pulse" }
+      },
       "patterns": [
         {
-          "name": "meta.property.pulse",
-          "match": "([a-zA-Z_][a-zA-Z0-9_]*)\\s*:",
+          "match": "([a-zA-Z_][a-zA-Z0-9_:-]*)(?=\\s*[=\\]])",
+          "captures": {
+            "1": { "name": "entity.other.attribute-name.pulse" }
+          }
+        },
+        {
+          "match": "=",
+          "name": "keyword.operator.assignment.pulse"
+        },
+        { "include": "#strings-with-interpolation" },
+        { "include": "#strings-single" },
+        { "include": "#interpolation-braces" },
+        {
+          "match": "[^\\]\"'{}=\\s]+",
+          "name": "string.unquoted.attribute-value.pulse"
+        }
+      ]
+    },
+
+    "interpolation-braces": {
+      "name": "meta.interpolation.pulse",
+      "begin": "\\{",
+      "beginCaptures": {
+        "0": { "name": "punctuation.definition.interpolation.begin.pulse" }
+      },
+      "end": "\\}",
+      "endCaptures": {
+        "0": { "name": "punctuation.definition.interpolation.end.pulse" }
+      },
+      "patterns": [
+        { "include": "#expression" }
+      ]
+    },
+
+    "component-reference": {
+      "match": "\\b[A-Z][a-zA-Z0-9]*\\b",
+      "name": "entity.name.type.component.pulse"
+    },
+
+    "expression": {
+      "patterns": [
+        { "include": "#comments" },
+        { "include": "#strings-with-interpolation" },
+        { "include": "#strings-single" },
+        { "include": "#template-string" },
+        { "include": "#numbers" },
+        { "include": "#constants" },
+        { "include": "#expression-keywords" },
+        { "include": "#expression-arrow-params" },
+        { "include": "#expression-operators" },
+        { "include": "#expression-function-call" },
+        { "include": "#expression-property" },
+        { "include": "#expression-builtin" },
+        { "include": "#expression-variable" },
+        { "include": "#expression-parens" },
+        { "include": "#expression-brackets" },
+        { "include": "#expression-braces" }
+      ]
+    },
+
+    "expression-keywords": {
+      "match": "\\b(if|else|return|typeof|instanceof|new|delete|void|in|of|async|await|throw|try|catch|finally|for|while|do|switch|case|default|break|continue|const|let|var|function|class|this|super|yield|from|import|export)\\b",
+      "name": "keyword.control.pulse"
+    },
+
+    "expression-arrow-params": {
+      "match": "(?<==>)\\s*",
+      "name": "keyword.operator.arrow.pulse"
+    },
+
+    "expression-operators": {
+      "match": "\\?\\.|\\.{3}|===|!==|==|!=|<=|>=|=>|\\+\\+|--|\\+=|-=|\\*=|/=|%=|\\?\\?=|\\|\\|=|&&=|\\*\\*|\\?\\?|&&|\\|\\||>>>|>>|<<|[+\\-*/%<>!&|^~=?:]",
+      "name": "keyword.operator.pulse"
+    },
+
+    "expression-function-call": {
+      "match": "\\b([a-zA-Z_$][a-zA-Z0-9_$]*)\\s*(?=\\()",
+      "captures": {
+        "1": { "name": "entity.name.function.pulse" }
+      }
+    },
+
+    "expression-property": {
+      "patterns": [
+        {
+          "match": "(?<=\\?\\.)([a-zA-Z_$][a-zA-Z0-9_$]*)",
+          "captures": {
+            "1": { "name": "variable.other.property.pulse" }
+          }
+        },
+        {
+          "match": "(?<=\\.)([a-zA-Z_$][a-zA-Z0-9_$]*)",
           "captures": {
             "1": { "name": "variable.other.property.pulse" }
           }
         }
       ]
     },
-    "function-declaration": {
+
+    "expression-builtin": {
+      "match": "\\b(console|document|window|globalThis|navigator|localStorage|sessionStorage|location|history|fetch|setTimeout|setInterval|clearTimeout|clearInterval|requestAnimationFrame|cancelAnimationFrame|Promise|JSON|Math|Object|Array|Map|Set|WeakMap|WeakSet|Symbol|Proxy|Reflect|Date|RegExp|Error|parseInt|parseFloat|isNaN|isFinite|encodeURIComponent|decodeURIComponent|encodeURI|decodeURI|atob|btoa|structuredClone|queueMicrotask)\\b(?!\\s*[:(])",
+      "name": "support.variable.builtin.pulse"
+    },
+
+    "expression-variable": {
+      "match": "\\b[a-zA-Z_$][a-zA-Z0-9_$]*\\b",
+      "name": "variable.other.readwrite.pulse"
+    },
+
+    "expression-parens": {
+      "begin": "\\(",
+      "end": "\\)",
+      "patterns": [{ "include": "#expression" }]
+    },
+
+    "expression-brackets": {
+      "begin": "\\[",
+      "end": "\\]",
+      "patterns": [{ "include": "#expression" }]
+    },
+
+    "expression-braces": {
+      "begin": "\\{",
+      "end": "\\}",
       "patterns": [
-        {
-          "name": "meta.function.pulse",
-          "match": "([a-zA-Z_][a-zA-Z0-9_]*)\\s*\\(",
-          "captures": {
-            "1": { "name": "entity.name.function.pulse" }
-          }
-        }
+        { "include": "#state-property" },
+        { "include": "#expression" }
       ]
     },
-    "router-keywords": {
+
+    "block-actions": {
+      "name": "meta.block.actions.pulse",
+      "begin": "\\b(actions)\\s*\\{",
+      "beginCaptures": {
+        "1": { "name": "keyword.other.actions.pulse" }
+      },
+      "end": "\\}",
       "patterns": [
-        {
-          "name": "keyword.other.router.pulse",
-          "match": "\\b(mode|base|beforeEach|afterEach|beforeEnter)\\b"
-        }
+        { "include": "#comments" },
+        { "include": "#use-directive" },
+        { "include": "#actions-method-definition" },
+        { "include": "source.js" }
       ]
     },
-    "store-keywords": {
+
+    "actions-method-definition": {
+      "match": "(async\\s+)?(?!(?:if|for|while|switch|catch|function|class|new|return|typeof|void|delete|throw|const|let|var)\\b)([a-zA-Z_$][a-zA-Z0-9_$]*)\\s*(?=\\([^)]*\\)\\s*\\{)",
+      "captures": {
+        "1": { "name": "storage.modifier.async.js" },
+        "2": { "name": "entity.name.function.js" }
+      }
+    },
+
+    "block-style": {
+      "name": "meta.block.style.pulse",
+      "begin": "\\b(style)\\s*\\{",
+      "beginCaptures": {
+        "1": { "name": "keyword.other.style.pulse" }
+      },
+      "end": "\\}",
+      "contentName": "source.css.embedded.pulse",
       "patterns": [
-        {
-          "name": "keyword.other.store.pulse",
-          "match": "\\b(persist|storageKey)\\b"
-        }
+        { "include": "#style-body" }
       ]
     },
-    "strings": {
+
+    "style-body": {
+      "patterns": [
+        { "include": "#style-comments" },
+        { "include": "#style-sass-mixin-def" },
+        { "include": "#style-sass-include-call" },
+        { "include": "#style-sass-extend" },
+        { "include": "#style-sass-variable" },
+        { "include": "#style-sass-variable-ref" },
+        { "include": "#style-sass-at-rule" },
+        { "include": "#style-sass-interpolation" },
+        { "include": "#style-sass-placeholder" },
+        { "include": "#style-less-variable-declaration" },
+        { "include": "#style-less-variable-ref" },
+        { "include": "#style-less-interpolation" },
+        { "include": "#style-less-guard" },
+        { "include": "#style-stylus-variable" },
+        { "include": "#style-stylus-keywords" },
+        { "include": "#style-stylus-mixin-call" },
+        { "include": "#style-css-custom-property" },
+        { "include": "#style-parent-selector" },
+        { "include": "#style-nested-block" },
+        { "include": "source.css" }
+      ]
+    },
+
+    "style-nested-block": {
+      "begin": "\\{",
+      "end": "\\}",
+      "patterns": [
+        { "include": "#style-body" }
+      ]
+    },
+
+    "style-comments": {
       "patterns": [
         {
-          "name": "string.quoted.double.pulse",
-          "begin": "\"",
-          "end": "\"",
-          "patterns": [
-            { "include": "#interpolation" },
-            {
-              "name": "constant.character.escape.pulse",
-              "match": "\\\\."
-            }
-          ]
+          "name": "comment.line.double-slash.scss",
+          "match": "//.*$"
         },
         {
-          "name": "string.quoted.single.pulse",
-          "begin": "'",
-          "end": "'",
-          "patterns": [
-            {
-              "name": "constant.character.escape.pulse",
-              "match": "\\\\."
-            }
-          ]
+          "name": "comment.block.css",
+          "begin": "/\\*",
+          "end": "\\*/"
         }
       ]
     },
-    "interpolation": {
+
+    "style-sass-mixin-def": {
+      "match": "(@(?:mixin|function))\\s+([a-zA-Z_][\\w-]*)",
+      "captures": {
+        "1": { "name": "keyword.control.at-rule.scss" },
+        "2": { "name": "entity.name.function.scss" }
+      }
+    },
+
+    "style-sass-include-call": {
+      "match": "(@include)\\s+([a-zA-Z_][\\w-]*)",
+      "captures": {
+        "1": { "name": "keyword.control.at-rule.scss" },
+        "2": { "name": "entity.name.function.scss" }
+      }
+    },
+
+    "style-sass-extend": {
+      "match": "(@extend)\\s+([.%][a-zA-Z_][\\w-]*)",
+      "captures": {
+        "1": { "name": "keyword.control.at-rule.scss" },
+        "2": { "name": "entity.other.inherited-class.scss" }
+      }
+    },
+
+    "style-sass-variable": {
+      "match": "(\\$[a-zA-Z_][\\w-]*)\\s*(:)",
+      "captures": {
+        "1": { "name": "variable.scss" },
+        "2": { "name": "punctuation.separator.key-value.css" }
+      }
+    },
+
+    "style-sass-variable-ref": {
+      "match": "\\$[a-zA-Z_][\\w-]*",
+      "name": "variable.scss"
+    },
+
+    "style-sass-at-rule": {
+      "match": "@(mixin|include|extend|function|return|if|else\\s+if|else|for|each|while|use|forward|at-root|error|warn|debug|content|apply)\\b",
+      "name": "keyword.control.at-rule.scss"
+    },
+
+    "style-sass-interpolation": {
+      "name": "meta.interpolation.scss",
+      "begin": "#\\{",
+      "beginCaptures": {
+        "0": { "name": "punctuation.definition.interpolation.begin.scss" }
+      },
+      "end": "\\}",
+      "endCaptures": {
+        "0": { "name": "punctuation.definition.interpolation.end.scss" }
+      },
+      "patterns": [
+        { "include": "#style-sass-variable-ref" },
+        { "include": "#expression" }
+      ]
+    },
+
+    "style-sass-placeholder": {
+      "match": "%[a-zA-Z_][\\w-]*",
+      "name": "entity.other.attribute-name.placeholder.scss"
+    },
+
+    "style-less-variable-declaration": {
+      "match": "(@(?!media|keyframes|import|charset|font-face|page|supports|layer|container|namespace|property|scope|counter-style|starting-style)[a-zA-Z_][\\w-]*)\\s*(:)",
+      "captures": {
+        "1": { "name": "variable.less" },
+        "2": { "name": "punctuation.separator.key-value.css" }
+      }
+    },
+
+    "style-less-variable-ref": {
+      "match": "@(?!media|keyframes|import|charset|font-face|page|supports|layer|container|namespace|property|scope|counter-style|starting-style)[a-zA-Z_][\\w-]*(?!\\s*[:{(])",
+      "name": "variable.less"
+    },
+
+    "style-less-interpolation": {
+      "name": "meta.interpolation.less",
+      "begin": "@\\{",
+      "beginCaptures": {
+        "0": { "name": "punctuation.definition.interpolation.begin.less" }
+      },
+      "end": "\\}",
+      "endCaptures": {
+        "0": { "name": "punctuation.definition.interpolation.end.less" }
+      },
+      "contentName": "variable.other.interpolation.less"
+    },
+
+    "style-less-guard": {
+      "match": "\\b(when)\\b",
+      "name": "keyword.control.less"
+    },
+
+    "style-stylus-variable": {
+      "match": "(?<=^|\\n)\\s*([a-zA-Z_][\\w-]*)\\s*(=)(?!=)",
+      "captures": {
+        "1": { "name": "variable.stylus" },
+        "2": { "name": "keyword.operator.assignment.stylus" }
+      }
+    },
+
+    "style-stylus-keywords": {
+      "match": "\\b(if|else|unless|for|in|return)\\b",
+      "name": "keyword.control.stylus"
+    },
+
+    "style-stylus-mixin-call": {
+      "match": "\\+([a-zA-Z_][\\w-]*)",
+      "captures": {
+        "1": { "name": "entity.name.function.stylus" }
+      }
+    },
+
+    "style-css-custom-property": {
+      "match": "(--[a-zA-Z_][\\w-]*)\\s*(:)",
+      "captures": {
+        "1": { "name": "support.type.property-name.css.custom-property" },
+        "2": { "name": "punctuation.separator.key-value.css" }
+      }
+    },
+
+    "style-parent-selector": {
+      "match": "&",
+      "name": "entity.other.attribute-name.parent-selector.css"
+    },
+
+    "block-router": {
+      "name": "meta.block.router.pulse",
+      "begin": "\\b(router)\\s*\\{",
+      "beginCaptures": {
+        "1": { "name": "keyword.other.router.pulse" }
+      },
+      "end": "\\}",
+      "patterns": [
+        { "include": "#comments" },
+        { "include": "#router-keywords" },
+        { "include": "#state-property" },
+        { "include": "#strings" },
+        { "include": "#numbers" },
+        { "include": "#constants" },
+        { "include": "#component-reference" },
+        { "include": "#block-routes" },
+        { "include": "#router-nested-braces" }
+      ]
+    },
+
+    "router-keywords": {
+      "match": "\\b(mode|base|beforeEach|afterEach|beforeEnter|scrollBehavior|middleware|onRouteError|persistScroll|persistScrollKey|lazy|meta|children)\\b",
+      "name": "support.other.property.pulse"
+    },
+
+    "router-nested-braces": {
+      "begin": "\\{",
+      "end": "\\}",
+      "patterns": [
+        { "include": "#comments" },
+        { "include": "#router-keywords" },
+        { "include": "#state-property" },
+        { "include": "#strings" },
+        { "include": "#numbers" },
+        { "include": "#constants" },
+        { "include": "#component-reference" },
+        { "include": "#router-nested-braces" }
+      ]
+    },
+
+    "block-store": {
+      "name": "meta.block.store.pulse",
+      "begin": "\\b(store)\\s*\\{",
+      "beginCaptures": {
+        "1": { "name": "keyword.other.store.pulse" }
+      },
+      "end": "\\}",
+      "patterns": [
+        { "include": "#comments" },
+        { "include": "#store-keywords" },
+        { "include": "#state-property" },
+        { "include": "#strings" },
+        { "include": "#numbers" },
+        { "include": "#constants" },
+        { "include": "#block-state" },
+        { "include": "#block-actions" },
+        { "include": "#block-getters" },
+        { "include": "#store-nested-braces" }
+      ]
+    },
+
+    "store-keywords": {
+      "match": "\\b(persist|storageKey|plugins)\\b",
+      "name": "support.other.property.pulse"
+    },
+
+    "store-nested-braces": {
+      "begin": "\\{",
+      "end": "\\}",
+      "patterns": [
+        { "include": "#comments" },
+        { "include": "#state-property" },
+        { "include": "#strings" },
+        { "include": "#numbers" },
+        { "include": "#constants" },
+        { "include": "#store-nested-braces" }
+      ]
+    },
+
+    "block-routes": {
+      "name": "meta.block.routes.pulse",
+      "begin": "\\b(routes)\\s*\\{",
+      "beginCaptures": {
+        "1": { "name": "keyword.other.routes.pulse" }
+      },
+      "end": "\\}",
+      "patterns": [
+        { "include": "#comments" },
+        { "include": "#strings" },
+        { "include": "#component-reference" },
+        { "include": "#routes-nested-braces" }
+      ]
+    },
+
+    "routes-nested-braces": {
+      "begin": "\\{",
+      "end": "\\}",
+      "patterns": [
+        { "include": "#comments" },
+        { "include": "#strings" },
+        { "include": "#component-reference" },
+        { "include": "#routes-nested-braces" }
+      ]
+    },
+
+    "block-getters": {
+      "name": "meta.block.getters.pulse",
+      "begin": "\\b(getters)\\s*\\{",
+      "beginCaptures": {
+        "1": { "name": "keyword.other.getters.pulse" }
+      },
+      "end": "\\}",
+      "patterns": [
+        { "include": "#comments" },
+        { "include": "#actions-method-definition" },
+        { "include": "source.js" }
+      ]
+    },
+
+    "strings": {
+      "patterns": [
+        { "include": "#strings-with-interpolation" },
+        { "include": "#strings-single" },
+        { "include": "#template-string" }
+      ]
+    },
+
+    "strings-with-interpolation": {
+      "name": "string.quoted.double.pulse",
+      "begin": "\"",
+      "beginCaptures": {
+        "0": { "name": "punctuation.definition.string.begin.pulse" }
+      },
+      "end": "\"",
+      "endCaptures": {
+        "0": { "name": "punctuation.definition.string.end.pulse" }
+      },
+      "patterns": [
+        { "include": "#string-interpolation" },
+        {
+          "name": "constant.character.escape.pulse",
+          "match": "\\\\."
+        }
+      ]
+    },
+
+    "strings-single": {
+      "name": "string.quoted.single.pulse",
+      "begin": "'",
+      "beginCaptures": {
+        "0": { "name": "punctuation.definition.string.begin.pulse" }
+      },
+      "end": "'",
+      "endCaptures": {
+        "0": { "name": "punctuation.definition.string.end.pulse" }
+      },
       "patterns": [
         {
-          "name": "meta.interpolation.pulse",
-          "begin": "\\{",
+          "name": "constant.character.escape.pulse",
+          "match": "\\\\."
+        }
+      ]
+    },
+
+    "template-string": {
+      "name": "string.template.pulse",
+      "begin": "`",
+      "beginCaptures": {
+        "0": { "name": "punctuation.definition.string.template.begin.pulse" }
+      },
+      "end": "`",
+      "endCaptures": {
+        "0": { "name": "punctuation.definition.string.template.end.pulse" }
+      },
+      "patterns": [
+        {
+          "name": "meta.template.expression.pulse",
+          "begin": "\\$\\{",
           "beginCaptures": {
-            "0": { "name": "punctuation.definition.interpolation.begin.pulse" }
+            "0": { "name": "punctuation.definition.template-expression.begin.pulse" }
           },
           "end": "\\}",
           "endCaptures": {
-            "0": { "name": "punctuation.definition.interpolation.end.pulse" }
+            "0": { "name": "punctuation.definition.template-expression.end.pulse" }
           },
-          "contentName": "variable.other.interpolation.pulse"
+          "patterns": [
+            { "include": "#expression" }
+          ]
+        },
+        {
+          "name": "constant.character.escape.pulse",
+          "match": "\\\\."
         }
       ]
     },
+
+    "string-interpolation": {
+      "name": "meta.interpolation.pulse",
+      "begin": "(?<!\\\\)\\{",
+      "beginCaptures": {
+        "0": { "name": "punctuation.definition.interpolation.begin.pulse" }
+      },
+      "end": "\\}",
+      "endCaptures": {
+        "0": { "name": "punctuation.definition.interpolation.end.pulse" }
+      },
+      "patterns": [
+        { "include": "#expression" }
+      ]
+    },
+
     "numbers": {
       "patterns": [
         {
-          "name": "constant.numeric.pulse",
-          "match": "\\b\\d+(\\.\\d+)?\\b"
-        }
-      ]
-    },
-    "operators": {
-      "patterns": [
-        {
-          "name": "keyword.operator.pulse",
-          "match": "(\\+\\+|--|\\+|-|\\*|/|%|===|!==|==|!=|<=|>=|<|>|&&|\\|\\||!|=)"
-        }
-      ]
-    },
-    "identifiers": {
-      "patterns": [
-        {
-          "name": "constant.language.pulse",
-          "match": "\\b(true|false|null|undefined)\\b"
+          "name": "constant.numeric.hex.pulse",
+          "match": "\\b0[xX][0-9a-fA-F][0-9a-fA-F_]*n?\\b"
         },
         {
-          "name": "keyword.control.pulse",
-          "match": "\\b(if|else|return|this)\\b"
+          "name": "constant.numeric.binary.pulse",
+          "match": "\\b0[bB][01][01_]*n?\\b"
+        },
+        {
+          "name": "constant.numeric.octal.pulse",
+          "match": "\\b0[oO][0-7][0-7_]*n?\\b"
+        },
+        {
+          "name": "constant.numeric.bigint.pulse",
+          "match": "\\b[0-9][0-9_]*n\\b"
+        },
+        {
+          "name": "constant.numeric.decimal.pulse",
+          "match": "\\b[0-9][0-9_]*(\\.[0-9][0-9_]*)?(e[+-]?[0-9][0-9_]*)?\\b"
         }
       ]
+    },
+
+    "operators": {
+      "match": "\\?\\.|\\.{3}|===|!==|==|!=|<=|>=|=>|\\+\\+|--|\\+=|-=|\\*=|/=|%=|\\?\\?=|\\|\\|=|&&=|\\*\\*|\\?\\?|&&|\\|\\||>>>|>>|<<|[+\\-*/%<>!&|^~=?:]",
+      "name": "keyword.operator.pulse"
+    },
+
+    "constants": {
+      "match": "\\b(true|false|null|undefined|NaN|Infinity)\\b",
+      "name": "constant.language.pulse"
     }
   }
 }

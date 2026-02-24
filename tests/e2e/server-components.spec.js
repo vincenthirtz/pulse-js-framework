@@ -10,7 +10,6 @@
 
 import { test, expect } from '@playwright/test';
 
-const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000';
 
 test.describe('Server Components Page', () => {
   let consoleErrors = [];
@@ -35,16 +34,16 @@ test.describe('Server Components Page', () => {
   });
 
   test('Page loads without errors', async ({ page }) => {
-    await page.goto(`${BASE_URL}/server-components`, {
-      waitUntil: 'networkidle',
+    await page.goto('/server-components', {
+      waitUntil: 'domcontentloaded',
       timeout: 30000,
     });
 
-    // Wait for content to load
-    await page.waitForTimeout(1000);
+    // Wait for content to render
+    await page.waitForSelector('.page h1, .page h2, main h1, main h2', { state: 'attached', timeout: 10000 }).catch(() => {});
 
     // Check that page title or heading is present
-    const heading = await page.locator('h1, h2').first();
+    const heading = page.locator('.page h1, .page h2, main h1, main h2').first();
     await expect(heading).toBeVisible();
 
     // No console errors
@@ -55,16 +54,19 @@ test.describe('Server Components Page', () => {
   });
 
   test('Code examples are visible', async ({ page }) => {
-    await page.goto(`${BASE_URL}/server-components`, {
-      waitUntil: 'networkidle',
+    await page.goto('/server-components', {
+      waitUntil: 'domcontentloaded',
       timeout: 45000,
     });
 
-    // Wait for page content to render
-    await page.waitForTimeout(1500);
+    // Wait for SPA to render code blocks (broader selector for various rendering patterns)
+    const codeBlocks = page.locator('pre code, pre[class*="language-"], .code-block, [class*="highlight"], [class*="hljs"]');
 
-    // Check for code blocks (common in docs)
-    const codeBlocks = page.locator('pre code, .code-block, [class*="highlight"]');
+    // Wait for at least one code block to appear (SPA rendering may take time)
+    await codeBlocks.first().waitFor({ state: 'attached', timeout: 15000 }).catch(() => {
+      // If no code blocks appear within timeout, the test will fail below
+    });
+
     const count = await codeBlocks.count();
 
     // Should have at least one code example
@@ -72,8 +74,8 @@ test.describe('Server Components Page', () => {
   });
 
   test('Security examples section exists', async ({ page }) => {
-    await page.goto(`${BASE_URL}/server-components`, {
-      waitUntil: 'networkidle',
+    await page.goto('/server-components', {
+      waitUntil: 'domcontentloaded',
     });
 
     // Look for security-related headings or content
@@ -90,7 +92,8 @@ test.describe('Server Components Page', () => {
 
   test('Navigation to Server Components from sidebar', async ({ page }) => {
     // Start at home page
-    await page.goto(BASE_URL, { waitUntil: 'networkidle' });
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('main, [role="main"]', { state: 'attached', timeout: 10000 }).catch(() => {});
 
     // Look for Server Components link in navigation
     const serverComponentsLink = page.locator('a[href*="server-components"]').first();
@@ -98,7 +101,7 @@ test.describe('Server Components Page', () => {
     // Click if visible
     if (await serverComponentsLink.isVisible()) {
       await serverComponentsLink.click();
-      await page.waitForTimeout(500);
+      await page.waitForURL('**/server-components**', { timeout: 5000 }).catch(() => {});
 
       // Verify URL changed
       expect(page.url()).toContain('server-components');
@@ -108,8 +111,8 @@ test.describe('Server Components Page', () => {
   });
 
   test('Server Actions section exists', async ({ page }) => {
-    await page.goto(`${BASE_URL}/server-components`, {
-      waitUntil: 'networkidle',
+    await page.goto('/server-components', {
+      waitUntil: 'domcontentloaded',
     });
 
     // Look for Server Actions heading or content
@@ -127,16 +130,17 @@ test.describe('Server Components Page', () => {
     // Set mobile viewport
     await page.setViewportSize({ width: 375, height: 667 });
 
-    await page.goto(`${BASE_URL}/server-components`, {
-      waitUntil: 'networkidle',
-      timeout: 45000,
+    await page.goto('/server-components', {
+      waitUntil: 'domcontentloaded',
+      timeout: 30000,
     });
 
-    // Wait for page to render
-    await page.waitForTimeout(1500);
+    // Wait for content to render and JS to load
+    await page.waitForSelector('.page h1, .page h2, main h1, main h2', { state: 'attached', timeout: 10000 }).catch(() => {});
+    await page.waitForLoadState('load', { timeout: 10000 }).catch(() => {});
 
     // Content should still be visible on mobile
-    const heading = await page.locator('h1, h2').first();
+    const heading = page.locator('.page h1, .page h2, main h1, main h2').first();
     await expect(heading).toBeVisible();
 
     expect(consoleErrors).toHaveLength(0);
@@ -157,12 +161,13 @@ test.describe('Server Components - Localized', () => {
         }
       });
 
-      await page.goto(`${BASE_URL}${locale}/server-components`, {
-        waitUntil: 'networkidle',
+      await page.goto(`${locale}/server-components`, {
+        waitUntil: 'domcontentloaded',
         timeout: 30000,
       });
 
-      await page.waitForTimeout(500);
+      // Wait for content to render
+      await page.waitForSelector('main, [role="main"], h1', { state: 'attached', timeout: 10000 }).catch(() => {});
 
       if (consoleErrors.length > 0) {
         console.error(`❌ Console errors on ${locale}/server-components:`, consoleErrors);

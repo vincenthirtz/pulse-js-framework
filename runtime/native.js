@@ -10,6 +10,7 @@
 import { pulse, effect, batch } from './pulse.js';
 import { loggers } from './logger.js';
 import { DANGEROUS_KEYS } from './security.js';
+import { RuntimeError } from './errors.js';
 
 const log = loggers.native;
 
@@ -92,9 +93,10 @@ function _compareSemver(a, b) {
  * Validate that an object has all required methods/properties
  * @param {Object} obj - Object to validate
  * @param {string[]} required - Required property names
+ * @param {string} [namespace] - Namespace label for error context
  * @returns {{valid: boolean, missing: string[]}}
  */
-function _validateApiSurface(obj, required) {
+function _validateApiSurface(obj, required, namespace = '') {
   if (!obj || typeof obj !== 'object') {
     return { valid: false, missing: required };
   }
@@ -281,6 +283,7 @@ function _tryParseJson(value) {
   try {
     return JSON.parse(value);
   } catch {
+    // Value is not valid JSON — return the raw string as-is
     return value;
   }
 }
@@ -374,7 +377,7 @@ export function getNative() {
         'This API only works in a Pulse native mobile app. ' +
         'For web, use isNativeAvailable() to check before calling native APIs, ' +
         'or use getPlatform() to detect the current environment.';
-    throw new Error(error);
+    throw new RuntimeError(error, { code: 'NATIVE_UNAVAILABLE', suggestion: 'Use isNativeAvailable() to check before calling native APIs' });
   }
   return window.PulseMobile;
 }
@@ -500,6 +503,7 @@ export function createNativeStorage(prefix = '') {
 export function createDeviceInfo() {
   const info = pulse(null);
   const network = pulse({ connected: true, type: 'unknown' });
+  const cleanups = [];
 
   // Load device info
   if (isNativeAvailable()) {
@@ -529,13 +533,14 @@ export function createDeviceInfo() {
         type: 'unknown'
       });
 
-      window.addEventListener('online', () => {
-        network.set({ connected: true, type: 'unknown' });
-      });
-
-      window.addEventListener('offline', () => {
-        network.set({ connected: false, type: 'none' });
-      });
+      const onOnline = () => { network.set({ connected: true, type: 'unknown' }); };
+      const onOffline = () => { network.set({ connected: false, type: 'none' }); };
+      window.addEventListener('online', onOnline);
+      window.addEventListener('offline', onOffline);
+      cleanups.push(
+        () => window.removeEventListener('online', onOnline),
+        () => window.removeEventListener('offline', onOffline)
+      );
     }
   }
 
@@ -559,6 +564,12 @@ export function createDeviceInfo() {
     /** Is currently online */
     get isOnline() {
       return network.get().connected;
+    },
+
+    /** Dispose event listeners to prevent memory leaks */
+    dispose() {
+      cleanups.forEach(fn => fn());
+      cleanups.length = 0;
     }
   };
 }
@@ -627,30 +638,38 @@ export const NativeClipboard = {
 
 /**
  * App lifecycle - pause handler
+ * @param {Function} callback - Called when app is paused/hidden
+ * @returns {Function} Cleanup function to remove the listener
  */
 export function onAppPause(callback) {
+  const cleanups = [];
   if (typeof document !== 'undefined') {
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden) callback();
-    });
+    const handler = () => { if (document.hidden) callback(); };
+    document.addEventListener('visibilitychange', handler);
+    cleanups.push(() => document.removeEventListener('visibilitychange', handler));
   }
   if (isNativeAvailable()) {
     getNative().App.onPause(callback);
   }
+  return () => cleanups.forEach(fn => fn());
 }
 
 /**
  * App lifecycle - resume handler
+ * @param {Function} callback - Called when app is resumed/visible
+ * @returns {Function} Cleanup function to remove the listener
  */
 export function onAppResume(callback) {
+  const cleanups = [];
   if (typeof document !== 'undefined') {
-    document.addEventListener('visibilitychange', () => {
-      if (!document.hidden) callback();
-    });
+    const handler = () => { if (!document.hidden) callback(); };
+    document.addEventListener('visibilitychange', handler);
+    cleanups.push(() => document.removeEventListener('visibilitychange', handler));
   }
   if (isNativeAvailable()) {
     getNative().App.onResume(callback);
   }
+  return () => cleanups.forEach(fn => fn());
 }
 
 /**
@@ -664,19 +683,26 @@ export function onBackButton(callback) {
 
 /**
  * Wait for native bridge to be ready
+ * @param {Function} callback - Called with { platform } when bridge is ready
+ * @returns {Function} Cleanup function to remove the listener
  */
 export function onNativeReady(callback) {
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined') return () => {};
 
-  window.addEventListener('pulse:ready', (e) => {
-    callback(e.detail);
-  });
+  const handler = (e) => { callback(e.detail); };
+  window.addEventListener('pulse:ready', handler);
 
+  let timerId;
   // If already ready (web or native initialized)
   if (typeof window.PulseMobile !== 'undefined') {
     const platform = window.PulseMobile.platform;
-    setTimeout(() => callback({ platform }), 0);
+    timerId = setTimeout(() => callback({ platform }), 0);
   }
+
+  return () => {
+    window.removeEventListener('pulse:ready', handler);
+    if (timerId) clearTimeout(timerId);
+  };
 }
 
 /**

@@ -24,6 +24,10 @@ description: Project audit agent for the Pulse JS framework. Use this skill to r
 | **scripts/** | Automated audit runner (multi-domain) |
 | **references/** | Audit checklist, common patterns and anti-patterns |
 
+## Context Loading
+
+Load `.claude/context/` files relevant to the audit domain. E.g., `api-core.md` for reactivity audit, `api-ssr-server.md` for SSR audit.
+
 ## Audit Domains
 
 The project auditor covers **7 domains**, each with specific checks:
@@ -43,11 +47,6 @@ The project auditor covers **7 domains**, each with specific checks:
 | Private fields | Missing `#` prefix on internal state | Low |
 | Magic numbers | Hardcoded values without constants | Low |
 
-**Key files to audit:**
-- `runtime/*.js` - All runtime modules
-- `compiler/*.js` - Compiler pipeline
-- `cli/*.js` - CLI tools
-
 ### 2. Security
 
 | Check | What it Detects | Severity |
@@ -62,13 +61,6 @@ The project auditor covers **7 domains**, each with specific checks:
 | Timing attacks | Non-constant-time string comparison for secrets | Medium |
 | Information leakage | Stack traces, internal paths exposed to client | Medium |
 | Dependency vulnerabilities | Known CVEs in npm dependencies | High |
-
-**Key files to audit:**
-- `runtime/utils.js` - Security utilities
-- `runtime/security.js` - Sanitization functions
-- `runtime/dom.js` - DOM manipulation
-- `runtime/http.js` - HTTP client
-- `runtime/server-components/` - Server components security
 
 ### 3. Performance
 
@@ -85,13 +77,6 @@ The project auditor covers **7 domains**, each with specific checks:
 | Algorithm complexity | O(n^2) or worse in hot paths | High |
 | Lazy loading | Missing lazy() for heavy route components | Low |
 
-**Key files to audit:**
-- `runtime/pulse.js` - Reactivity performance
-- `runtime/dom.js` - DOM operation efficiency
-- `runtime/dom-list.js` - List reconciliation (LIS algorithm)
-- `runtime/dom-selector.js` - Selector parsing cache
-- `runtime/lru-cache.js` - Cache implementation
-
 ### 4. Accessibility (A11y)
 
 | Check | What it Detects | Severity |
@@ -106,12 +91,6 @@ The project auditor covers **7 domains**, each with specific checks:
 | Skip links | Missing skip navigation links in layouts | Low |
 | Form labels | Inputs without associated labels | High |
 | Heading hierarchy | Skipped heading levels (h1 -> h3) | Medium |
-
-**Key files to audit:**
-- `runtime/a11y.js` + `runtime/a11y/*.js` - A11y implementation
-- `runtime/dom.js` - Auto-ARIA in `el()`
-- `cli/lint.js` - A11y lint rules
-- `compiler/transformer/` - A11y directive compilation
 
 ### 5. Architecture
 
@@ -128,12 +107,6 @@ The project auditor covers **7 domains**, each with specific checks:
 | Error hierarchy | Raw `Error` instead of `PulseError` subclass | Low |
 | ADR compliance | Implementation deviating from accepted ADRs | Medium |
 
-**Key files to audit:**
-- `package.json` - Export map, dependencies
-- `runtime/` - Layer boundaries
-- `compiler/` - No runtime imports
-- `cli/` - No direct runtime internals
-
 ### 6. Testing
 
 | Check | What it Detects | Severity |
@@ -148,10 +121,6 @@ The project auditor covers **7 domains**, each with specific checks:
 | Error path coverage | No tests for error/failure cases | Medium |
 | Regression tests | Bug fixes without corresponding test | Medium |
 | Test framework | Using Jest/Mocha instead of node:test | High |
-
-**Key files to audit:**
-- `test/*.test.js` - All test files
-- `scripts/run-all-tests.js` - Test runner config
 
 ### 7. Documentation
 
@@ -177,15 +146,11 @@ The project auditor covers **7 domains**, each with specific checks:
 
 ## Running Audits
 
-### Full Audit (All Domains)
-
 ```bash
+# Full audit (all domains)
 node .claude/skills/project-auditor/scripts/run-audit.js
-```
 
-### Single Domain
-
-```bash
+# Single domain
 node .claude/skills/project-auditor/scripts/run-audit.js --domain security
 node .claude/skills/project-auditor/scripts/run-audit.js --domain performance
 node .claude/skills/project-auditor/scripts/run-audit.js --domain a11y
@@ -193,144 +158,37 @@ node .claude/skills/project-auditor/scripts/run-audit.js --domain architecture
 node .claude/skills/project-auditor/scripts/run-audit.js --domain quality
 node .claude/skills/project-auditor/scripts/run-audit.js --domain testing
 node .claude/skills/project-auditor/scripts/run-audit.js --domain docs
-```
 
-### Specific File or Directory
-
-```bash
+# Specific file or directory
 node .claude/skills/project-auditor/scripts/run-audit.js runtime/dom.js
 node .claude/skills/project-auditor/scripts/run-audit.js runtime/
-```
 
-### Output Formats
-
-```bash
+# Output formats
 node .claude/skills/project-auditor/scripts/run-audit.js --format markdown  # Default
 node .claude/skills/project-auditor/scripts/run-audit.js --format json      # Machine-readable
 node .claude/skills/project-auditor/scripts/run-audit.js --format summary   # Quick overview
 ```
 
-## Audit Workflow
-
-### Phase 1: Discovery
-
-```
-1. Scan project structure (runtime/, compiler/, cli/, test/)
-2. Identify all source files and their roles
-3. Check file sizes, modification dates
-4. Map module dependencies
-5. Read existing CLAUDE.md and ADRs for context
-```
-
-### Phase 2: Static Analysis
-
-```
-1. Parse each file for patterns (regex-based scanning)
-2. Check naming conventions and code structure
-3. Detect anti-patterns and code smells
-4. Verify export map and import graph
-5. Check for known vulnerability patterns
-```
-
-### Phase 3: Dynamic Checks
-
-```
-1. Run test suite and capture results
-2. Measure coverage per module
-3. Run npm audit for dependency vulnerabilities
-4. Check bundle sizes (if build available)
-5. Validate example code compiles
-```
-
-### Phase 4: Report Generation
-
-```
-1. Aggregate findings by domain and severity
-2. Deduplicate similar issues
-3. Generate actionable fix suggestions
-4. Calculate health scores per domain (0-100)
-5. Create improvement roadmap (prioritized)
-6. Output report in requested format
-```
-
 ## Health Score Calculation
 
-Each domain gets a score from 0-100:
+Per-domain score: `100 - (critical * 20) - (high * 10) - (medium * 3) - (low * 1)` (min 0).
 
-```
-Score = 100 - (critical * 20) - (high * 10) - (medium * 3) - (low * 1)
-Minimum: 0
-```
+**Overall health** = weighted average across domains:
 
-**Overall project health** = weighted average:
+| Domain | Weight | Domain | Weight |
+|--------|--------|--------|--------|
+| Security | 25% | Testing | 15% |
+| Architecture | 20% | Performance | 10% |
+| Code Quality | 15% | Accessibility | 10% |
+| | | Documentation | 5% |
 
-| Domain | Weight |
-|--------|--------|
-| Security | 25% |
-| Architecture | 20% |
-| Code Quality | 15% |
-| Testing | 15% |
-| Performance | 10% |
-| Accessibility | 10% |
-| Documentation | 5% |
-
-**Rating scale:**
-
-| Score | Rating | Color |
-|-------|--------|-------|
-| 90-100 | Excellent | Green |
-| 75-89 | Good | Blue |
-| 50-74 | Fair | Yellow |
-| 25-49 | Poor | Orange |
-| 0-24 | Critical | Red |
+**Rating:** 90-100 Excellent | 75-89 Good | 50-74 Fair | 25-49 Poor | 0-24 Critical
 
 ## Report Structure
 
-Every audit report follows this structure:
-
-```markdown
-# Pulse Framework Audit Report
-Date: YYYY-MM-DD
-Auditor: project-auditor skill
-
-## Executive Summary
-Overall Health: XX/100 (Rating)
-Critical Issues: N | High: N | Medium: N | Low: N
-
-## Domain Scores
-| Domain         | Score | Rating    | Critical | High | Medium | Low |
-|----------------|-------|-----------|----------|------|--------|-----|
-| Security       | XX    | Rating    | N        | N    | N      | N   |
-| Architecture   | XX    | Rating    | N        | N    | N      | N   |
-| ...            | ...   | ...       | ...      | ...  | ...    | ... |
-
-## Findings
-
-### [!] Critical: Finding title
-- **File:** path/to/file.js:line
-- **Domain:** Security
-- **Description:** What was found
-- **Impact:** What could happen
-- **Fix:** How to fix it
-- **Code example:** Before/after
-
-### [H] High: Finding title
-...
-
-## Improvement Roadmap
-1. Immediate (this week): Fix critical and high issues
-2. Short-term (this month): Address medium issues
-3. Long-term (this quarter): Improve low/info items
-
-## Appendix
-- Files audited: N
-- Lines scanned: N
-- Time elapsed: Xs
-```
+Reports include: executive summary (overall score, issue counts), domain score table, findings listed by severity (each with file/line, description, impact, and fix), an improvement roadmap (immediate/short-term/long-term), and an appendix (files audited, lines scanned, time elapsed).
 
 ## Integration with Other Skills
-
-The project auditor can delegate specific findings to specialized skills:
 
 | Finding Domain | Delegate To | Action |
 |----------------|-------------|--------|
@@ -339,15 +197,6 @@ The project auditor can delegate specific findings to specialized skills:
 | Low test coverage | qa-testing | Write missing tests |
 | Code quality issues | senior-developer | Refactor and fix |
 | Documentation gaps | docs-manager | Update documentation |
-
-### Usage with lead-developer
-
-```bash
-# Run audit, then fix all issues via lead-developer
-/project-auditor full audit
-# Review report
-/lead-developer fix all critical and high issues from audit report
-```
 
 ## Common Findings and Quick Fixes
 
@@ -377,57 +226,6 @@ The project auditor can delegate specific findings to specialized skills:
 | Direct DOM access | `document.querySelector()` in runtime | Use `getAdapter().querySelector()` |
 | Raw Error | `throw new Error(...)` | `throw Errors.customError(...)` |
 | External dependency | `require('lodash')` in runtime | Implement inline or in utils.js |
-
-## Automation
-
-### Pre-commit Hook
-
-```bash
-# Add to .husky/pre-commit or githooks
-node .claude/skills/project-auditor/scripts/run-audit.js --domain security --format summary
-# Fails if any critical issues found
-```
-
-### CI Integration
-
-```yaml
-# .github/workflows/audit.yml
-- name: Run Project Audit
-  run: node .claude/skills/project-auditor/scripts/run-audit.js --format json > audit-report.json
-- name: Check Critical Issues
-  run: |
-    CRITICAL=$(jq '.summary.critical' audit-report.json)
-    if [ "$CRITICAL" -gt 0 ]; then exit 1; fi
-```
-
-### Scheduled Audit
-
-Run weekly to track project health over time:
-
-```bash
-# Cron: every Monday at 9am
-0 9 * * 1 node .claude/skills/project-auditor/scripts/run-audit.js --format json >> audit-history.jsonl
-```
-
-## Key Project Files for Audit
-
-| File | Audit Relevance |
-|------|-----------------|
-| `runtime/utils.js` | Security utilities (XSS, URL, CSS sanitization) |
-| `runtime/security.js` | Prototype pollution, HTML sanitization |
-| `runtime/dom.js` | DOM creation, auto-ARIA, event binding |
-| `runtime/dom-adapter.js` | SSR compatibility abstraction |
-| `runtime/pulse.js` | Reactivity performance, memory management |
-| `runtime/dom-list.js` | List reconciliation (LIS algorithm) |
-| `runtime/dom-selector.js` | Selector cache (LRU) |
-| `runtime/lru-cache.js` | Cache correctness |
-| `runtime/a11y.js` | Accessibility implementation |
-| `runtime/http.js` | HTTP security, timeout handling |
-| `runtime/server-components/security.js` | Server component security |
-| `runtime/server-components/error-sanitizer.js` | Error information leakage |
-| `compiler/transformer.js` | Code generation security |
-| `package.json` | Export map, dependency health |
-| `CLAUDE.md` | Documentation accuracy |
 
 ## Quick Troubleshooting
 

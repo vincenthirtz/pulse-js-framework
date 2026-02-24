@@ -213,11 +213,12 @@ export function flattenStyleRule(transformer, rule, parentSelector, output, atRu
     // Conditional group @-rules (@media, @supports, @container) wrap their nested rules
     // They can be nested inside each other
     if (isConditionalGroup) {
-      // Combine with existing wrapper if present
-      const combinedWrapper = atRuleWrapper ? `${atRuleWrapper} { ${selector}` : selector;
+      // For nested conditional groups, build a properly structured wrapper array
+      // so closing braces are correctly generated
+      const wrappers = atRuleWrapper ? [atRuleWrapper, selector] : [selector];
 
       for (const nested of rule.nestedRules) {
-        flattenStyleRule(transformer, nested, parentSelector, output, combinedWrapper, false);
+        flattenStyleRule(transformer, nested, parentSelector, output, wrappers, false);
       }
       return;
     }
@@ -253,15 +254,23 @@ export function flattenStyleRule(transformer, rule, parentSelector, output, atRu
   if (rule.properties.length > 0) {
     const lines = [];
 
-    // If wrapped in an @-rule, output the wrapper
+    // If wrapped in an @-rule, output the wrapper(s)
     if (atRuleWrapper) {
-      lines.push(`  ${atRuleWrapper} {`);
-      lines.push(`    ${scopedSelector} {`);
-      for (const prop of rule.properties) {
-        lines.push(`      ${prop.name}: ${prop.value};`);
+      const wrappers = Array.isArray(atRuleWrapper) ? atRuleWrapper : [atRuleWrapper];
+      const baseIndent = '  ';
+      for (let w = 0; w < wrappers.length; w++) {
+        lines.push(`${baseIndent}${'  '.repeat(w)}${wrappers[w]} {`);
       }
-      lines.push('    }');
-      lines.push('  }');
+      const contentIndent = baseIndent + '  '.repeat(wrappers.length);
+      lines.push(`${contentIndent}${scopedSelector} {`);
+      for (const prop of rule.properties) {
+        lines.push(`${contentIndent}  ${prop.name}: ${prop.value};`);
+      }
+      lines.push(`${contentIndent}}`);
+      // Close wrappers in reverse order
+      for (let w = wrappers.length - 1; w >= 0; w--) {
+        lines.push(`${baseIndent}${'  '.repeat(w)}}`);
+      }
     } else {
       lines.push(`  ${scopedSelector} {`);
       for (const prop of rule.properties) {
@@ -380,12 +389,32 @@ export function scopeStyleSelector(transformer, selector) {
  */
 function scopePseudoClassSelector(transformer, selector) {
   // Match functional pseudo-classes: :has(), :is(), :where(), :not()
-  return selector.replace(
-    /:(has|is|where|not)\(([^)]+)\)/g,
-    (_match, pseudoClass, inner) => {
-      // Recursively scope the inner selector
-      const scopedInner = scopeStyleSelector(transformer, inner);
-      return `:${pseudoClass}(${scopedInner})`;
+  // Use balanced parenthesis matching to handle nested pseudo-classes like :not(:hover)
+  const pattern = /:(has|is|where|not)\(/g;
+  let result = '';
+  let lastIndex = 0;
+  let match;
+
+  while ((match = pattern.exec(selector)) !== null) {
+    result += selector.slice(lastIndex, match.index);
+    const pseudoClass = match[1];
+    const innerStart = match.index + match[0].length;
+
+    // Find matching closing paren with depth tracking
+    let depth = 1;
+    let i = innerStart;
+    for (; i < selector.length && depth > 0; i++) {
+      if (selector[i] === '(') depth++;
+      else if (selector[i] === ')') depth--;
     }
-  );
+
+    const inner = selector.slice(innerStart, i - 1);
+    const scopedInner = scopeStyleSelector(transformer, inner);
+    result += `:${pseudoClass}(${scopedInner})`;
+    lastIndex = i;
+    pattern.lastIndex = i;
+  }
+
+  result += selector.slice(lastIndex);
+  return result;
 }

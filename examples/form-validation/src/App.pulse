@@ -1,0 +1,312 @@
+/**
+ * Pulse Form Validation Example
+ *
+ * Demonstrates useForm, validators, useFileField, draft persistence,
+ * async validation, password strength meter, and submission state.
+ */
+
+import {
+  fields, handleSubmit, isValid, isValidating,
+  isSubmitting, submitCount, submitError,
+  errors, reset, hasDraft, clearDraft,
+  avatar, passwordStrength, submittedSuccessfully
+} from './form-setup.js'
+
+@page App
+
+view {
+  .app {
+    h1 "Form Validation"
+    p.subtitle "Powered by Pulse useForm() with sync & async validators"
+
+    .form-card {
+      h2 "Create Account"
+
+      .field[class={getFieldClass('username')}] {
+        label[for="field-username"] "Username"
+        input#field-username[type=text][placeholder="Choose a username"]
+          @input(onFieldInput('username', event))
+          @blur(onFieldBlur('username'))
+          [value={fields.username.value}]
+        @if (fields.username.validating) {
+          span.validating "Checking..."
+        }
+        @if (fields.username.touched && fields.username.error) {
+          span.error-message "{fields.username.error}"
+        }
+        span.field-hint "Letters, numbers, underscore. Try \"admin\" to see async error."
+      }
+
+      .field[class={getFieldClass('email')}] {
+        label[for="field-email"] "Email"
+        input#field-email[type=email][placeholder="you@example.com"][autocomplete=email]
+          @input(onFieldInput('email', event))
+          @blur(onFieldBlur('email'))
+          [value={fields.email.value}]
+        @if (fields.email.touched && fields.email.error) {
+          span.error-message "{fields.email.error}"
+        }
+      }
+
+      .field[class={getFieldClass('password')}] {
+        label[for="field-password"] "Password"
+        input#field-password[type=password][placeholder="At least 8 chars, 1 uppercase, 1 number"]
+          @input(onFieldInput('password', event))
+          @blur(onFieldBlur('password'))
+          [value={fields.password.value}]
+        @if (fields.password.value) {
+          .password-strength {
+            .password-strength-bar[class={passwordStrength || ''}]
+          }
+        }
+        @if (fields.password.touched && fields.password.error) {
+          span.error-message "{fields.password.error}"
+        }
+      }
+
+      .field[class={getFieldClass('confirmPassword')}] {
+        label[for="field-confirmPassword"] "Confirm Password"
+        input#field-confirmPassword[type=password][placeholder="Re-enter your password"]
+          @input(onFieldInput('confirmPassword', event))
+          @blur(onFieldBlur('confirmPassword'))
+          [value={fields.confirmPassword.value}]
+        @if (fields.confirmPassword.touched && fields.confirmPassword.error) {
+          span.error-message "{fields.confirmPassword.error}"
+        }
+      }
+
+      .field-row {
+        .field[class={getFieldClass('age')}] {
+          label[for="field-age"] "Age (optional)"
+          input#field-age[type=number][placeholder="18"]
+            @input(onFieldInput('age', event))
+            @blur(onFieldBlur('age'))
+            [value={fields.age.value}]
+          @if (fields.age.touched && fields.age.error) {
+            span.error-message "{fields.age.error}"
+          }
+          span.field-hint "Must be 13+ if provided"
+        }
+
+        .field[class={getFieldClass('role')}] {
+          label[for="field-role"] "Role"
+          select#field-role
+            @input(onFieldInput('role', event))
+            @blur(onFieldBlur('role'))
+            [value={fields.role.value}] {
+            option[value=""] "Select a role"
+            option[value=developer] "Developer"
+            option[value=designer] "Designer"
+            option[value=manager] "Manager"
+            option[value=other] "Other"
+          }
+          @if (fields.role.touched && fields.role.error) {
+            span.error-message "{fields.role.error}"
+          }
+        }
+      }
+
+      .field {
+        label[for="field-bio"] "Bio (optional)"
+        textarea#field-bio[placeholder="Tell us about yourself..."][rows=3]
+          @input(onFieldInput('bio', event))
+          @blur(onFieldBlur('bio'))
+          "{fields.bio.value}"
+      }
+
+      .field {
+        label "Avatar (optional)"
+        .dropzone[class={avatar.isDragging ? 'drag-over' : ''}]
+          @click(openFilePicker())
+          @dragenter(onDragEnter(event))
+          @dragover(onDragOver(event))
+          @dragleave(onDragLeave(event))
+          @drop(onDrop(event)) {
+          input[type=file][accept="image/*"] @change(onFileChange(event))
+          p "Drop an image here or click to upload"
+          span.field-hint "PNG, JPEG, GIF, WebP. Max 2MB."
+        }
+
+        @if (avatar.files.length > 0) {
+          .file-preview {
+            @if (avatar.previews[0]) {
+              img[alt="Avatar preview"][src={avatar.previews[0]}]
+            }
+            .file-info {
+              div "{avatar.files[0].name}"
+              div "{getFileSize(avatar.files[0].size)}"
+            }
+            button.file-remove[aria-label="Remove file"] @click(clearAvatar()) "\u00d7"
+          }
+        }
+
+        @if (avatar.error) {
+          span.error-message "{avatar.error}"
+        }
+      }
+
+      .field[class={getFieldClass('acceptTerms')}] {
+        .checkbox-field {
+          input#field-acceptTerms[type=checkbox]
+            @change(onFieldInput('acceptTerms', event))
+            @blur(onFieldBlur('acceptTerms'))
+            [checked={fields.acceptTerms.value}]
+          label[for="field-acceptTerms"] "I accept the Terms of Service and Privacy Policy"
+        }
+        @if (fields.acceptTerms.touched && fields.acceptTerms.error) {
+          span.error-message "{fields.acceptTerms.error}"
+        }
+      }
+
+      .field {
+        .checkbox-field {
+          input#field-newsletter[type=checkbox]
+            @change(onFieldInput('newsletter', event))
+            @blur(onFieldBlur('newsletter'))
+            [checked={fields.newsletter.value}]
+          label[for="field-newsletter"] "Subscribe to the newsletter (optional)"
+        }
+      }
+
+      .form-actions {
+        @if (hasDraft) {
+          span.draft-badge "Draft saved"
+        }
+        .btn-group {
+          @if (hasDraft) {
+            button.btn.btn-secondary @click(onClearDraft()) "Clear Draft"
+          }
+          button.btn.btn-secondary @click(onReset()) "Reset"
+          button.btn.btn-primary[type=submit]
+            @click(onSubmit(event))
+            [disabled={isSubmitting || isValidating}]
+            "{getSubmitLabel()}"
+        }
+      }
+
+      @if (submitError) {
+        .submit-status.error "{submitError}"
+      }
+      @if (submittedSuccessfully && !submitError) {
+        .submit-status.success "Account created successfully!"
+      }
+
+      .form-stats {
+        span "Submissions: {submitCount}"
+        span[style="color: {isValid ? '#10b981' : '#ef4444'}"] "{isValid ? 'Valid' : 'Invalid'}"
+      }
+    }
+  }
+}
+
+actions {
+  getFieldClass(name) {
+    const field = fields[name]
+    const touched = field.touched
+    const err = field.error
+    const dirty = field.dirty
+    if (touched && err) return 'error'
+    if (dirty && !err && touched) return 'valid'
+    return ''
+  }
+
+  getSubmitLabel() {
+    if (isSubmitting) return 'Submitting...'
+    if (isValidating) return 'Validating...'
+    return 'Create Account'
+  }
+
+  getFileSize(bytes) {
+    return (bytes / 1024).toFixed(1) + ' KB'
+  }
+
+  onFieldInput(name, event) {
+    fields[name].onChange(event)
+  }
+
+  onFieldBlur(name) {
+    fields[name].onBlur()
+  }
+
+  openFilePicker() {
+    const input = document.querySelector('.dropzone input[type=file]')
+    if (input) input.click()
+  }
+
+  onFileChange(event) { avatar.onChange(event) }
+  onDragEnter(event) { avatar.onDragEnter(event) }
+  onDragOver(event) { avatar.onDragOver(event) }
+  onDragLeave(event) { avatar.onDragLeave(event) }
+  onDrop(event) { avatar.onDrop(event) }
+  clearAvatar() { avatar.clear() }
+
+  onClearDraft() {
+    clearDraft()
+    reset()
+  }
+
+  onReset() {
+    reset()
+    avatar.clear()
+    submittedSuccessfully.set(false)
+  }
+
+  async onSubmit(event) {
+    event.preventDefault()
+    submittedSuccessfully.set(false)
+    await handleSubmit()
+    if (!submitError && submitCount > 0) {
+      submittedSuccessfully.set(true)
+    }
+  }
+}
+
+style {
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: system-ui, -apple-system, sans-serif; background: #f3f4f6; min-height: 100vh; padding: 40px 20px; color: #1f2937; }
+  .app { max-width: 640px; margin: 0 auto; }
+  h1 { text-align: center; margin-bottom: 8px; font-size: 28px; color: #111827; }
+  .subtitle { text-align: center; color: #6b7280; margin-bottom: 32px; font-size: 14px; }
+  .form-card { background: white; border-radius: 12px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 24px; }
+  .form-card h2 { font-size: 18px; margin-bottom: 24px; padding-bottom: 12px; border-bottom: 1px solid #e5e7eb; color: #374151; }
+  .field { margin-bottom: 20px; }
+  .field label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 6px; color: #374151; }
+  .field input, .field select, .field textarea { width: 100%; padding: 10px 14px; border: 2px solid #d1d5db; border-radius: 8px; font-size: 15px; transition: border-color 0.2s, box-shadow 0.2s; background: white; }
+  .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
+  .field textarea { resize: vertical; min-height: 80px; }
+  .field.error input, .field.error select, .field.error textarea { border-color: #ef4444; }
+  .field.error input:focus, .field.error select:focus, .field.error textarea:focus { box-shadow: 0 0 0 3px rgba(239,68,68,0.15); }
+  .field.valid input, .field.valid select { border-color: #10b981; }
+  .error-message { color: #ef4444; font-size: 13px; margin-top: 4px; display: flex; align-items: center; gap: 4px; }
+  .field-hint { color: #9ca3af; font-size: 12px; margin-top: 4px; }
+  .validating { color: #6366f1; font-size: 13px; margin-top: 4px; }
+  .password-strength { height: 4px; border-radius: 2px; margin-top: 6px; background: #e5e7eb; overflow: hidden; }
+  .password-strength-bar { height: 100%; border-radius: 2px; transition: width 0.3s, background 0.3s; }
+  .password-strength-bar.weak { width: 33%; background: #ef4444; }
+  .password-strength-bar.medium { width: 66%; background: #f59e0b; }
+  .password-strength-bar.strong { width: 100%; background: #10b981; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .btn { padding: 12px 24px; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-primary { background: #6366f1; color: white; }
+  .btn-primary:hover:not(:disabled) { background: #4f46e5; }
+  .btn-secondary { background: #e5e7eb; color: #374151; }
+  .btn-secondary:hover:not(:disabled) { background: #d1d5db; }
+  .form-actions { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 24px; }
+  .form-actions .btn-group { display: flex; gap: 8px; }
+  .draft-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; color: #6366f1; background: #eef2ff; padding: 4px 10px; border-radius: 20px; }
+  .submit-status { text-align: center; padding: 16px; border-radius: 8px; margin-top: 16px; font-size: 14px; }
+  .submit-status.success { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+  .submit-status.error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+  .dropzone { border: 2px dashed #d1d5db; border-radius: 8px; padding: 24px; text-align: center; cursor: pointer; transition: all 0.2s; color: #6b7280; }
+  .dropzone:hover, .dropzone.drag-over { border-color: #6366f1; background: #eef2ff; color: #4f46e5; }
+  .dropzone input[type="file"] { display: none; }
+  .file-preview { display: flex; align-items: center; gap: 12px; margin-top: 8px; padding: 8px; background: #f9fafb; border-radius: 6px; }
+  .file-preview img { width: 48px; height: 48px; object-fit: cover; border-radius: 4px; }
+  .file-info { flex: 1; font-size: 13px; }
+  .file-remove { background: none; border: none; color: #ef4444; cursor: pointer; font-size: 18px; }
+  .form-stats { display: flex; gap: 16px; justify-content: center; margin-top: 16px; font-size: 13px; color: #6b7280; }
+  .checkbox-field { display: flex; align-items: flex-start; gap: 8px; }
+  .checkbox-field input[type="checkbox"] { width: auto; margin-top: 3px; }
+  .checkbox-field label { font-weight: 400; }
+}

@@ -39,7 +39,12 @@
       {
         "language": "pulse",
         "scopeName": "source.pulse",
-        "path": "./syntaxes/pulse.tmLanguage.json"
+        "path": "./syntaxes/pulse.tmLanguage.json",
+        "embeddedLanguages": {
+          "source.js": "javascript",
+          "source.css": "css",
+          "source.css.embedded.pulse": "css"
+        }
       }
     ],
     "snippets": [

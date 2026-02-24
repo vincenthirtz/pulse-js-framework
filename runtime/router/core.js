@@ -507,7 +507,11 @@ export function createRouter(options = {}) {
    */
   function outlet(container) {
     if (typeof container === 'string') {
-      container = document.querySelector(container);
+      const el = document.querySelector(container);
+      if (!el) {
+        throw new Error(`outlet(): no element found matching selector "${container}"`);
+      }
+      container = el;
     }
 
     let currentView = null;

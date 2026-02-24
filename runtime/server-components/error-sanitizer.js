@@ -13,6 +13,7 @@
  */
 
 import { loggers } from '../logger.js';
+import { escapeHtml } from '../security.js';
 
 const log = loggers.dom;
 
@@ -382,21 +383,7 @@ export function sanitizeErrors(errors, options = {}) {
 // Validation Error Sanitization
 // ============================================================================
 
-/**
- * Basic HTML escaping for user-generated validation error messages.
- *
- * @param {string} str - String to escape
- * @returns {string} Escaped string
- */
-function escapeHtml(str) {
-  if (!str || typeof str !== 'string') return '';
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#x27;');
-}
+// escapeHtml imported from ../security.js (single source of truth)
 
 /**
  * Sanitize validation errors specifically.

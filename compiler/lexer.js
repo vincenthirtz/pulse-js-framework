@@ -97,6 +97,7 @@ export const TokenType = {
   MINUS_ASSIGN: 'MINUS_ASSIGN', // -=
   STAR_ASSIGN: 'STAR_ASSIGN',   // *=
   SLASH_ASSIGN: 'SLASH_ASSIGN', // /=
+  PIPE: 'PIPE',                 // | (bitwise OR)
 
   // Literals
   STRING: 'STRING',
@@ -495,8 +496,8 @@ export class Lexer {
       // If not scientific notation, leave 'e' for the next token (e.g., 'em' unit)
     }
 
-    // Check for BigInt suffix 'n'
-    if (this.current() === 'n') {
+    // Check for BigInt suffix 'n' (only valid on integers, not floats)
+    if (this.current() === 'n' && !value.includes('.') && !value.includes('e') && !value.includes('E')) {
       rawValue += this.advance();
       isBigInt = true;
     }
@@ -822,6 +823,9 @@ export class Lexer {
             } else {
               this.tokens.push(new Token(TokenType.OR, '||', startLine, startColumn));
             }
+          } else {
+            // Single | is bitwise OR
+            this.tokens.push(new Token(TokenType.PIPE, '|', startLine, startColumn));
           }
           continue;
       }
@@ -985,8 +989,19 @@ export class Lexer {
         lookahead++;
         continue;
       }
-      if (char === '.' || char === '#' || char === '[' || char === '{' || char === ' ') {
+      if (char === '.' || char === '#' || char === '[' || char === '{') {
         return true;
+      }
+      // Space followed by { indicates element with children (selector context)
+      if (char === ' ') {
+        // Peek past whitespace to check for selector continuation
+        let spaceEnd = this.pos + lookahead + 1;
+        while (spaceEnd < this.source.length && this.source[spaceEnd] === ' ') spaceEnd++;
+        const afterSpace = this.source[spaceEnd];
+        if (afterSpace === '{' || afterSpace === '.' || afterSpace === '#' || afterSpace === '[') {
+          return true;
+        }
+        return false;
       }
       break;
     }

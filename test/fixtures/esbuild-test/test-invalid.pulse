@@ -1,5 +1,0 @@
-@page Invalid
-
-state {
-  count: // Invalid syntax
-}

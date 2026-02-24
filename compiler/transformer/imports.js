@@ -99,6 +99,9 @@ export function generateImports(transformer) {
       }
       if (namespaceSpec) {
         importStr += `* as ${namespaceSpec.local}`;
+        if (namedSpecs.length > 0) {
+          importStr += ', ';
+        }
       }
       if (namedSpecs.length > 0) {
         const named = namedSpecs.map(s =>

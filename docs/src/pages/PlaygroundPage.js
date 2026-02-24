@@ -743,7 +743,8 @@ export function PlaygroundPage() {
             <button class="reset-btn" id="resetBtn">${t('playground.reset')}</button>
           </div>
         </div>
-        <textarea id="codeEditor" spellcheck="false">${defaultCode}</textarea>
+        <label for="codeEditor" class="sr-only">${t('playground.codeEditor')}</label>
+        <textarea id="codeEditor" spellcheck="false" aria-label="${t('playground.codeEditor')}">${defaultCode}</textarea>
       </div>
 
       <div class="playground-preview">
@@ -751,7 +752,7 @@ export function PlaygroundPage() {
           <span class="preview-title">${t('playground.preview')}</span>
           <span class="preview-status" id="previewStatus">${t('playground.ready')}</span>
         </div>
-        <iframe id="previewFrame" sandbox="allow-scripts"></iframe>
+        <iframe id="previewFrame" sandbox="allow-scripts" title="${t('playground.preview')}"></iframe>
       </div>
     </div>
 

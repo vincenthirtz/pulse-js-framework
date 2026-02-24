@@ -72,6 +72,13 @@ const contextDefaults = new Map();
  */
 const contextNames = new Map();
 
+/**
+ * Shared default pulses for contexts without providers
+ * Uses a Map keyed by context symbol ID (since context objects are frozen)
+ * @type {Map<symbol, Pulse>}
+ */
+const contextDefaultPulses = new Map();
+
 // =============================================================================
 // CONTEXT CREATION
 // =============================================================================
@@ -235,12 +242,17 @@ export function useContext(context) {
     return value;
   }
 
-  // No provider found, return default as reactive pulse
+  // No provider found, return shared default as reactive pulse
   log.debug(`useContext: using default for ${context.displayName}`);
   const defaultVal = contextDefaults.get(context._id);
 
-  // Wrap default in pulse for consistent API
-  return isPulse(defaultVal) ? defaultVal : pulse(defaultVal);
+  // Lazily create a shared default pulse so all consumers without a Provider
+  // share the same reactive instance (avoids creating a new pulse per call)
+  if (isPulse(defaultVal)) return defaultVal;
+  if (!contextDefaultPulses.has(context._id)) {
+    contextDefaultPulses.set(context._id, pulse(defaultVal));
+  }
+  return contextDefaultPulses.get(context._id);
 }
 
 /**
@@ -305,6 +317,7 @@ export function disposeContext(context) {
   contextStacks.delete(context._id);
   contextDefaults.delete(context._id);
   contextNames.delete(context._id);
+  contextDefaultPulses.delete(context._id);
 
   log.debug(`Context disposed: ${context.displayName}`);
 }

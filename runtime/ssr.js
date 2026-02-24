@@ -50,6 +50,7 @@ import {
   getHydrationContext
 } from './ssr-hydrator.js';
 import { loggers } from './logger.js';
+import { DOMError } from './errors.js';
 
 const log = loggers.dom;
 
@@ -277,7 +278,7 @@ export function hydrate(target, componentFactory, options = {}) {
     : target;
 
   if (!container) {
-    throw new Error(`[Pulse SSR] Hydration target not found: ${target}`);
+    throw new DOMError(`Hydration target not found: ${target}`, { code: 'MOUNT_ERROR', suggestion: `Ensure an element matching '${target}' exists in the DOM` });
   }
 
   // Restore state if provided

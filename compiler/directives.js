@@ -13,6 +13,7 @@
  */
 
 import { TokenType } from './lexer.js';
+import { CompileError } from '../runtime/errors.js';
 
 // ============================================================================
 // Directive Constants
@@ -103,10 +104,10 @@ export function validateDirective(directive, program) {
 
   // Rule 1: Cannot have both 'use client' and 'use server'
   if (directive === Directive.USE_CLIENT && program.serverDirective) {
-    throw new Error("Cannot use both 'use client' and 'use server' in the same file");
+    throw new CompileError("Cannot use both 'use client' and 'use server' in the same file", { code: 'DIRECTIVE_CONFLICT', suggestion: 'Choose either \'use client\' or \'use server\' per file, not both' });
   }
   if (directive === Directive.USE_SERVER && program.clientDirective) {
-    throw new Error("Cannot use both 'use client' and 'use server' in the same file");
+    throw new CompileError("Cannot use both 'use client' and 'use server' in the same file", { code: 'DIRECTIVE_CONFLICT', suggestion: 'Choose either \'use client\' or \'use server\' per file, not both' });
   }
 
   // Rule 2: Server Components cannot have interactive features

@@ -1,0 +1,131 @@
+/**
+ * WidgetsSection - ARIA widget demos
+ * Uses imperative a11y APIs in actions since widgets need DOM references
+ */
+
+import { createDisclosure, createAccordion, createTabs, createTooltip, createMenu } from '../../../../runtime/a11y.js'
+import { notify } from '../store.js'
+
+@component WidgetsSection
+
+state {
+  _initialized: false
+}
+
+actions {
+  init() {
+    // Widget initialization requires DOM, so defer to next frame
+    requestAnimationFrame(() => initWidgets())
+  }
+
+  initWidgets() {
+    // Disclosure
+    const discTrigger = document.querySelector('.disclosure-trigger')
+    const discContent = document.querySelector('.disclosure-content')
+    if (discTrigger && discContent) {
+      createDisclosure(discTrigger, discContent, { defaultOpen: false })
+    }
+
+    // Accordion
+    const accContainer = document.querySelector('.accordion')
+    if (accContainer) {
+      createAccordion(accContainer, {
+        triggerSelector: '[data-accordion-trigger]',
+        panelSelector: '[data-accordion-panel]',
+        allowMultiple: false,
+        defaultOpen: 0
+      })
+    }
+
+    // Tabs
+    const tablist = document.querySelector('.tab-widget [role=tablist]')
+    if (tablist) {
+      createTabs(tablist, { defaultIndex: 0 })
+    }
+
+    // Tooltip
+    const tipTrigger = document.querySelector('.tooltip-trigger')
+    const tipEl = document.querySelector('.tooltip')
+    if (tipTrigger && tipEl) {
+      createTooltip(tipTrigger, tipEl, { showDelay: 300, hideDelay: 100 })
+    }
+
+    // Menu
+    const menuBtn = document.querySelector('.menu-trigger')
+    const menuList = document.querySelector('.menu')
+    if (menuBtn && menuList) {
+      createMenu(menuBtn, menuList, {
+        itemSelector: '[role="menuitem"]',
+        closeOnSelect: true
+      })
+    }
+
+    _initialized = true
+  }
+
+  onMenuAction(item) {
+    notify(item + ' action triggered')
+  }
+}
+
+view {
+  section#panel-widgets[role=tabpanel] {
+    h2 "ARIA Widgets"
+    p "Interactive widgets built with proper ARIA patterns."
+
+    h3 "Disclosure (Show/Hide)"
+    .widget-demo {
+      button.disclosure-trigger "Toggle Details"
+      .disclosure-content {
+        p "This content can be expanded and collapsed. The disclosure pattern manages aria-expanded and aria-controls automatically."
+      }
+    }
+
+    h3 "Accordion"
+    .widget-demo {
+      .accordion {
+        button.accordion-trigger[data-accordion-trigger] "What is ARIA?"
+        .accordion-panel[data-accordion-panel] { p "Accessible Rich Internet Applications (ARIA) is a set of roles and attributes that define ways to make web content more accessible." }
+        button.accordion-trigger[data-accordion-trigger] "Why use semantic HTML?"
+        .accordion-panel[data-accordion-panel] { p "Semantic HTML provides meaning to the content, helping assistive technologies understand the page structure." }
+        button.accordion-trigger[data-accordion-trigger] "How does focus management work?"
+        .accordion-panel[data-accordion-panel] { p "Focus management ensures keyboard users can navigate through interactive elements in a logical order." }
+      }
+    }
+
+    h3 "Tabs"
+    .widget-demo {
+      .tab-widget {
+        div[role=tablist] {
+          button[role=tab] "Overview"
+          button[role=tab] "Details"
+          button[role=tab] "Settings"
+        }
+        div.tab-panel[role=tabpanel] { p "This is the overview panel with general information." }
+        div.tab-panel[role=tabpanel] { p "Here are the detailed specifications and data." }
+        div.tab-panel[role=tabpanel] { p "Configuration options and preferences live here." }
+      }
+    }
+
+    h3 "Tooltip"
+    .widget-demo {
+      .tooltip-wrapper {
+        button.tooltip-trigger "Hover or focus me"
+        div.tooltip[role=tooltip] "This is a helpful tooltip message"
+      }
+    }
+
+    h3 "Dropdown Menu"
+    .widget-demo {
+      .menu-wrapper {
+        button.menu-trigger[aria-haspopup=true] "Actions"
+        ul.menu[role=menu] {
+          li[role=menuitem][tabindex="-1"] @click(onMenuAction('Copy')) "Copy"
+          li[role=menuitem][tabindex="-1"] @click(onMenuAction('Paste')) "Paste"
+          li[role=menuitem][tabindex="-1"] @click(onMenuAction('Delete')) "Delete"
+          li[role=menuitem][tabindex="-1"] @click(onMenuAction('Select All')) "Select All"
+        }
+      }
+    }
+  }
+}

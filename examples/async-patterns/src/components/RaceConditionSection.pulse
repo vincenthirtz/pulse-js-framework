@@ -1,0 +1,66 @@
+/**
+ * RaceConditionSection - Demonstrates createVersionedAsync
+ */
+
+import { createVersionedAsync } from '../../../../runtime/async.js'
+import { mockFetch } from '../mock-api.js'
+
+@component RaceConditionSection
+
+state {
+  query: ""
+  results: []
+  searchLoading: false
+  droppedCount: 0
+  _controller: null
+  _debounceTimer: null
+}
+
+actions {
+  init() {
+    _controller = createVersionedAsync()
+  }
+
+  handleInput(e) {
+    query = e.target.value
+    if (_debounceTimer) clearTimeout(_debounceTimer)
+    _debounceTimer = setTimeout(() => { search(query) }, 150)
+  }
+
+  async search(q) {
+    if (!q.trim()) { results = []; return }
+    searchLoading = true
+    const ctx = _controller.begin()
+    const data = await mockFetch('/api/search', { delay: 300 + Math.random() * 700 })
+    ctx.ifCurrent(() => {
+      results = data.map(r => ({ ...r, title: r.title + " for \"" + q + "\"" }))
+      searchLoading = false
+    })
+    if (!ctx.isCurrent()) { droppedCount = droppedCount + 1 }
+  }
+}
+
+view {
+  section {
+    h2 "Race Condition Handling"
+    p "Type quickly to trigger overlapping requests. Only the latest result is used."
+
+    .search-box {
+      input[type=text][placeholder="Type to search..."][value={query}][aria-label="Search query"] @input(handleInput(event))
+      @if (searchLoading) { span.search-spinner }
+    }
+
+    p.stats "Stale responses dropped: {droppedCount}"
+
+    @if (results.length > 0) {
+      .search-results {
+        @for (r of results) {
+          .result-item {
+            span.result-title "{r.title}"
+            span.result-score "Score: {r.score}"
+          }
+        }
+      }
+    }
+  }
+}

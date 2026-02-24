@@ -48,9 +48,12 @@ export function Header() {
 
   // Fetch GitHub stars count
   fetch('https://api.github.com/repos/vincenthirtz/pulse-js-framework')
-    .then(res => res.json())
+    .then(res => {
+      if (!res.ok) return null;
+      return res.json();
+    })
     .then(data => {
-      if (data.stargazers_count !== undefined) {
+      if (data && data.stargazers_count !== undefined) {
         const count = data.stargazers_count;
         starsBadge.querySelector('.star-count').textContent = count >= 1000 ? `${(count / 1000).toFixed(1)}k` : count;
       }
@@ -268,6 +271,14 @@ export function Header() {
     const newState = !mobileMenuOpen.get();
     mobileMenuOpen.set(newState);
     menuBtn.setAttribute('aria-expanded', String(newState));
+  });
+  // Close mobile menu on Escape key (WCAG 2.1.6)
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && mobileMenuOpen.get()) {
+      mobileMenuOpen.set(false);
+      menuBtn.setAttribute('aria-expanded', 'false');
+      menuBtn.focus();
+    }
   });
   header.appendChild(menuBtn);
 

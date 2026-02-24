@@ -80,11 +80,13 @@ const testGroups = {
     'test:logger-prod',
     'test:lru-cache',
     'test:memory-cleanup',
+    'test:mutex',
     'test:native',
     'test:native-coverage-boost',
     'test:security',
     'test:security-coverage-boost',
     'test:security-regression',
+    'test:path-sanitizer',
     'test:utils',
     'test:utils-coverage',
   ],
@@ -94,6 +96,10 @@ const testGroups = {
     'test:build-extended',
     'test:cli',
     'test:cli-create',
+    'test:cli-help',
+    'test:cli-logger',
+    'test:cli-mobile',
+    'test:cli-release',
     'test:cli-ui',
     'test:docs',
     'test:docs-nav',
@@ -105,6 +111,7 @@ const testGroups = {
     'test:test-runner',
   ],
   ssr: [
+    'test:server-utils',
     'test:server-actions',
     'test:server-actions-client',
     'test:server-actions-server-extended',
@@ -167,6 +174,7 @@ const CONCURRENCY = Math.max(4, cpus().length);
  * Returns a promise that resolves with the result.
  */
 function runTest(script) {
+  const timeout = TIMEOUT_MS;
   return new Promise((resolve) => {
     const startTime = Date.now();
     let stdout = '';
@@ -195,12 +203,12 @@ function runTest(script) {
         resolve({
           script,
           passed: false,
-          duration: TIMEOUT_MS,
-          error: `Timed out after ${TIMEOUT_MS / 1000}s`,
+          duration: timeout,
+          error: `Timed out after ${timeout / 1000}s`,
           output: '',
         });
       }
-    }, TIMEOUT_MS);
+    }, timeout);
 
     child.on('close', (code) => {
       clearTimeout(timer);

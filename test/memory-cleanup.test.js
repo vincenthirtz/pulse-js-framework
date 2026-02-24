@@ -117,6 +117,10 @@ describe('#31 - createPreferences() memory leak fix', () => {
     mediaListeners.length = 0;
   });
 
+  afterEach(() => {
+    mediaListeners.length = 0;
+  });
+
   it('should return a cleanup function', () => {
     const prefs = createPreferences();
     assert.strictEqual(typeof prefs.cleanup, 'function');

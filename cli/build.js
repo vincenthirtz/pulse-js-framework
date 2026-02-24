@@ -512,15 +512,25 @@ export async function previewBuild(args) {
     }
   });
 
-  server.listen(port, () => {
-    log.success(`
+  return new Promise((resolve, reject) => {
+    server.on('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        log.error(`Port ${port} is already in use. Try a different port.`);
+      }
+      reject(err);
+    });
+
+    server.listen(port, () => {
+      log.success(`
   Pulse Preview Server running at:
 
     Local:   http://localhost:${port}/
 
   Serving production build from: dist/
   Press Ctrl+C to stop.
-    `);
+      `);
+      resolve(server);
+    });
   });
 }
 

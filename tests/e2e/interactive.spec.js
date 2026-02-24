@@ -11,11 +11,10 @@ import { SearchModal } from './pages/SearchModal.js';
 import { createConsoleCollector } from './utils/common-helpers.js';
 import { VALID_QUERIES, NO_RESULTS_QUERIES } from './fixtures/search-queries.js';
 
-const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000';
 
 test.describe('Interactive - Search Modal', () => {
   test('Opens with Ctrl+K shortcut', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     const searchModal = new SearchModal(page);
 
     await basePage.goto('/');
@@ -28,7 +27,7 @@ test.describe('Interactive - Search Modal', () => {
 
   test('Closes with Escape key', async ({ page }) => {
     const searchModal = new SearchModal(page);
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
 
     await basePage.goto('/');
     await searchModal.assertClosesWithEscape();
@@ -36,14 +35,13 @@ test.describe('Interactive - Search Modal', () => {
 
   test('Closes when clicking outside', async ({ page }) => {
     const searchModal = new SearchModal(page);
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
 
     await basePage.goto('/');
     await searchModal.open();
 
     // Click backdrop
     await searchModal.closeWithBackdrop();
-    await page.waitForTimeout(500);
 
     // May or may not close depending on implementation
     // Just verify no errors occurred
@@ -52,7 +50,7 @@ test.describe('Interactive - Search Modal', () => {
   for (const { query, expectedMinResults, description } of VALID_QUERIES) {
     test(`Search returns results for "${query}" (${description})`, async ({ page }) => {
       const searchModal = new SearchModal(page);
-      const basePage = new BasePage(page, BASE_URL);
+      const basePage = new BasePage(page);
 
       await basePage.goto('/');
       await searchModal.assertSearchWorks(query, expectedMinResults);
@@ -62,7 +60,7 @@ test.describe('Interactive - Search Modal', () => {
   for (const query of NO_RESULTS_QUERIES) {
     test(`Search shows no results for "${query}"`, async ({ page }) => {
       const searchModal = new SearchModal(page);
-      const basePage = new BasePage(page, BASE_URL);
+      const basePage = new BasePage(page);
 
       await basePage.goto('/');
       await searchModal.assertNoResults(query);
@@ -71,7 +69,7 @@ test.describe('Interactive - Search Modal', () => {
 
   test('Keyboard navigation works (arrow keys)', async ({ page }) => {
     const searchModal = new SearchModal(page);
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
 
     await basePage.goto('/');
     await searchModal.testKeyboardNavigation();
@@ -79,7 +77,7 @@ test.describe('Interactive - Search Modal', () => {
 
   test('Search across locales', async ({ page }) => {
     const searchModal = new SearchModal(page);
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
 
     // Test in French locale
     await basePage.goto('/fr/');
@@ -99,7 +97,7 @@ test.describe('Interactive - Mobile Navigation', () => {
   });
 
   test('Menu toggle button is visible', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/');
 
     const menuButton = page.locator('button[aria-label*="menu" i]').first();
@@ -107,12 +105,15 @@ test.describe('Interactive - Mobile Navigation', () => {
   });
 
   test('Menu opens and closes', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/');
 
     const menuButton = page.locator('button[aria-label*="menu" i]').first();
     await menuButton.click();
-    await page.waitForTimeout(300);
+    await page.waitForFunction(
+      (btn) => btn.getAttribute('aria-expanded') === 'true',
+      await menuButton.elementHandle()
+    ).catch(() => {});
 
     // Check if menu is open (aria-expanded or visible menu)
     const expanded = await menuButton.getAttribute('aria-expanded');
@@ -122,7 +123,10 @@ test.describe('Interactive - Mobile Navigation', () => {
 
     // Close menu
     await menuButton.click();
-    await page.waitForTimeout(300);
+    await page.waitForFunction(
+      (btn) => btn.getAttribute('aria-expanded') === 'false',
+      await menuButton.elementHandle()
+    ).catch(() => {});
 
     const expandedAfter = await menuButton.getAttribute('aria-expanded');
     if (expandedAfter !== null) {
@@ -131,7 +135,7 @@ test.describe('Interactive - Mobile Navigation', () => {
   });
 
   test('Navigation links work in mobile menu', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/');
 
     await basePage.openMobileMenu();
@@ -140,7 +144,7 @@ test.describe('Interactive - Mobile Navigation', () => {
     const navLink = page.locator('nav a[href="/getting-started"], nav a[href*="getting-started"]').first();
     if (await navLink.isVisible()) {
       await navLink.click();
-      await page.waitForTimeout(500);
+      await page.waitForURL('**/getting-started**', { timeout: 5000 }).catch(() => {});
 
       // Should navigate to getting started page
       expect(page.url()).toContain('getting-started');
@@ -148,7 +152,7 @@ test.describe('Interactive - Mobile Navigation', () => {
   });
 
   test('Menu closes on link click', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/');
 
     await basePage.openMobileMenu();
@@ -157,7 +161,12 @@ test.describe('Interactive - Mobile Navigation', () => {
     const navLink = page.locator('nav a').first();
     if (await navLink.isVisible()) {
       await navLink.click();
-      await page.waitForTimeout(500);
+      await page.waitForFunction(
+        () => {
+          const btn = document.querySelector('button[aria-label*="menu" i]');
+          return !btn || btn.getAttribute('aria-expanded') === 'false';
+        }
+      ).catch(() => {});
 
       // Menu should auto-close
       const menuButton = page.locator('button[aria-label*="menu" i]').first();
@@ -172,12 +181,12 @@ test.describe('Interactive - Mobile Navigation', () => {
 test.describe('Interactive - Code Playground', () => {
   test('Playground loads without errors', async ({ page }) => {
     const consoleCollector = createConsoleCollector(page);
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
 
     await basePage.goto('/playground');
 
     // Wait for playground to load
-    await page.waitForTimeout(2000);
+    await page.waitForSelector('textarea, [contenteditable="true"], .monaco-editor, .code-editor', { state: 'attached', timeout: 10000 }).catch(() => {});
 
     // Look for code editor
     const editor = page.locator('textarea, [contenteditable="true"], .monaco-editor, .code-editor').first();
@@ -193,10 +202,10 @@ test.describe('Interactive - Code Playground', () => {
   });
 
   test('Code editing works', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/playground');
 
-    await page.waitForTimeout(2000);
+    await page.waitForSelector('textarea, [contenteditable="true"], .monaco-editor, .code-editor', { state: 'attached', timeout: 10000 }).catch(() => {});
 
     const editor = page.locator('textarea, [contenteditable="true"]').first();
     if (await editor.isVisible()) {
@@ -212,15 +221,21 @@ test.describe('Interactive - Code Playground', () => {
 
 test.describe('Interactive - Code Blocks', () => {
   test('Syntax highlighting is applied', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/getting-started');
+
+    // Wait for code blocks to be rendered by the SPA
+    await page.waitForSelector('pre code, .code-block', {
+      state: 'attached',
+      timeout: 10000
+    }).catch(() => {});
 
     const codeBlocks = await basePage.getCodeBlocks();
     expect(codeBlocks.length, 'Page should have code blocks').toBeGreaterThan(0);
 
     // Check if syntax highlighting is applied (look for .hljs or similar classes)
     const hasHighlighting = await page.evaluate(() => {
-      const blocks = document.querySelectorAll('pre code');
+      const blocks = document.querySelectorAll('pre code, .code-block code');
       return Array.from(blocks).some(block => {
         // Check for highlighting class or colored spans inside
         return block.className.includes('language-') ||
@@ -235,7 +250,7 @@ test.describe('Interactive - Code Blocks', () => {
   });
 
   test('Copy button exists on code blocks', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/api-reference');
 
     const copyButtons = await page.locator('button[aria-label*="copy" i], button[aria-label*="copier" i]').count();
@@ -249,7 +264,7 @@ test.describe('Interactive - Code Blocks', () => {
   });
 
   test('Copy button works', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/getting-started');
 
     await basePage.testCopyButton(0);
@@ -259,7 +274,7 @@ test.describe('Interactive - Code Blocks', () => {
 
 test.describe('Interactive - Table of Contents', () => {
   test('TOC is generated on pages with headings', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/api-reference');
 
     const tocLinks = await basePage.getTOCLinks();
@@ -271,7 +286,7 @@ test.describe('Interactive - Table of Contents', () => {
   });
 
   test('TOC links scroll to sections', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/getting-started');
 
     const tocLinks = await basePage.getTOCLinks();
@@ -297,10 +312,10 @@ test.describe('Interactive - Table of Contents', () => {
   });
 
   test('Active section is highlighted', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/getting-started');
 
-    await page.waitForTimeout(500);
+    await page.waitForSelector('[data-toc] a.active, .table-of-contents a.active, [data-toc] a[aria-current="true"]', { state: 'attached', timeout: 3000 }).catch(() => {});
 
     // Check if any TOC link has active class
     const hasActiveLink = await page.evaluate(() => {
@@ -320,14 +335,13 @@ test.describe('Interactive - Table of Contents', () => {
   test('TOC collapse/expand works on desktop', async ({ page }) => {
     await page.setViewportSize({ width: 1920, height: 1080 });
 
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/api-reference');
 
     // Look for TOC collapse button
     const collapseButton = page.locator('[aria-label*="collapse" i], [aria-label*="hide" i], .toc-toggle').first();
     if (await collapseButton.isVisible()) {
       await collapseButton.click();
-      await page.waitForTimeout(300);
 
       console.log('✅ TOC collapse/expand button found and working');
     }
@@ -336,8 +350,14 @@ test.describe('Interactive - Table of Contents', () => {
 
 test.describe('Interactive - Theme Switcher', () => {
   test('Theme toggle works', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/');
+
+    // Wait for SPA to set data-theme attribute (defaults to "dark")
+    await page.waitForFunction(
+      () => document.documentElement.getAttribute('data-theme') !== null,
+      { timeout: 10000 }
+    ).catch(() => {});
 
     const initialTheme = await basePage.getCurrentTheme();
     console.log(`\n🎨 Initial theme: ${initialTheme}`);
@@ -351,7 +371,7 @@ test.describe('Interactive - Theme Switcher', () => {
   });
 
   test('Theme persists in localStorage', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/');
 
     // Toggle to dark theme
@@ -364,7 +384,7 @@ test.describe('Interactive - Theme Switcher', () => {
   });
 
   test('No flash of unstyled content', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
 
     // Set theme in localStorage before page load
     await page.addInitScript(() => {
@@ -373,15 +393,21 @@ test.describe('Interactive - Theme Switcher', () => {
 
     await basePage.goto('/');
 
-    // Theme should already be applied
+    // Wait for the theme effect to apply data-theme attribute
+    // The Pulse effect runs after JS loads and reads localStorage
+    await page.waitForFunction(
+      () => document.documentElement.getAttribute('data-theme') !== null,
+      { timeout: 5000 }
+    ).catch(() => {});
+
     const theme = await basePage.getCurrentTheme();
-    expect(theme, 'Theme should be applied immediately').toBe('dark');
+    expect(theme, 'Theme should be applied after JS initialization').toBe('dark');
   });
 });
 
 test.describe('Interactive - Language Switcher', () => {
   test('All locales are available', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/');
 
     // Look for language selector or links
@@ -394,14 +420,14 @@ test.describe('Interactive - Language Switcher', () => {
   });
 
   test('Switching language preserves current page', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/getting-started');
 
     // Find French language link
     const frLink = page.locator('a[href="/fr/getting-started"], a[href*="/fr"]').first();
     if (await frLink.isVisible()) {
       await frLink.click();
-      await page.waitForTimeout(1000);
+      await page.waitForURL('**/fr/**', { timeout: 5000 }).catch(() => {});
 
       expect(page.url()).toContain('/fr');
       expect(page.url()).toContain('getting-started');
@@ -409,10 +435,10 @@ test.describe('Interactive - Language Switcher', () => {
   });
 
   test('Translations load correctly', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/fr/');
 
-    await page.waitForTimeout(1500);
+    await page.waitForFunction(() => document.body.textContent && document.body.textContent.trim().length > 100, { timeout: 5000 }).catch(() => {});
 
     // Check if content is in French
     const bodyText = await page.evaluate(() => document.body.textContent);

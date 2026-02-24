@@ -1,0 +1,42 @@
+/**
+ * Multi Context Demo - Shows values from all 3 contexts
+ * Demonstrates provideMany and reading multiple contexts
+ */
+
+import { useContext } from '../../../../runtime/context.js'
+import { ThemeContext, AuthContext, LocaleContext } from '../contexts.js'
+
+@component MultiContextDemo
+
+actions {
+  init() {
+    this._theme = useContext(ThemeContext)
+    this._user = useContext(AuthContext)
+    this._locale = useContext(LocaleContext)
+  }
+
+  getThemeValue() {
+    return this._theme.get()
+  }
+
+  getUserName() {
+    const u = this._user.get()
+    return u ? u.name : "none"
+  }
+
+  getLocaleValue() {
+    return this._locale.get()
+  }
+}
+
+view {
+  .multi-context {
+    h3 "Context Selector Demo"
+    p "Derived value from multiple contexts:"
+    .context-values {
+      span.tag "Theme: {getThemeValue()}"
+      span.tag "User: {getUserName()}"
+      span.tag "Locale: {getLocaleValue()}"
+    }
+  }
+}

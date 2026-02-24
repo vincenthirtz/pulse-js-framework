@@ -988,5 +988,8 @@ describe('Subscription Backoff Tests', () => {
   });
 });
 
-// Force clean exit after all tests complete (open handles from WebSocket subscriptions)
-after(() => setTimeout(() => process.exit(0), 100));
+// Force clean exit after all tests complete (open handles from WebSocket reconnection timers)
+after(() => {
+  process.exitCode = 0;
+  setTimeout(() => process.exit(0), 500).unref();
+});

@@ -322,6 +322,7 @@ export function createI18n(options = {}) {
     try {
       return new Intl.NumberFormat(locale.get(), opts).format(value);
     } catch {
+      // Intl may throw on invalid locale or value — fall back to plain string
       return String(value);
     }
   }
@@ -337,6 +338,7 @@ export function createI18n(options = {}) {
     try {
       return new Intl.DateTimeFormat(locale.get(), opts).format(value);
     } catch {
+      // Intl may throw on invalid locale or date — fall back to plain string
       return String(value);
     }
   }

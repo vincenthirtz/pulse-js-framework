@@ -1,0 +1,85 @@
+/**
+ * Pulse GraphQL Client Demo
+ * Demonstrates useQuery, useMutation, caching, and reactive variables.
+ */
+
+import PostList from './components/PostList.pulse'
+import PostDetail from './components/PostDetail.pulse'
+import CreatePost from './components/CreatePost.pulse'
+import CacheInfo from './components/CacheInfo.pulse'
+import { currentView, selectedPostId, client } from './graphql-setup.js'
+
+@page App
+
+actions {
+  getView() {
+    return currentView.get()
+  }
+}
+
+view {
+  .app {
+    header {
+      h1 "GraphQL Client Demo"
+      p.subtitle "Queries, mutations, caching & optimistic updates"
+    }
+    main {
+      @if (getView() === "list") { PostList }
+      @if (getView() === "detail") { PostDetail }
+      @if (getView() === "create") { CreatePost }
+    }
+    CacheInfo
+  }
+}
+
+style {
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #1a1a2e; background: #f0f0f5; }
+  .app { max-width: 850px; margin: 0 auto; padding: 20px; }
+  header { text-align: center; padding: 30px 0 20px; }
+  header h1 { font-size: 2em; color: #1a1a2e; }
+  .subtitle { color: #666; margin-top: 4px; }
+  .loading { display: flex; align-items: center; gap: 8px; padding: 20px; color: #888; }
+  .spinner { width: 20px; height: 20px; border: 2px solid #ddd; border-top-color: #646cff; border-radius: 50%; animation: spin 0.6s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .error { padding: 12px; background: #fce4ec; border-radius: 6px; color: #c62828; margin: 8px 0; }
+  button { font-family: inherit; padding: 8px 16px; border: 1px solid #ddd; border-radius: 6px; background: #fff; cursor: pointer; }
+  button:hover { background: #f0f0f0; }
+  button.primary { background: #646cff; color: #fff; border-color: #646cff; }
+  button.primary:hover { background: #535bf2; }
+  button.secondary { background: #f0f0f0; border-color: #ddd; }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  button.small { font-size: 0.85em; padding: 4px 12px; }
+  .back-btn { margin-bottom: 16px; font-size: 0.9em; }
+  .list-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px; }
+  .list-controls { display: flex; gap: 8px; align-items: center; }
+  .list-controls select { padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-family: inherit; }
+  .posts { display: flex; flex-direction: column; gap: 12px; }
+  .post-card { background: #fff; border-radius: 10px; padding: 20px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; }
+  .post-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+  .post-card h3 { margin-bottom: 6px; }
+  .post-meta { display: flex; gap: 12px; font-size: 0.85em; color: #888; margin-bottom: 8px; }
+  .post-meta .author { font-weight: 600; color: #555; }
+  .post-actions { display: flex; gap: 8px; }
+  .like-btn { background: none; border: 1px solid #fce4ec; color: #e91e63; border-radius: 20px; padding: 4px 12px; font-size: 0.9em; cursor: pointer; }
+  .like-btn:hover { background: #fce4ec; }
+  .post-content { margin: 16px 0; padding: 16px; background: #f8f8ff; border-radius: 8px; }
+  .comments-section { margin-top: 24px; }
+  .comments-section h3 { margin-bottom: 12px; }
+  .comment { padding: 10px; border-bottom: 1px solid #eee; }
+  .comment strong { color: #333; }
+  .comment-form { margin-top: 16px; display: flex; flex-direction: column; gap: 8px; }
+  .comment-form input { padding: 10px; border: 1px solid #ddd; border-radius: 6px; }
+  .comment-input-row { display: flex; gap: 8px; }
+  .comment-input-row input { flex: 1; }
+  .create-post { background: #fff; border-radius: 12px; padding: 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+  .form-group { margin-bottom: 16px; }
+  .form-group label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 0.9em; }
+  .form-group input, .form-group textarea { width: 100%; padding: 10px 14px; border: 2px solid #ddd; border-radius: 8px; font-size: 1em; }
+  .form-group input:focus, .form-group textarea:focus { border-color: #646cff; outline: none; }
+  .form-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+  .cache-info { margin-top: 20px; padding: 16px; background: #fff; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
+  .cache-info h3 { margin-bottom: 8px; font-size: 1em; }
+  .cache-hint { font-size: 0.85em; color: #888; margin-bottom: 12px; }
+  *:focus-visible { outline: 3px solid #646cff; outline-offset: 2px; }
+}

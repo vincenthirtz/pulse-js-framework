@@ -1,0 +1,72 @@
+/**
+ * RetrySection - Demonstrates error handling and retry patterns
+ */
+
+import { useAsync } from '../../../../runtime/async.js'
+import { effect } from '../../../../runtime/index.js'
+import { mockFetch } from '../mock-api.js'
+
+@component RetrySection
+
+state {
+  failRate: 0.5
+  retryData: null
+  retryLoading: false
+  retryError: null
+  _retryHook: null
+}
+
+actions {
+  init() {
+    setupHook()
+  }
+
+  setupHook() {
+    const hook = useAsync(
+      () => mockFetch('/api/users', { delay: 500, failRate: failRate }),
+      { immediate: false, retries: 3, retryDelay: 500 }
+    )
+    _retryHook = hook
+    effect(() => { retryData = hook.data.get() })
+    effect(() => { retryLoading = hook.loading.get() })
+    effect(() => { retryError = hook.error.get() })
+  }
+
+  setFailRate(e) {
+    failRate = parseInt(e.target.value) / 100
+    setupHook()
+  }
+
+  executeRetry() { if (_retryHook) _retryHook.execute() }
+  resetRetry() { if (_retryHook) _retryHook.reset() }
+}
+
+view {
+  section {
+    h2 "Error Handling & Retry"
+    p "Configure automatic retries with exponential backoff. Adjust the failure rate."
+
+    .controls {
+      label "Failure Rate: {Math.round(failRate * 100)}%"
+      input[type=range][min=0][max=100][step=10][value={String(failRate * 100)}][aria-label="Failure rate"] @input(setFailRate(event))
+      button.primary[disabled={retryLoading}] @click(executeRetry()) "Fetch (3 retries)"
+      button @click(resetRetry()) "Reset"
+    }
+
+    @if (retryLoading) {
+      .loading { .spinner  span "Loading (retrying on failure)..." }
+    }
+
+    @if (retryError) {
+      .error {
+        strong "All retries failed: "
+        span "{retryError.message}"
+        button.retry-btn @click(executeRetry()) "Try Again"
+      }
+    }
+
+    @if (retryData && !retryLoading) {
+      .success "Loaded {retryData.length} users successfully!"
+    }
+  }
+}

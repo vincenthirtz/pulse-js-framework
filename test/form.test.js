@@ -18,6 +18,8 @@ import { effect } from '../runtime/pulse.js';
 import { test, describe, beforeEach } from 'node:test';
 import assert from 'node:assert';
 
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
 // =============================================================================
 // Validators Tests
 // =============================================================================
@@ -695,7 +697,7 @@ describe('Async useField Tests', () => {
     const validatePromise = field.validate();
 
     // Should be validating after debounce
-    await new Promise(r => setTimeout(r, 10));
+    await sleep(10);
     assert.strictEqual(field.validating.get(), true);
 
     // Resolve validation
@@ -848,7 +850,7 @@ describe('Async useForm Tests', () => {
     const validatePromise = validateAll();
 
     // Should be validating after starting
-    await new Promise(r => setTimeout(r, 10));
+    await sleep(10);
     assert.strictEqual(isValidating.get(), true);
 
     // Resolve validation

@@ -23,6 +23,8 @@ import { effect } from '../runtime/pulse.js';
 import { test, describe, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert';
 
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
 // =============================================================================
 // Helpers
 // =============================================================================
@@ -1242,7 +1244,7 @@ describe('Form Draft Persistence (#36)', () => {
     form.fields.name.value.set('John');
 
     // Wait for debounced save
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
 
     const stored = JSON.parse(globalThis.localStorage.getItem('test-form'));
     assert.strictEqual(stored.name, 'John');
@@ -1316,7 +1318,7 @@ describe('Form Draft Persistence (#36)', () => {
     );
 
     form.fields.name.value.set('Draft data');
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
 
     await form.handleSubmit();
     // Draft should still exist after failed submit
@@ -1332,7 +1334,7 @@ describe('Form Draft Persistence (#36)', () => {
     );
 
     form.fields.name.value.set('Draft');
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
     assert.strictEqual(form.hasDraft.get(), true);
 
     form.reset();
@@ -1349,7 +1351,7 @@ describe('Form Draft Persistence (#36)', () => {
     );
 
     form.fields.name.value.set('Draft');
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
 
     form.clearDraft();
     assert.strictEqual(globalThis.localStorage.getItem('test-form'), null);
@@ -1371,7 +1373,7 @@ describe('Form Draft Persistence (#36)', () => {
 
     form.fields.name.value.set('John');
     form.fields.password.value.set('secret123');
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
 
     const stored = JSON.parse(globalThis.localStorage.getItem('test-form'));
     assert.strictEqual(stored.name, 'John');
@@ -1408,7 +1410,7 @@ describe('Form Draft Persistence (#36)', () => {
     );
 
     form.fields.name.value.set('value');
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
 
     assert.ok(globalThis.localStorage.getItem('pulse-form-draft') !== null);
     form.dispose();
@@ -1422,7 +1424,7 @@ describe('Form Draft Persistence (#36)', () => {
     );
 
     form.fields.name.value.set('value');
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
 
     assert.strictEqual(globalThis.localStorage.getItem('no-persist'), null);
     form.dispose();
@@ -1509,7 +1511,7 @@ describe('Form Draft Persistence (#36)', () => {
 
     form1.fields.name.value.set('Form 1');
     form2.fields.name.value.set('Form 2');
-    await new Promise(r => setTimeout(r, 50));
+    await sleep(50);
 
     const stored1 = JSON.parse(globalThis.localStorage.getItem('form-1'));
     const stored2 = JSON.parse(globalThis.localStorage.getItem('form-2'));

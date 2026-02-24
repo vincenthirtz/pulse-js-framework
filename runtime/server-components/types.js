@@ -8,6 +8,8 @@
  * @module pulse-js-framework/runtime/server-components/types
  */
 
+import { RuntimeError } from '../errors.js';
+
 // ============================================================================
 // PSC Wire Format Types
 // ============================================================================
@@ -240,7 +242,7 @@ export function isPSCComment(node) {
  *
  * @param {any} payload - Payload to validate
  * @returns {boolean} True if valid PSC payload
- * @throws {Error} If validation fails with detailed error message
+ * @throws {RuntimeError} If validation fails with detailed error message
  *
  * @example
  * try {
@@ -252,19 +254,19 @@ export function isPSCComment(node) {
  */
 export function validatePSCPayload(payload) {
   if (!payload || typeof payload !== 'object') {
-    throw new Error('PSC payload must be an object');
+    throw new RuntimeError('PSC payload must be an object', { code: 'PSC_VALIDATION_ERROR' });
   }
 
   if (!payload.version || typeof payload.version !== 'string') {
-    throw new Error('PSC payload must have a version string');
+    throw new RuntimeError('PSC payload must have a version string', { code: 'PSC_VALIDATION_ERROR' });
   }
 
   if (!payload.root) {
-    throw new Error('PSC payload must have a root node');
+    throw new RuntimeError('PSC payload must have a root node', { code: 'PSC_VALIDATION_ERROR' });
   }
 
   if (!payload.clientManifest || typeof payload.clientManifest !== 'object') {
-    throw new Error('PSC payload must have a clientManifest object');
+    throw new RuntimeError('PSC payload must have a clientManifest object', { code: 'PSC_VALIDATION_ERROR' });
   }
 
   // Validate root node structure
@@ -273,13 +275,13 @@ export function validatePSCPayload(payload) {
   // Validate client manifest entries
   for (const [key, entry] of Object.entries(payload.clientManifest)) {
     if (!entry.id || typeof entry.id !== 'string') {
-      throw new Error(`Client manifest entry '${key}' missing id`);
+      throw new RuntimeError(`Client manifest entry '${key}' missing id`, { code: 'PSC_VALIDATION_ERROR' });
     }
     if (!entry.chunk || typeof entry.chunk !== 'string') {
-      throw new Error(`Client manifest entry '${key}' missing chunk URL`);
+      throw new RuntimeError(`Client manifest entry '${key}' missing chunk URL`, { code: 'PSC_VALIDATION_ERROR' });
     }
     if (!Array.isArray(entry.exports)) {
-      throw new Error(`Client manifest entry '${key}' missing exports array`);
+      throw new RuntimeError(`Client manifest entry '${key}' missing exports array`, { code: 'PSC_VALIDATION_ERROR' });
     }
   }
 
@@ -292,31 +294,31 @@ export function validatePSCPayload(payload) {
  * @param {PSCNode} node - Node to validate
  * @param {number} [depth=0] - Current recursion depth (for cycle detection)
  * @returns {boolean} True if valid
- * @throws {Error} If validation fails
+ * @throws {RuntimeError} If validation fails
  */
 export function validatePSCNode(node, depth = 0) {
   if (depth > 100) {
-    throw new Error('PSC node tree too deep (max 100 levels)');
+    throw new RuntimeError('PSC node tree too deep (max 100 levels)', { code: 'PSC_VALIDATION_ERROR' });
   }
 
   if (!node || typeof node !== 'object') {
-    throw new Error('PSC node must be an object');
+    throw new RuntimeError('PSC node must be an object', { code: 'PSC_VALIDATION_ERROR' });
   }
 
   if (!node.type) {
-    throw new Error('PSC node missing type property');
+    throw new RuntimeError('PSC node missing type property', { code: 'PSC_VALIDATION_ERROR' });
   }
 
   switch (node.type) {
     case PSCNodeType.ELEMENT:
       if (!node.tag || typeof node.tag !== 'string') {
-        throw new Error('PSC element missing tag');
+        throw new RuntimeError('PSC element missing tag', { code: 'PSC_VALIDATION_ERROR' });
       }
       if (node.props && typeof node.props !== 'object') {
-        throw new Error('PSC element props must be an object');
+        throw new RuntimeError('PSC element props must be an object', { code: 'PSC_VALIDATION_ERROR' });
       }
       if (!Array.isArray(node.children)) {
-        throw new Error('PSC element children must be an array');
+        throw new RuntimeError('PSC element children must be an array', { code: 'PSC_VALIDATION_ERROR' });
       }
       // Validate children recursively
       for (const child of node.children) {
@@ -326,16 +328,16 @@ export function validatePSCNode(node, depth = 0) {
 
     case PSCNodeType.TEXT:
       if (typeof node.value !== 'string') {
-        throw new Error('PSC text node must have a string value');
+        throw new RuntimeError('PSC text node must have a string value', { code: 'PSC_VALIDATION_ERROR' });
       }
       break;
 
     case PSCNodeType.CLIENT:
       if (!node.id || typeof node.id !== 'string') {
-        throw new Error('PSC client boundary missing id');
+        throw new RuntimeError('PSC client boundary missing id', { code: 'PSC_VALIDATION_ERROR' });
       }
       if (node.props && typeof node.props !== 'object') {
-        throw new Error('PSC client boundary props must be an object');
+        throw new RuntimeError('PSC client boundary props must be an object', { code: 'PSC_VALIDATION_ERROR' });
       }
       if (node.fallback) {
         validatePSCNode(node.fallback, depth + 1);
@@ -344,7 +346,7 @@ export function validatePSCNode(node, depth = 0) {
 
     case PSCNodeType.FRAGMENT:
       if (!Array.isArray(node.children)) {
-        throw new Error('PSC fragment children must be an array');
+        throw new RuntimeError('PSC fragment children must be an array', { code: 'PSC_VALIDATION_ERROR' });
       }
       for (const child of node.children) {
         validatePSCNode(child, depth + 1);
@@ -353,12 +355,12 @@ export function validatePSCNode(node, depth = 0) {
 
     case PSCNodeType.COMMENT:
       if (typeof node.value !== 'string') {
-        throw new Error('PSC comment must have a string value');
+        throw new RuntimeError('PSC comment must have a string value', { code: 'PSC_VALIDATION_ERROR' });
       }
       break;
 
     default:
-      throw new Error(`Unknown PSC node type: ${node.type}`);
+      throw new RuntimeError(`Unknown PSC node type: ${node.type}`, { code: 'PSC_VALIDATION_ERROR' });
   }
 
   return true;

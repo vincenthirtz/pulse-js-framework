@@ -1,0 +1,55 @@
+/**
+ * PreferencesSection - User accessibility preferences detection
+ */
+
+import { prefs } from '../store.js'
+
+@component PreferencesSection
+
+actions {
+  getReducedMotion() {
+    return prefs.reducedMotion.get() ? 'Prefers reduced motion' : 'No preference'
+  }
+
+  getColorScheme() {
+    return 'Prefers: ' + prefs.colorScheme.get()
+  }
+
+  getHighContrast() {
+    return prefs.highContrast.get() ? 'High contrast active' : 'Standard contrast'
+  }
+
+  getForcedColors() {
+    return 'Mode: ' + prefs.forcedColors.get()
+  }
+}
+
+view {
+  section#panel-preferences[role=tabpanel] {
+    h2 "User Preferences"
+    p "Detect and respond to user accessibility preferences."
+
+    .prefs-grid {
+      .pref-card {
+        h3 "Reduced Motion"
+        p.pref-value "{getReducedMotion()}"
+        p.hint "System: Settings > Accessibility > Reduce Motion"
+      }
+      .pref-card {
+        h3 "Color Scheme"
+        p.pref-value "{getColorScheme()}"
+        p.hint "System: Settings > Appearance"
+      }
+      .pref-card {
+        h3 "High Contrast"
+        p.pref-value "{getHighContrast()}"
+        p.hint "System: Settings > Accessibility > High Contrast"
+      }
+      .pref-card {
+        h3 "Forced Colors"
+        p.pref-value "{getForcedColors()}"
+        p.hint "Windows: Settings > High Contrast Mode"
+      }
+    }
+  }
+}

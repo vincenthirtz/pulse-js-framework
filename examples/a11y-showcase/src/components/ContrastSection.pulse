@@ -1,0 +1,58 @@
+/**
+ * ContrastSection - Color contrast checker
+ */
+
+import { contrastFg, contrastBg, contrastRatio, contrastAA, contrastAAA } from '../store.js'
+
+@component ContrastSection
+
+actions {
+  getFg() { return contrastFg.get() }
+  getBg() { return contrastBg.get() }
+  getRatio() { return contrastRatio.get().toFixed(2) }
+  passesAA() { return contrastAA.get() }
+  passesAAA() { return contrastAAA.get() }
+
+  setFg(e) { contrastFg.set(e.target.value) }
+  setBg(e) { contrastBg.set(e.target.value) }
+}
+
+view {
+  section#panel-contrast[role=tabpanel] {
+    h2 "Color Contrast Checker"
+    p "Check if text and background colors meet WCAG contrast requirements."
+
+    .contrast-form {
+      .color-input {
+        label[for=fg-color] "Text Color"
+        input#fg-color[type=color][value={getFg()}] @input(setFg(event))
+        input[type=text][value={getFg()}][aria-label="Text color hex value"] @input(setFg(event))
+      }
+      .color-input {
+        label[for=bg-color] "Background Color"
+        input#bg-color[type=color][value={getBg()}] @input(setBg(event))
+        input[type=text][value={getBg()}][aria-label="Background color hex value"] @input(setBg(event))
+      }
+    }
+
+    .contrast-preview[style="color: {getFg()}; background: {getBg()}"] {
+      p.preview-text "The quick brown fox jumps over the lazy dog."
+      p.preview-small "Small text sample for checking."
+    }
+
+    .contrast-results {
+      .ratio {
+        span.label "Contrast Ratio:"
+        span.value "{getRatio()}:1"
+      }
+      .level {
+        span.label "WCAG AA (4.5:1):"
+        span[class={passesAA() ? 'pass' : 'fail'}] "{passesAA() ? 'PASS' : 'FAIL'}"
+      }
+      .level {
+        span.label "WCAG AAA (7:1):"
+        span[class={passesAAA() ? 'pass' : 'fail'}] "{passesAAA() ? 'PASS' : 'FAIL'}"
+      }
+    }
+  }
+}

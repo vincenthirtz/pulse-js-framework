@@ -7,7 +7,7 @@
  * @module test/integration-advanced
  */
 
-import { test, describe, beforeEach } from 'node:test';
+import { test, describe, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert';
 
 import { createMockLocalStorage, wait, createSpy } from './utils.js';
@@ -52,6 +52,12 @@ import {
 
 describe('Router + Store Integration', () => {
   beforeEach(() => {
+    clearStorage();
+    resetContext();
+    resetHistory();
+  });
+
+  afterEach(() => {
     clearStorage();
     resetContext();
     resetHistory();
@@ -130,6 +136,12 @@ describe('Router + Store Integration', () => {
 
 describe('Router + Async Integration', () => {
   beforeEach(() => {
+    clearStorage();
+    resetContext();
+    resetHistory();
+  });
+
+  afterEach(() => {
     clearStorage();
     resetContext();
     resetHistory();
@@ -227,6 +239,12 @@ describe('Store + Form Integration', () => {
     resetHistory();
   });
 
+  afterEach(() => {
+    clearStorage();
+    resetContext();
+    resetHistory();
+  });
+
   test('form submission updates store', async () => {
     const userStore = createStore({
       profile: { name: '', email: '' }
@@ -284,6 +302,12 @@ describe('Store + Form Integration', () => {
 
 describe('Context + Store Integration', () => {
   beforeEach(() => {
+    clearStorage();
+    resetContext();
+    resetHistory();
+  });
+
+  afterEach(() => {
     clearStorage();
     resetContext();
     resetHistory();
@@ -352,6 +376,12 @@ describe('Context + Router Integration', () => {
     resetHistory();
   });
 
+  afterEach(() => {
+    clearStorage();
+    resetContext();
+    resetHistory();
+  });
+
   test('router available via context', async () => {
     const RouterContext = createContext(null);
 
@@ -382,6 +412,12 @@ describe('Context + Router Integration', () => {
 
 describe('Async + Form Integration', () => {
   beforeEach(() => {
+    clearStorage();
+    resetContext();
+    resetHistory();
+  });
+
+  afterEach(() => {
     clearStorage();
     resetContext();
     resetHistory();
@@ -468,6 +504,12 @@ describe('Async + Form Integration', () => {
 
 describe('DOM + All Modules Integration', () => {
   beforeEach(() => {
+    clearStorage();
+    resetContext();
+    resetHistory();
+  });
+
+  afterEach(() => {
     clearStorage();
     resetContext();
     resetHistory();
@@ -591,6 +633,12 @@ describe('Batch Updates Across Modules', () => {
     resetHistory();
   });
 
+  afterEach(() => {
+    clearStorage();
+    resetContext();
+    resetHistory();
+  });
+
   test('batch updates across multiple stores', async () => {
     const store1 = createStore({ value: 0 });
     const store2 = createStore({ value: 0 });
@@ -649,6 +697,12 @@ describe('Batch Updates Across Modules', () => {
 
 describe('Error Propagation Tests', () => {
   beforeEach(() => {
+    clearStorage();
+    resetContext();
+    resetHistory();
+  });
+
+  afterEach(() => {
     clearStorage();
     resetContext();
     resetHistory();
@@ -727,6 +781,12 @@ describe('Error Propagation Tests', () => {
 
 describe('Memory/Cleanup Tests', () => {
   beforeEach(() => {
+    clearStorage();
+    resetContext();
+    resetHistory();
+  });
+
+  afterEach(() => {
     clearStorage();
     resetContext();
     resetHistory();
