@@ -10,6 +10,11 @@ permissions:
   packages: write
   issues: write
 
+# Prevent concurrent releases
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   extract-version:
     name: Extract Version

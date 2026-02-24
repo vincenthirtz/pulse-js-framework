@@ -20,6 +20,11 @@ on:
 permissions:
   contents: read
 
+# Prevent overlapping runs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   e2e:
     name: Run E2E Tests
@@ -33,10 +38,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 20
           cache: 'npm'
@@ -53,14 +58,14 @@ jobs:
 
       - name: Cache Playwright browsers
         id: playwright-cache
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ matrix.browser }}-${{ steps.playwright-version.outputs.PLAYWRIGHT_VERSION }}
 
       - name: Cache Playwright system dependencies
         id: sysdeps-cache
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ~/playwright-sysdeps
           key: playwright-sysdeps-${{ steps.playwright-version.outputs.PLAYWRIGHT_VERSION }}
@@ -88,11 +93,11 @@ jobs:
         id: e2e
         env:
           PLAYWRIGHT_BASE_URL: ${{ github.event.inputs.url || 'https://pulse-js.fr' }}
-        run: npx playwright test --project=${{ matrix.browser }} --grep-invert "Examples Health Check"
+        run: npx playwright test --project=${{ matrix.browser }} --grep-invert "Examples Health Check" --retries=2
 
       - name: Upload Playwright report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: playwright-report-${{ matrix.browser }}
           path: playwright-report/
@@ -121,14 +126,14 @@ jobs:
   examples:
     name: Examples Health Check
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 20
           cache: 'npm'
@@ -145,14 +150,14 @@ jobs:
 
       - name: Cache Playwright browsers
         id: playwright-cache
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ~/.cache/ms-playwright
           key: playwright-chromium-${{ steps.playwright-version.outputs.PLAYWRIGHT_VERSION }}
 
       - name: Cache Playwright system dependencies
         id: sysdeps-cache
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ~/playwright-sysdeps
           key: playwright-sysdeps-${{ steps.playwright-version.outputs.PLAYWRIGHT_VERSION }}
@@ -182,7 +187,7 @@ jobs:
 
       - name: Upload examples report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: examples-health-report
           path: playwright-report/

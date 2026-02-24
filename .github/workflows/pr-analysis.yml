@@ -22,7 +22,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           fetch-depth: 0
           ref: ${{ github.event.pull_request.head.sha }}
@@ -31,7 +31,7 @@ jobs:
         run: git fetch origin ${{ github.event.pull_request.base.ref }}
 
       - name: Label and analyze PR
-        uses: actions/github-script@v8
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         with:
           script: |
             const pr = context.payload.pull_request;
@@ -106,7 +106,7 @@ jobs:
               if (/^chore/i.test(msg)) categories.chore++;
               if (/^refactor/i.test(msg)) categories.refactor++;
               if (/^test/i.test(msg)) categories.test++;
-              if (msg.includes('!') || msg.toLowerCase().includes('breaking')) categories.breaking++;
+              if (/^[a-z]+(\([^)]*\))?!:/.test(msg) || msg.toLowerCase().includes('breaking change')) categories.breaking++;
             }
 
             // Breaking changes from PR title/body

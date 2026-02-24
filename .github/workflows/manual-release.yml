@@ -19,6 +19,11 @@ on:
 permissions:
   contents: read
 
+# Prevent concurrent release operations
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   create-release-pr:
     name: Create Release PR
@@ -31,13 +36,13 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 20
 
@@ -283,7 +288,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -302,6 +307,13 @@ jobs:
           git push origin develop
 
           echo "status=success" >> $GITHUB_OUTPUT
+
+      - name: Delete release branch
+        if: steps.merge.outcome == 'success'
+        run: |
+          BRANCH="${{ github.event.pull_request.head.ref }}"
+          echo "Deleting release branch: $BRANCH"
+          git push origin --delete "$BRANCH" 2>/dev/null || true
 
       - name: Handle merge conflict
         if: failure()
@@ -344,7 +356,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
