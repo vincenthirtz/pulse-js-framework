@@ -49,11 +49,6 @@ pulse test --coverage   # Run tests with coverage
 pulse test --watch      # Watch mode
 pulse test --create <name>  # Generate test file
 
-# Automated Test Generation (Claude Code)
-./scripts/generate-missing-tests.sh  # Generate tests for uncovered code
-# Requires: Claude Code CLI (npm install -g @anthropic/claude-code)
-# See docs/coverage-automation.md for details
-
 # Project Tools
 pulse doctor            # Run project diagnostics
 pulse doctor --verbose  # Detailed diagnostics

@@ -58,6 +58,18 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ matrix.browser }}-${{ steps.playwright-version.outputs.PLAYWRIGHT_VERSION }}
 
+      - name: Cache Playwright system dependencies
+        id: sysdeps-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/playwright-sysdeps
+          key: playwright-sysdeps-${{ steps.playwright-version.outputs.PLAYWRIGHT_VERSION }}
+          restore-keys: playwright-sysdeps-
+
+      - name: Restore cached apt packages
+        if: steps.sysdeps-cache.outputs.cache-hit == 'true'
+        run: sudo cp ~/playwright-sysdeps/*.deb /var/cache/apt/archives/ 2>/dev/null || true
+
       - name: Install Playwright browsers
         if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps ${{ matrix.browser }}
@@ -65,6 +77,12 @@ jobs:
       - name: Install Playwright system deps only
         if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: npx playwright install-deps ${{ matrix.browser }}
+
+      - name: Save apt packages to cache
+        if: steps.sysdeps-cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/playwright-sysdeps
+          cp /var/cache/apt/archives/*.deb ~/playwright-sysdeps/ 2>/dev/null || true
 
       - name: Run E2E tests
         id: e2e
@@ -132,6 +150,18 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-chromium-${{ steps.playwright-version.outputs.PLAYWRIGHT_VERSION }}
 
+      - name: Cache Playwright system dependencies
+        id: sysdeps-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/playwright-sysdeps
+          key: playwright-sysdeps-${{ steps.playwright-version.outputs.PLAYWRIGHT_VERSION }}
+          restore-keys: playwright-sysdeps-
+
+      - name: Restore cached apt packages
+        if: steps.sysdeps-cache.outputs.cache-hit == 'true'
+        run: sudo cp ~/playwright-sysdeps/*.deb /var/cache/apt/archives/ 2>/dev/null || true
+
       - name: Install Playwright Chromium
         if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps chromium
@@ -139,6 +169,12 @@ jobs:
       - name: Install Playwright system deps only
         if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: npx playwright install-deps chromium
+
+      - name: Save apt packages to cache
+        if: steps.sysdeps-cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/playwright-sysdeps
+          cp /var/cache/apt/archives/*.deb ~/playwright-sysdeps/ 2>/dev/null || true
 
       - name: Run examples health check
         id: examples
