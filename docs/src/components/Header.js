@@ -269,6 +269,14 @@ export function Header() {
     mobileMenuOpen.set(newState);
     menuBtn.setAttribute('aria-expanded', String(newState));
   });
+  // Close mobile menu on Escape key (WCAG 2.1.6)
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && mobileMenuOpen.get()) {
+      mobileMenuOpen.set(false);
+      menuBtn.setAttribute('aria-expanded', 'false');
+      menuBtn.focus();
+    }
+  });
   header.appendChild(menuBtn);
 
   // Mobile nav (flat structure)
