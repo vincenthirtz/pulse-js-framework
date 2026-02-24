@@ -233,7 +233,26 @@ export async function checkColorContrast(page, selector) {
   return await page.locator(selector).evaluate(element => {
     const style = window.getComputedStyle(element);
     const fg = style.color;
-    const bg = style.backgroundColor;
+
+    // Walk up the DOM tree to find the effective background color
+    // (text elements typically have transparent backgrounds)
+    function getEffectiveBackground(el) {
+      let current = el;
+      while (current && current !== document.documentElement) {
+        const bg = window.getComputedStyle(current).backgroundColor;
+        const match = bg.match(/\d+/g);
+        if (match) {
+          const alpha = match.length >= 4 ? parseFloat(match[3]) : 1;
+          // If not fully transparent, use this background
+          if (alpha > 0) return bg;
+        }
+        current = current.parentElement;
+      }
+      // Default to white if no opaque background found
+      return 'rgb(255, 255, 255)';
+    }
+
+    const bg = getEffectiveBackground(element);
 
     // Simple RGB to luminance calculation
     function getLuminance(rgb) {
