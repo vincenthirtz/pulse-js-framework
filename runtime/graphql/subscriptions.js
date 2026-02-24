@@ -98,6 +98,8 @@ export class SubscriptionManager {
         code: 'SUBSCRIPTION_ERROR'
       }));
     }
+    // Clear stale entries to prevent accumulation on reconnect
+    this.#subscriptions.clear();
   }
 
   /**

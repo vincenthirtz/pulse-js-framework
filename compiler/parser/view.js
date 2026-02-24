@@ -281,12 +281,8 @@ Parser.prototype.parseDirective = function() {
     modifiers.push(this.advance().value);
   }
 
-  if (name === 'if') {
-    return this.parseIfDirective();
-  }
-  if (name === 'each' || name === 'for') {
-    return this.parseEachDirective();
-  }
+  // Note: 'if', 'each', 'for' are handled above as keyword tokens (IF, EACH, FOR)
+  // They will never reach here as IDENT tokens
 
   // Accessibility directives
   if (name === 'a11y') {

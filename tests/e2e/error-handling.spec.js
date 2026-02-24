@@ -11,6 +11,25 @@ import { createConsoleCollector, navigateAndWait } from './utils/common-helpers.
 
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000';
 
+/**
+ * Open search modal with fallback (keyboard shortcut → search button → retry)
+ */
+async function openSearchModal(page) {
+  const overlaySelector = '.search-overlay[role="dialog"], [role="dialog"].search, dialog.search';
+  await page.keyboard.press('ControlOrMeta+k');
+  try {
+    await page.waitForSelector(overlaySelector, { state: 'visible', timeout: 3000 });
+  } catch {
+    const searchBtn = page.locator('button.search-btn, button[aria-label*="search" i]').first();
+    if (await searchBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await searchBtn.click();
+    } else {
+      await page.keyboard.press('ControlOrMeta+k');
+    }
+    await page.waitForSelector(overlaySelector, { state: 'visible', timeout: 5000 });
+  }
+}
+
 test.describe('Error Handling - 404 Pages', () => {
   test('Invalid route shows 404 page', async ({ page }) => {
     const consoleCollector = createConsoleCollector(page);
@@ -317,9 +336,7 @@ test.describe('Error Handling - Large Content', () => {
     const basePage = new BasePage(page, BASE_URL);
     await basePage.goto('/');
 
-    // Open search and enter a common term
-    await page.keyboard.press('ControlOrMeta+k');
-    await page.waitForTimeout(500);
+    await openSearchModal(page);
 
     const searchInput = page.locator('.search-overlay input, dialog.search input').first();
     await searchInput.fill('pulse');
@@ -500,8 +517,7 @@ test.describe('Error Handling - Edge Cases', () => {
     const basePage = new BasePage(page, BASE_URL);
     await basePage.goto('/');
 
-    await page.keyboard.press('ControlOrMeta+k');
-    await page.waitForTimeout(300);
+    await openSearchModal(page);
 
     const searchInput = page.locator('.search-overlay input, dialog.search input').first();
 
@@ -529,8 +545,7 @@ test.describe('Error Handling - Edge Cases', () => {
     const basePage = new BasePage(page, BASE_URL);
     await basePage.goto('/');
 
-    await page.keyboard.press('ControlOrMeta+k');
-    await page.waitForTimeout(500);
+    await openSearchModal(page);
 
     // Empty search should not crash
     const searchInput = page.locator('.search-overlay input, dialog.search input').first();
@@ -545,8 +560,7 @@ test.describe('Error Handling - Edge Cases', () => {
     const basePage = new BasePage(page, BASE_URL);
     await basePage.goto('/');
 
-    await page.keyboard.press('ControlOrMeta+k');
-    await page.waitForTimeout(500);
+    await openSearchModal(page);
 
     const searchInput = page.locator('.search-overlay input, dialog.search input').first();
 

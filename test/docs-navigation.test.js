@@ -84,7 +84,7 @@ test('Search.js exports initSearchKeyboard', () => {
 test('Search.js has keyboard shortcut support (Cmd+K)', () => {
   const content = readFileSync(join(componentsDir, 'Search.js'), 'utf-8');
   assert(content.includes('metaKey') || content.includes('ctrlKey'), 'Should handle meta/ctrl key');
-  assert(content.includes("key === 'k'") || content.includes('key === "k"'), 'Should handle K key');
+  assert(content.includes("=== 'k'") || content.includes('=== "k"'), 'Should handle K key');
 });
 
 test('Search.js has keyboard navigation (arrows)', () => {

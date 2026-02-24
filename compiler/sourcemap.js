@@ -21,7 +21,7 @@ const BASE64_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz012345
 export function encodeVLQ(value) {
   let encoded = '';
   // Convert to unsigned and add sign bit
-  let vlq = value < 0 ? ((-value) << 1) + 1 : (value << 1);
+  let vlq = value < 0 ? ((-value) * 2) + 1 : (value * 2);
 
   do {
     let digit = vlq & 0x1F; // 5 bits
@@ -350,6 +350,8 @@ export class SourceMapConsumer {
         lineData.push(mapping);
       }
 
+      // Sort by generatedColumn to ensure binary-search-safe ordering
+      lineData.sort((a, b) => a.generatedColumn - b.generatedColumn);
       this._decodedMappings.push(lineData);
     }
   }

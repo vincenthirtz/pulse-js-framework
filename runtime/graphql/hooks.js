@@ -102,7 +102,7 @@ export function useQuery(query, variables, options = {}) {
   const versionController = createVersionedAsync();
 
   // Execute query
-  async function executeQuery() {
+  async function executeQuery(queryOptions = {}) {
     if (!isEnabled()) return null;
 
     const ctx = versionController.begin();
@@ -117,7 +117,8 @@ export function useQuery(query, variables, options = {}) {
 
     try {
       const result = await client.query(query, resolveVariables(), {
-        cacheKey: getCacheKey()
+        cacheKey: getCacheKey(),
+        ...queryOptions
       });
 
       const selectedData = options.select ? options.select(result) : result;
@@ -160,7 +161,7 @@ export function useQuery(query, variables, options = {}) {
   if (options.refetchInterval && options.refetchInterval > 0) {
     const intervalId = setInterval(() => {
       if (!loading.get() && !fetching.get() && isEnabled()) {
-        executeQuery();
+        executeQuery({ skipCache: true });
       }
     }, options.refetchInterval);
 
@@ -169,12 +170,12 @@ export function useQuery(query, variables, options = {}) {
 
   // Setup window focus listener
   if (options.refetchOnFocus) {
-    onWindowFocus(() => { if (isEnabled()) executeQuery(); }, onCleanup);
+    onWindowFocus(() => { if (isEnabled()) executeQuery({ skipCache: true }); }, onCleanup);
   }
 
   // Setup online listener
   if (options.refetchOnReconnect) {
-    onWindowOnline(() => { if (isEnabled()) executeQuery(); }, onCleanup);
+    onWindowOnline(() => { if (isEnabled()) executeQuery({ skipCache: true }); }, onCleanup);
   }
 
   return {
@@ -189,7 +190,7 @@ export function useQuery(query, variables, options = {}) {
       return 'idle';
     }),
     isStale,
-    refetch: executeQuery,
+    refetch: () => executeQuery({ skipCache: true }),
     invalidate: () => {
       isStale.set(true);
       client.invalidate(getCacheKey());
@@ -411,7 +412,12 @@ export function useSubscription(subscription, variables, options = {}) {
         if (options.shouldResubscribe !== false) {
           const currentRetry = retryCount.peek();
           if (currentRetry < maxRetries) {
+            // Send Complete to server before abandoning the old subscription
+            const oldUnsubscribe = unsubscribeFn;
             unsubscribeFn = null;
+            if (oldUnsubscribe) {
+              try { oldUnsubscribe(); } catch { /* connection may already be closed */ }
+            }
             const delay = calculateBackoffDelay(currentRetry);
             retryCount.set(currentRetry + 1);
             status.set('reconnecting');

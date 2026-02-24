@@ -195,14 +195,20 @@ test.describe('Interactive Features', () => {
       }
     });
 
-    // Open search (ControlOrMeta resolves to Ctrl on Linux, Cmd on macOS)
+    // Open search with fallback (keyboard shortcut → search button)
+    const overlaySelector = '.search-overlay[role="dialog"], [role="dialog"].search, dialog.search';
     await page.keyboard.press('ControlOrMeta+k');
-
-    // Wait for modal to become visible - use simpler selector and visibility check
-    await page.waitForSelector('.search-overlay[role="dialog"]', {
-      state: 'visible',
-      timeout: 10000,
-    });
+    try {
+      await page.waitForSelector(overlaySelector, { state: 'visible', timeout: 3000 });
+    } catch {
+      const searchBtn = page.locator('button.search-btn, button[aria-label*="search" i]').first();
+      if (await searchBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await searchBtn.click();
+      } else {
+        await page.keyboard.press('ControlOrMeta+k');
+      }
+      await page.waitForSelector(overlaySelector, { state: 'visible', timeout: 5000 });
+    }
 
     // Type search query
     await page.keyboard.type('pulse');

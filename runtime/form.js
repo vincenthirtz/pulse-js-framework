@@ -1619,6 +1619,7 @@ export function useFileField(options = {}) {
     // Revoke removed preview URL
     if (preview && canCreateObjectURL()) {
       const currentPreviews = previews.get();
+      // Revoke the URL at this file index (may be null for non-image files)
       if (currentPreviews[index]) {
         try {
           URL.revokeObjectURL(currentPreviews[index]);
@@ -1627,7 +1628,8 @@ export function useFileField(options = {}) {
         }
       }
       const newPreviews = currentPreviews.filter((_, i) => i !== index);
-      previewUrls = previewUrls.filter((_, i) => i !== index);
+      // Rebuild previewUrls from the filtered previews to avoid index mismatch
+      previewUrls = newPreviews.filter(Boolean);
       previews.set(newPreviews);
     }
 

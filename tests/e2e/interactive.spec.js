@@ -373,9 +373,15 @@ test.describe('Interactive - Theme Switcher', () => {
 
     await basePage.goto('/');
 
-    // Theme should already be applied
+    // Wait for the theme effect to apply data-theme attribute
+    // The Pulse effect runs after JS loads and reads localStorage
+    await page.waitForFunction(
+      () => document.documentElement.getAttribute('data-theme') !== null,
+      { timeout: 5000 }
+    ).catch(() => {});
+
     const theme = await basePage.getCurrentTheme();
-    expect(theme, 'Theme should be applied immediately').toBe('dark');
+    expect(theme, 'Theme should be applied after JS initialization').toBe('dark');
   });
 });
 

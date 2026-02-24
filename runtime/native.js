@@ -93,9 +93,10 @@ function _compareSemver(a, b) {
  * Validate that an object has all required methods/properties
  * @param {Object} obj - Object to validate
  * @param {string[]} required - Required property names
+ * @param {string} [namespace] - Namespace label for error context
  * @returns {{valid: boolean, missing: string[]}}
  */
-function _validateApiSurface(obj, required) {
+function _validateApiSurface(obj, required, namespace = '') {
   if (!obj || typeof obj !== 'object') {
     return { valid: false, missing: required };
   }

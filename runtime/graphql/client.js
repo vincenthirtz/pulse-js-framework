@@ -372,12 +372,32 @@ export class GraphQLClient {
   async query(query, variables, options = {}) {
     const cacheKey = options.cacheKey || generateCacheKey(query, variables);
 
+    // Check LRU cache first (if caching is enabled and not explicitly skipped)
+    if (this.#options.cache && !options.skipCache) {
+      const cached = this.#cache.get(cacheKey);
+      if (cached) {
+        const age = Date.now() - cached.timestamp;
+        if (age < this.#options.cacheTime) {
+          return cached.data;
+        }
+        // Stale entry — remove it
+        this.#cache.delete(cacheKey);
+      }
+    }
+
     // Check for in-flight request (deduplication)
     if (this.#options.dedupe && this.#inflightQueries.has(cacheKey)) {
       return this.#inflightQueries.get(cacheKey);
     }
 
     const promise = this.#execute(query, variables, options)
+      .then((data) => {
+        // Populate cache on successful query
+        if (this.#options.cache) {
+          this.#cache.set(cacheKey, { data, timestamp: Date.now() });
+        }
+        return data;
+      })
       .finally(() => {
         this.#inflightQueries.delete(cacheKey);
       });

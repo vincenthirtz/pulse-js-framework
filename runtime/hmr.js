@@ -56,9 +56,10 @@ import { setCurrentModule, clearCurrentModule, disposeModule } from './pulse.js'
  */
 export function createHMRContext(moduleId) {
   // Check if HMR is available (Vite dev server)
-  // Also check globalThis for testing purposes (since import.meta can't be mocked in Node.js ESM)
+  // import.meta.hot is injected by Vite at build time
+  // Also check globalThis.__PULSE_HMR_HOT__ for testing purposes
   const hot = (typeof import.meta !== 'undefined' && import.meta.hot) ||
-              (typeof globalThis !== 'undefined' && globalThis.import?.meta?.hot);
+              (typeof globalThis !== 'undefined' && (globalThis.__PULSE_HMR_HOT__ || globalThis.import?.meta?.hot));
 
   if (!hot) {
     return createNoopContext();
