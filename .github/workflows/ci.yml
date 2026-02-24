@@ -470,10 +470,15 @@ jobs:
           echo "- **Time**: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
 
   # Release job - only runs when manually triggered with a release type
-  # Calls manual-release.yml as a reusable workflow (no PAT needed)
+  # NOTE: RELEASE_PAT needs 'workflow' scope (classic) or 'Actions: Read and write' (fine-grained)
   release:
     name: Trigger Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
     needs: [test, lint, build, coverage]
+    permissions:
+      contents: write
+      actions: write
     if: |
       always() &&
       needs.test.result == 'success' &&
@@ -483,10 +488,32 @@ jobs:
       github.ref == 'refs/heads/main' &&
       github.event_name == 'workflow_dispatch' &&
       inputs.release_type != 'none'
-    uses: ./.github/workflows/manual-release.yml
-    with:
-      release_type: ${{ inputs.release_type || 'none' }}
-    secrets: inherit
+
+    steps:
+      - name: Trigger Manual Release workflow
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        with:
+          github-token: ${{ secrets.RELEASE_PAT }}
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'manual-release.yml',
+              ref: context.ref,
+              inputs: {
+                release_type: '${{ inputs.release_type }}'
+              }
+            });
+
+            console.log('Triggered manual-release.yml with release_type: ${{ inputs.release_type }}');
+
+      - name: Release summary
+        run: |
+          echo "## Release Triggered" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "All CI checks passed. Triggered **${{ inputs.release_type }}** release." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "[View Release Workflow](https://github.com/${{ github.repository }}/actions/workflows/manual-release.yml)" >> $GITHUB_STEP_SUMMARY
 
   # Discord notification on failure (main branch only)
   notify-discord:
