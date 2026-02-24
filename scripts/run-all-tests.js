@@ -169,18 +169,12 @@ const TIMEOUT_MS = 60_000;
 const MAX_BUFFER = 10 * 1024 * 1024;
 const CONCURRENCY = Math.max(4, cpus().length);
 
-// Extended timeouts for tests with retry/reconnect delays
-const SLOW_TESTS = {
-  'test:graphql-subscriptions': 90_000,
-  'test:websocket-stress': 90_000,
-};
-
 /**
  * Run a single test script via `npm run <script>`.
  * Returns a promise that resolves with the result.
  */
 function runTest(script) {
-  const timeout = SLOW_TESTS[script] || TIMEOUT_MS;
+  const timeout = TIMEOUT_MS;
   return new Promise((resolve) => {
     const startTime = Date.now();
     let stdout = '';
