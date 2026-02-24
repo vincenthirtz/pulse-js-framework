@@ -1,0 +1,260 @@
+name: Create Release PR
+
+on:
+  workflow_call:
+    inputs:
+      release_type:
+        description: 'Release Type (patch, minor, major)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  create-release-pr:
+    name: Create Release PR
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 20
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Get Current Version
+        id: current_version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Current version: $VERSION"
+
+      - name: Bump Version
+        id: bump
+        run: |
+          TYPE="${{ inputs.release_type }}"
+          npm version $TYPE --no-git-tag-version
+          NEW_VERSION=$(node -p "require('./package.json').version")
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "New version: $NEW_VERSION"
+
+      - name: Sync version across files
+        run: node scripts/sync-version.js
+
+      - name: Update CHANGELOG
+        run: |
+          VERSION="${{ steps.bump.outputs.new_version }}"
+          DATE=$(date +%Y-%m-%d)
+          PREV_TAG=$(git describe --abbrev=0 --tags 2>/dev/null || echo "")
+
+          # Get commits since last tag
+          if [ -z "$PREV_TAG" ]; then
+            COMMITS=$(git log --pretty=format:"- %s" --no-merges -20)
+          else
+            COMMITS=$(git log --pretty=format:"- %s" --no-merges ${PREV_TAG}..HEAD)
+          fi
+
+          # Save commits to file for safe reuse (avoids shell injection)
+          echo "$COMMITS" > /tmp/commits.txt
+
+          # Create changelog header
+          {
+            echo "# Changelog"
+            echo ""
+            echo "## [$VERSION] - $DATE"
+            echo ""
+            echo "### Changes"
+            echo ""
+            echo "$COMMITS"
+            echo ""
+            echo "---"
+            echo ""
+          } > CHANGELOG.tmp
+
+          # Append old changelog if exists
+          if [ -f CHANGELOG.md ]; then
+            tail -n +2 CHANGELOG.md >> CHANGELOG.tmp
+          fi
+
+          mv CHANGELOG.tmp CHANGELOG.md
+          echo "CHANGELOG updated"
+
+      - name: Create release branch and push
+        id: branch
+        run: |
+          VERSION="${{ steps.bump.outputs.new_version }}"
+          BRANCH="release/v${VERSION}"
+
+          # Delete remote branch if it already exists (from a previous failed run)
+          git push origin --delete "$BRANCH" 2>/dev/null || true
+
+          git checkout -b "$BRANCH"
+          git add package.json CHANGELOG.md docs/src/state.js 2>/dev/null || git add package.json CHANGELOG.md
+
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+            exit 1
+          fi
+
+          git commit -m "chore(release): bump version to $VERSION"
+          git push origin "$BRANCH"
+
+          echo "branch=$BRANCH" >> $GITHUB_OUTPUT
+          echo "Release branch $BRANCH created and pushed"
+
+      - name: Create Pull Request
+        id: create_pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ steps.bump.outputs.new_version }}"
+          PREV_VERSION="${{ steps.current_version.outputs.version }}"
+          TYPE="${{ inputs.release_type }}"
+          BRANCH="${{ steps.branch.outputs.branch }}"
+
+          # Read commits from file
+          COMMITS=$(cat /tmp/commits.txt 2>/dev/null || echo "No commits found")
+          COMMIT_COUNT=$(echo "$COMMITS" | grep -c "^-" || echo 0)
+
+          # Build PR body
+          {
+            echo "## Release v${VERSION}"
+            echo ""
+            echo "**Type**: ${TYPE} release (${PREV_VERSION} -> ${VERSION})"
+            echo ""
+            echo "### Changes"
+            echo ""
+            echo "$COMMITS"
+            echo ""
+            echo "---"
+            echo ""
+            echo "### Post-merge"
+            echo ""
+            echo "After merging this PR:"
+            echo "1. The git tag \`v${VERSION}\` will be **created and pushed automatically**"
+            echo "2. The **Release** workflow will then run (test -> build -> GitHub Release -> npm publish)"
+            echo "3. Discord notification will be sent"
+            echo ""
+            echo "<sub>Auto-generated by manual-release workflow</sub>"
+          } > /tmp/pr_body.md
+
+          PR_URL=$(gh pr create \
+            --base main \
+            --head "$BRANCH" \
+            --title "chore(release): v${VERSION}" \
+            --body-file /tmp/pr_body.md)
+
+          # Add label if it exists (non-blocking)
+          gh pr edit "$PR_URL" --add-label "release" 2>/dev/null || true
+
+          echo "pr_url=$PR_URL" >> $GITHUB_OUTPUT
+          echo "PR created: $PR_URL"
+
+      - name: Enable auto-merge
+        env:
+          # GITHUB_TOKEN events don't trigger downstream workflows.
+          # A PAT (RELEASE_PAT) is required so the merge event triggers auto-tag.
+          GH_TOKEN: ${{ secrets.RELEASE_PAT }}
+        run: |
+          PR_URL="${{ steps.create_pr.outputs.pr_url }}"
+          echo "Enabling auto-merge for $PR_URL..."
+          gh pr merge --auto --merge "$PR_URL"
+          echo "Auto-merge enabled. PR will merge automatically once checks pass."
+
+      - name: Send Discord Notification
+        if: success() && env.DISCORD_WEBHOOK != ''
+        continue-on-error: true
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        run: |
+          VERSION="${{ steps.bump.outputs.new_version }}"
+          PREV_VERSION="${{ steps.current_version.outputs.version }}"
+          TYPE="${{ inputs.release_type }}"
+          PR_URL="${{ steps.create_pr.outputs.pr_url }}"
+
+          COMMITS=$(cat /tmp/commits.txt 2>/dev/null || echo "No commits found")
+          COMMIT_COUNT=$(echo "$COMMITS" | grep -c "^-" || echo 0)
+          FEAT_COUNT=$(echo "$COMMITS" | grep -c "^- feat" || echo 0)
+          FIX_COUNT=$(echo "$COMMITS" | grep -c "^- fix" || echo 0)
+          BREAKING_COUNT=$(echo "$COMMITS" | grep -c "!" || echo 0)
+
+          if [ "$TYPE" = "major" ]; then
+            COLOR=15158332
+          elif [ "$TYPE" = "minor" ]; then
+            COLOR=3447003
+          else
+            COLOR=2067276
+          fi
+
+          COMMITS_FORMATTED=$(echo "$COMMITS" | head -20)
+          if [ "$COMMIT_COUNT" -gt 20 ]; then
+            COMMITS_FORMATTED="${COMMITS_FORMATTED}
+
+          ... and $((COMMIT_COUNT - 20)) more commits"
+          fi
+
+          PAYLOAD=$(jq -n \
+            --arg title "Release PR: v${VERSION}" \
+            --arg desc "${TYPE} release: ${PREV_VERSION} -> ${VERSION}" \
+            --argjson color "$COLOR" \
+            --arg stats "Commits: ${COMMIT_COUNT} | Features: ${FEAT_COUNT} | Fixes: ${FIX_COUNT}${BREAKING_COUNT:+ | Breaking: ${BREAKING_COUNT}}" \
+            --arg links "PR: ${PR_URL}" \
+            --arg changes "$COMMITS_FORMATTED" \
+            --arg footer "Pulse JS Framework" \
+            --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)" \
+            '{
+              embeds: [{
+                title: $title,
+                description: $desc,
+                color: $color,
+                fields: [
+                  { name: "Statistics", value: $stats, inline: true },
+                  { name: "Links", value: $links, inline: true },
+                  { name: "Changes", value: $changes, inline: false }
+                ],
+                footer: { text: $footer },
+                timestamp: $timestamp
+              }]
+            }')
+
+          curl -sf -H "Content-Type: application/json" \
+               -X POST \
+               -d "$PAYLOAD" \
+               "$DISCORD_WEBHOOK"
+
+          echo "Discord notification sent"
+
+      - name: Summary
+        run: |
+          VERSION="${{ steps.bump.outputs.new_version }}"
+          TYPE="${{ inputs.release_type }}"
+          PR_URL="${{ steps.create_pr.outputs.pr_url }}"
+          echo "## Release PR Created for v$VERSION" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Type**: $TYPE" >> $GITHUB_STEP_SUMMARY
+          echo "- **Previous**: ${{ steps.current_version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **New**: $VERSION" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch**: ${{ steps.branch.outputs.branch }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **PR**: $PR_URL" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "1. Review and merge the PR" >> $GITHUB_STEP_SUMMARY
+          echo "2. The git tag \`v$VERSION\` will be **created and pushed automatically**" >> $GITHUB_STEP_SUMMARY
+          echo "3. The **Release** workflow will then run (test -> build -> GitHub Release -> npm publish)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "[View PR]($PR_URL)" >> $GITHUB_STEP_SUMMARY
