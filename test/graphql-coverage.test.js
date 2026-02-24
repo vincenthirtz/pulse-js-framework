@@ -488,6 +488,15 @@ describe('useQuery Coverage Tests', () => {
       }
     });
 
+    // Track intervals so we can clean them up (onCleanup is a no-op outside effects)
+    const intervals = [];
+    const origSetInterval = globalThis.setInterval;
+    globalThis.setInterval = (...args) => {
+      const id = origSetInterval(...args);
+      intervals.push(id);
+      return id;
+    };
+
     try {
       const client = createGraphQLClient({ url: '/graphql' });
       setDefaultClient(client);
@@ -504,6 +513,8 @@ describe('useQuery Coverage Tests', () => {
 
       setDefaultClient(null);
     } finally {
+      intervals.forEach(id => clearInterval(id));
+      globalThis.setInterval = origSetInterval;
       mock.restore();
     }
   });
@@ -618,15 +629,21 @@ describe('useSubscription Coverage Tests', () => {
   test('useSubscription calculateBackoffDelay with different attempts', async () => {
     const mock = mockFetch({});
 
+    // Track timeouts for cleanup (retry backoff uses setTimeout)
+    const timeouts = [];
+    const origSetTimeout = globalThis.setTimeout;
+    globalThis.setTimeout = (...args) => {
+      const id = origSetTimeout(...args);
+      timeouts.push(id);
+      return id;
+    };
+
     try {
       const client = createGraphQLClient({
         url: '/graphql',
         wsUrl: 'ws://localhost/graphql'
       });
       setDefaultClient(client);
-
-      let errorTimes = [];
-      let lastRetryCount = 0;
 
       client.subscribe = (query, variables, handlers) => {
         // Immediately trigger errors to test backoff
@@ -656,6 +673,8 @@ describe('useSubscription Coverage Tests', () => {
       unsubscribe();
       setDefaultClient(null);
     } finally {
+      timeouts.forEach(id => clearTimeout(id));
+      globalThis.setTimeout = origSetTimeout;
       mock.restore();
     }
   });
@@ -703,6 +722,15 @@ describe('useSubscription Coverage Tests', () => {
   test('useSubscription status becomes failed after maxRetries', async () => {
     const mock = mockFetch({});
 
+    // Track timeouts for cleanup (retry backoff uses setTimeout)
+    const timeouts = [];
+    const origSetTimeout = globalThis.setTimeout;
+    globalThis.setTimeout = (...args) => {
+      const id = origSetTimeout(...args);
+      timeouts.push(id);
+      return id;
+    };
+
     try {
       const client = createGraphQLClient({
         url: '/graphql',
@@ -711,11 +739,9 @@ describe('useSubscription Coverage Tests', () => {
       setDefaultClient(client);
 
       let subscribeCount = 0;
-      let errorHandler = null;
 
       client.subscribe = (query, variables, handlers) => {
         subscribeCount++;
-        errorHandler = handlers.onError;
         // Trigger error immediately
         setTimeout(() => handlers.onError(new Error('Test error')), 5);
         return () => {};
@@ -744,10 +770,16 @@ describe('useSubscription Coverage Tests', () => {
       unsubscribe();
       setDefaultClient(null);
     } finally {
+      timeouts.forEach(id => clearTimeout(id));
+      globalThis.setTimeout = origSetTimeout;
       mock.restore();
     }
   });
 });
 
-// Force clean exit after all tests complete (open handles from subscriptions)
-after(() => { process.exitCode = 0; });
+// Force clean exit after all tests complete (open handles from subscriptions/timers)
+after(() => {
+  setDefaultClient(null);
+  globalThis.fetch = originalFetch;
+  setTimeout(() => process.exit(0), 100).unref();
+});

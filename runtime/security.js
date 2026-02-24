@@ -472,9 +472,13 @@ export function sanitizeUrl(url, options = {}) {
     }
   }
 
-  // Only allow http: and https: protocols
-  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
-    return trimmed;
+  // Allow safe protocols (http, https, mailto, tel, sms, ftp, sftp)
+  const colonIndex = trimmed.indexOf(':');
+  if (colonIndex > 0) {
+    const protocol = trimmed.slice(0, colonIndex + 1).toLowerCase();
+    if (SAFE_PROTOCOLS.has(protocol)) {
+      return trimmed;
+    }
   }
 
   return null;

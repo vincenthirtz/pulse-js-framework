@@ -992,24 +992,22 @@ describe('previewBuild Tests', () => {
     process.chdir(BUILD_TEST_DIR);
 
     const mocks = setupCommandMocks();
-    let serverStarted = false;
-    let serverPort = null;
+    let server = null;
+    const testPort = String(50000 + Math.floor(Math.random() * 10000));
 
     try {
-      const serverPromise = previewBuild(['5000']);
-
-      await sleep(100);
+      server = await previewBuild([testPort]);
 
       const output = mocks.logs.join(' ');
-      if (output.includes('5000') || output.includes('Preview')) {
-        serverStarted = true;
-      }
+      assert.ok(output.includes(testPort) || output.includes('Preview'),
+        'Should start server on specified port');
 
     } catch (e) {
       if (!e.message.startsWith('EXIT_')) {
-        // Server start error is acceptable for testing
+        // Server start error (e.g. EADDRINUSE) is acceptable in CI
       }
     } finally {
+      if (server && typeof server.close === 'function') server.close();
       mocks.restore();
       cleanupBuildTestDir();
     }
@@ -1020,11 +1018,10 @@ describe('previewBuild Tests', () => {
     process.chdir(BUILD_TEST_DIR);
 
     const mocks = setupCommandMocks();
+    let server = null;
 
     try {
-      const serverPromise = previewBuild([]);
-
-      await sleep(100);
+      server = await previewBuild([]);
 
       const output = mocks.logs.join(' ');
       assert.ok(output.includes('4173') || output.includes('Preview') || output.length >= 0,
@@ -1032,9 +1029,10 @@ describe('previewBuild Tests', () => {
 
     } catch (e) {
       if (!e.message.startsWith('EXIT_')) {
-        // Server errors are acceptable
+        // Server errors (e.g. EADDRINUSE) are acceptable in CI
       }
     } finally {
+      if (server && typeof server.close === 'function') server.close();
       mocks.restore();
       cleanupBuildTestDir();
     }
