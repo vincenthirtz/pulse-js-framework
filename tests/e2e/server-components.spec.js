@@ -36,7 +36,7 @@ test.describe('Server Components Page', () => {
 
   test('Page loads without errors', async ({ page }) => {
     await page.goto(`${BASE_URL}/server-components`, {
-      waitUntil: 'networkidle',
+      waitUntil: 'domcontentloaded',
       timeout: 30000,
     });
 
@@ -56,15 +56,18 @@ test.describe('Server Components Page', () => {
 
   test('Code examples are visible', async ({ page }) => {
     await page.goto(`${BASE_URL}/server-components`, {
-      waitUntil: 'networkidle',
+      waitUntil: 'domcontentloaded',
       timeout: 45000,
     });
 
-    // Wait for page content to render
-    await page.waitForTimeout(1500);
+    // Wait for SPA to render code blocks (broader selector for various rendering patterns)
+    const codeBlocks = page.locator('pre code, pre[class*="language-"], .code-block, [class*="highlight"], [class*="hljs"]');
 
-    // Check for code blocks (common in docs)
-    const codeBlocks = page.locator('pre code, .code-block, [class*="highlight"]');
+    // Wait for at least one code block to appear (SPA rendering may take time)
+    await codeBlocks.first().waitFor({ state: 'attached', timeout: 15000 }).catch(() => {
+      // If no code blocks appear within timeout, the test will fail below
+    });
+
     const count = await codeBlocks.count();
 
     // Should have at least one code example
@@ -73,7 +76,7 @@ test.describe('Server Components Page', () => {
 
   test('Security examples section exists', async ({ page }) => {
     await page.goto(`${BASE_URL}/server-components`, {
-      waitUntil: 'networkidle',
+      waitUntil: 'domcontentloaded',
     });
 
     // Look for security-related headings or content
@@ -109,7 +112,7 @@ test.describe('Server Components Page', () => {
 
   test('Server Actions section exists', async ({ page }) => {
     await page.goto(`${BASE_URL}/server-components`, {
-      waitUntil: 'networkidle',
+      waitUntil: 'domcontentloaded',
     });
 
     // Look for Server Actions heading or content
@@ -128,7 +131,7 @@ test.describe('Server Components Page', () => {
     await page.setViewportSize({ width: 375, height: 667 });
 
     await page.goto(`${BASE_URL}/server-components`, {
-      waitUntil: 'networkidle',
+      waitUntil: 'domcontentloaded',
       timeout: 45000,
     });
 
@@ -158,7 +161,7 @@ test.describe('Server Components - Localized', () => {
       });
 
       await page.goto(`${BASE_URL}${locale}/server-components`, {
-        waitUntil: 'networkidle',
+        waitUntil: 'domcontentloaded',
         timeout: 30000,
       });
 

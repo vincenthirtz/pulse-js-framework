@@ -173,10 +173,22 @@ export async function navigateAndWait(page, url, options = {}) {
     timeout = 30000
   } = options;
 
-  await page.goto(url, {
-    waitUntil: shouldWaitNetwork ? 'networkidle' : 'domcontentloaded',
-    timeout
-  });
+  try {
+    await page.goto(url, {
+      waitUntil: shouldWaitNetwork ? 'networkidle' : 'domcontentloaded',
+      timeout
+    });
+  } catch (error) {
+    // Fall back to domcontentloaded if networkidle times out
+    if (shouldWaitNetwork && error.message?.includes('Timeout')) {
+      await page.goto(url, {
+        waitUntil: 'domcontentloaded',
+        timeout
+      });
+    } else {
+      throw error;
+    }
+  }
 
   if (shouldWaitTranslations) {
     await waitForTranslations(page);

@@ -449,7 +449,7 @@ export function SearchModal() {
 export function initSearchKeyboard() {
   document.addEventListener('keydown', (e) => {
     // Cmd/Ctrl + K to open search
-    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
       e.preventDefault();
       searchOpen.update(v => !v);
     }

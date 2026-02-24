@@ -17,7 +17,7 @@ export class BasePage {
       // Header
       header: 'header',
       logo: 'header a[href="/"]',
-      themeToggle: 'button[aria-label*="theme" i], button[aria-label*="thème" i]',
+      themeToggle: 'button[aria-label*="theme" i], button[aria-label*="thème" i], button[aria-label*="mode" i], button.theme-btn',
       languageSelector: '[data-language-selector], select[aria-label*="language" i]',
       searchButton: 'button[aria-label*="search" i], button[aria-label*="recherche" i]',
       mobileMenuToggle: 'button[aria-label*="menu" i]',
@@ -131,7 +131,7 @@ export class BasePage {
    * Open search modal
    */
   async openSearch() {
-    await this.page.keyboard.press('Control+K');
+    await this.page.keyboard.press('ControlOrMeta+k');
     await this.page.waitForTimeout(300);
   }
 

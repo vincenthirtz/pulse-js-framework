@@ -195,8 +195,8 @@ test.describe('Interactive Features', () => {
       }
     });
 
-    // Open search (Ctrl+K works on both Linux CI and macOS)
-    await page.keyboard.press('Control+K');
+    // Open search (ControlOrMeta resolves to Ctrl on Linux, Cmd on macOS)
+    await page.keyboard.press('ControlOrMeta+k');
 
     // Wait for modal to become visible - use simpler selector and visibility check
     await page.waitForSelector('.search-overlay[role="dialog"]', {

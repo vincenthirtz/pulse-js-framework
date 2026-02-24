@@ -24,7 +24,7 @@ export class SearchModal {
    * Open search modal using keyboard shortcut
    */
   async open() {
-    await this.page.keyboard.press('Control+K');
+    await this.page.keyboard.press('ControlOrMeta+k');
     await this.waitForOpen();
   }
 
