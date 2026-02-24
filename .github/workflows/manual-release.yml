@@ -16,7 +16,8 @@ on:
     inputs:
       release_type:
         description: 'Release Type'
-        required: true
+        required: false
+        default: 'none'
         type: string
   pull_request:
     types: [closed]
