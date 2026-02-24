@@ -12,6 +12,12 @@ on:
           - minor
           - major
         default: 'patch'
+  workflow_call:
+    inputs:
+      release_type:
+        description: 'Release Type'
+        required: true
+        type: string
   pull_request:
     types: [closed]
     branches: [main]
@@ -28,7 +34,7 @@ jobs:
   create-release-pr:
     name: Create Release PR
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call'
     timeout-minutes: 10
     permissions:
       contents: write
@@ -61,7 +67,7 @@ jobs:
       - name: Bump Version
         id: bump
         run: |
-          TYPE="${{ github.event.inputs.release_type }}"
+          TYPE="${{ inputs.release_type }}"
           npm version $TYPE --no-git-tag-version
           NEW_VERSION=$(node -p "require('./package.json').version")
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
@@ -138,7 +144,7 @@ jobs:
         run: |
           VERSION="${{ steps.bump.outputs.new_version }}"
           PREV_VERSION="${{ steps.current_version.outputs.version }}"
-          TYPE="${{ github.event.inputs.release_type }}"
+          TYPE="${{ inputs.release_type }}"
           BRANCH="${{ steps.branch.outputs.branch }}"
 
           # Read commits from file
@@ -198,7 +204,7 @@ jobs:
         run: |
           VERSION="${{ steps.bump.outputs.new_version }}"
           PREV_VERSION="${{ steps.current_version.outputs.version }}"
-          TYPE="${{ github.event.inputs.release_type }}"
+          TYPE="${{ inputs.release_type }}"
           PR_URL="${{ steps.create_pr.outputs.pr_url }}"
 
           COMMITS=$(cat /tmp/commits.txt 2>/dev/null || echo "No commits found")
@@ -256,7 +262,7 @@ jobs:
       - name: Summary
         run: |
           VERSION="${{ steps.bump.outputs.new_version }}"
-          TYPE="${{ github.event.inputs.release_type }}"
+          TYPE="${{ inputs.release_type }}"
           PR_URL="${{ steps.create_pr.outputs.pr_url }}"
           echo "## Release PR Created for v$VERSION" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
