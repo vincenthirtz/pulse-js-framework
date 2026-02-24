@@ -18,12 +18,11 @@ import {
 import { BasePage } from './pages/BasePage.js';
 import { HIGH_PRIORITY_ROUTES, ROUTES } from './fixtures/routes.js';
 
-const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000';
 
 test.describe('Performance - Core Web Vitals', () => {
   for (const route of HIGH_PRIORITY_ROUTES) {
     test(`${route || '/'} - Core Web Vitals pass thresholds`, async ({ page }) => {
-      const basePage = new BasePage(page, BASE_URL);
+      const basePage = new BasePage(page);
       await basePage.goto(route);
 
       // Measure and assert Core Web Vitals
@@ -40,7 +39,7 @@ test.describe('Performance - Core Web Vitals', () => {
 
 test.describe('Performance - Page Load Metrics', () => {
   test('Homepage loads quickly', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/');
 
     let metrics;
@@ -67,7 +66,7 @@ test.describe('Performance - Page Load Metrics', () => {
   });
 
   test('API Reference page loads within budget', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/api-reference');
 
     let metrics;
@@ -92,7 +91,7 @@ test.describe('Performance - Page Load Metrics', () => {
 
 test.describe('Performance - Resource Loading', () => {
   test('Homepage resources load efficiently', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/');
 
     const resources = await measureResourceLoading(page);
@@ -120,17 +119,17 @@ test.describe('Performance - Resource Loading', () => {
   });
 
   test('No render-blocking resources', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/');
 
     await assertNoRenderBlockingResources(page);
   });
 
   test('Critical CSS inlined', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
 
     // Check HTML source for inline styles
-    const response = await page.goto(`${BASE_URL}/`);
+    const response = await page.goto('/');
     const html = await response?.text();
 
     const hasInlineStyles = html?.includes('<style>') || html?.includes('</style>');
@@ -145,7 +144,7 @@ test.describe('Performance - Resource Loading', () => {
   });
 
   test('Images are lazy loaded', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/');
 
     const lazyImages = await page.evaluate(() => {
@@ -173,9 +172,9 @@ test.describe('Performance - Resource Loading', () => {
   });
 
   test('Fonts are preloaded', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
 
-    const response = await page.goto(`${BASE_URL}/`);
+    const response = await page.goto('/');
     const html = await response?.text();
 
     const hasFontPreload = html?.includes('rel="preload"') && html?.includes('as="font"');
@@ -190,7 +189,7 @@ test.describe('Performance - Resource Loading', () => {
 
 test.describe('Performance - Bundle Sizes', () => {
   test('JavaScript bundle is within budget', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/');
 
     await assertBundleSizes(page, {
@@ -201,7 +200,7 @@ test.describe('Performance - Bundle Sizes', () => {
   });
 
   test('Code splitting is effective', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/');
 
     const resources = await measureResourceLoading(page);
@@ -227,7 +226,7 @@ test.describe('Performance - Bundle Sizes', () => {
 
 test.describe('Performance - Memory Usage', () => {
   test('Memory usage is reasonable on homepage', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/');
 
     // Wait for page to fully settle
@@ -244,7 +243,7 @@ test.describe('Performance - Memory Usage', () => {
   });
 
   test('Memory does not grow excessively with interactions', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/');
 
     const initialMemory = await checkMemoryUsage(page);
@@ -275,7 +274,7 @@ test.describe('Performance - Lighthouse Audit', () => {
     // NOTE: This test requires playwright-lighthouse
     // Skip by default, run manually with: npx playwright test performance --grep "Lighthouse"
 
-    await runLighthouseAudit(page, `${BASE_URL}/`, {
+    await runLighthouseAudit(page, '/', {
       performance: 90,
       accessibility: 95,
       'best-practices': 90,
@@ -284,7 +283,7 @@ test.describe('Performance - Lighthouse Audit', () => {
   });
 
   test.skip('API Reference Lighthouse scores', async ({ page }) => {
-    await runLighthouseAudit(page, `${BASE_URL}/api-reference`, {
+    await runLighthouseAudit(page, '/api-reference', {
       performance: 85, // Slightly lower for content-heavy page
       accessibility: 95,
       'best-practices': 90,
@@ -311,7 +310,7 @@ test.describe('Performance - Network Efficiency', () => {
       }
     });
 
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/');
 
     console.log(`\n🌐 Network Requests:`);
@@ -324,7 +323,7 @@ test.describe('Performance - Network Efficiency', () => {
   });
 
   test('Subsequent navigation uses cache', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
 
     // First load - primes the cache
     await basePage.goto('/');
@@ -358,7 +357,7 @@ test.describe('Performance - Network Efficiency', () => {
   });
 
   test('Compression is enabled', async ({ page }) => {
-    const response = await page.goto(`${BASE_URL}/`);
+    const response = await page.goto('/');
 
     const headers = response?.headers();
     const contentEncoding = headers?.['content-encoding'];
@@ -377,7 +376,7 @@ test.describe('Performance - Network Efficiency', () => {
 
 test.describe('Performance - JavaScript Execution', () => {
   test('No long tasks blocking main thread', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/');
 
     // Measure long tasks (> 50ms)
@@ -439,7 +438,7 @@ test.describe('Performance - JavaScript Execution', () => {
   });
 
   test('JavaScript is not blocking render', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
 
     const startTime = Date.now();
     await basePage.goto('/');

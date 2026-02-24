@@ -232,12 +232,16 @@ jobs:
     name: E2E Smoke (${{ matrix.shard }}/${{ strategy.job-total }})
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    needs: [changes, test]
-    if: >-
-      needs.changes.outputs.src == 'true' ||
-      needs.changes.outputs.tests == 'true' ||
-      needs.changes.outputs.deps == 'true' ||
-      github.event_name == 'workflow_dispatch'
+    needs: [changes, build]
+    if: |
+      always() &&
+      needs.build.result == 'success' &&
+      (
+        needs.changes.outputs.src == 'true' ||
+        needs.changes.outputs.tests == 'true' ||
+        needs.changes.outputs.deps == 'true' ||
+        github.event_name == 'workflow_dispatch'
+      )
 
     strategy:
       fail-fast: false
@@ -260,16 +264,24 @@ jobs:
       - name: Install E2E test dependencies
         run: npm install --no-save @playwright/test @axe-core/playwright
 
-      - name: Build docs site
-        run: npm run build:netlify
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+
+      - name: Extract build artifact
+        run: |
+          mkdir -p dist
+          tar -xzf dist.tar.gz -C dist
+          rm dist.tar.gz
 
       - name: Get Playwright version
         id: playwright-version
         run: echo "PLAYWRIGHT_VERSION=$(npx playwright --version | awk '{print $2}')" >> $GITHUB_OUTPUT
 
-      - name: Cache Playwright browsers
+      - name: Restore Playwright browsers cache
         id: playwright-cache
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: ~/.cache/ms-playwright
           key: playwright-chromium-${{ steps.playwright-version.outputs.PLAYWRIGHT_VERSION }}
@@ -281,6 +293,13 @@ jobs:
       - name: Install Playwright system deps only
         if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: npx playwright install-deps chromium
+
+      - name: Save Playwright browsers cache
+        if: always() && steps.playwright-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ steps.playwright-version.outputs.PLAYWRIGHT_VERSION }}
 
       - name: Run E2E smoke tests (shard ${{ matrix.shard }}/3)
         run: npx playwright test --project=chromium --grep-invert "Examples Health Check" --shard=${{ matrix.shard }}/3

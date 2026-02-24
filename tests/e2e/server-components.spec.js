@@ -10,7 +10,6 @@
 
 import { test, expect } from '@playwright/test';
 
-const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000';
 
 test.describe('Server Components Page', () => {
   let consoleErrors = [];
@@ -35,7 +34,7 @@ test.describe('Server Components Page', () => {
   });
 
   test('Page loads without errors', async ({ page }) => {
-    await page.goto(`${BASE_URL}/server-components`, {
+    await page.goto('/server-components', {
       waitUntil: 'domcontentloaded',
       timeout: 30000,
     });
@@ -55,7 +54,7 @@ test.describe('Server Components Page', () => {
   });
 
   test('Code examples are visible', async ({ page }) => {
-    await page.goto(`${BASE_URL}/server-components`, {
+    await page.goto('/server-components', {
       waitUntil: 'domcontentloaded',
       timeout: 45000,
     });
@@ -75,7 +74,7 @@ test.describe('Server Components Page', () => {
   });
 
   test('Security examples section exists', async ({ page }) => {
-    await page.goto(`${BASE_URL}/server-components`, {
+    await page.goto('/server-components', {
       waitUntil: 'domcontentloaded',
     });
 
@@ -93,7 +92,7 @@ test.describe('Server Components Page', () => {
 
   test('Navigation to Server Components from sidebar', async ({ page }) => {
     // Start at home page
-    await page.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('main, [role="main"]', { state: 'attached', timeout: 10000 }).catch(() => {});
 
     // Look for Server Components link in navigation
@@ -112,7 +111,7 @@ test.describe('Server Components Page', () => {
   });
 
   test('Server Actions section exists', async ({ page }) => {
-    await page.goto(`${BASE_URL}/server-components`, {
+    await page.goto('/server-components', {
       waitUntil: 'domcontentloaded',
     });
 
@@ -131,7 +130,7 @@ test.describe('Server Components Page', () => {
     // Set mobile viewport
     await page.setViewportSize({ width: 375, height: 667 });
 
-    await page.goto(`${BASE_URL}/server-components`, {
+    await page.goto('/server-components', {
       waitUntil: 'domcontentloaded',
       timeout: 30000,
     });
@@ -162,7 +161,7 @@ test.describe('Server Components - Localized', () => {
         }
       });
 
-      await page.goto(`${BASE_URL}${locale}/server-components`, {
+      await page.goto(`${locale}/server-components`, {
         waitUntil: 'domcontentloaded',
         timeout: 30000,
       });

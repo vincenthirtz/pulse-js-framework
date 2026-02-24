@@ -8,9 +8,8 @@ import { expect } from '@playwright/test';
 import { navigateAndWait, waitForTranslations } from '../utils/common-helpers.js';
 
 export class BasePage {
-  constructor(page, baseURL) {
+  constructor(page) {
     this.page = page;
-    this.baseURL = baseURL;
 
     // Common selectors
     this.selectors = {
@@ -49,8 +48,7 @@ export class BasePage {
    * @param {object} options - Navigation options
    */
   async goto(path, options = {}) {
-    const url = `${this.baseURL}${path}`;
-    await navigateAndWait(this.page, url, options);
+    await navigateAndWait(this.page, path, options);
   }
 
   /**
@@ -285,7 +283,7 @@ export class BasePage {
    * Check if link is internal
    */
   isInternalLink(href) {
-    return href.startsWith('/') || href.startsWith(this.baseURL);
+    return href.startsWith('/') || !href.startsWith('http');
   }
 
   /**

@@ -47,7 +47,6 @@ const ROUTES = [
 const LOCALES = ['', '/fr', '/es', '/de', '/pt', '/ja'];
 
 // Base URL from environment (set by GitHub Actions)
-const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000';
 
 test.describe('Console Error Detection', () => {
   let consoleErrors = [];
@@ -109,7 +108,7 @@ test.describe('Console Error Detection', () => {
   // Test each route
   for (const route of ROUTES) {
     test(`${route || '/'} - No console errors`, async ({ page }) => {
-      await page.goto(`${BASE_URL}${route}`, {
+      await page.goto(route, {
         waitUntil: 'domcontentloaded',
         timeout: 15000,
       });
@@ -167,7 +166,7 @@ test.describe('Localized Pages', () => {
   for (const locale of LOCALES.slice(1)) { // Skip default locale (already tested)
     for (const route of SAMPLE_ROUTES) {
       test(`${locale}${route} - No console errors`, async ({ page }) => {
-        await page.goto(`${BASE_URL}${locale}${route}`, {
+        await page.goto(`${locale}${route}`, {
           waitUntil: 'domcontentloaded',
           timeout: 15000,
         });
@@ -190,7 +189,7 @@ test.describe('Localized Pages', () => {
 
 test.describe('Interactive Features', () => {
   test('Search modal - No errors', async ({ page }) => {
-    await page.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
 
     // Wait for main content to render
     await page.waitForSelector('main, [role="main"]', { state: 'attached', timeout: 10000 }).catch(() => {});
@@ -236,7 +235,7 @@ test.describe('Interactive Features', () => {
     // Set mobile viewport
     await page.setViewportSize({ width: 375, height: 667 });
 
-    await page.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('main, [role="main"]', { state: 'attached', timeout: 10000 }).catch(() => {});
 
     const consoleErrors = [];
@@ -261,7 +260,7 @@ test.describe('Interactive Features', () => {
   });
 
   test('Code playground - No errors', async ({ page }) => {
-    await page.goto(`${BASE_URL}/playground`, { waitUntil: 'domcontentloaded' });
+    await page.goto('/playground', { waitUntil: 'domcontentloaded' });
 
     const consoleErrors = [];
     page.on('console', msg => {
@@ -287,7 +286,7 @@ test.describe('Accessibility Checks', () => {
     const violations = [];
 
     for (const route of ROUTES.slice(0, 5)) { // Test first 5 routes for a11y
-      await page.goto(`${BASE_URL}${route}`, { waitUntil: 'domcontentloaded' });
+      await page.goto(route, { waitUntil: 'domcontentloaded' });
       await page.waitForSelector('main, [role="main"]', { state: 'attached', timeout: 10000 }).catch(() => {});
 
       // Check for basic a11y issues

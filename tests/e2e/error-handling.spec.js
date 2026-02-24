@@ -9,7 +9,6 @@ import { test, expect } from '@playwright/test';
 import { BasePage } from './pages/BasePage.js';
 import { createConsoleCollector, navigateAndWait } from './utils/common-helpers.js';
 
-const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000';
 
 /**
  * Open search modal with fallback (keyboard shortcut → search button → retry)
@@ -45,7 +44,7 @@ test.describe('Error Handling - 404 Pages', () => {
     const consoleCollector = createConsoleCollector(page);
 
     // Navigate to non-existent route
-    const response = await page.goto(`${BASE_URL}/this-route-does-not-exist-12345`, {
+    const response = await page.goto('/this-route-does-not-exist-12345', {
       waitUntil: 'domcontentloaded'
     });
 
@@ -73,7 +72,7 @@ test.describe('Error Handling - 404 Pages', () => {
   });
 
   test('404 page has navigation', async ({ page }) => {
-    await page.goto(`${BASE_URL}/non-existent-route-xyz`, {
+    await page.goto('/non-existent-route-xyz', {
       waitUntil: 'domcontentloaded'
     }).catch(() => {
       // Ignore navigation errors for 404
@@ -105,7 +104,7 @@ test.describe('Error Handling - 404 Pages', () => {
   });
 
   test('404 page is accessible', async ({ page }) => {
-    await page.goto(`${BASE_URL}/invalid-route-test`, {
+    await page.goto('/invalid-route-test', {
       waitUntil: 'domcontentloaded'
     }).catch(() => {
       // Ignore navigation errors
@@ -133,7 +132,7 @@ test.describe('Error Handling - 404 Pages', () => {
 
 test.describe('Error Handling - Network Offline', () => {
   test('Handles offline state gracefully', async ({ page, context }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/');
 
     // Simulate going offline
@@ -156,7 +155,7 @@ test.describe('Error Handling - Network Offline', () => {
   });
 
   test('Service worker provides offline fallback (if enabled)', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/');
 
     // Check if service worker is registered
@@ -171,7 +170,7 @@ test.describe('Error Handling - Network Offline', () => {
       await page.context().setOffline(true);
 
       // Try to navigate
-      const response = await page.goto(`${BASE_URL}/getting-started`, {
+      const response = await page.goto('/getting-started', {
         waitUntil: 'domcontentloaded'
       }).catch(() => null);
 
@@ -188,7 +187,7 @@ test.describe('Error Handling - Network Offline', () => {
   });
 
   test('Reconnection handling works', async ({ page, context }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/');
 
     // Simulate intermittent connectivity
@@ -213,7 +212,7 @@ test.describe('Error Handling - Slow Network', () => {
   });
 
   test('Page loads with slow network', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
 
     // Should load even with slow network (may take longer)
     await basePage.goto('/', { timeout: 60000 });
@@ -221,7 +220,7 @@ test.describe('Error Handling - Slow Network', () => {
   });
 
   test('Loading states shown during slow load', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
 
     // Start navigation
     const navigationPromise = basePage.goto('/getting-started').catch(() => {
@@ -259,7 +258,7 @@ test.describe('Error Handling - Slow Network', () => {
   });
 
   test('No layout shifts during slow load', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
 
     await basePage.goto('/');
 
@@ -301,7 +300,7 @@ test.describe('Error Handling - Slow Network', () => {
 
 test.describe('Error Handling - Large Content', () => {
   test('Long pages scroll correctly', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
 
     // Go to a long page (changelog is typically long)
     await basePage.goto('/changelog');
@@ -328,7 +327,7 @@ test.describe('Error Handling - Large Content', () => {
   });
 
   test('TOC handles many sections', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/api-reference'); // Page with many sections
 
     const tocLinks = await basePage.getTOCLinks();
@@ -350,7 +349,7 @@ test.describe('Error Handling - Large Content', () => {
   });
 
   test('Search handles many results', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/');
 
     await openSearchModal(page);
@@ -387,7 +386,7 @@ test.describe('Error Handling - Large Content', () => {
 
 test.describe('Error Handling - Memory Leaks', () => {
   test('No memory leaks during navigation', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
 
     // Get initial memory
     const initialMemory = await page.evaluate(() => {
@@ -431,7 +430,7 @@ test.describe('Error Handling - Memory Leaks', () => {
   });
 
   test('Effects cleanup on unmount', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
 
     // Navigate to a page with interactive features
     await basePage.goto('/playground');
@@ -459,7 +458,7 @@ test.describe('Error Handling - Browser Compatibility', () => {
       }
     });
 
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/');
 
     // Interact with page
@@ -483,7 +482,7 @@ test.describe('Error Handling - Browser Compatibility', () => {
       }
     });
 
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/');
 
     if (deprecationWarnings.length > 0) {
@@ -497,7 +496,7 @@ test.describe('Error Handling - Browser Compatibility', () => {
 
 test.describe('Error Handling - Edge Cases', () => {
   test('Handles rapid theme switching', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/');
 
     // Rapidly toggle theme
@@ -511,7 +510,7 @@ test.describe('Error Handling - Edge Cases', () => {
   });
 
   test('Handles rapid navigation', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
 
     // Rapidly navigate
     const routes = ['/', '/getting-started', '/api-reference', '/examples'];
@@ -530,7 +529,7 @@ test.describe('Error Handling - Edge Cases', () => {
   });
 
   test('Handles concurrent search queries', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/');
 
     await openSearchModal(page);
@@ -558,7 +557,7 @@ test.describe('Error Handling - Edge Cases', () => {
   });
 
   test('Handles empty search', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/');
 
     await openSearchModal(page);
@@ -573,7 +572,7 @@ test.describe('Error Handling - Edge Cases', () => {
   });
 
   test('Handles special characters in search', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/');
 
     await openSearchModal(page);

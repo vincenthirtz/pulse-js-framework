@@ -20,13 +20,12 @@ import { BasePage } from './pages/BasePage.js';
 import { SearchModal } from './pages/SearchModal.js';
 import { ROUTES, HIGH_PRIORITY_ROUTES } from './fixtures/routes.js';
 
-const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000';
 
 test.describe('Accessibility - WCAG 2.1 AA Compliance', () => {
   // Test all routes for critical violations
   for (const route of ROUTES) {
     test(`${route || '/'} - No critical a11y violations`, async ({ page }) => {
-      const basePage = new BasePage(page, BASE_URL);
+      const basePage = new BasePage(page);
       await basePage.goto(route);
 
       // Exclude sandbox iframes (contain user-generated code that can't be made accessible)
@@ -41,7 +40,7 @@ test.describe('Accessibility - WCAG 2.1 AA Compliance', () => {
 
 test.describe('Accessibility - Keyboard Navigation', () => {
   test('Tab order is logical on homepage', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/');
 
     // Test tab order (header has ~5-7 visible buttons/links)
@@ -55,14 +54,14 @@ test.describe('Accessibility - Keyboard Navigation', () => {
   });
 
   test('Skip links work', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/');
 
     await testSkipLinks(page);
   });
 
   test('Focus visible on interactive elements', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/');
 
     // Tab to first few interactive elements and check focus indicators
@@ -89,7 +88,7 @@ test.describe('Accessibility - Keyboard Navigation', () => {
   });
 
   test('Escape key closes search modal', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     const searchModal = new SearchModal(page);
 
     await basePage.goto('/');
@@ -107,7 +106,7 @@ test.describe('Accessibility - Keyboard Navigation', () => {
     // Set mobile viewport
     await page.setViewportSize({ width: 375, height: 667 });
 
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/');
 
     // Open mobile menu
@@ -129,7 +128,7 @@ test.describe('Accessibility - Keyboard Navigation', () => {
   });
 
   test('Arrow keys navigate TOC', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/getting-started'); // Page with TOC
 
     // Find TOC
@@ -150,7 +149,7 @@ test.describe('Accessibility - Keyboard Navigation', () => {
 
 test.describe('Accessibility - Screen Reader Support', () => {
   test('Page has proper ARIA landmarks', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/');
 
     // Check for main landmark
@@ -172,14 +171,14 @@ test.describe('Accessibility - Screen Reader Support', () => {
 
   test('Search modal has correct ARIA attributes', async ({ page }) => {
     const searchModal = new SearchModal(page);
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
 
     await basePage.goto('/');
     await searchModal.assertAriaAttributes();
   });
 
   test('Buttons have accessible names', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/');
 
     // Get all buttons
@@ -208,7 +207,7 @@ test.describe('Accessibility - Screen Reader Support', () => {
   });
 
   test('Images have alt text', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/');
 
     const images = await basePage.getAllImages();
@@ -222,7 +221,7 @@ test.describe('Accessibility - Screen Reader Support', () => {
   });
 
   test('Form inputs have labels', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/');
 
     const inputs = await page.evaluate(() => {
@@ -253,7 +252,7 @@ test.describe('Accessibility - Screen Reader Support', () => {
   });
 
   test('Heading hierarchy is correct', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/getting-started');
 
     await testHeadingHierarchy(page);
@@ -262,7 +261,7 @@ test.describe('Accessibility - Screen Reader Support', () => {
 
 test.describe('Accessibility - Color Contrast', () => {
   test('Text has sufficient contrast (light theme)', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/');
 
     // Ensure light theme
@@ -281,7 +280,7 @@ test.describe('Accessibility - Color Contrast', () => {
   });
 
   test('Text has sufficient contrast (dark theme)', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/');
 
     // Ensure dark theme
@@ -300,7 +299,7 @@ test.describe('Accessibility - Color Contrast', () => {
   });
 
   test('Links have sufficient contrast', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/');
 
     const links = page.locator('main a').first();
@@ -314,7 +313,7 @@ test.describe('Accessibility - Color Contrast', () => {
   });
 
   test('Buttons have sufficient contrast', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/');
 
     const button = page.locator('button').first();
@@ -328,7 +327,7 @@ test.describe('Accessibility - Color Contrast', () => {
 
 test.describe('Accessibility - Interactive Elements', () => {
   test('All interactive elements are keyboard accessible', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/');
 
     // Wait for SPA to render interactive elements
@@ -353,14 +352,14 @@ test.describe('Accessibility - Interactive Elements', () => {
 
   test('Focus trap works in search modal', async ({ page }) => {
     const searchModal = new SearchModal(page);
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
 
     await basePage.goto('/');
     await searchModal.testFocusTrap();
   });
 
   test('No keyboard traps on main content', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/getting-started');
 
     // Tab through many elements without getting stuck
@@ -385,7 +384,7 @@ test.describe('Accessibility - Mobile', () => {
   });
 
   test('Touch targets are at least 44x44px', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/');
 
     const touchTargets = await page.evaluate(() => {
@@ -424,7 +423,7 @@ test.describe('Accessibility - Mobile', () => {
   });
 
   test('Mobile menu is keyboard accessible', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/');
 
     // Tab to mobile menu button

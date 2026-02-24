@@ -1,8 +1,8 @@
 @page App
 
 state {
-  count: 0,
-  theme: 'light',
+  count: 0
+  theme: 'light'
   history: []
 }
 
@@ -38,36 +38,34 @@ view {
   }
 }
 
-script {
-  function incrementCount() {
-    count++;
-    addHistory('Increment', count);
-  }
-
-  function decrementCount() {
-    count--;
-    addHistory('Decrement', count);
-  }
-
-  function resetCount() {
-    const oldCount = count;
-    count = 0;
-    addHistory('Reset', oldCount);
-  }
-
-  function toggleTheme() {
-    theme = theme === 'light' ? 'dark' : 'light';
-  }
-
-  function addHistory(action, value) {
-    const now = new Date();
-    const time = `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
-    history = [...history, { action, value, time }];
-
-    // Keep only last 5 entries
+actions {
+  addHistory(action, value) {
+    const now = new Date()
+    const time = `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`
+    history = [...history, { action, value, time }]
     if (history.length > 5) {
-      history = history.slice(-5);
+      history = history.slice(-5)
     }
+  }
+
+  incrementCount() {
+    count++
+    addHistory('Increment', count)
+  }
+
+  decrementCount() {
+    count--
+    addHistory('Decrement', count)
+  }
+
+  resetCount() {
+    const oldCount = count
+    count = 0
+    addHistory('Reset', oldCount)
+  }
+
+  toggleTheme() {
+    theme = theme === 'light' ? 'dark' : 'light'
   }
 }
 

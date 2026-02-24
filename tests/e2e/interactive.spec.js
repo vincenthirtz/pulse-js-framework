@@ -11,11 +11,10 @@ import { SearchModal } from './pages/SearchModal.js';
 import { createConsoleCollector } from './utils/common-helpers.js';
 import { VALID_QUERIES, NO_RESULTS_QUERIES } from './fixtures/search-queries.js';
 
-const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000';
 
 test.describe('Interactive - Search Modal', () => {
   test('Opens with Ctrl+K shortcut', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     const searchModal = new SearchModal(page);
 
     await basePage.goto('/');
@@ -28,7 +27,7 @@ test.describe('Interactive - Search Modal', () => {
 
   test('Closes with Escape key', async ({ page }) => {
     const searchModal = new SearchModal(page);
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
 
     await basePage.goto('/');
     await searchModal.assertClosesWithEscape();
@@ -36,7 +35,7 @@ test.describe('Interactive - Search Modal', () => {
 
   test('Closes when clicking outside', async ({ page }) => {
     const searchModal = new SearchModal(page);
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
 
     await basePage.goto('/');
     await searchModal.open();
@@ -51,7 +50,7 @@ test.describe('Interactive - Search Modal', () => {
   for (const { query, expectedMinResults, description } of VALID_QUERIES) {
     test(`Search returns results for "${query}" (${description})`, async ({ page }) => {
       const searchModal = new SearchModal(page);
-      const basePage = new BasePage(page, BASE_URL);
+      const basePage = new BasePage(page);
 
       await basePage.goto('/');
       await searchModal.assertSearchWorks(query, expectedMinResults);
@@ -61,7 +60,7 @@ test.describe('Interactive - Search Modal', () => {
   for (const query of NO_RESULTS_QUERIES) {
     test(`Search shows no results for "${query}"`, async ({ page }) => {
       const searchModal = new SearchModal(page);
-      const basePage = new BasePage(page, BASE_URL);
+      const basePage = new BasePage(page);
 
       await basePage.goto('/');
       await searchModal.assertNoResults(query);
@@ -70,7 +69,7 @@ test.describe('Interactive - Search Modal', () => {
 
   test('Keyboard navigation works (arrow keys)', async ({ page }) => {
     const searchModal = new SearchModal(page);
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
 
     await basePage.goto('/');
     await searchModal.testKeyboardNavigation();
@@ -78,7 +77,7 @@ test.describe('Interactive - Search Modal', () => {
 
   test('Search across locales', async ({ page }) => {
     const searchModal = new SearchModal(page);
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
 
     // Test in French locale
     await basePage.goto('/fr/');
@@ -98,7 +97,7 @@ test.describe('Interactive - Mobile Navigation', () => {
   });
 
   test('Menu toggle button is visible', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/');
 
     const menuButton = page.locator('button[aria-label*="menu" i]').first();
@@ -106,7 +105,7 @@ test.describe('Interactive - Mobile Navigation', () => {
   });
 
   test('Menu opens and closes', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/');
 
     const menuButton = page.locator('button[aria-label*="menu" i]').first();
@@ -136,7 +135,7 @@ test.describe('Interactive - Mobile Navigation', () => {
   });
 
   test('Navigation links work in mobile menu', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/');
 
     await basePage.openMobileMenu();
@@ -153,7 +152,7 @@ test.describe('Interactive - Mobile Navigation', () => {
   });
 
   test('Menu closes on link click', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/');
 
     await basePage.openMobileMenu();
@@ -182,7 +181,7 @@ test.describe('Interactive - Mobile Navigation', () => {
 test.describe('Interactive - Code Playground', () => {
   test('Playground loads without errors', async ({ page }) => {
     const consoleCollector = createConsoleCollector(page);
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
 
     await basePage.goto('/playground');
 
@@ -203,7 +202,7 @@ test.describe('Interactive - Code Playground', () => {
   });
 
   test('Code editing works', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/playground');
 
     await page.waitForSelector('textarea, [contenteditable="true"], .monaco-editor, .code-editor', { state: 'attached', timeout: 10000 }).catch(() => {});
@@ -222,7 +221,7 @@ test.describe('Interactive - Code Playground', () => {
 
 test.describe('Interactive - Code Blocks', () => {
   test('Syntax highlighting is applied', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/getting-started');
 
     // Wait for code blocks to be rendered by the SPA
@@ -251,7 +250,7 @@ test.describe('Interactive - Code Blocks', () => {
   });
 
   test('Copy button exists on code blocks', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/api-reference');
 
     const copyButtons = await page.locator('button[aria-label*="copy" i], button[aria-label*="copier" i]').count();
@@ -265,7 +264,7 @@ test.describe('Interactive - Code Blocks', () => {
   });
 
   test('Copy button works', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/getting-started');
 
     await basePage.testCopyButton(0);
@@ -275,7 +274,7 @@ test.describe('Interactive - Code Blocks', () => {
 
 test.describe('Interactive - Table of Contents', () => {
   test('TOC is generated on pages with headings', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/api-reference');
 
     const tocLinks = await basePage.getTOCLinks();
@@ -287,7 +286,7 @@ test.describe('Interactive - Table of Contents', () => {
   });
 
   test('TOC links scroll to sections', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/getting-started');
 
     const tocLinks = await basePage.getTOCLinks();
@@ -313,7 +312,7 @@ test.describe('Interactive - Table of Contents', () => {
   });
 
   test('Active section is highlighted', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/getting-started');
 
     await page.waitForSelector('[data-toc] a.active, .table-of-contents a.active, [data-toc] a[aria-current="true"]', { state: 'attached', timeout: 3000 }).catch(() => {});
@@ -336,7 +335,7 @@ test.describe('Interactive - Table of Contents', () => {
   test('TOC collapse/expand works on desktop', async ({ page }) => {
     await page.setViewportSize({ width: 1920, height: 1080 });
 
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/api-reference');
 
     // Look for TOC collapse button
@@ -351,7 +350,7 @@ test.describe('Interactive - Table of Contents', () => {
 
 test.describe('Interactive - Theme Switcher', () => {
   test('Theme toggle works', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/');
 
     // Wait for SPA to set data-theme attribute (defaults to "dark")
@@ -372,7 +371,7 @@ test.describe('Interactive - Theme Switcher', () => {
   });
 
   test('Theme persists in localStorage', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/');
 
     // Toggle to dark theme
@@ -385,7 +384,7 @@ test.describe('Interactive - Theme Switcher', () => {
   });
 
   test('No flash of unstyled content', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
 
     // Set theme in localStorage before page load
     await page.addInitScript(() => {
@@ -408,7 +407,7 @@ test.describe('Interactive - Theme Switcher', () => {
 
 test.describe('Interactive - Language Switcher', () => {
   test('All locales are available', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/');
 
     // Look for language selector or links
@@ -421,7 +420,7 @@ test.describe('Interactive - Language Switcher', () => {
   });
 
   test('Switching language preserves current page', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/getting-started');
 
     // Find French language link
@@ -436,7 +435,7 @@ test.describe('Interactive - Language Switcher', () => {
   });
 
   test('Translations load correctly', async ({ page }) => {
-    const basePage = new BasePage(page, BASE_URL);
+    const basePage = new BasePage(page);
     await basePage.goto('/fr/');
 
     await page.waitForFunction(() => document.body.textContent && document.body.textContent.trim().length > 100, { timeout: 5000 }).catch(() => {});
