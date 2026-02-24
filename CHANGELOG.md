@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.11.3] - 2026-02-24
+
+### Changes
+
+- fix(ci): extract release PR into reusable workflow to avoid PAT dispatch
+- fix(ci): revert to API dispatch for release trigger
+- fix(ci): make workflow_call release_type optional to prevent startup_failure
+- fix(ci): use workflow_call instead of API dispatch for release trigger
+- fix(ci): always run all jobs on workflow_dispatch and require test success for release
+- fix(ci): use RELEASE_PAT for workflow dispatch to avoid GITHUB_TOKEN 500 error
+- ci: harden workflows with security, reliability, and performance improvements
+- ci: gate production deploy on E2E smoke tests
+
+---
+
+
 ## [1.11.2] - 2026-02-24
 
 ### Changes
