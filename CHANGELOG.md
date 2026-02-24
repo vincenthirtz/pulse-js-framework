@@ -1,5 +1,58 @@
 # Changelog
 
+## [1.11.0] - 2026-02-24
+
+### Changes
+
+- fix(e2e): handle GitHub API 403 rate limiting in CI
+- ci(pr-preview): remove duplicate E2E tests from PR Preview workflow
+- fix(a11y): add Escape key handler to close mobile menu
+- fix(e2e): resolve 8 E2E test failures across all 3 CI shards
+- fix(e2e): resolve ERR_CONNECTION_REFUSED by using Playwright baseURL + optimize CI
+- fix(ci): split E2E smoke into 3 shards + build locally instead of testing prod
+- perf(e2e): optimize E2E test speed by replacing waitForTimeout with smart waits
+- fix(e2e): resolve color contrast test by walking DOM for effective background
+- fix(e2e): resolve 5 failing E2E tests across a11y, search, and performance
+- fix: resolve 33 bugs across compiler/runtime + 14 E2E test failures
+- perf: reduce token consumption by 69% with modular context injection
+- fix(e2e): resolve 30 E2E smoke test failures on PR #110
+- fix(ci): install @playwright/test in E2E workflow steps
+- fix(test): force clean exit in graphql-subscriptions test
+- fix(test): increase timeout for slow subscription/websocket tests
+- fix(test): resolve 2 CI test failures (graphql-subscriptions, utils)
+- fix(test): resolve 3 CI test failures on PR #110
+- chore: update runtime modules, improve tests, and add type definitions
+- fix: address 8 low-priority audit findings (architecture & maintainability)
+- fix(test): make @axe-core/playwright import optional in e2e a11y helpers
+- feat(editor): add export keyword and extended grammar rules for .pulse syntax
+- feat(editor): enhance .pulse syntax highlighting with 17 new grammar rules
+- fix(test): make CSRF security tests resilient to CI runner variability
+- feat(editor): improve syntax highlighting for .pulse files
+- fix(examples): fix broken imports and add E2E health checks
+- feat(examples): add new example projects, READMEs, and improve existing examples
+- feat(docs): add Showroom page with live iframe preview of all examples
+- fix(e2e): install @axe-core/playwright in CI workflow instead of devDependencies
+- fix(e2e): add @axe-core/playwright devDependency for accessibility tests
+- feat(e2e): expand test suite with comprehensive accessibility, interactive, error handling, and performance tests
+- fix(e2e): resolve test failures by fixing translation loading race conditions
+- chore: drop Node 18 support, add Node 24 to test matrix
+- fix(test): adjust rate limit test to account for natural token refill
+- fix(mutex): use promise-chain pattern for true atomicity
+- ci: retrigger CI to test mutex fix
+- fix(server-components): fix mutex race condition and relax CSRF timing test
+- fix(test): improve Node 18 compatibility for timing-sensitive tests
+- test: achieve 92%+ coverage for server components and CLI build
+- fix(server-actions): improve timeout handling for Node 18 compatibility
+- fix: add missing commas in locale pages.js files
+- test: fix translation keys and add server-components e2e tests
+- test: fix Stripe key length in server-components-security test
+- feat: implement Server Components with comprehensive security
+- docs: enhance CLAUDE.md and migrate skill format
+- feat(skills): add lead-developer orchestrator skill
+
+---
+
+
 ## [1.10.4] - 2026-02-13
 
 ### Changes
