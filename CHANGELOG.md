@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.11.1] - 2026-02-24
+
+### Changes
+
+- ci: respect change detection on workflow_dispatch
+
+---
+
+
 ## [1.11.0] - 2026-02-24
 
 ### Changes
