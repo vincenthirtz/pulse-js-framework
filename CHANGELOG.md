@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.11.2] - 2026-02-24
+
+### Changes
+
+- chore: remove auto-generate missing tests workflow and script
+- ci(e2e): cache Playwright system dependencies across shards
+
+---
+
+
 ## [1.11.1] - 2026-02-24
 
 ### Changes
