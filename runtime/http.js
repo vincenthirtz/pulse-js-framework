@@ -246,6 +246,7 @@ class HttpClient {
           try {
             return JSON.parse(text);
           } catch {
+            // Response body is not valid JSON — return raw text
             return text;
           }
 

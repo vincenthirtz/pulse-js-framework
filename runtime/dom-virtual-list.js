@@ -13,6 +13,7 @@ import { pulse, effect, computed, batch } from './pulse.js';
 import { getAdapter } from './dom-adapter.js';
 import { list } from './dom-list.js';
 import { delegate } from './dom-event-delegate.js';
+import { DOMError } from './errors.js';
 
 // ============================================================================
 // Constants
@@ -57,7 +58,7 @@ export function virtualList(getItems, template, keyFn, options = {}) {
   const { itemHeight, overscan, containerHeight, recycle, on: eventHandlers } = config;
 
   if (!itemHeight || itemHeight <= 0) {
-    throw new Error('[Pulse] virtualList requires a positive itemHeight');
+    throw new DOMError('virtualList requires a positive itemHeight', { code: 'INVALID_ITEM_HEIGHT', suggestion: 'Provide options.itemHeight as a positive number' });
   }
 
   const dom = getAdapter();

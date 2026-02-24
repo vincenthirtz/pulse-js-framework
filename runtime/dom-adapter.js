@@ -10,6 +10,8 @@
  * allowing the same reactive code to run in Node.js, Deno, or custom environments.
  */
 
+import { DOMError } from './errors.js';
+
 // ============================================================================
 // DOM Adapter Interface
 // ============================================================================
@@ -845,9 +847,9 @@ export function getAdapter() {
     if (typeof document !== 'undefined') {
       activeAdapter = new BrowserDOMAdapter();
     } else {
-      throw new Error(
-        '[Pulse] No DOM adapter configured. ' +
-        'In non-browser environments, call setAdapter() with a MockDOMAdapter or custom implementation.'
+      throw new DOMError(
+        'No DOM adapter configured',
+        { code: 'DOM_ADAPTER_MISSING', suggestion: 'In non-browser environments, call setAdapter() with a MockDOMAdapter or custom implementation.' }
       );
     }
   }

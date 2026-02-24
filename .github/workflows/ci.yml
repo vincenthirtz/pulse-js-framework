@@ -220,11 +220,72 @@ jobs:
             COVERAGE=$(jq '.total.lines.pct' coverage/coverage-summary.json)
             echo "Coverage: $COVERAGE%"
             if (( $(echo "$COVERAGE < 70" | bc -l) )); then
-              echo "::warning::Coverage is below 70% ($COVERAGE%)"
+              echo "::error::Coverage is below 70% ($COVERAGE%)"
+              exit 1
             fi
           else
-            echo "::warning::Coverage summary not found"
+            echo "::error::Coverage summary not found"
+            exit 1
           fi
+
+  e2e-smoke:
+    name: E2E Smoke Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [changes, test]
+    if: >-
+      needs.changes.outputs.src == 'true' ||
+      needs.changes.outputs.tests == 'true' ||
+      needs.changes.outputs.deps == 'true' ||
+      github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install E2E test dependencies
+        run: npm install --no-save @axe-core/playwright
+
+      - name: Get Playwright version
+        id: playwright-version
+        run: echo "PLAYWRIGHT_VERSION=$(npx playwright --version | awk '{print $2}')" >> $GITHUB_OUTPUT
+
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ steps.playwright-version.outputs.PLAYWRIGHT_VERSION }}
+
+      - name: Install Playwright Chromium
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: Install Playwright system deps only
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+
+      - name: Run E2E smoke tests (Chromium only)
+        run: npx playwright test --project=chromium --grep-invert "Examples Health Check"
+        env:
+          PLAYWRIGHT_BASE_URL: 'https://pulse-js.fr'
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-smoke-report
+          path: playwright-report/
+          retention-days: 7
 
   build:
     name: Build
