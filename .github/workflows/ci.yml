@@ -17,6 +17,11 @@ on:
           - minor
           - major
         default: 'none'
+      full_run:
+        description: 'Force all jobs to run (ignore change detection)'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -74,7 +79,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     needs: [changes]
-    if: needs.changes.outputs.deps == 'true' || github.event_name == 'workflow_dispatch'
+    if: needs.changes.outputs.deps == 'true' || (github.event_name == 'workflow_dispatch' && inputs.full_run)
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -106,7 +111,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     needs: [changes]
-    if: needs.changes.outputs.src == 'true' || needs.changes.outputs.ci == 'true' || github.event_name == 'workflow_dispatch'
+    if: needs.changes.outputs.src == 'true' || needs.changes.outputs.ci == 'true' || (github.event_name == 'workflow_dispatch' && inputs.full_run)
 
     steps:
       - name: Checkout repository
@@ -132,7 +137,7 @@ jobs:
       needs.changes.outputs.tests == 'true' ||
       needs.changes.outputs.deps == 'true' ||
       needs.changes.outputs.ci == 'true' ||
-      github.event_name == 'workflow_dispatch'
+      (github.event_name == 'workflow_dispatch' && inputs.full_run)
 
     strategy:
       fail-fast: false
@@ -152,7 +157,7 @@ jobs:
       - name: Cache test results
         uses: actions/cache@v4
         id: test-cache
-        if: github.event_name != 'workflow_dispatch'
+        if: github.event_name != 'workflow_dispatch' || !inputs.full_run
         with:
           path: .test-results
           key: test-node${{ matrix.node-version }}-${{ hashFiles('runtime/**/*.js', 'compiler/**/*.js', 'cli/**/*.js', 'loader/**/*.js', 'test/**/*.js', 'scripts/**/*.js', 'mobile/**/*.js') }}-${{ hashFiles('package-lock.json') }}
@@ -180,7 +185,7 @@ jobs:
       needs.changes.outputs.src == 'true' ||
       needs.changes.outputs.tests == 'true' ||
       needs.changes.outputs.deps == 'true' ||
-      github.event_name == 'workflow_dispatch'
+      (github.event_name == 'workflow_dispatch' && inputs.full_run)
 
     steps:
       - name: Checkout repository
@@ -195,7 +200,7 @@ jobs:
       - name: Cache coverage results
         uses: actions/cache@v4
         id: cov-cache
-        if: github.event_name != 'workflow_dispatch'
+        if: github.event_name != 'workflow_dispatch' || !inputs.full_run
         with:
           path: coverage
           key: coverage-${{ hashFiles('runtime/**/*.js', 'compiler/**/*.js', 'cli/**/*.js', 'loader/**/*.js', 'test/**/*.js', 'scripts/**/*.js', 'mobile/**/*.js') }}-${{ hashFiles('package-lock.json') }}
@@ -240,7 +245,7 @@ jobs:
         needs.changes.outputs.src == 'true' ||
         needs.changes.outputs.tests == 'true' ||
         needs.changes.outputs.deps == 'true' ||
-        github.event_name == 'workflow_dispatch'
+        (github.event_name == 'workflow_dispatch' && inputs.full_run)
       )
 
     strategy:
