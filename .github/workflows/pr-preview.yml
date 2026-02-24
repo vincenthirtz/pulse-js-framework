@@ -15,17 +15,45 @@ permissions:
   contents: read
 
 jobs:
+  # Skip preview for docs-only or CI-only changes
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      should_preview: ${{ steps.filter.outputs.src }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Detect changed paths
+        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3
+        id: filter
+        with:
+          filters: |
+            src:
+              - 'runtime/**'
+              - 'compiler/**'
+              - 'cli/**'
+              - 'loader/**'
+              - 'docs/**'
+              - 'examples/**'
+              - 'package.json'
+              - 'package-lock.json'
+
   preview:
     name: Deploy PR Preview
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    needs: changes
+    if: needs.changes.outputs.should_preview == 'true'
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 20
           cache: 'npm'
@@ -38,7 +66,7 @@ jobs:
 
       - name: Deploy to Netlify Preview
         id: netlify
-        uses: nwtgck/actions-netlify@v3
+        uses: nwtgck/actions-netlify@4cbaf4c08f1a7bfa537d6113472ef4424e4eb654 # v3
         with:
           publish-dir: './dist'
           production-deploy: false
@@ -50,7 +78,7 @@ jobs:
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
 
       - name: Comment PR with preview URL
-        uses: actions/github-script@v8
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         with:
           script: |
             const { data: comments } = await github.rest.issues.listComments({

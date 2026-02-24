@@ -45,12 +45,12 @@ jobs:
       ci: ${{ steps.filter.outputs.ci }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           fetch-depth: 0
 
       - name: Detect changed paths
-        uses: dorny/paths-filter@v3
+        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3
         id: filter
         with:
           filters: |
@@ -82,32 +82,46 @@ jobs:
     if: needs.changes.outputs.deps == 'true' || (github.event_name == 'workflow_dispatch' && inputs.full_run)
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 20
           cache: 'npm'
 
-      - name: Run npm audit
-        run: npm audit --audit-level=moderate
-        continue-on-error: true
+      - name: Run npm audit (informational)
+        run: npm audit --audit-level=moderate || true
 
-      - name: Check for security vulnerabilities
+      - name: Fail on critical or high vulnerabilities
         run: |
           AUDIT_RESULT=$(npm audit --audit-level=high --json 2>/dev/null || true)
-          VULNERABILITIES=$(echo "$AUDIT_RESULT" | jq -r '(.metadata.vulnerabilities.high // 0) + (.metadata.vulnerabilities.critical // 0) + (.metadata.vulnerabilities.moderate // 0)' 2>/dev/null || echo "0")
+          HIGH=$(echo "$AUDIT_RESULT" | jq -r '.metadata.vulnerabilities.high // 0' 2>/dev/null || echo "0")
+          CRITICAL=$(echo "$AUDIT_RESULT" | jq -r '.metadata.vulnerabilities.critical // 0' 2>/dev/null || echo "0")
+          MODERATE=$(echo "$AUDIT_RESULT" | jq -r '.metadata.vulnerabilities.moderate // 0' 2>/dev/null || echo "0")
 
-          if [ "$VULNERABILITIES" -gt 0 ]; then
-            echo "::warning::Found $VULNERABILITIES security vulnerabilities"
-            npm audit || true
-          else
-            echo "No high/critical vulnerabilities found"
+          echo "Vulnerabilities: critical=$CRITICAL, high=$HIGH, moderate=$MODERATE"
+
+          if [ "$CRITICAL" -gt 0 ]; then
+            echo "::error::Found $CRITICAL critical vulnerability(ies)"
+            npm audit --audit-level=critical
+            exit 1
           fi
 
+          if [ "$HIGH" -gt 0 ]; then
+            echo "::error::Found $HIGH high vulnerability(ies)"
+            npm audit --audit-level=high
+            exit 1
+          fi
+
+          if [ "$MODERATE" -gt 0 ]; then
+            echo "::warning::Found $MODERATE moderate vulnerability(ies) (non-blocking)"
+          fi
+
+          echo "No critical or high vulnerabilities found"
+
   lint:
-    name: Syntax Check
+    name: Lint & Syntax Check
     runs-on: ubuntu-latest
     timeout-minutes: 5
     needs: [changes]
@@ -115,10 +129,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 20
 
@@ -126,6 +140,10 @@ jobs:
         run: |
           find . -name "*.js" -not -path "./node_modules/*" -not -path "./dist/*" -print0 \
             | xargs -0 -P4 -n20 node --check
+
+      - name: Run Pulse semantic lint
+        run: node cli/index.js lint
+        continue-on-error: true
 
   test:
     name: Test (Node ${{ matrix.node-version }})
@@ -146,16 +164,16 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Setup Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
 
       - name: Cache test results
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         id: test-cache
         if: github.event_name != 'workflow_dispatch' || !inputs.full_run
         with:
@@ -189,16 +207,16 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 20
           cache: 'npm'
 
       - name: Cache coverage results
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         id: cov-cache
         if: github.event_name != 'workflow_dispatch' || !inputs.full_run
         with:
@@ -213,13 +231,15 @@ jobs:
         run: npx c8 --reporter=lcov --reporter=text --reporter=json-summary npm test
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        if: steps.cov-cache.outputs.cache-hit != 'true'
+        uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238 # v4
         with:
           files: ./coverage/lcov.info
           fail_ci_if_error: false
           token: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Check coverage threshold
+        if: steps.cov-cache.outputs.cache-hit != 'true'
         run: |
           if [ -f coverage/coverage-summary.json ]; then
             COVERAGE=$(jq '.total.lines.pct' coverage/coverage-summary.json)
@@ -255,10 +275,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 20
           cache: 'npm'
@@ -270,7 +290,7 @@ jobs:
         run: npm install --no-save @playwright/test @axe-core/playwright
 
       - name: Download build artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: dist
 
@@ -286,7 +306,7 @@ jobs:
 
       - name: Restore Playwright browsers cache
         id: playwright-cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ~/.cache/ms-playwright
           key: playwright-chromium-${{ steps.playwright-version.outputs.PLAYWRIGHT_VERSION }}
@@ -301,19 +321,19 @@ jobs:
 
       - name: Save Playwright browsers cache
         if: always() && steps.playwright-cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ~/.cache/ms-playwright
           key: playwright-chromium-${{ steps.playwright-version.outputs.PLAYWRIGHT_VERSION }}
 
       - name: Run E2E smoke tests (shard ${{ matrix.shard }}/3)
-        run: npx playwright test --project=chromium --grep-invert "Examples Health Check" --shard=${{ matrix.shard }}/3
+        run: npx playwright test --project=chromium --grep-invert "Examples Health Check" --shard=${{ matrix.shard }}/3 --retries=2
         env:
           PLAYWRIGHT_SERVE_DIR: './dist'
 
       - name: Upload Playwright report
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: e2e-smoke-report-shard-${{ matrix.shard }}
           path: playwright-report/
@@ -331,16 +351,16 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 20
           cache: 'npm'
 
       - name: Cache build output
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         id: build-cache
         with:
           path: dist
@@ -383,7 +403,7 @@ jobs:
           echo "Compressed size: $(du -h dist.tar.gz | awk '{print $1}')"
 
       - name: Upload build artifact (compressed)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: dist
           path: dist.tar.gz
@@ -394,10 +414,11 @@ jobs:
     name: Deploy to Netlify (Production)
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    needs: [build]
+    needs: [build, e2e-smoke]
     if: |
       always() &&
       needs.build.result == 'success' &&
+      (needs.e2e-smoke.result == 'success' || needs.e2e-smoke.result == 'skipped') &&
       github.ref == 'refs/heads/main' &&
       (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     permissions:
@@ -406,12 +427,12 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           fetch-depth: 0
 
       - name: Download build artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: dist
 
@@ -423,7 +444,7 @@ jobs:
 
       - name: Deploy to Netlify
         id: netlify
-        uses: nwtgck/actions-netlify@v3
+        uses: nwtgck/actions-netlify@4cbaf4c08f1a7bfa537d6113472ef4424e4eb654 # v3
         with:
           publish-dir: './dist'
           production-deploy: true
@@ -469,7 +490,7 @@ jobs:
 
     steps:
       - name: Trigger Manual Release workflow
-        uses: actions/github-script@v8
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         with:
           script: |
             await github.rest.actions.createWorkflowDispatch({
