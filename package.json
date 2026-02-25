@@ -100,17 +100,45 @@
     },
     "./core/errors": "./runtime/errors.js",
     "./vite": {
-      "types": "./types/index.d.ts",
+      "types": "./types/loaders.d.ts",
       "default": "./loader/vite-plugin.js"
     },
-    "./vite/server-components": "./loader/vite-plugin-server-components.js",
-    "./webpack": "./loader/webpack-loader.js",
-    "./webpack/server-components": "./loader/webpack-loader-server-components.js",
-    "./rollup": "./loader/rollup-plugin.js",
-    "./rollup/server-components": "./loader/rollup-plugin-server-components.js",
-    "./esbuild": "./loader/esbuild-plugin.js",
-    "./parcel": "./loader/parcel-plugin.js",
-    "./swc": "./loader/swc-plugin.js",
+    "./vite/server-components": {
+      "types": "./types/loaders.d.ts",
+      "default": "./loader/vite-plugin-server-components.js"
+    },
+    "./webpack": {
+      "types": "./types/loaders.d.ts",
+      "default": "./loader/webpack-loader.js"
+    },
+    "./webpack/server-components": {
+      "types": "./types/loaders.d.ts",
+      "default": "./loader/webpack-loader-server-components.js"
+    },
+    "./rollup": {
+      "types": "./types/loaders.d.ts",
+      "default": "./loader/rollup-plugin.js"
+    },
+    "./rollup/server-components": {
+      "types": "./types/loaders.d.ts",
+      "default": "./loader/rollup-plugin-server-components.js"
+    },
+    "./esbuild": {
+      "types": "./types/loaders.d.ts",
+      "default": "./loader/esbuild-plugin.js"
+    },
+    "./esbuild/server-components": {
+      "types": "./types/loaders.d.ts",
+      "default": "./loader/esbuild-plugin-server-components.js"
+    },
+    "./parcel": {
+      "types": "./types/loaders.d.ts",
+      "default": "./loader/parcel-plugin.js"
+    },
+    "./swc": {
+      "types": "./types/loaders.d.ts",
+      "default": "./loader/swc-plugin.js"
+    },
     "./mobile": "./mobile/bridge/pulse-native.js",
     "./runtime/ssr": "./runtime/ssr.js",
     "./runtime/ssr-stream": "./runtime/ssr-stream.js",
@@ -227,6 +255,7 @@
     "test:interceptor-manager": "node test/interceptor-manager.test.js",
     "test:lint": "node test/lint.test.js",
     "test:lite": "node test/lite.test.js",
+    "test:loader-shared": "node test/loader-shared.test.js",
     "test:logger": "node test/logger.test.js",
     "test:logger-coverage-boost": "node --test test/logger-coverage-boost.test.js",
     "test:logger-prod": "node test/logger-prod.test.js",
@@ -236,8 +265,8 @@
     "test:native": "node test/native.test.js",
     "test:native-coverage-boost": "node --test test/native-coverage-boost.test.js",
     "test:parcel-plugin": "node test/parcel-plugin.test.js",
-    "test:path-sanitizer": "node --test test/path-sanitizer.test.js",
     "test:parser-coverage": "node test/parser-coverage.test.js",
+    "test:path-sanitizer": "node --test test/path-sanitizer.test.js",
     "test:persistence": "node --test test/persistence.test.js",
     "test:persistence-coverage-boost": "node --test test/persistence-coverage-boost.test.js",
     "test:portal": "node --test test/portal.test.js",
@@ -251,7 +280,6 @@
     "test:security": "node test/security.test.js",
     "test:security-coverage-boost": "node --test test/security-coverage-boost.test.js",
     "test:security-regression": "node test/security-regression.test.js",
-    "test:server-utils": "node --test test/server-utils.test.js",
     "test:server-actions": "node --test test/server-actions.test.js",
     "test:server-actions-client": "node --test test/server-actions-client.test.js",
     "test:server-actions-server-extended": "node --test test/server-actions-server-extended.test.js",
@@ -267,6 +295,7 @@
     "test:server-components-security-comprehensive": "node --test test/server-components-security-comprehensive.test.js",
     "test:server-components-serializer": "node --test test/server-components-serializer.test.js",
     "test:server-components-validation": "node --test test/server-components-validation.test.js",
+    "test:server-utils": "node --test test/server-utils.test.js",
     "test:sourcemap": "node test/sourcemap.test.js",
     "test:sourcemap-coverage-boost": "node --test test/sourcemap-coverage-boost.test.js",
     "test:sse": "node --test test/sse.test.js",

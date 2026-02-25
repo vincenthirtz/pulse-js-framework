@@ -25,44 +25,22 @@
  *    import MyComponent from './MyComponent.pulse';
  *
  * Features:
- * - ✅ Automatic .pulse file transformation
- * - ✅ CSS extraction to Parcel's CSS pipeline
- * - ✅ Source map generation
- * - ✅ SASS/LESS/Stylus auto-detection and compilation
- * - ✅ Hot Module Replacement (HMR)
- * - ✅ Watch mode support
+ * - Automatic .pulse file transformation
+ * - CSS extraction to Parcel's CSS pipeline
+ * - Source map generation
+ * - SASS/LESS/Stylus auto-detection and compilation
+ * - Hot Module Replacement (HMR)
+ * - Watch mode support
  */
 
 import { compile } from '../compiler/index.js';
 import {
-  preprocessStylesSync,
-  isSassAvailable,
-  isLessAvailable,
-  isStylusAvailable,
-  getSassVersion,
-  getLessVersion,
-  getStylusVersion,
-  detectPreprocessor
-} from '../compiler/preprocessor.js';
-import { dirname } from 'path';
-
-// Cache for preprocessor availability checks
-let preprocessorCache = null;
-
-/**
- * Check available preprocessors once
- */
-function checkPreprocessors() {
-  if (preprocessorCache) return preprocessorCache;
-
-  preprocessorCache = {
-    sass: isSassAvailable(),
-    less: isLessAvailable(),
-    stylus: isStylusAvailable()
-  };
-
-  return preprocessorCache;
-}
+  logPreprocessorAvailability,
+  extractCssFromOutput,
+  removeInlineStyles,
+  processStyles,
+  getPreprocessorOptions
+} from './shared.js';
 
 /**
  * Transform function for Parcel
@@ -80,6 +58,7 @@ export async function transformPulse({ asset, logger }) {
   const {
     sourceMap = true,
     extractCss = true,
+    quiet = false,
     sass: sassOptions = {},
     less: lessOptions = {},
     stylus: stylusOptions = {},
@@ -87,27 +66,9 @@ export async function transformPulse({ asset, logger }) {
   } = config || {};
 
   // Log preprocessor availability once
-  if (!checkPreprocessors._logged && verbose) {
-    const available = checkPreprocessors();
-    const preprocessors = [];
-
-    if (available.sass) {
-      preprocessors.push(`SASS ${getSassVersion() || 'unknown'}`);
-    }
-    if (available.less) {
-      preprocessors.push(`LESS ${getLessVersion() || 'unknown'}`);
-    }
-    if (available.stylus) {
-      preprocessors.push(`Stylus ${getStylusVersion() || 'unknown'}`);
-    }
-
-    if (preprocessors.length > 0) {
-      logger.info({
-        message: `[Pulse] Preprocessor support: ${preprocessors.join(', ')}`
-      });
-    }
-
-    checkPreprocessors._logged = true;
+  if (!transformPulse._logged && verbose && !quiet) {
+    logPreprocessorAvailability('Pulse', { logFn: (msg) => logger.info({ message: msg }) });
+    transformPulse._logged = true;
   }
 
   try {
@@ -130,47 +91,30 @@ export async function transformPulse({ asset, logger }) {
     const outputMap = result.map;
 
     // Extract CSS from compiled output
-    const stylesMatch = outputCode.match(/const styles = `([\s\S]*?)`;/);
+    const { css: extractedCss, found } = extractCssFromOutput(outputCode);
 
-    if (stylesMatch && extractCss) {
-      let css = stylesMatch[1];
+    if (found && extractCss) {
+      const styleResult = processStyles(extractedCss, filePath, { sassOptions, lessOptions, stylusOptions });
 
-      // Check available preprocessors
-      const available = checkPreprocessors();
-      const preprocessor = detectPreprocessor(css);
-
-      // Preprocess if preprocessor detected and available
-      if (preprocessor !== 'none' && available[preprocessor]) {
-        try {
-          const preprocessorOptions = {
-            sass: sassOptions,
-            less: lessOptions,
-            stylus: stylusOptions
-          }[preprocessor];
-
-          const preprocessed = preprocessStylesSync(css, {
-            filename: filePath,
-            loadPaths: [dirname(filePath), ...(preprocessorOptions.loadPaths || [])],
-            compressed: preprocessorOptions.compressed || false,
-            preprocessor // Force detected preprocessor
-          });
-
-          css = preprocessed.css;
-
-          // Log preprocessor usage in verbose mode
-          if (preprocessorOptions.verbose || verbose) {
-            logger.verbose({
-              message: `[Pulse] Compiled ${preprocessor.toUpperCase()} in ${filePath}`
-            });
-          }
-        } catch (preprocessorError) {
-          // Emit warning but continue with original CSS
-          logger.warn({
-            message: `${preprocessor.toUpperCase()} compilation warning: ${preprocessorError.message}`,
-            filePath
+      // Log preprocessor usage in verbose mode
+      if (styleResult.preprocessor && styleResult.preprocessor !== 'none') {
+        const opts = getPreprocessorOptions(styleResult.preprocessor, { sassOptions, lessOptions, stylusOptions });
+        if (opts && (opts.verbose || verbose)) {
+          logger.verbose({
+            message: `[Pulse] Compiled ${styleResult.preprocessor.toUpperCase()} in ${filePath}`
           });
         }
       }
+
+      if (styleResult.warning) {
+        // Emit warning but continue with original CSS
+        logger.warn({
+          message: styleResult.warning,
+          filePath
+        });
+      }
+
+      const css = styleResult.css;
 
       // Create a CSS asset for Parcel to process
       // This allows Parcel's CSS pipeline to handle minification, autoprefixing, etc.
@@ -187,11 +131,7 @@ export async function transformPulse({ asset, logger }) {
       });
 
       // Remove inline CSS injection from output
-      // Match the entire styles section and replace it
-      outputCode = outputCode.replace(
-        /\/\/ Styles[\s\S]*?\/\/ Inject styles[\s\S]*?document\.head\.appendChild\(styleEl\);/,
-        '// Styles extracted to CSS asset'
-      );
+      outputCode = removeInlineStyles(outputCode, '// Styles extracted to CSS asset');
     }
 
     // Set asset type and content

@@ -15,6 +15,7 @@ import { compile } from '../compiler/index.js';
 import { existsSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { preprocessStylesSync, isSassAvailable, getSassVersion } from '../compiler/preprocessor.js';
+import { STYLES_MATCH_REGEX, removeInlineStyles } from './shared.js';
 
 // Virtual module ID for extracted CSS (uses .css extension so Vite treats it as CSS)
 const VIRTUAL_CSS_SUFFIX = '.pulse.css';
@@ -26,6 +27,7 @@ export default function pulsePlugin(options = {}) {
   const {
     exclude = /node_modules/,
     sourceMap = true,
+    quiet = false,
     // SASS options
     sass: sassOptions = {}
   } = options;
@@ -52,7 +54,9 @@ export default function pulsePlugin(options = {}) {
       sassAvailable = isSassAvailable();
       if (sassAvailable) {
         sassVersion = getSassVersion();
-        console.log(`[Pulse] SASS support enabled (sass ${sassVersion || 'unknown'})`);
+        if (!quiet) {
+          console.log(`[Pulse] SASS support enabled (sass ${sassVersion || 'unknown'})`);
+        }
       }
     },
 
@@ -132,7 +136,7 @@ export default function pulsePlugin(options = {}) {
         let outputCode = result.code;
 
         // Extract CSS from compiled output and move to virtual CSS module
-        const stylesMatch = outputCode.match(/const styles = `([\s\S]*?)`;/);
+        const stylesMatch = outputCode.match(STYLES_MATCH_REGEX);
         if (stylesMatch) {
           let css = stylesMatch[1];
           const virtualCssId = id + '.css';
@@ -160,10 +164,7 @@ export default function pulsePlugin(options = {}) {
 
           // Replace inline style injection with CSS import
           // Vite will process this through its CSS pipeline (not JS minifier)
-          outputCode = outputCode.replace(
-            /\/\/ Styles\nconst styles = `[\s\S]*?`;\n\/\/ Inject styles\nconst styleEl = document\.createElement\("style"\);\nstyleEl\.textContent = styles;\ndocument\.head\.appendChild\(styleEl\);/,
-            `// Styles extracted to virtual CSS module\nimport "${virtualCssId}";`
-          );
+          outputCode = removeInlineStyles(outputCode, `// Styles extracted to virtual CSS module\nimport "${virtualCssId}";`);
         }
 
         return {
@@ -177,11 +178,20 @@ export default function pulsePlugin(options = {}) {
     },
 
     /**
-     * Handle hot module replacement
+     * Handle hot module replacement for .pulse files.
+     * Invalidates both the JS module and its virtual CSS module, then
+     * sends an HMR update to the client instead of triggering a full reload.
+     *
+     * @param {Object} ctx - Vite HMR context
+     * @param {string} ctx.file - Absolute path of the changed file
+     * @param {Object} ctx.server - Vite dev server instance
+     * @returns {Array|undefined} Empty array to prevent default HMR handling
      */
     handleHotUpdate({ file, server }) {
       if (file.endsWith('.pulse')) {
-        console.log(`[Pulse] HMR update: ${file}`);
+        if (!quiet) {
+          console.log(`[Pulse] HMR update: ${file}`);
+        }
 
         // Invalidate the module in Vite's module graph
         const module = server.moduleGraph.getModuleById(file);
@@ -213,7 +223,10 @@ export default function pulsePlugin(options = {}) {
     },
 
     /**
-     * Configure dev server - log sass status on start
+     * Configure dev server middleware and check SASS availability on start.
+     * Called once when the Vite dev server is created.
+     *
+     * @param {Object} server - Vite dev server instance
      */
     configureServer(server) {
       // Check sass on server start if not already checked
@@ -221,7 +234,9 @@ export default function pulsePlugin(options = {}) {
         sassAvailable = isSassAvailable();
         if (sassAvailable) {
           sassVersion = getSassVersion();
-          console.log(`[Pulse] SASS support enabled (sass ${sassVersion || 'unknown'})`);
+          if (!quiet) {
+            console.log(`[Pulse] SASS support enabled (sass ${sassVersion || 'unknown'})`);
+          }
         }
       }
 

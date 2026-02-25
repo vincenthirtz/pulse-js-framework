@@ -294,6 +294,16 @@ Detailed API documentation is in `.claude/context/`. These are **never loaded au
 | `performance-algorithms.md` | batch(), computed lazy/eager, LIS algorithm, LRU cache, effect cleanup | Optimizing performance or understanding internals |
 | `error-reference.md` | Compiler, runtime, lint, a11y, and form error codes | Debugging errors or writing validators |
 | `css-preprocessors.md` | SASS/SCSS, LESS, Stylus syntax, detection, compilation API | Working on CSS preprocessor support |
+| `dsl-reference.md` | .pulse DSL syntax, blocks, directives, slots, router/store blocks, expressions | Working on .pulse files or compiler |
+| `cli-reference.md` | All CLI commands, flags, configuration, env vars, exit codes | Working on CLI or project tooling |
+| `security.md` | escapeHtml, sanitizeUrl, sanitizeCSSValue, safeSetAttribute, store/router security | Working on security, XSS prevention, or input validation |
+| `mobile-native.md` | Native APIs, platform detection, storage, device info, Android/iOS config | Working on mobile/native features |
+| `build-tools.md` | Vite, Webpack, Rollup, ESBuild, Parcel, SWC plugin configs and options | Working on build tool integrations |
+| `ide-extensions.md` | VS Code extension, IntelliJ plugin, snippets, installation | Working on IDE support or syntax highlighting |
+| `ci-release.md` | CI/CD workflows, release process, branch protection, PR automation, secrets | Working on CI/CD, releases, or GitHub workflows |
+| `examples-catalog.md` | All 29 example projects with features and APIs demonstrated | Creating examples or checking feature coverage |
+| `adrs.md` | All 13 ADRs, milestone plans, foundational architecture principles | Checking architecture decisions or planning features |
+| `e2e-testing.md` | Playwright E2E tests, utilities, CI integration, test categories | Working on E2E tests or documentation site testing |
 
 **Usage pattern for skills/agents:**
 ```

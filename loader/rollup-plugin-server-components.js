@@ -27,24 +27,24 @@
  * @module pulse-js-framework/loader/rollup-plugin-server-components
  */
 
-import { writeFileSync, mkdirSync } from 'fs';
-import { dirname, relative, posix } from 'path';
+import { relative } from 'path';
 import {
   getComponentTypeFromSource
 } from '../compiler/directives.js';
+import {
+  extractImports, createImportViolationError, buildManifest, writeManifestToDiskAsync,
+  DIRECTIVE_REGEX, COMPONENT_ID_REGEX, EXPORT_CONST_REGEX, CLIENT_CHUNK_PREFIX,
+  DEFAULT_MANIFEST_PATH, DEFAULT_MANIFEST_FILENAME
+} from './shared.js';
 
 /**
  * Default options for Server Components plugin
  */
 const DEFAULT_OPTIONS = {
-  // Output directory for client manifest
-  manifestPath: 'dist/.pulse-manifest.json',
-
-  // Public base path for chunk URLs (empty for relative paths)
+  manifestPath: DEFAULT_MANIFEST_PATH,
   base: '',
-
-  // Custom manifest filename
-  manifestFilename: '.pulse-manifest.json'
+  manifestFilename: DEFAULT_MANIFEST_FILENAME,
+  quiet: false
 };
 
 /**
@@ -97,12 +97,12 @@ export default function pulseServerComponentsPlugin(options = {}) {
 
       // Check if this module exports a Client Component
       // Look for: __directive: "use client"
-      const directiveMatch = code.match(/__directive:\s*["']use client["']/);
+      const directiveMatch = code.match(DIRECTIVE_REGEX);
 
       if (directiveMatch) {
         // Extract component ID from export
-        const exportMatch = code.match(/export const (\w+) = \{/);
-        const componentIdMatch = code.match(/__componentId:\s*["'](\w+)["']/);
+        const exportMatch = code.match(EXPORT_CONST_REGEX);
+        const componentIdMatch = code.match(COMPONENT_ID_REGEX);
 
         const componentId = componentIdMatch ? componentIdMatch[1] : (exportMatch ? exportMatch[1] : null);
 
@@ -113,7 +113,9 @@ export default function pulseServerComponentsPlugin(options = {}) {
             chunk: null // Will be filled in during generateBundle
           });
 
-          console.log(`[Pulse Server Components] Detected Client Component: ${componentId} (${relative(process.cwd(), id)})`);
+          if (!config.quiet) {
+            console.log(`[Pulse Server Components] Detected Client Component: ${componentId} (${relative(process.cwd(), id)})`);
+          }
         }
       }
 
@@ -164,7 +166,7 @@ export default function pulseServerComponentsPlugin(options = {}) {
         for (const [componentId, info] of clientComponents.entries()) {
           if (id === info.file) {
             // Create a separate chunk for this Client Component
-            return `client-${componentId}`;
+            return `${CLIENT_CHUNK_PREFIX}${componentId}`;
           }
         }
 
@@ -201,36 +203,21 @@ export default function pulseServerComponentsPlugin(options = {}) {
           // Check if this chunk corresponds to a Client Component
           for (const [componentId, info] of clientComponents.entries()) {
             // Match by chunk name or by checking if the component file is in the chunk
-            if (chunk.name === `client-${componentId}` ||
+            if (chunk.name === `${CLIENT_CHUNK_PREFIX}${componentId}` ||
                 (chunk.facadeModuleId && chunk.facadeModuleId === info.file)) {
 
               // Store the chunk filename
               info.chunk = fileName;
 
-              console.log(`[Pulse Server Components] Mapped ${componentId} → ${fileName}`);
+              if (!config.quiet) {
+                console.log(`[Pulse Server Components] Mapped ${componentId} → ${fileName}`);
+              }
             }
           }
         }
       }
 
-      // Build client manifest
-      const manifest = {
-        version: '1.0',
-        components: {}
-      };
-
-      for (const [componentId, info] of clientComponents.entries()) {
-        if (info.chunk) {
-          const base = config.base || '';
-          const chunkUrl = posix.join(base, info.chunk);
-
-          manifest.components[componentId] = {
-            id: componentId,
-            chunk: chunkUrl,
-            exports: ['default', componentId]
-          };
-        }
-      }
+      const manifest = buildManifest(clientComponents, config);
 
       // Emit manifest as JSON asset
       const manifestJson = JSON.stringify(manifest, null, 2);
@@ -241,151 +228,25 @@ export default function pulseServerComponentsPlugin(options = {}) {
         source: manifestJson
       });
 
-      console.log(`[Pulse Server Components] Generated client manifest with ${clientComponents.size} components`);
+      if (!config.quiet) {
+        console.log(`[Pulse Server Components] Generated client manifest with ${clientComponents.size} components`);
+      }
     },
 
     /**
-     * Write manifest to file system after build completes
+     * Write manifest to file system after build completes (async)
      */
-    closeBundle() {
+    async closeBundle() {
       // Skip if no Client Components detected
       if (clientComponents.size === 0) {
         return;
       }
 
-      // Build manifest object
-      const manifest = {
-        version: '1.0',
-        components: {}
-      };
-
-      for (const [componentId, info] of clientComponents.entries()) {
-        if (info.chunk) {
-          const base = config.base || '';
-          const chunkUrl = posix.join(base, info.chunk);
-
-          manifest.components[componentId] = {
-            id: componentId,
-            chunk: chunkUrl,
-            exports: ['default', componentId]
-          };
-        }
-      }
-
-      // Write to file system (in addition to emitted asset)
-      if (config.manifestPath) {
-        try {
-          const manifestDir = dirname(config.manifestPath);
-          mkdirSync(manifestDir, { recursive: true });
-          writeFileSync(config.manifestPath, JSON.stringify(manifest, null, 2), 'utf-8');
-          console.log(`[Pulse Server Components] Manifest written to ${config.manifestPath}`);
-        } catch (error) {
-          console.warn(`[Pulse Server Components] Failed to write manifest: ${error.message}`);
-        }
-      }
+      const manifest = buildManifest(clientComponents, config);
+      await writeManifestToDiskAsync(manifest, config);
     }
   };
 }
 
-// ============================================================================
-// Helper Functions
-// ============================================================================
-
-/**
- * Extract import statements from source code
- * @param {string} code - Source code
- * @returns {Array<string>} Import sources
- */
-function extractImports(code) {
-  const imports = [];
-
-  // Match ES6 import statements
-  const importRegex = /import\s+(?:{[^}]*}|[\w$]+|\*\s+as\s+[\w$]+)\s+from\s+['"]([^'"]+)['"]/g;
-  let match;
-
-  while ((match = importRegex.exec(code)) !== null) {
-    imports.push(match[1]);
-  }
-
-  // Match dynamic imports
-  const dynamicImportRegex = /import\s*\(\s*['"]([^'"]+)['"]\s*\)/g;
-  while ((match = dynamicImportRegex.exec(code)) !== null) {
-    imports.push(match[1]);
-  }
-
-  return imports;
-}
-
-/**
- * Create import violation error message
- * @param {string} clientPath - Client Component path
- * @param {string} serverPath - Server Component path
- * @param {string} importSource - Import statement source
- * @returns {string} Error message
- */
-function createImportViolationError(clientPath, serverPath, importSource) {
-  const clientRelative = relative(process.cwd(), clientPath);
-  const serverRelative = relative(process.cwd(), serverPath);
-
-  return `
-[Pulse] Import Violation: Client Component cannot import Server Component
-  at ${clientRelative}
-  importing ${importSource}
-  resolved to ${serverRelative}
-
-  Client Components can only import:
-  • Other Client Components ('use client')
-  • Shared utilities (no directive)
-  • Third-party packages
-
-  → Move shared logic to a Client Component
-  → Use Server Actions for server-side operations
-  → Create a wrapper Client Component that calls Server Actions
-
-  See: https://pulse-js.fr/server-components#import-rules
-  `.trim();
-}
-
-/**
- * Helper function to load client manifest (for SSR)
- *
- * @param {string} manifestPath - Path to manifest file
- * @returns {Object} Client manifest
- *
- * @example
- * import { loadClientManifest } from 'pulse-js-framework/rollup/server-components';
- *
- * const manifest = loadClientManifest('./dist/.pulse-manifest.json');
- * // Use manifest for SSR: renderServerComponent(Component, props, { clientManifest: manifest.components })
- */
-export function loadClientManifest(manifestPath) {
-  try {
-    const { readFileSync } = require('fs');
-    const content = readFileSync(manifestPath, 'utf-8');
-    return JSON.parse(content);
-  } catch (error) {
-    console.warn(`Failed to load client manifest from ${manifestPath}:`, error.message);
-    return { version: '1.0', components: {} };
-  }
-}
-
-/**
- * Helper function to get client component chunk URL
- *
- * @param {Object} manifest - Client manifest
- * @param {string} componentId - Component ID
- * @returns {string|null} Chunk URL or null if not found
- */
-export function getComponentChunk(manifest, componentId) {
-  return manifest.components[componentId]?.chunk || null;
-}
-
-/**
- * Helper function to get all client component IDs
- *
- * @param {Object} manifest - Client manifest
- * @returns {Set<string>} Set of component IDs
- */
-export function getClientComponentIds(manifest) {
-  return new Set(Object.keys(manifest.components));
-}
+// Re-export shared manifest helpers
+export { loadClientManifest, getComponentChunk, getClientComponentIds } from './shared.js';

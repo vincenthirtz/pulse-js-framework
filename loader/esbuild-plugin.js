@@ -33,36 +33,14 @@
 
 import { compile } from '../compiler/index.js';
 import {
-  preprocessStylesSync,
-  isSassAvailable,
-  isLessAvailable,
-  isStylusAvailable,
-  getSassVersion,
-  getLessVersion,
-  getStylusVersion,
-  detectPreprocessor
-} from '../compiler/preprocessor.js';
-import { dirname } from 'path';
+  logPreprocessorAvailability,
+  extractCssFromOutput,
+  removeInlineStyles,
+  processStyles,
+  getPreprocessorOptions
+} from './shared.js';
 import { readFileSync, writeFileSync, mkdirSync } from 'fs';
-import { resolve } from 'path';
-
-// Cache for preprocessor availability checks
-let preprocessorCache = null;
-
-/**
- * Check available preprocessors once
- */
-function checkPreprocessors() {
-  if (preprocessorCache) return preprocessorCache;
-
-  preprocessorCache = {
-    sass: isSassAvailable(),
-    less: isLessAvailable(),
-    stylus: isStylusAvailable()
-  };
-
-  return preprocessorCache;
-}
+import { resolve, dirname } from 'path';
 
 /**
  * Create Pulse ESBuild plugin
@@ -71,6 +49,7 @@ export default function pulsePlugin(options = {}) {
   const {
     sourceMap = true,
     extractCss = null, // Path to output CSS file, or null for inline
+    quiet = false,
     sass: sassOptions = {},
     less: lessOptions = {},
     stylus: stylusOptions = {}
@@ -86,23 +65,9 @@ export default function pulsePlugin(options = {}) {
     setup(build) {
       // Log preprocessor availability on first setup
       if (!buildStarted) {
-        const available = checkPreprocessors();
-        const preprocessors = [];
-
-        if (available.sass) {
-          preprocessors.push(`SASS ${getSassVersion() || 'unknown'}`);
+        if (!quiet) {
+          logPreprocessorAvailability('Pulse ESBuild');
         }
-        if (available.less) {
-          preprocessors.push(`LESS ${getLessVersion() || 'unknown'}`);
-        }
-        if (available.stylus) {
-          preprocessors.push(`Stylus ${getStylusVersion() || 'unknown'}`);
-        }
-
-        if (preprocessors.length > 0) {
-          console.log(`[Pulse ESBuild] Preprocessor support: ${preprocessors.join(', ')}`);
-        }
-
         buildStarted = true;
       }
 
@@ -140,61 +105,38 @@ export default function pulsePlugin(options = {}) {
           let outputCode = result.code;
 
           // Extract CSS from compiled output
-          const stylesMatch = outputCode.match(/const styles = `([\s\S]*?)`;/);
+          const { css: extractedCss, found } = extractCssFromOutput(outputCode);
 
-          if (stylesMatch) {
-            let css = stylesMatch[1];
+          if (found) {
+            const styleResult = processStyles(extractedCss, args.path, { sassOptions, lessOptions, stylusOptions });
 
-            // Check available preprocessors
-            const available = checkPreprocessors();
-            const preprocessor = detectPreprocessor(css);
-
-            // Preprocess if preprocessor detected and available
-            if (preprocessor !== 'none' && available[preprocessor]) {
-              try {
-                const preprocessorOptions = {
-                  sass: sassOptions,
-                  less: lessOptions,
-                  stylus: stylusOptions
-                }[preprocessor];
-
-                const preprocessed = preprocessStylesSync(css, {
-                  filename: args.path,
-                  loadPaths: [dirname(args.path), ...(preprocessorOptions.loadPaths || [])],
-                  compressed: preprocessorOptions.compressed || false,
-                  preprocessor // Force detected preprocessor
-                });
-
-                css = preprocessed.css;
-
-                // Log preprocessor usage in verbose mode
-                if (preprocessorOptions.verbose) {
-                  console.log(`[Pulse] Compiled ${preprocessor.toUpperCase()} in ${args.path}`);
-                }
-              } catch (preprocessorError) {
-                // Emit warning but continue with original CSS
-                return {
-                  warnings: [{
-                    text: `${preprocessor.toUpperCase()} compilation warning: ${preprocessorError.message}`,
-                    location: { file: args.path }
-                  }],
-                  contents: outputCode,
-                  loader: 'js'
-                };
+            // Log preprocessor usage in verbose mode
+            if (styleResult.preprocessor && styleResult.preprocessor !== 'none') {
+              const opts = getPreprocessorOptions(styleResult.preprocessor, { sassOptions, lessOptions, stylusOptions });
+              if (opts && opts.verbose) {
+                console.log(`[Pulse] Compiled ${styleResult.preprocessor.toUpperCase()} in ${args.path}`);
               }
             }
 
             if (extractCss) {
               // Accumulate CSS for later emission
-              accumulatedCss += `/* ${args.path} */\n${css}\n\n`;
+              accumulatedCss += `/* ${args.path} */\n${styleResult.css}\n\n`;
 
               // Remove inline CSS injection from output
-              outputCode = outputCode.replace(
-                /\/\/ Styles\nconst styles = `[\s\S]*?`;\n\/\/ Inject styles\nconst styleEl = document\.createElement\("style"\);\nstyleEl\.textContent = styles;\ndocument\.head\.appendChild\(styleEl\);/,
-                '// Styles extracted to CSS file'
-              );
+              outputCode = removeInlineStyles(outputCode, '// Styles extracted to CSS file');
             }
             // else: keep inline CSS injection
+
+            if (styleResult.warning) {
+              return {
+                warnings: [{
+                  text: styleResult.warning,
+                  location: { file: args.path }
+                }],
+                contents: outputCode,
+                loader: 'js'
+              };
+            }
           }
 
           return {
@@ -225,14 +167,20 @@ export default function pulsePlugin(options = {}) {
 
             // Write CSS file
             writeFileSync(cssPath, accumulatedCss, 'utf8');
-            console.log(`[Pulse] Emitted CSS to ${extractCss}`);
+            if (!quiet) {
+              console.log(`[Pulse] Emitted CSS to ${extractCss}`);
+            }
           } catch (writeError) {
             console.error(`[Pulse] Failed to write CSS file: ${writeError.message}`);
           }
         }
       });
 
-      // Resolve .pulse imports as .js if needed
+      /**
+       * Resolve `.js` imports to `.pulse` files when a corresponding `.pulse`
+       * file exists on disk. Allows importing components as `.js` while the
+       * source is a `.pulse` file.
+       */
       build.onResolve({ filter: /\.js$/ }, (args) => {
         // Check if there's a corresponding .pulse file
         const pulsePath = args.path.replace(/\.js$/, '.pulse');

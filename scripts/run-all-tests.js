@@ -162,6 +162,7 @@ const testGroups = {
     'test:integration',
     'test:integration-advanced',
     'test:lite',
+    'test:loader-shared',
   ],
 };
 

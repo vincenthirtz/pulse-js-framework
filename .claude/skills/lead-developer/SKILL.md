@@ -153,6 +153,16 @@ All must pass before task completion:
 | CSS preprocessors | `css-preprocessors.md` |
 | Performance / Algorithms | `performance-algorithms.md` |
 | Tutorials / Examples | `getting-started.md` |
+| .pulse DSL / Compiler | `dsl-reference.md` |
+| CLI / Project tooling | `cli-reference.md` |
+| Security / XSS / Validation | `security.md` |
+| Mobile / Native | `mobile-native.md` |
+| Build tools / Loaders | `build-tools.md` |
+| IDE support / Highlighting | `ide-extensions.md` |
+| CI/CD / Releases | `ci-release.md` |
+| Example projects | `examples-catalog.md` |
+| Architecture decisions | `adrs.md` |
+| E2E testing | `e2e-testing.md` |
 | Bug fix (unknown area) | Read cache → grep → load 1 relevant file |
 
 ## Example Workflows

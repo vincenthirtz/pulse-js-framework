@@ -43,35 +43,15 @@
 
 import { compile } from '../compiler/index.js';
 import {
-  preprocessStylesSync,
-  isSassAvailable,
-  isLessAvailable,
-  isStylusAvailable,
-  getSassVersion,
-  getLessVersion,
-  getStylusVersion,
-  detectPreprocessor
-} from '../compiler/preprocessor.js';
-import { dirname, resolve } from 'path';
+  logPreprocessorAvailability,
+  extractCssFromOutput,
+  removeInlineStyles,
+  processStyles,
+  getPreprocessorOptions
+} from './shared.js';
+import { resolve, dirname } from 'path';
 import { readFileSync, writeFileSync, mkdirSync } from 'fs';
-
-// Cache for preprocessor availability checks
-let preprocessorCache = null;
-
-/**
- * Check available preprocessors once
- */
-function checkPreprocessors() {
-  if (preprocessorCache) return preprocessorCache;
-
-  preprocessorCache = {
-    sass: isSassAvailable(),
-    less: isLessAvailable(),
-    stylus: isStylusAvailable()
-  };
-
-  return preprocessorCache;
-}
+import { readFile } from 'fs/promises';
 
 /**
  * Create Pulse SWC plugin
@@ -80,6 +60,7 @@ export default function pulsePlugin(options = {}) {
   const {
     sourceMap = true,
     extractCss = null, // Path to output CSS file, or null for inline
+    quiet = false,
     sass: sassOptions = {},
     less: lessOptions = {},
     stylus: stylusOptions = {}
@@ -99,23 +80,9 @@ export default function pulsePlugin(options = {}) {
       accumulatedCss = '';
 
       if (!buildStarted) {
-        const available = checkPreprocessors();
-        const preprocessors = [];
-
-        if (available.sass) {
-          preprocessors.push(`SASS ${getSassVersion() || 'unknown'}`);
+        if (!quiet) {
+          logPreprocessorAvailability('Pulse SWC');
         }
-        if (available.less) {
-          preprocessors.push(`LESS ${getLessVersion() || 'unknown'}`);
-        }
-        if (available.stylus) {
-          preprocessors.push(`Stylus ${getStylusVersion() || 'unknown'}`);
-        }
-
-        if (preprocessors.length > 0) {
-          console.log(`[Pulse SWC] Preprocessor support: ${preprocessors.join(', ')}`);
-        }
-
         buildStarted = true;
       }
     },
@@ -152,54 +119,31 @@ export default function pulsePlugin(options = {}) {
         let extractedCss = null;
 
         // Extract CSS from compiled output
-        const stylesMatch = outputCode.match(/const styles = `([\s\S]*?)`;/);
+        const { css: rawCss, found } = extractCssFromOutput(outputCode);
 
-        if (stylesMatch) {
-          let css = stylesMatch[1];
+        if (found) {
+          const styleResult = processStyles(rawCss, filePath, { sassOptions, lessOptions, stylusOptions });
 
-          // Check available preprocessors
-          const available = checkPreprocessors();
-          const preprocessor = detectPreprocessor(css);
+          if (styleResult.warning) {
+            console.warn(`[Pulse SWC] ${styleResult.warning}`);
+          }
 
-          // Preprocess if preprocessor detected and available
-          if (preprocessor !== 'none' && available[preprocessor]) {
-            try {
-              const preprocessorOptions = {
-                sass: sassOptions,
-                less: lessOptions,
-                stylus: stylusOptions
-              }[preprocessor];
-
-              const preprocessed = preprocessStylesSync(css, {
-                filename: filePath,
-                loadPaths: [dirname(filePath), ...(preprocessorOptions.loadPaths || [])],
-                compressed: preprocessorOptions.compressed || false,
-                preprocessor // Force detected preprocessor
-              });
-
-              css = preprocessed.css;
-
-              // Log preprocessor usage in verbose mode
-              if (preprocessorOptions.verbose) {
-                console.log(`[Pulse] Compiled ${preprocessor.toUpperCase()} in ${filePath}`);
-              }
-            } catch (preprocessorError) {
-              // Emit warning but continue with original CSS
-              console.warn(`[Pulse SWC] ${preprocessor.toUpperCase()} compilation warning: ${preprocessorError.message}`);
+          // Log preprocessor usage in verbose mode
+          if (styleResult.preprocessor && styleResult.preprocessor !== 'none') {
+            const opts = getPreprocessorOptions(styleResult.preprocessor, { sassOptions, lessOptions, stylusOptions });
+            if (opts && opts.verbose) {
+              console.log(`[Pulse] Compiled ${styleResult.preprocessor.toUpperCase()} in ${filePath}`);
             }
           }
 
-          extractedCss = css;
+          extractedCss = styleResult.css;
 
           if (extractCss) {
             // Accumulate CSS for later emission
-            accumulatedCss += `/* ${filePath} */\n${css}\n\n`;
+            accumulatedCss += `/* ${filePath} */\n${styleResult.css}\n\n`;
 
             // Remove inline CSS injection from output
-            outputCode = outputCode.replace(
-              /\/\/ Styles\nconst styles = `[\s\S]*?`;\n\/\/ Inject styles\nconst styleEl = document\.createElement\("style"\);\nstyleEl\.textContent = styles;\ndocument\.head\.appendChild\(styleEl\);/,
-              '// Styles extracted to CSS file'
-            );
+            outputCode = removeInlineStyles(outputCode, '// Styles extracted to CSS file');
           }
           // else: keep inline CSS injection
         }
@@ -231,7 +175,9 @@ export default function pulsePlugin(options = {}) {
           const cssDir = dirname(cssPath);
           mkdirSync(cssDir, { recursive: true });
           writeFileSync(cssPath, accumulatedCss, 'utf8');
-          console.log(`[Pulse] Emitted CSS to ${extractCss}`);
+          if (!quiet) {
+            console.log(`[Pulse] Emitted CSS to ${extractCss}`);
+          }
         } catch (writeError) {
           console.error(`[Pulse] Failed to write CSS file: ${writeError.message}`);
         }
@@ -280,6 +226,43 @@ export function buildPulseFiles(files, options = {}) {
     const result = plugin.transform(source, resolvedPath);
     return { file: filePath, ...result };
   });
+
+  plugin.buildEnd();
+  return results;
+}
+
+// ============================================================================
+// Async Variants
+// ============================================================================
+
+/**
+ * Transform a .pulse file to JavaScript asynchronously
+ * @param {string} filePath - Path to the .pulse file
+ * @param {object} options - Plugin options
+ * @returns {Promise<{ code: string|null, map: object|null, css: string|null, error: string|null }>}
+ */
+export async function transformPulseFileAsync(filePath, options = {}) {
+  const resolvedPath = resolve(filePath);
+  const source = await readFile(resolvedPath, 'utf8');
+  return transformPulseCode(source, { ...options, filename: resolvedPath });
+}
+
+/**
+ * Batch process multiple .pulse files asynchronously
+ * @param {string[]} files - Array of .pulse file paths
+ * @param {object} options - Plugin options
+ * @returns {Promise<Array<{ file: string, code: string|null, map: object|null, css: string|null, error: string|null }>>}
+ */
+export async function buildPulseFilesAsync(files, options = {}) {
+  const plugin = pulsePlugin(options);
+  plugin.buildStart();
+
+  const results = await Promise.all(files.map(async (filePath) => {
+    const resolvedPath = resolve(filePath);
+    const source = await readFile(resolvedPath, 'utf8');
+    const result = plugin.transform(source, resolvedPath);
+    return { file: filePath, ...result };
+  }));
 
   plugin.buildEnd();
   return results;
