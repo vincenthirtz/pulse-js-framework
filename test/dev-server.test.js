@@ -534,7 +534,17 @@ async function createTestServer(root) {
         if (existsSync(filePath) && statSync(filePath).isFile()) {
           const ext = extname(filePath);
           const mimeType = MIME_TYPES[ext] || 'application/octet-stream';
-          let content = readFileSync(filePath);
+          let content;
+          try {
+            content = readFileSync(filePath);
+          } catch (err) {
+            if (err.code === 'ENOENT') {
+              response.writeHead(404, { 'Content-Type': 'text/plain' });
+              response.end('Not Found');
+              return;
+            }
+            throw err;
+          }
           if (ext === '.html') {
             content = content.toString().replace('</body>', LIVERELOAD_SCRIPT);
           }

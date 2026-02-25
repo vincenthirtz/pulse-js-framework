@@ -159,7 +159,13 @@ export function resolveStaticAsset(pathname, distDir, options = {}) {
     return null;
   }
 
-  const content = readFileSync(filePath);
+  let content;
+  try {
+    content = readFileSync(filePath);
+  } catch (err) {
+    if (err.code === 'ENOENT') return null;
+    throw err;
+  }
   const mimeType = getMimeType(filePath);
 
   // Hashed assets get long cache

@@ -978,7 +978,15 @@ export async function runScaffold(args) {
   }
 
   // Write file
-  writeFileSync(fullPath, content);
+  try {
+    writeFileSync(fullPath, content, { flag: 'wx' });
+  } catch (err) {
+    if (err.code === 'EEXIST') {
+      log.warn(`File already exists: ${relative(process.cwd(), fullPath)}`);
+      return;
+    }
+    throw err;
+  }
 
   log.success(`Created ${type}: ${relative(process.cwd(), fullPath)}`);
 

@@ -48,11 +48,22 @@ for (const file of files) {
     continue;
   }
 
-  let content = readFileSync(filePath, 'utf-8');
+  let content;
+  try {
+    content = readFileSync(filePath, 'utf-8');
+  } catch (err) {
+    if (err.code === 'ENOENT') { console.log(`  Skipping ${file.path} (not found)`); continue; }
+    throw err;
+  }
   const newContent = content.replace(file.pattern, file.replacement);
 
   if (content !== newContent) {
-    writeFileSync(filePath, newContent);
+    try {
+      writeFileSync(filePath, newContent);
+    } catch (err) {
+      if (err.code === 'ENOENT') { console.log(`  Skipping ${file.path} (not found)`); continue; }
+      throw err;
+    }
     console.log(`  Updated ${file.path}`);
     updatedFiles.push(file.path);
   } else {

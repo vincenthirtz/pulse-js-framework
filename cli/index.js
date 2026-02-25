@@ -742,7 +742,7 @@ async function initProject(args) {
   const viteConfigExt = useTypescript ? 'ts' : 'js';
   const viteConfigPath = join(cwd, `vite.config.${viteConfigExt}`);
 
-  if (!existsSync(viteConfigPath) && !existsSync(join(cwd, 'vite.config.js')) && !existsSync(join(cwd, 'vite.config.ts'))) {
+  if (!existsSync(join(cwd, 'vite.config.js')) && !existsSync(join(cwd, 'vite.config.ts'))) {
     const viteConfig = `import { defineConfig } from 'vite';
 import pulse from 'pulse-js-framework/vite';
 
@@ -750,8 +750,12 @@ export default defineConfig({
   plugins: [pulse()]
 });
 `;
-    writeFileSync(viteConfigPath, viteConfig);
-    log.success(`Created vite.config.${viteConfigExt}`);
+    try {
+      writeFileSync(viteConfigPath, viteConfig, { flag: 'wx' });
+      log.success(`Created vite.config.${viteConfigExt}`);
+    } catch (e) {
+      if (e.code !== 'EEXIST') throw e;
+    }
   }
 
   // Create tsconfig if TypeScript
@@ -783,7 +787,7 @@ export default defineConfig({
 
   // Create index.html if it doesn't exist
   const indexHtmlPath = join(cwd, 'index.html');
-  if (!existsSync(indexHtmlPath)) {
+  {
     const mainExt = useTypescript ? 'ts' : 'js';
     const indexHtml = `<!DOCTYPE html>
 <html lang="en">
@@ -798,14 +802,18 @@ export default defineConfig({
 </body>
 </html>
 `;
-    writeFileSync(indexHtmlPath, indexHtml);
-    log.success('Created index.html');
+    try {
+      writeFileSync(indexHtmlPath, indexHtml, { flag: 'wx' });
+      log.success('Created index.html');
+    } catch (e) {
+      if (e.code !== 'EEXIST') throw e;
+    }
   }
 
   // Create main entry file if it doesn't exist
   const mainExt = useTypescript ? 'ts' : 'js';
   const mainPath = join(cwd, 'src', `main.${mainExt}`);
-  if (!existsSync(mainPath)) {
+  {
     const mainContent = useTypescript
       ? `import App from './App.pulse';
 
@@ -821,13 +829,17 @@ if (import.meta.hot) {
 
 App.mount('#app');
 `;
-    writeFileSync(mainPath, mainContent);
-    log.success(`Created src/main.${mainExt}`);
+    try {
+      writeFileSync(mainPath, mainContent, { flag: 'wx' });
+      log.success(`Created src/main.${mainExt}`);
+    } catch (e) {
+      if (e.code !== 'EEXIST') throw e;
+    }
   }
 
   // Create App.pulse if it doesn't exist
   const appPulsePath = join(cwd, 'src', 'App.pulse');
-  if (!existsSync(appPulsePath)) {
+  {
     const appPulse = `@page App
 
 // Welcome to Pulse Framework!
@@ -970,20 +982,28 @@ style {
   }
 }
 `;
-    writeFileSync(appPulsePath, appPulse);
-    log.success('Created src/App.pulse');
+    try {
+      writeFileSync(appPulsePath, appPulse, { flag: 'wx' });
+      log.success('Created src/App.pulse');
+    } catch (e) {
+      if (e.code !== 'EEXIST') throw e;
+    }
   }
 
   // Create .gitignore if it doesn't exist
   const gitignorePath = join(cwd, '.gitignore');
-  if (!existsSync(gitignorePath)) {
+  {
     const gitignore = `node_modules
 dist
 .DS_Store
 *.local
 ${useTypescript ? '*.tsbuildinfo\n' : ''}`;
-    writeFileSync(gitignorePath, gitignore);
-    log.success('Created .gitignore');
+    try {
+      writeFileSync(gitignorePath, gitignore, { flag: 'wx' });
+      log.success('Created .gitignore');
+    } catch (e) {
+      if (e.code !== 'EEXIST') throw e;
+    }
   }
 
   log.info(`

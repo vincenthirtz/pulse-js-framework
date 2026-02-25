@@ -182,7 +182,13 @@ function processDirectory(srcDir, outDir, progress = null) {
       processDirectory(srcPath, join(outDir, file), progress);
     } else if (file.endsWith('.pulse')) {
       // Compile .pulse files
-      const source = readFileSync(srcPath, 'utf-8');
+      let source;
+      try {
+        source = readFileSync(srcPath, 'utf-8');
+      } catch (e) {
+        if (e.code !== 'ENOENT') throw e;
+        continue;
+      }
       const result = compile(source, {
         runtime: './runtime.js',
         minify: true
@@ -222,7 +228,13 @@ function processDirectory(srcDir, outDir, progress = null) {
       if (progress) progress.tick();
     } else if (file.endsWith('.js') || file.endsWith('.mjs')) {
       // Process JS files - rewrite imports
-      let content = readFileSync(srcPath, 'utf-8');
+      let content;
+      try {
+        content = readFileSync(srcPath, 'utf-8');
+      } catch (e) {
+        if (e.code !== 'ENOENT') throw e;
+        continue;
+      }
 
       // Rewrite .pulse imports to .js
       content = content.replace(/from\s+['"]([^'"]+)\.pulse['"]/g, "from '$1.js'");
@@ -497,7 +509,7 @@ export async function previewBuild(args) {
 
     const filePath = join(distDir, pathname);
 
-    if (existsSync(filePath) && statSync(filePath).isFile()) {
+    try {
       const ext = filePath.substring(filePath.lastIndexOf('.'));
       const mimeType = MIME_TYPES[ext] || 'application/octet-stream';
 
@@ -506,7 +518,8 @@ export async function previewBuild(args) {
         'Cache-Control': 'public, max-age=31536000'
       });
       res.end(readFileSync(filePath));
-    } else {
+    } catch (e) {
+      if (e.code !== 'ENOENT') throw e;
       res.writeHead(404, { 'Content-Type': 'text/plain' });
       res.end('Not Found');
     }

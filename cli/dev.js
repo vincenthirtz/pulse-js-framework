@@ -280,7 +280,7 @@ export async function startDevServer(args) {
     }
 
     // Serve static files
-    if (existsSync(filePath) && statSync(filePath).isFile()) {
+    try {
       const ext = extname(filePath);
       const mimeType = MIME_TYPES[ext] || 'application/octet-stream';
 
@@ -294,6 +294,8 @@ export async function startDevServer(args) {
       res.writeHead(200, { 'Content-Type': mimeType });
       res.end(content);
       return;
+    } catch (e) {
+      if (e.code !== 'ENOENT') throw e;
     }
 
     // SPA fallback: serve index.html for routes without file extensions

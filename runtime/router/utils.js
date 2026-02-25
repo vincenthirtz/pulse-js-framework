@@ -192,6 +192,11 @@ export function parseQuery(search, options = {}) {
   let paramCount = 0;
 
   for (const [key, value] of params) {
+    // SECURITY: Reject keys that could cause prototype pollution
+    if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+      continue;
+    }
+
     // Check parameter count limit
     if (paramCount >= QUERY_LIMITS.maxParams) {
       log.warn(`Query string exceeds maximum parameters (${QUERY_LIMITS.maxParams}). Ignoring excess.`);

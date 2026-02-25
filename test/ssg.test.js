@@ -13,7 +13,7 @@
 
 import { test, describe, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert';
-import { mkdirSync, writeFileSync, rmSync, existsSync } from 'fs';
+import { mkdirSync, mkdtempSync, writeFileSync, rmSync, existsSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 
@@ -31,8 +31,7 @@ let testCounter = 0;
 
 function createTestDir() {
   testCounter++;
-  const dir = join(tmpdir(), `pulse-ssg-test-${Date.now()}-${testCounter}`);
-  mkdirSync(dir, { recursive: true });
+  const dir = mkdtempSync(join(tmpdir(), 'pulse-ssg-test-'));
   return dir;
 }
 

@@ -83,7 +83,13 @@ async function analyzeFiles(files, parse) {
   for (const file of files) {
     try {
       const stats = statSync(file);
-      const source = readFileSync(file, 'utf-8');
+      let source;
+      try {
+        source = readFileSync(file, 'utf-8');
+      } catch (e) {
+        if (e.code !== 'ENOENT') throw e;
+        continue;
+      }
 
       const info = {
         path: relativePath(file),

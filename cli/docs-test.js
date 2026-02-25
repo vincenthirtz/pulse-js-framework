@@ -311,7 +311,13 @@ function startTestServer(port = 0) {
       const filePath = join(docsDir, pathname);
 
       if (existsSync(filePath) && statSync(filePath).isFile()) {
-        const content = readFileSync(filePath);
+        let content;
+        try {
+          content = readFileSync(filePath);
+        } catch (err) {
+          if (err.code === 'ENOENT') { res.writeHead(404); res.end('Not Found'); return; }
+          throw err;
+        }
         const ext = pathname.split('.').pop();
         const mimeTypes = {
           'html': 'text/html',

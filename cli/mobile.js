@@ -122,11 +122,15 @@ async function initMobile(args) {
   };
 
   // Write config if not exists
-  if (!existsSync(configPath)) {
-    writeFileSync(configPath, JSON.stringify(config, null, 2));
+  try {
+    writeFileSync(configPath, JSON.stringify(config, null, 2), { flag: 'wx' });
     console.log(`Created ${CONFIG_FILE}`);
-  } else {
-    console.log(`${CONFIG_FILE} already exists, skipping...`);
+  } catch (err) {
+    if (err.code === 'EEXIST') {
+      console.log(`${CONFIG_FILE} already exists, skipping...`);
+    } else {
+      throw err;
+    }
   }
 
   // Copy Android template

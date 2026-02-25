@@ -216,7 +216,13 @@ function updateDocsState(newVersion) {
     return;
   }
 
-  let content = readFileSync(statePath, 'utf-8');
+  let content;
+  try {
+    content = readFileSync(statePath, 'utf-8');
+  } catch (err) {
+    if (err.code === 'ENOENT') { log.warn('  docs/src/state.js not found, skipping'); return; }
+    throw err;
+  }
   content = content.replace(
     /export const version = '[^']+'/,
     `export const version = '${newVersion}'`
@@ -235,7 +241,13 @@ function updateChangelog(newVersion, title, changes) {
     return;
   }
 
-  let content = readFileSync(changelogPath, 'utf-8');
+  let content;
+  try {
+    content = readFileSync(changelogPath, 'utf-8');
+  } catch (err) {
+    if (err.code === 'ENOENT') { log.warn('  CHANGELOG.md not found, skipping'); return; }
+    throw err;
+  }
 
   // Build changelog entry
   const date = getCurrentDate();
@@ -302,7 +314,13 @@ function updateDocsChangelog(newVersion, title, changes) {
     return;
   }
 
-  let content = readFileSync(changelogPagePath, 'utf-8');
+  let content;
+  try {
+    content = readFileSync(changelogPagePath, 'utf-8');
+  } catch (err) {
+    if (err.code === 'ENOENT') { log.warn('  docs/src/pages/ChangelogPage.js not found, skipping'); return; }
+    throw err;
+  }
   const monthYear = getCurrentMonthYear();
 
   // Build HTML changelog section

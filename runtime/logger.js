@@ -188,6 +188,19 @@ const noopLogger = {
 // ============================================================================
 
 /**
+ * Sanitize a log argument to prevent log injection via newlines/control chars
+ * @private
+ * @param {*} arg - Argument to sanitize
+ * @returns {*} Sanitized argument (strings are cleaned, others pass through)
+ */
+function sanitizeLogArg(arg) {
+  if (typeof arg !== 'string') return arg;
+  // Replace control characters (newlines, carriage returns, tabs, etc.)
+  // that could be used for log forging/injection
+  return arg.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, '').replace(/\r?\n/g, '\\n');
+}
+
+/**
  * Format message arguments with optional namespace prefix
  * @private
  * @param {string|null} namespace - The logger namespace
@@ -195,16 +208,17 @@ const noopLogger = {
  * @returns {Array<*>} Formatted arguments array
  */
 function formatArgs(namespace, args) {
-  if (!namespace) return args;
+  const sanitized = args.map(sanitizeLogArg);
+  if (!namespace) return sanitized;
 
   const prefix = formatNamespace(namespace);
   // If first arg is a string, prepend namespace
-  if (typeof args[0] === 'string') {
-    return [`${prefix} ${args[0]}`, ...args.slice(1)];
+  if (typeof sanitized[0] === 'string') {
+    return [`${prefix} ${sanitized[0]}`, ...sanitized.slice(1)];
   }
 
   // Otherwise, add namespace as first arg
-  return [prefix, ...args];
+  return [prefix, ...sanitized];
 }
 
 /**
