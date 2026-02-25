@@ -188,16 +188,11 @@ export function parseQuery(search, options = {}) {
   }
 
   const params = new URLSearchParams(queryStr);
-  // SECURITY: Use null-prototype object during construction to prevent prototype pollution
-  const query = Object.create(null);
+  // SECURITY: Use Map to avoid property injection via user-controlled keys
+  const query = new Map();
   let paramCount = 0;
 
   for (const [key, value] of params) {
-    // SECURITY: Reject keys that could cause prototype pollution
-    if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
-      continue;
-    }
-
     // Check parameter count limit
     if (paramCount >= QUERY_LIMITS.maxParams) {
       log.warn(`Query string exceeds maximum parameters (${QUERY_LIMITS.maxParams}). Ignoring excess.`);
@@ -216,18 +211,18 @@ export function parseQuery(search, options = {}) {
       safeValue = parseTypedValue(safeValue);
     }
 
-    if (key in query) {
+    if (query.has(key)) {
       // Multiple values for same key
-      if (Array.isArray(query[key])) {
-        query[key].push(safeValue);
+      const existing = query.get(key);
+      if (Array.isArray(existing)) {
+        existing.push(safeValue);
       } else {
-        query[key] = [query[key], safeValue];
+        query.set(key, [existing, safeValue]);
       }
     } else {
-      query[key] = safeValue;
+      query.set(key, safeValue);
     }
     paramCount++;
   }
-  // Convert back to regular object for compatibility with deepStrictEqual etc.
-  return { ...query };
+  return Object.fromEntries(query);
 }

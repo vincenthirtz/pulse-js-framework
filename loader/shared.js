@@ -202,29 +202,26 @@ export function processStyles(css, filePath, allOptions = {}) {
  */
 export function extractImports(code) {
   const imports = [];
+  let match;
 
-  // 1. Static imports (single-line and multi-line via /s flag)
-  //    import X from '...'
-  //    import { A, B } from '...'
-  //    import { \n A, \n B \n } from '...'
-  //    import * as ns from '...'
-  //    import type { X } from '...' (TypeScript)
-  const staticImportRegex = /import\s+(?:type\s+)?(?:\{[^}]*\}|[\w$]+|\*\s+as\s+[\w$]+)(?:,\s*(?:\{[^}]*\}|[\w$]+|\*\s+as\s+[\w$]+))?\s+from\s+['"]([^'"]+)['"]/gs;
+  // 1. All static imports/re-exports: ... from '...'
+  //    Covers: import X from, import { A } from, import * as ns from,
+  //    export { x } from, export * from, type imports, multi-line imports
+  const fromRegex = /\bfrom\s+['"]([^'"]+)['"]/g;
+  while ((match = fromRegex.exec(code)) !== null) {
+    imports.push(match[1]);
+  }
 
   // 2. Side-effect imports: import '...'
-  const sideEffectRegex = /import\s+['"]([^'"]+)['"]/g;
+  const sideEffectRegex = /\bimport\s+['"]([^'"]+)['"]/g;
+  while ((match = sideEffectRegex.exec(code)) !== null) {
+    imports.push(match[1]);
+  }
 
   // 3. Dynamic imports: import('...')
-  const dynamicRegex = /import\s*\(\s*['"]([^'"]+)['"]\s*\)/g;
-
-  // 4. Re-exports: export { x } from '...', export * from '...', export type { x } from '...'
-  const reExportRegex = /export\s+(?:type\s+)?(?:\{[^}]*\}|\*(?:\s+as\s+[\w$]+)?)\s+from\s+['"]([^'"]+)['"]/gs;
-
-  let match;
-  for (const regex of [staticImportRegex, sideEffectRegex, dynamicRegex, reExportRegex]) {
-    while ((match = regex.exec(code)) !== null) {
-      imports.push(match[1]);
-    }
+  const dynamicRegex = /\bimport\s*\(\s*['"]([^'"]+)['"]\s*\)/g;
+  while ((match = dynamicRegex.exec(code)) !== null) {
+    imports.push(match[1]);
   }
 
   return [...new Set(imports)];

@@ -187,18 +187,6 @@ const noopLogger = {
 // Development Logger Implementation
 // ============================================================================
 
-/**
- * Sanitize a log argument to prevent log injection via newlines/control chars
- * @private
- * @param {*} arg - Argument to sanitize
- * @returns {*} Sanitized argument (strings are cleaned, others pass through)
- */
-function sanitizeLogArg(arg) {
-  if (typeof arg !== 'string') return arg;
-  // Replace control characters (newlines, carriage returns, tabs, etc.)
-  // that could be used for log forging/injection
-  return arg.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, '').replace(/\r?\n/g, '\\n');
-}
 
 /**
  * Format message arguments with optional namespace prefix
@@ -255,7 +243,8 @@ function createDevLogger(namespace, options) {
   return {
     error(...args) {
       if (shouldLog(LogLevel.ERROR)) {
-        const safe = args.map(sanitizeLogArg);
+        // Inline sanitization so CodeQL can verify log-injection prevention
+        const safe = args.map(a => typeof a === 'string' ? a.replace(/[\r\n\x00-\x1f]/g, '') : a);
         if (globalFormatter) {
           console.error(globalFormatter('error', namespace, safe));
         } else {
@@ -266,7 +255,7 @@ function createDevLogger(namespace, options) {
 
     warn(...args) {
       if (shouldLog(LogLevel.WARN)) {
-        const safe = args.map(sanitizeLogArg);
+        const safe = args.map(a => typeof a === 'string' ? a.replace(/[\r\n\x00-\x1f]/g, '') : a);
         if (globalFormatter) {
           console.warn(globalFormatter('warn', namespace, safe));
         } else {
@@ -277,7 +266,7 @@ function createDevLogger(namespace, options) {
 
     info(...args) {
       if (shouldLog(LogLevel.INFO)) {
-        const safe = args.map(sanitizeLogArg);
+        const safe = args.map(a => typeof a === 'string' ? a.replace(/[\r\n\x00-\x1f]/g, '') : a);
         if (globalFormatter) {
           console.log(globalFormatter('info', namespace, safe));
         } else {
@@ -288,7 +277,7 @@ function createDevLogger(namespace, options) {
 
     debug(...args) {
       if (shouldLog(LogLevel.DEBUG)) {
-        const safe = args.map(sanitizeLogArg);
+        const safe = args.map(a => typeof a === 'string' ? a.replace(/[\r\n\x00-\x1f]/g, '') : a);
         if (globalFormatter) {
           console.log(globalFormatter('debug', namespace, safe));
         } else {

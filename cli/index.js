@@ -688,21 +688,21 @@ async function initProject(args) {
   const pkgPath = join(cwd, 'package.json');
   let pkg = {};
 
-  if (existsSync(pkgPath)) {
-    try {
-      const pkgContent = readFileSync(pkgPath, 'utf-8');
-      if (!pkgContent.trim()) {
-        log.warn('Existing package.json is empty, creating new one.');
-      } else {
-        pkg = JSON.parse(pkgContent);
-        log.info('Found existing package.json, merging...');
-      }
-    } catch (e) {
-      if (e instanceof SyntaxError) {
-        log.warn(`Invalid JSON in package.json: ${e.message}. Creating new one.`);
-      } else {
-        log.warn(`Could not read package.json: ${e.message}. Creating new one.`);
-      }
+  try {
+    const pkgContent = readFileSync(pkgPath, 'utf-8');
+    if (!pkgContent.trim()) {
+      log.warn('Existing package.json is empty, creating new one.');
+    } else {
+      pkg = JSON.parse(pkgContent);
+      log.info('Found existing package.json, merging...');
+    }
+  } catch (e) {
+    if (e.code === 'ENOENT') {
+      // No existing package.json, will create new one
+    } else if (e instanceof SyntaxError) {
+      log.warn(`Invalid JSON in package.json: ${e.message}. Creating new one.`);
+    } else {
+      log.warn(`Could not read package.json: ${e.message}. Creating new one.`);
     }
   }
 

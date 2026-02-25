@@ -172,13 +172,13 @@ function processDirectory(srcDir, outDir, progress = null) {
     mkdirSync(outDir, { recursive: true });
   }
 
-  const files = readdirSync(srcDir);
+  const entries = readdirSync(srcDir, { withFileTypes: true });
 
-  for (const file of files) {
+  for (const entry of entries) {
+    const file = entry.name;
     const srcPath = join(srcDir, file);
-    const stat = statSync(srcPath);
 
-    if (stat.isDirectory()) {
+    if (entry.isDirectory()) {
       processDirectory(srcPath, join(outDir, file), progress);
     } else if (file.endsWith('.pulse')) {
       // Compile .pulse files
