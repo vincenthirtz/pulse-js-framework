@@ -163,6 +163,7 @@ const testGroups = {
     'test:integration-advanced',
     'test:lite',
     'test:loader-shared',
+    'test:testing',
   ],
 };
 

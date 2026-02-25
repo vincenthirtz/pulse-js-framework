@@ -170,6 +170,9 @@
       "types": "./types/sw.d.ts",
       "default": "./sw/index.js"
     },
+    "./testing": {
+      "default": "./runtime/testing.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [
@@ -312,6 +315,7 @@
     "test:sync": "node scripts/sync-tests.js",
     "test:sync:fix": "node scripts/sync-tests.js --fix",
     "test:test-runner": "node test/test-runner.test.js",
+    "test:testing": "node --test test/testing.test.js",
     "test:utils": "node test/utils.test.js",
     "test:utils-coverage": "node test/utils-coverage.test.js",
     "test:vite-plugin": "node --test test/vite-plugin.test.js",
