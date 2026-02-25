@@ -10,7 +10,7 @@
 import { test, describe, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert';
 import { createServer, get as httpGetNode } from 'node:http';
-import { mkdirSync, writeFileSync, rmSync, existsSync, readFileSync, statSync } from 'fs';
+import { mkdirSync, writeFileSync, rmSync, existsSync, readFileSync } from 'fs';
 import { join, extname } from 'path';
 import { compile } from '../compiler/index.js';
 
@@ -531,26 +531,25 @@ async function createTestServer(root) {
         }
 
         // Static files
-        if (existsSync(filePath) && statSync(filePath).isFile()) {
-          const ext = extname(filePath);
-          const mimeType = MIME_TYPES[ext] || 'application/octet-stream';
-          let content;
+        {
+          let fileContent;
           try {
-            content = readFileSync(filePath);
+            fileContent = readFileSync(filePath);
           } catch (err) {
-            if (err.code === 'ENOENT') {
-              response.writeHead(404, { 'Content-Type': 'text/plain' });
-              response.end('Not Found');
-              return;
+            if (err.code !== 'ENOENT' && err.code !== 'EISDIR') throw err;
+            fileContent = null;
+          }
+          if (fileContent !== null) {
+            const ext = extname(filePath);
+            const mimeType = MIME_TYPES[ext] || 'application/octet-stream';
+            let content = fileContent;
+            if (ext === '.html') {
+              content = content.toString().replace('</body>', LIVERELOAD_SCRIPT);
             }
-            throw err;
+            response.writeHead(200, { 'Content-Type': mimeType });
+            response.end(content);
+            return;
           }
-          if (ext === '.html') {
-            content = content.toString().replace('</body>', LIVERELOAD_SCRIPT);
-          }
-          response.writeHead(200, { 'Content-Type': mimeType });
-          response.end(content);
-          return;
         }
 
         // SPA fallback

@@ -188,7 +188,8 @@ export function parseQuery(search, options = {}) {
   }
 
   const params = new URLSearchParams(queryStr);
-  const query = {};
+  // SECURITY: Use null-prototype object during construction to prevent prototype pollution
+  const query = Object.create(null);
   let paramCount = 0;
 
   for (const [key, value] of params) {
@@ -227,5 +228,6 @@ export function parseQuery(search, options = {}) {
     }
     paramCount++;
   }
-  return query;
+  // Convert back to regular object for compatibility with deepStrictEqual etc.
+  return { ...query };
 }

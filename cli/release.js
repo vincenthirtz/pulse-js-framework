@@ -10,7 +10,7 @@
  * - Push to remote
  */
 
-import { readFileSync, writeFileSync, existsSync, unlinkSync } from 'fs';
+import { readFileSync, writeFileSync, unlinkSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
@@ -211,10 +211,6 @@ function updatePackageJson(newVersion) {
  */
 function updateDocsState(newVersion) {
   const statePath = join(root, 'docs/src/state.js');
-  if (!existsSync(statePath)) {
-    log.warn('  docs/src/state.js not found, skipping');
-    return;
-  }
 
   let content;
   try {
@@ -236,10 +232,6 @@ function updateDocsState(newVersion) {
  */
 function updateChangelog(newVersion, title, changes) {
   const changelogPath = join(root, 'CHANGELOG.md');
-  if (!existsSync(changelogPath)) {
-    log.warn('  CHANGELOG.md not found, skipping');
-    return;
-  }
 
   let content;
   try {
@@ -309,10 +301,6 @@ function updateChangelog(newVersion, title, changes) {
  */
 function updateDocsChangelog(newVersion, title, changes) {
   const changelogPagePath = join(root, 'docs/src/pages/ChangelogPage.js');
-  if (!existsSync(changelogPagePath)) {
-    log.warn('  docs/src/pages/ChangelogPage.js not found, skipping');
-    return;
-  }
 
   let content;
   try {

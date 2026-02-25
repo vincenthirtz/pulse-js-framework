@@ -14,7 +14,7 @@
  * use `pulse release` instead of `npm version`.
  */
 
-import { readFileSync, writeFileSync, existsSync } from 'fs';
+import { readFileSync, writeFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
@@ -42,11 +42,6 @@ const updatedFiles = [];
 
 for (const file of files) {
   const filePath = join(root, file.path);
-
-  if (!existsSync(filePath)) {
-    console.log(`  Skipping ${file.path} (not found)`);
-    continue;
-  }
 
   let content;
   try {

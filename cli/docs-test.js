@@ -310,27 +310,22 @@ function startTestServer(port = 0) {
 
       const filePath = join(docsDir, pathname);
 
-      if (existsSync(filePath) && statSync(filePath).isFile()) {
-        let content;
-        try {
-          content = readFileSync(filePath);
-        } catch (err) {
-          if (err.code === 'ENOENT') { res.writeHead(404); res.end('Not Found'); return; }
-          throw err;
-        }
-        const ext = pathname.split('.').pop();
-        const mimeTypes = {
-          'html': 'text/html',
-          'js': 'application/javascript',
-          'css': 'text/css',
-          'json': 'application/json'
-        };
-        res.writeHead(200, { 'Content-Type': mimeTypes[ext] || 'text/plain' });
-        res.end(content);
-      } else {
-        res.writeHead(404);
-        res.end('Not Found');
+      let content;
+      try {
+        content = readFileSync(filePath);
+      } catch (err) {
+        if (err.code === 'ENOENT' || err.code === 'EISDIR') { res.writeHead(404); res.end('Not Found'); return; }
+        throw err;
       }
+      const ext = pathname.split('.').pop();
+      const mimeTypes = {
+        'html': 'text/html',
+        'js': 'application/javascript',
+        'css': 'text/css',
+        'json': 'application/json'
+      };
+      res.writeHead(200, { 'Content-Type': mimeTypes[ext] || 'text/plain' });
+      res.end(content);
     });
 
     // Disable keep-alive timeout

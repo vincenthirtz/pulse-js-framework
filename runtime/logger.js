@@ -208,17 +208,16 @@ function sanitizeLogArg(arg) {
  * @returns {Array<*>} Formatted arguments array
  */
 function formatArgs(namespace, args) {
-  const sanitized = args.map(sanitizeLogArg);
-  if (!namespace) return sanitized;
+  if (!namespace) return args;
 
   const prefix = formatNamespace(namespace);
   // If first arg is a string, prepend namespace
-  if (typeof sanitized[0] === 'string') {
-    return [`${prefix} ${sanitized[0]}`, ...sanitized.slice(1)];
+  if (typeof args[0] === 'string') {
+    return [`${prefix} ${args[0]}`, ...args.slice(1)];
   }
 
   // Otherwise, add namespace as first arg
-  return [prefix, ...sanitized];
+  return [prefix, ...args];
 }
 
 /**
@@ -256,40 +255,44 @@ function createDevLogger(namespace, options) {
   return {
     error(...args) {
       if (shouldLog(LogLevel.ERROR)) {
+        const safe = args.map(sanitizeLogArg);
         if (globalFormatter) {
-          console.error(globalFormatter('error', namespace, args));
+          console.error(globalFormatter('error', namespace, safe));
         } else {
-          console.error(...formatArgs(namespace, args));
+          console.error(...formatArgs(namespace, safe));
         }
       }
     },
 
     warn(...args) {
       if (shouldLog(LogLevel.WARN)) {
+        const safe = args.map(sanitizeLogArg);
         if (globalFormatter) {
-          console.warn(globalFormatter('warn', namespace, args));
+          console.warn(globalFormatter('warn', namespace, safe));
         } else {
-          console.warn(...formatArgs(namespace, args));
+          console.warn(...formatArgs(namespace, safe));
         }
       }
     },
 
     info(...args) {
       if (shouldLog(LogLevel.INFO)) {
+        const safe = args.map(sanitizeLogArg);
         if (globalFormatter) {
-          console.log(globalFormatter('info', namespace, args));
+          console.log(globalFormatter('info', namespace, safe));
         } else {
-          console.log(...formatArgs(namespace, args));
+          console.log(...formatArgs(namespace, safe));
         }
       }
     },
 
     debug(...args) {
       if (shouldLog(LogLevel.DEBUG)) {
+        const safe = args.map(sanitizeLogArg);
         if (globalFormatter) {
-          console.log(globalFormatter('debug', namespace, args));
+          console.log(globalFormatter('debug', namespace, safe));
         } else {
-          console.log(...formatArgs(namespace, args));
+          console.log(...formatArgs(namespace, safe));
         }
       }
     },

@@ -22,7 +22,8 @@
 
 import { test, describe, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert';
-import { existsSync, readFileSync, writeFileSync, mkdirSync, rmSync } from 'fs';
+import { existsSync, readFileSync, writeFileSync, mkdirSync, mkdtempSync, rmSync } from 'fs';
+import { tmpdir } from 'os';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -1115,7 +1116,7 @@ describe('Shared Loader Utilities', () => {
     let tmpDir;
 
     beforeEach(() => {
-      tmpDir = `/tmp/pulse-test-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      tmpDir = mkdtempSync(`${tmpdir()}/pulse-test-`);
     });
 
     afterEach(() => {

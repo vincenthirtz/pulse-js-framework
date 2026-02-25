@@ -82,10 +82,11 @@ async function analyzeFiles(files, parse) {
 
   for (const file of files) {
     try {
-      const stats = statSync(file);
       let source;
+      let stats;
       try {
         source = readFileSync(file, 'utf-8');
+        stats = statSync(file);
       } catch (e) {
         if (e.code !== 'ENOENT') throw e;
         continue;

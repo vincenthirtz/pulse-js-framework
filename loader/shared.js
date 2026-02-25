@@ -209,7 +209,7 @@ export function extractImports(code) {
   //    import { \n A, \n B \n } from '...'
   //    import * as ns from '...'
   //    import type { X } from '...' (TypeScript)
-  const staticImportRegex = /import\s+(?:type\s+)?(?:\{[^}]*\}|[\w$]+|\*\s+as\s+[\w$]+)(?:\s*,\s*(?:\{[^}]*\}|[\w$]+|\*\s+as\s+[\w$]+))?\s+from\s+['"]([^'"]+)['"]/gs;
+  const staticImportRegex = /import\s+(?:type\s+)?(?:\{[^}]*\}|[\w$]+|\*\s+as\s+[\w$]+)(?:,\s*(?:\{[^}]*\}|[\w$]+|\*\s+as\s+[\w$]+))?\s+from\s+['"]([^'"]+)['"]/gs;
 
   // 2. Side-effect imports: import '...'
   const sideEffectRegex = /import\s+['"]([^'"]+)['"]/g;

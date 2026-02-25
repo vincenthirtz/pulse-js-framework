@@ -973,9 +973,7 @@ export async function runScaffold(args) {
 
   // Create directory if needed
   const outputDir = dirname(fullPath);
-  if (!existsSync(outputDir)) {
-    mkdirSync(outputDir, { recursive: true });
-  }
+  mkdirSync(outputDir, { recursive: true });
 
   // Write file
   try {
