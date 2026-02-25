@@ -742,7 +742,7 @@ async function initProject(args) {
   const viteConfigExt = useTypescript ? 'ts' : 'js';
   const viteConfigPath = join(cwd, `vite.config.${viteConfigExt}`);
 
-  if (!existsSync(join(cwd, 'vite.config.js')) && !existsSync(join(cwd, 'vite.config.ts'))) {
+  {
     const viteConfig = `import { defineConfig } from 'vite';
 import pulse from 'pulse-js-framework/vite';
 
@@ -750,6 +750,7 @@ export default defineConfig({
   plugins: [pulse()]
 });
 `;
+    // Use atomic wx flag to avoid TOCTOU race (no existsSync check needed)
     try {
       writeFileSync(viteConfigPath, viteConfig, { flag: 'wx' });
       log.success(`Created vite.config.${viteConfigExt}`);

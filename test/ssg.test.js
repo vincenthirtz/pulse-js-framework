@@ -388,7 +388,7 @@ describe('generateBuildManifest', () => {
   });
 
   test('handles nonexistent output directory', () => {
-    const dir = join(tmpdir(), `pulse-ssg-nonexist-${Date.now()}`);
+    const dir = join(mkdtempSync(join(tmpdir(), 'pulse-ssg-nonexist-')), 'subdir');
     const manifest = generateBuildManifest(dir);
 
     assert.deepStrictEqual(manifest.routes, {});

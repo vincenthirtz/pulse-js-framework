@@ -490,36 +490,37 @@ async function createTestServer(root) {
 
         // .pulse files
         if (pathname.endsWith('.pulse')) {
-          if (existsSync(filePath)) {
-            try {
-              const source = readFileSync(filePath, 'utf-8');
-              const result = compile(source, {
-                runtime: '/runtime/index.js',
-                sourceMap: true,
-                inlineSourceMap: true,
-                sourceFileName: pathname
+          try {
+            const source = readFileSync(filePath, 'utf-8');
+            const result = compile(source, {
+              runtime: '/runtime/index.js',
+              sourceMap: true,
+              inlineSourceMap: true,
+              sourceFileName: pathname
+            });
+            if (result.success) {
+              response.writeHead(200, {
+                'Content-Type': 'application/javascript',
+                'Cache-Control': 'no-cache, no-store, must-revalidate'
               });
-              if (result.success) {
-                response.writeHead(200, {
-                  'Content-Type': 'application/javascript',
-                  'Cache-Control': 'no-cache, no-store, must-revalidate'
-                });
-                response.end(result.code);
-              } else {
-                response.writeHead(500, { 'Content-Type': 'text/plain' });
-                response.end(`Compilation error`);
-              }
-            } catch (error) {
+              response.end(result.code);
+            } else {
               response.writeHead(500, { 'Content-Type': 'text/plain' });
-              response.end(`Error: ${error.message}`);
+              response.end(`Compilation error`);
             }
             return;
+          } catch (error) {
+            if (error.code !== 'ENOENT') {
+              response.writeHead(500, { 'Content-Type': 'text/plain' });
+              response.end(`Error: ${error.message}`);
+              return;
+            }
           }
         }
 
         // JS files
         if (pathname.endsWith('.js') || pathname.endsWith('.mjs')) {
-          if (existsSync(filePath)) {
+          try {
             const content = readFileSync(filePath, 'utf-8');
             response.writeHead(200, {
               'Content-Type': 'application/javascript',
@@ -527,6 +528,8 @@ async function createTestServer(root) {
             });
             response.end(content);
             return;
+          } catch (e) {
+            if (e.code !== 'ENOENT') throw e;
           }
         }
 
@@ -556,12 +559,14 @@ async function createTestServer(root) {
         const ext = extname(pathname);
         if (!ext || ext === '') {
           const indexPath = join(root, 'index.html');
-          if (existsSync(indexPath)) {
+          try {
             let content = readFileSync(indexPath, 'utf-8');
             content = content.replace('</body>', LIVERELOAD_SCRIPT);
             response.writeHead(200, { 'Content-Type': 'text/html' });
             response.end(content);
             return;
+          } catch (e) {
+            if (e.code !== 'ENOENT') throw e;
           }
         }
 

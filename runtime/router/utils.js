@@ -199,6 +199,11 @@ export function parseQuery(search, options = {}) {
       break;
     }
 
+    // SECURITY: Skip prototype-polluting keys to prevent remote property injection
+    if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+      continue;
+    }
+
     // Validate and potentially truncate value length
     let safeValue = value;
     if (value.length > QUERY_LIMITS.maxValueLength) {

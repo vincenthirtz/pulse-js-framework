@@ -218,7 +218,13 @@ function processDirectory(srcDir, outDir, progress = null) {
         }
 
         const outPath = join(outDir, file.replace('.pulse', '.js'));
-        writeFileSync(outPath, code);
+        try {
+          writeFileSync(outPath, code);
+        } catch (writeErr) {
+          log.error(`  Failed to write ${outPath}: ${writeErr.message}`);
+          if (progress) progress.tick();
+          continue;
+        }
       } else {
         log.error(`  Error compiling ${file}:`);
         for (const error of result.errors) {

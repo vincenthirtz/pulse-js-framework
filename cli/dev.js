@@ -128,60 +128,61 @@ export async function startDevServer(args) {
 
     // Check for .pulse files and compile them
     if (pathname.endsWith('.pulse')) {
-      if (existsSync(filePath)) {
-        try {
-          const source = readFileSync(filePath, 'utf-8');
-          const result = compile(source, {
-            runtime: '/runtime/index.js',
-            sourceMap: true,
-            inlineSourceMap: true,
-            sourceFileName: pathname
-          });
+      try {
+        const source = readFileSync(filePath, 'utf-8');
+        const result = compile(source, {
+          runtime: '/runtime/index.js',
+          sourceMap: true,
+          inlineSourceMap: true,
+          sourceFileName: pathname
+        });
 
-          if (result.success) {
-            let code = result.code;
+        if (result.success) {
+          let code = result.code;
 
-            // Preprocess SASS/SCSS if available
-            if (sassAvailable) {
-              const stylesMatch = code.match(/const styles = `([\s\S]*?)`;/);
-              if (stylesMatch) {
-                try {
-                  const preprocessed = preprocessStylesSync(stylesMatch[1], {
-                    filename: filePath,
-                    loadPaths: [dirname(filePath)]
-                  });
-                  if (preprocessed.wasSass) {
-                    code = code.replace(stylesMatch[0], `const styles = \`${preprocessed.css}\`;`);
-                  }
-                } catch (sassError) {
-                  console.warn(`[Pulse] SASS warning: ${sassError.message}`);
+          // Preprocess SASS/SCSS if available
+          if (sassAvailable) {
+            const stylesMatch = code.match(/const styles = `([\s\S]*?)`;/);
+            if (stylesMatch) {
+              try {
+                const preprocessed = preprocessStylesSync(stylesMatch[1], {
+                  filename: filePath,
+                  loadPaths: [dirname(filePath)]
+                });
+                if (preprocessed.wasSass) {
+                  code = code.replace(stylesMatch[0], `const styles = \`${preprocessed.css}\`;`);
                 }
+              } catch (sassError) {
+                console.warn(`[Pulse] SASS warning: ${sassError.message}`);
               }
             }
-
-            res.writeHead(200, {
-              'Content-Type': 'application/javascript',
-              'Cache-Control': 'no-cache, no-store, must-revalidate'
-            });
-            res.end(code);
-          } else {
-            const errorDetails = result.errors.map(e => `${e.message} at line ${e.line || '?'}:${e.column || '?'}`).join('\n');
-            console.error(`[Pulse] Compilation error in ${filePath}:`, result.errors);
-            res.writeHead(500, { 'Content-Type': 'text/plain' });
-            res.end(`Compilation error: ${errorDetails}\nFile: ${filePath}`);
           }
-        } catch (error) {
+
+          res.writeHead(200, {
+            'Content-Type': 'application/javascript',
+            'Cache-Control': 'no-cache, no-store, must-revalidate'
+          });
+          res.end(code);
+        } else {
+          const errorDetails = result.errors.map(e => `${e.message} at line ${e.line || '?'}:${e.column || '?'}`).join('\n');
+          console.error(`[Pulse] Compilation error in ${filePath}:`, result.errors);
+          res.writeHead(500, { 'Content-Type': 'text/plain' });
+          res.end(`Compilation error: ${errorDetails}\nFile: ${filePath}`);
+        }
+        return;
+      } catch (error) {
+        if (error.code !== 'ENOENT') {
           console.error(`[Pulse] Error compiling ${filePath}:`, error);
           res.writeHead(500, { 'Content-Type': 'text/plain' });
           res.end(`Error: ${error.message}\nFile: ${filePath}`);
+          return;
         }
-        return;
       }
     }
 
     // Serve JS files
     if (pathname.endsWith('.js') || pathname.endsWith('.mjs')) {
-      if (existsSync(filePath)) {
+      try {
         const content = readFileSync(filePath, 'utf-8');
         res.writeHead(200, {
           'Content-Type': 'application/javascript',
@@ -189,62 +190,65 @@ export async function startDevServer(args) {
         });
         res.end(content);
         return;
+      } catch (e) {
+        if (e.code !== 'ENOENT') throw e;
       }
 
       // Check if there's a .pulse file that should be compiled to .js
       const pulseFilePath = filePath.replace(/\.(js|mjs)$/, '.pulse');
-      if (existsSync(pulseFilePath)) {
-        try {
-          const source = readFileSync(pulseFilePath, 'utf-8');
-          const result = compile(source, {
-            runtime: '/runtime/index.js',
-            sourceMap: true,
-            inlineSourceMap: true,
-            sourceFileName: pulseFilePath.replace(root, '')
-          });
+      try {
+        const source = readFileSync(pulseFilePath, 'utf-8');
+        const result = compile(source, {
+          runtime: '/runtime/index.js',
+          sourceMap: true,
+          inlineSourceMap: true,
+          sourceFileName: pulseFilePath.replace(root, '')
+        });
 
-          if (result.success) {
-            let code = result.code;
+        if (result.success) {
+          let code = result.code;
 
-            // Preprocess SASS/SCSS if available
-            if (sassAvailable) {
-              const stylesMatch = code.match(/const styles = `([\s\S]*?)`;/);
-              if (stylesMatch) {
-                try {
-                  const preprocessed = preprocessStylesSync(stylesMatch[1], {
-                    filename: pulseFilePath,
-                    loadPaths: [dirname(pulseFilePath)]
-                  });
-                  if (preprocessed.wasSass) {
-                    code = code.replace(stylesMatch[0], `const styles = \`${preprocessed.css}\`;`);
-                  }
-                } catch (sassError) {
-                  console.warn(`[Pulse] SASS warning: ${sassError.message}`);
+          // Preprocess SASS/SCSS if available
+          if (sassAvailable) {
+            const stylesMatch = code.match(/const styles = `([\s\S]*?)`;/);
+            if (stylesMatch) {
+              try {
+                const preprocessed = preprocessStylesSync(stylesMatch[1], {
+                  filename: pulseFilePath,
+                  loadPaths: [dirname(pulseFilePath)]
+                });
+                if (preprocessed.wasSass) {
+                  code = code.replace(stylesMatch[0], `const styles = \`${preprocessed.css}\`;`);
                 }
+              } catch (sassError) {
+                console.warn(`[Pulse] SASS warning: ${sassError.message}`);
               }
             }
-
-            res.writeHead(200, {
-              'Content-Type': 'application/javascript',
-              'Cache-Control': 'no-cache, no-store, must-revalidate'
-            });
-            res.end(code);
-          } else {
-            res.writeHead(500, { 'Content-Type': 'text/plain' });
-            res.end(`Compilation error: ${result.errors.map(e => e.message).join('\n')}`);
           }
-        } catch (error) {
+
+          res.writeHead(200, {
+            'Content-Type': 'application/javascript',
+            'Cache-Control': 'no-cache, no-store, must-revalidate'
+          });
+          res.end(code);
+        } else {
           res.writeHead(500, { 'Content-Type': 'text/plain' });
-          res.end(`Error: ${error.message}`);
+          res.end(`Compilation error: ${result.errors.map(e => e.message).join('\n')}`);
         }
         return;
+      } catch (error) {
+        if (error.code !== 'ENOENT') {
+          res.writeHead(500, { 'Content-Type': 'text/plain' });
+          res.end(`Error: ${error.message}`);
+          return;
+        }
       }
     }
 
     // Handle node_modules
     if (pathname.startsWith('/node_modules/pulse-js-framework/')) {
       const modulePath = join(root, '..', 'pulse', pathname.replace('/node_modules/pulse-js-framework/', ''));
-      if (existsSync(modulePath)) {
+      try {
         const content = readFileSync(modulePath, 'utf-8');
         res.writeHead(200, {
           'Content-Type': 'application/javascript',
@@ -252,6 +256,8 @@ export async function startDevServer(args) {
         });
         res.end(content);
         return;
+      } catch (e) {
+        if (e.code !== 'ENOENT') throw e;
       }
     }
 
@@ -267,7 +273,7 @@ export async function startDevServer(args) {
       ];
 
       for (const runtimePath of possiblePaths) {
-        if (existsSync(runtimePath)) {
+        try {
           const content = readFileSync(runtimePath, 'utf-8');
           res.writeHead(200, {
             'Content-Type': 'application/javascript',
@@ -275,6 +281,8 @@ export async function startDevServer(args) {
           });
           res.end(content);
           return;
+        } catch (e) {
+          if (e.code !== 'ENOENT') throw e;
         }
       }
     }
@@ -303,12 +311,14 @@ export async function startDevServer(args) {
     const ext = extname(pathname);
     if (!ext || ext === '') {
       const indexPath = join(root, 'index.html');
-      if (existsSync(indexPath)) {
+      try {
         let content = readFileSync(indexPath, 'utf-8');
         content = content.replace('</body>', LIVERELOAD_SCRIPT);
         res.writeHead(200, { 'Content-Type': 'text/html' });
         res.end(content);
         return;
+      } catch (e) {
+        if (e.code !== 'ENOENT') throw e;
       }
     }
 

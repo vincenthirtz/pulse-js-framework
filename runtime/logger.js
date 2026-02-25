@@ -234,10 +234,18 @@ function formatArgs(namespace, args) {
  */
 function createDevLogger(namespace, options) {
   const localLevel = options.level;
+  // Sanitize namespace once at creation to prevent log injection
+  const safeNamespace = typeof namespace === 'string' ? namespace.replace(/[\r\n\x00-\x1f]/g, '') : namespace;
 
   function shouldLog(level) {
     const effectiveLevel = localLevel !== undefined ? localLevel : globalLevel;
     return level <= effectiveLevel;
+  }
+
+  /** Sanitize formatter output to prevent log injection */
+  function safeFormat(level, args) {
+    const result = globalFormatter(level, safeNamespace, args);
+    return typeof result === 'string' ? result.replace(/[\r\n\x00-\x1f]/g, '') : result;
   }
 
   return {
@@ -245,9 +253,9 @@ function createDevLogger(namespace, options) {
       if (shouldLog(LogLevel.ERROR)) {
         const safe = args.map(a => typeof a === 'string' ? a.replace(/[\r\n\x00-\x1f]/g, '') : a);
         if (globalFormatter) {
-          console.error(globalFormatter('error', namespace, safe));
-        } else if (namespace) {
-          const p = formatNamespace(namespace);
+          console.error(safeFormat('error', safe));
+        } else if (safeNamespace) {
+          const p = formatNamespace(safeNamespace);
           console.error(typeof safe[0] === 'string' ? `${p} ${safe[0]}` : p, ...safe.slice(typeof safe[0] === 'string' ? 1 : 0));
         } else {
           console.error(...safe);
@@ -259,9 +267,9 @@ function createDevLogger(namespace, options) {
       if (shouldLog(LogLevel.WARN)) {
         const safe = args.map(a => typeof a === 'string' ? a.replace(/[\r\n\x00-\x1f]/g, '') : a);
         if (globalFormatter) {
-          console.warn(globalFormatter('warn', namespace, safe));
-        } else if (namespace) {
-          const p = formatNamespace(namespace);
+          console.warn(safeFormat('warn', safe));
+        } else if (safeNamespace) {
+          const p = formatNamespace(safeNamespace);
           console.warn(typeof safe[0] === 'string' ? `${p} ${safe[0]}` : p, ...safe.slice(typeof safe[0] === 'string' ? 1 : 0));
         } else {
           console.warn(...safe);
@@ -273,9 +281,9 @@ function createDevLogger(namespace, options) {
       if (shouldLog(LogLevel.INFO)) {
         const safe = args.map(a => typeof a === 'string' ? a.replace(/[\r\n\x00-\x1f]/g, '') : a);
         if (globalFormatter) {
-          console.log(globalFormatter('info', namespace, safe));
-        } else if (namespace) {
-          const p = formatNamespace(namespace);
+          console.log(safeFormat('info', safe));
+        } else if (safeNamespace) {
+          const p = formatNamespace(safeNamespace);
           console.log(typeof safe[0] === 'string' ? `${p} ${safe[0]}` : p, ...safe.slice(typeof safe[0] === 'string' ? 1 : 0));
         } else {
           console.log(...safe);
@@ -287,9 +295,9 @@ function createDevLogger(namespace, options) {
       if (shouldLog(LogLevel.DEBUG)) {
         const safe = args.map(a => typeof a === 'string' ? a.replace(/[\r\n\x00-\x1f]/g, '') : a);
         if (globalFormatter) {
-          console.log(globalFormatter('debug', namespace, safe));
-        } else if (namespace) {
-          const p = formatNamespace(namespace);
+          console.log(safeFormat('debug', safe));
+        } else if (safeNamespace) {
+          const p = formatNamespace(safeNamespace);
           console.log(typeof safe[0] === 'string' ? `${p} ${safe[0]}` : p, ...safe.slice(typeof safe[0] === 'string' ? 1 : 0));
         } else {
           console.log(...safe);
@@ -299,7 +307,8 @@ function createDevLogger(namespace, options) {
 
     group(label) {
       if (shouldLog(LogLevel.DEBUG)) {
-        console.group(namespace ? `${formatNamespace(namespace)} ${label}` : label);
+        const safeLabel = typeof label === 'string' ? label.replace(/[\r\n\x00-\x1f]/g, '') : label;
+        console.group(safeNamespace ? `${formatNamespace(safeNamespace)} ${safeLabel}` : safeLabel);
       }
     },
 
@@ -311,7 +320,8 @@ function createDevLogger(namespace, options) {
 
     log(level, ...args) {
       if (shouldLog(level)) {
-        const formatted = formatArgs(namespace, args);
+        const safe = args.map(a => typeof a === 'string' ? a.replace(/[\r\n\x00-\x1f]/g, '') : a);
+        const formatted = formatArgs(safeNamespace, safe);
         switch (level) {
           case LogLevel.ERROR:
             console.error(...formatted);
@@ -326,8 +336,8 @@ function createDevLogger(namespace, options) {
     },
 
     child(childNamespace) {
-      const combined = namespace
-        ? `${namespace}${NAMESPACE_SEPARATOR}${childNamespace}`
+      const combined = safeNamespace
+        ? `${safeNamespace}${NAMESPACE_SEPARATOR}${childNamespace}`
         : childNamespace;
       return createLogger(combined, options);
     }

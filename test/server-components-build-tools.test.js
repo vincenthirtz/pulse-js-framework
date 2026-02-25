@@ -1256,7 +1256,11 @@ describe('ESBuild Server Components Plugin', () => {
   });
 
   test('onEnd skips when build has errors', async () => {
-    const plugin = pulseEsbuildSCPlugin({ manifestPath: '/tmp/test-esbuild-sc/manifest.json' });
+    const { mkdtempSync } = await import('fs');
+    const { join } = await import('path');
+    const { tmpdir } = await import('os');
+    const safeTmpDir = mkdtempSync(join(tmpdir(), 'pulse-esbuild-sc-test-'));
+    const plugin = pulseEsbuildSCPlugin({ manifestPath: join(safeTmpDir, 'manifest.json') });
     let endHandler;
 
     const mockBuild = {
@@ -1269,6 +1273,9 @@ describe('ESBuild Server Components Plugin', () => {
     // Call onEnd with errors — should skip manifest generation
     await endHandler({ errors: [{ text: 'build error' }], metafile: null });
     // No error = success (manifest was NOT written)
+
+    const { rmSync } = await import('fs');
+    rmSync(safeTmpDir, { recursive: true, force: true });
   });
 
   // ==========================================================================

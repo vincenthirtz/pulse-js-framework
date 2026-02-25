@@ -10,11 +10,12 @@
  * - Push to remote
  */
 
-import { readFileSync, writeFileSync, unlinkSync } from 'fs';
+import { readFileSync, writeFileSync, unlinkSync, mkdtempSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
 import { tmpdir } from 'os';
+import { randomBytes } from 'crypto';
 import { createInterface } from 'readline';
 import https from 'https';
 import { log } from './logger.js';
@@ -600,7 +601,7 @@ function createGitHubRelease(version, title, changes) {
   }
 
   // Write notes to temp file
-  const tempFile = join(tmpdir(), `pulse-release-notes-${Date.now()}.md`);
+  const tempFile = join(mkdtempSync(join(tmpdir(), 'pulse-release-')), `notes-${randomBytes(8).toString('hex')}.md`);
   writeFileSync(tempFile, notes, 'utf-8');
 
   try {
@@ -663,7 +664,7 @@ function gitCommitTagPush(newVersion, title, changes, dryRun = false) {
   }
 
   // git commit using temp file for cross-platform compatibility
-  const tempFile = join(tmpdir(), `pulse-release-${Date.now()}.txt`);
+  const tempFile = join(mkdtempSync(join(tmpdir(), 'pulse-release-')), `commit-${randomBytes(8).toString('hex')}.txt`);
   writeFileSync(tempFile, commitMessage, 'utf-8');
   try {
     result = execGitCommand(`git commit -F "${tempFile}"`, 'git commit');
@@ -776,7 +777,7 @@ function gitCommitTagNoPush(newVersion, title, changes) {
   }
 
   // git commit using temp file for cross-platform compatibility
-  const tempFile = join(tmpdir(), `pulse-release-${Date.now()}.txt`);
+  const tempFile = join(mkdtempSync(join(tmpdir(), 'pulse-release-')), `commit-${randomBytes(8).toString('hex')}.txt`);
   writeFileSync(tempFile, commitMessage, 'utf-8');
   try {
     result = execGitCommand(`git commit -F "${tempFile}"`, 'git commit');
