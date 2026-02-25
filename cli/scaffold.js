@@ -3,7 +3,7 @@
  * Generate components, pages, stores, and other project files
  */
 
-import { existsSync, mkdirSync, writeFileSync, readFileSync } from 'fs';
+import { mkdirSync, writeFileSync } from 'fs';
 import { join, dirname, relative, basename } from 'path';
 import { log } from './logger.js';
 import { parseArgs } from './utils/file-utils.js';
@@ -957,13 +957,6 @@ export async function runScaffold(args) {
   const fileName = toCase(name, type === 'component' || type === 'page' || type === 'layout' ? 'pascal' : 'camel');
   const fullPath = join(process.cwd(), dir, fileName + scaffoldType.extension);
 
-  // Check if file already exists
-  if (existsSync(fullPath) && !options.force && !options.f) {
-    log.error(`File already exists: ${relative(process.cwd(), fullPath)}`);
-    log.info('Use --force to overwrite.');
-    process.exit(1);
-  }
-
   // Generate content
   const content = scaffoldType.template(name, {
     withState: options.state !== false,
@@ -975,13 +968,15 @@ export async function runScaffold(args) {
   const outputDir = dirname(fullPath);
   mkdirSync(outputDir, { recursive: true });
 
-  // Write file
+  // Write file (atomic create unless --force)
+  const forceOverwrite = options.force || options.f;
   try {
-    writeFileSync(fullPath, content, { flag: 'wx' });
+    writeFileSync(fullPath, content, forceOverwrite ? undefined : { flag: 'wx' });
   } catch (err) {
     if (err.code === 'EEXIST') {
-      log.warn(`File already exists: ${relative(process.cwd(), fullPath)}`);
-      return;
+      log.error(`File already exists: ${relative(process.cwd(), fullPath)}`);
+      log.info('Use --force to overwrite.');
+      process.exit(1);
     }
     throw err;
   }

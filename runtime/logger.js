@@ -243,12 +243,14 @@ function createDevLogger(namespace, options) {
   return {
     error(...args) {
       if (shouldLog(LogLevel.ERROR)) {
-        // Inline sanitization so CodeQL can verify log-injection prevention
         const safe = args.map(a => typeof a === 'string' ? a.replace(/[\r\n\x00-\x1f]/g, '') : a);
         if (globalFormatter) {
           console.error(globalFormatter('error', namespace, safe));
+        } else if (namespace) {
+          const p = formatNamespace(namespace);
+          console.error(typeof safe[0] === 'string' ? `${p} ${safe[0]}` : p, ...safe.slice(typeof safe[0] === 'string' ? 1 : 0));
         } else {
-          console.error(...formatArgs(namespace, safe));
+          console.error(...safe);
         }
       }
     },
@@ -258,8 +260,11 @@ function createDevLogger(namespace, options) {
         const safe = args.map(a => typeof a === 'string' ? a.replace(/[\r\n\x00-\x1f]/g, '') : a);
         if (globalFormatter) {
           console.warn(globalFormatter('warn', namespace, safe));
+        } else if (namespace) {
+          const p = formatNamespace(namespace);
+          console.warn(typeof safe[0] === 'string' ? `${p} ${safe[0]}` : p, ...safe.slice(typeof safe[0] === 'string' ? 1 : 0));
         } else {
-          console.warn(...formatArgs(namespace, safe));
+          console.warn(...safe);
         }
       }
     },
@@ -269,8 +274,11 @@ function createDevLogger(namespace, options) {
         const safe = args.map(a => typeof a === 'string' ? a.replace(/[\r\n\x00-\x1f]/g, '') : a);
         if (globalFormatter) {
           console.log(globalFormatter('info', namespace, safe));
+        } else if (namespace) {
+          const p = formatNamespace(namespace);
+          console.log(typeof safe[0] === 'string' ? `${p} ${safe[0]}` : p, ...safe.slice(typeof safe[0] === 'string' ? 1 : 0));
         } else {
-          console.log(...formatArgs(namespace, safe));
+          console.log(...safe);
         }
       }
     },
@@ -280,8 +288,11 @@ function createDevLogger(namespace, options) {
         const safe = args.map(a => typeof a === 'string' ? a.replace(/[\r\n\x00-\x1f]/g, '') : a);
         if (globalFormatter) {
           console.log(globalFormatter('debug', namespace, safe));
+        } else if (namespace) {
+          const p = formatNamespace(namespace);
+          console.log(typeof safe[0] === 'string' ? `${p} ${safe[0]}` : p, ...safe.slice(typeof safe[0] === 'string' ? 1 : 0));
         } else {
-          console.log(...formatArgs(namespace, safe));
+          console.log(...safe);
         }
       }
     },
