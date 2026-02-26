@@ -113,10 +113,10 @@ function cleanup() {
   rmSync(TEST_DIR, { recursive: true, force: true });
 }
 
-// Helper: make an HTTP GET request and return { statusCode, headers, body }
-function fetchUrl(url) {
+// Helper: make an HTTP GET request to localhost and return { statusCode, headers, body }
+function fetchUrl(port, path = '/') {
   return new Promise((resolve, reject) => {
-    const req = httpGet(url, (res) => {
+    const req = httpGet({ hostname: '127.0.0.1', port, path }, (res) => {
       let body = '';
       res.on('data', (chunk) => { body += chunk; });
       res.on('end', () => resolve({ statusCode: res.statusCode, headers: res.headers, body }));
@@ -640,7 +640,7 @@ describe('previewBuild - coverage boost', () => {
 
     server = await previewBuild(['9871']);
 
-    const res = await fetchUrl('http://localhost:9871/');
+    const res = await fetchUrl(9871);
     assert.strictEqual(res.statusCode, 200);
     assert.ok(res.headers['content-type'].includes('text/html'), 'should serve HTML with text/html');
     assert.ok(res.body.includes('Hello'), 'should serve the HTML content');
@@ -655,7 +655,7 @@ describe('previewBuild - coverage boost', () => {
 
     server = await previewBuild(['9872']);
 
-    const res = await fetchUrl('http://localhost:9872/app.js');
+    const res = await fetchUrl(9872, '/app.js');
     assert.strictEqual(res.statusCode, 200);
     assert.ok(
       res.headers['content-type'].includes('application/javascript'),
@@ -673,7 +673,7 @@ describe('previewBuild - coverage boost', () => {
 
     server = await previewBuild(['9873']);
 
-    const res = await fetchUrl('http://localhost:9873/styles.css');
+    const res = await fetchUrl(9873, '/styles.css');
     assert.strictEqual(res.statusCode, 200);
     assert.ok(res.headers['content-type'].includes('text/css'), 'should serve CSS with text/css');
   });
@@ -687,7 +687,7 @@ describe('previewBuild - coverage boost', () => {
 
     server = await previewBuild(['9874']);
 
-    const res = await fetchUrl('http://localhost:9874/data.json');
+    const res = await fetchUrl(9874, '/data.json');
     assert.strictEqual(res.statusCode, 200);
     assert.ok(
       res.headers['content-type'].includes('application/json'),
@@ -704,7 +704,7 @@ describe('previewBuild - coverage boost', () => {
 
     server = await previewBuild(['9875']);
 
-    const res = await fetchUrl('http://localhost:9875/icon.svg');
+    const res = await fetchUrl(9875, '/icon.svg');
     assert.strictEqual(res.statusCode, 200);
     assert.ok(
       res.headers['content-type'].includes('image/svg+xml'),
@@ -724,7 +724,7 @@ describe('previewBuild - coverage boost', () => {
 
     server = await previewBuild(['9877']);
 
-    const res = await fetchUrl('http://localhost:9877/about');
+    const res = await fetchUrl(9877, '/about');
     assert.strictEqual(res.statusCode, 200);
     assert.ok(res.body.includes('SPA'), 'route /about should serve index.html for SPA fallback');
   });
@@ -737,7 +737,7 @@ describe('previewBuild - coverage boost', () => {
 
     server = await previewBuild(['9878']);
 
-    const res = await fetchUrl('http://localhost:9878/users/123/profile');
+    const res = await fetchUrl(9878, '/users/123/profile');
     assert.strictEqual(res.statusCode, 200);
     assert.ok(res.body.includes('SPA App'), 'nested route should serve index.html');
   });
@@ -750,7 +750,7 @@ describe('previewBuild - coverage boost', () => {
 
     server = await previewBuild(['9879']);
 
-    const res = await fetchUrl('http://localhost:9879/');
+    const res = await fetchUrl(9879);
     assert.strictEqual(res.statusCode, 200);
     assert.ok(res.body.includes('Root'), '/ should serve index.html');
   });
@@ -764,7 +764,7 @@ describe('previewBuild - coverage boost', () => {
 
     server = await previewBuild(['9880']);
 
-    const res = await fetchUrl('http://localhost:9880/app.js');
+    const res = await fetchUrl(9880, '/app.js');
     assert.ok(
       res.headers['cache-control'] && res.headers['cache-control'].includes('public'),
       'should set public Cache-Control header'
@@ -783,7 +783,7 @@ describe('previewBuild - coverage boost', () => {
 
     try {
       server = await previewBuild([]);
-      const res = await fetchUrl('http://localhost:4173/');
+      const res = await fetchUrl(4173);
       assert.strictEqual(res.statusCode, 200);
       assert.ok(res.body.includes('Default Port'), 'should serve on default port 4173');
     } catch (err) {
@@ -804,7 +804,7 @@ describe('previewBuild - coverage boost', () => {
 
     server = await previewBuild(['9881']);
 
-    const res = await fetchUrl('http://localhost:9881/data.bin');
+    const res = await fetchUrl(9881, '/data.bin');
     assert.strictEqual(res.statusCode, 200);
     assert.ok(
       res.headers['content-type'].includes('application/octet-stream'),
@@ -822,11 +822,11 @@ describe('previewBuild - coverage boost', () => {
 
     server = await previewBuild(['9882']);
 
-    const jsRes = await fetchUrl('http://localhost:9882/assets/app.js');
+    const jsRes = await fetchUrl(9882, '/assets/app.js');
     assert.strictEqual(jsRes.statusCode, 200);
     assert.ok(jsRes.body.includes('console.log'), 'should serve nested JS');
 
-    const cssRes = await fetchUrl('http://localhost:9882/assets/css/style.css');
+    const cssRes = await fetchUrl(9882, '/assets/css/style.css');
     assert.strictEqual(cssRes.statusCode, 200);
     assert.ok(cssRes.body.includes('color: red'), 'should serve deeply nested CSS');
   });
@@ -1047,7 +1047,7 @@ describe('previewBuild - edge cases', () => {
 
     server = await previewBuild(['9883']);
 
-    const res = await fetchUrl('http://localhost:9883/favicon.ico');
+    const res = await fetchUrl(9883, '/favicon.ico');
     assert.strictEqual(res.statusCode, 200);
     assert.ok(
       res.headers['content-type'].includes('image/x-icon'),
@@ -1064,7 +1064,7 @@ describe('previewBuild - edge cases', () => {
 
     server = await previewBuild(['9884']);
 
-    const res = await fetchUrl('http://localhost:9884/image.png');
+    const res = await fetchUrl(9884, '/image.png');
     assert.strictEqual(res.statusCode, 200);
     assert.ok(
       res.headers['content-type'].includes('image/png'),
@@ -1081,7 +1081,7 @@ describe('previewBuild - edge cases', () => {
 
     server = await previewBuild(['9885']);
 
-    const res = await fetchUrl('http://localhost:9885/font.woff2');
+    const res = await fetchUrl(9885, '/font.woff2');
     assert.strictEqual(res.statusCode, 200);
     assert.ok(
       res.headers['content-type'].includes('font/woff2'),
@@ -1097,7 +1097,7 @@ describe('previewBuild - edge cases', () => {
 
     server = await previewBuild(['9886']);
 
-    const res = await fetchUrl('http://localhost:9886/');
+    const res = await fetchUrl(9886);
     assert.strictEqual(res.statusCode, 200);
     assert.ok(res.body.includes('Custom'));
   });
@@ -1111,7 +1111,7 @@ describe('previewBuild - edge cases', () => {
 
     server = await previewBuild(['9887']);
 
-    const res = await fetchUrl('http://localhost:9887/data.json?v=123');
+    const res = await fetchUrl(9887, '/data.json?v=123');
     assert.strictEqual(res.statusCode, 200);
     assert.ok(res.body.includes('"ok"'), 'should serve file ignoring query string');
   });
@@ -1164,23 +1164,23 @@ describe('Integration: build then preview', () => {
     server = await previewBuild(['9888']);
 
     // Test index.html is served with rewritten paths
-    const htmlRes = await fetchUrl('http://localhost:9888/');
+    const htmlRes = await fetchUrl(9888);
     assert.strictEqual(htmlRes.statusCode, 200);
     assert.ok(htmlRes.body.includes('Pulse App'));
     assert.ok(htmlRes.body.includes('/assets/main.js'), 'paths should be rewritten');
 
     // Test compiled JS is accessible
-    const jsRes = await fetchUrl('http://localhost:9888/assets/main.js');
+    const jsRes = await fetchUrl(9888, '/assets/main.js');
     assert.strictEqual(jsRes.statusCode, 200);
     assert.ok(jsRes.body.includes('render'), 'compiled code should contain render');
 
     // Test public file is served
-    const robotsRes = await fetchUrl('http://localhost:9888/robots.txt');
+    const robotsRes = await fetchUrl(9888, '/robots.txt');
     assert.strictEqual(robotsRes.statusCode, 200);
     assert.ok(robotsRes.body.includes('User-agent'));
 
     // Test runtime bundle is served
-    const runtimeRes = await fetchUrl('http://localhost:9888/assets/runtime.js');
+    const runtimeRes = await fetchUrl(9888, '/assets/runtime.js');
     assert.strictEqual(runtimeRes.statusCode, 200);
   });
 });

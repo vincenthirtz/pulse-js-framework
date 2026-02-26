@@ -321,7 +321,13 @@
 
     "view-nested-braces": {
       "begin": "\\{",
+      "beginCaptures": {
+        "0": { "name": "punctuation.section.block.begin.pulse" }
+      },
       "end": "\\}",
+      "endCaptures": {
+        "0": { "name": "punctuation.section.block.end.pulse" }
+      },
       "patterns": [
         { "include": "#view-body" }
       ]
@@ -462,7 +468,7 @@
     },
 
     "view-directive-event": {
-      "begin": "(@(?:click|dblclick|input|change|submit|blur|focus|keydown|keyup|keypress|mouseenter|mouseleave|mouseover|mouseout|mousedown|mouseup|wheel|scroll|resize|dragenter|dragover|dragleave|dragstart|dragend|drop|touchstart|touchend|touchmove|contextmenu|pointerdown|pointerup|pointermove|pointerenter|pointerleave))((?:\\.[a-zA-Z]+)*)\\s*(\\()",
+      "begin": "(@(?:click|dblclick|input|change|submit|blur|focus|focusin|focusout|keydown|keyup|keypress|mouseenter|mouseleave|mouseover|mouseout|mousedown|mouseup|wheel|scroll|resize|dragenter|dragover|dragleave|dragstart|dragend|drop|touchstart|touchend|touchmove|touchcancel|contextmenu|pointerdown|pointerup|pointermove|pointerenter|pointerleave|pointercancel|pointerover|pointerout|copy|cut|paste|compositionstart|compositionupdate|compositionend|animationstart|animationend|animationiteration|transitionstart|transitionend|transitionrun|transitioncancel|selectstart|selectionchange|load|error|abort))((?:\\.[a-zA-Z]+)*)\\s*(\\()",
       "beginCaptures": {
         "1": { "name": "entity.other.attribute-name.directive.event.pulse" },
         "2": { "name": "entity.other.attribute-name.modifier.pulse" },
@@ -1059,6 +1065,8 @@
         { "include": "#style-stylus-keywords" },
         { "include": "#style-stylus-mixin-call" },
         { "include": "#style-css-custom-property" },
+        { "include": "#style-css-container-name" },
+        { "include": "#style-css-layer-name" },
         { "include": "#style-css-at-rule" },
         { "include": "#style-css-media-keyword" },
         { "include": "#style-css-media-feature" },
@@ -1282,6 +1290,22 @@
       "captures": {
         "1": { "name": "keyword.control.at-rule.css" },
         "2": { "name": "entity.name.function.css" }
+      }
+    },
+
+    "style-css-container-name": {
+      "match": "(@container)\\s+([a-zA-Z_][\\w-]*)(?=\\s*\\()",
+      "captures": {
+        "1": { "name": "keyword.control.at-rule.css" },
+        "2": { "name": "entity.name.container.css" }
+      }
+    },
+
+    "style-css-layer-name": {
+      "match": "(@layer)\\s+([a-zA-Z_][\\w.-]*)",
+      "captures": {
+        "1": { "name": "keyword.control.at-rule.css" },
+        "2": { "name": "entity.name.layer.css" }
       }
     },
 
@@ -1574,6 +1598,7 @@
       "end": "\\}",
       "patterns": [
         { "include": "#comments" },
+        { "include": "#router-method-definition" },
         { "include": "#router-keywords" },
         { "include": "#state-property" },
         { "include": "#strings" },
@@ -1582,6 +1607,25 @@
         { "include": "#component-reference" },
         { "include": "#block-routes" },
         { "include": "#router-nested-braces" }
+      ]
+    },
+
+    "router-method-definition": {
+      "begin": "\\b(beforeEach|afterEach|beforeEnter|scrollBehavior|middleware|onRouteError)\\s*(\\()",
+      "beginCaptures": {
+        "1": { "name": "entity.name.function.pulse" },
+        "2": { "name": "punctuation.section.parameters.begin.pulse" }
+      },
+      "end": "\\)",
+      "endCaptures": {
+        "0": { "name": "punctuation.section.parameters.end.pulse" }
+      },
+      "patterns": [
+        {
+          "match": "\\b([a-zA-Z_$][\\w$]*)\\b(?=\\s*[,)])",
+          "name": "variable.parameter.pulse"
+        },
+        { "match": ",", "name": "punctuation.separator.parameter.pulse" }
       ]
     },
 
@@ -1595,12 +1639,14 @@
       "end": "\\}",
       "patterns": [
         { "include": "#comments" },
+        { "include": "#router-method-definition" },
         { "include": "#router-keywords" },
         { "include": "#state-property" },
         { "include": "#strings" },
         { "include": "#numbers" },
         { "include": "#constants" },
         { "include": "#component-reference" },
+        { "include": "#expression" },
         { "include": "#router-nested-braces" }
       ]
     },

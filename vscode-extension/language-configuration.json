@@ -33,13 +33,14 @@
   ],
   "folding": {
     "markers": {
-      "start": "^\\s*(state|view|style|actions|props|router|store|routes|getters)\\s*\\{|^\\s*@(?:if|for|each)\\s*\\(.*\\)\\s*\\{|^\\s*/\\*\\*",
+      "start": "^\\s*(state|view|style|actions|props|router|store|routes|getters)\\s*\\{|^\\s*@(?:if|else-if|for|each|else).*\\{\\s*$|^\\s*/\\*\\*|^\\s*@(?:media|supports|container|keyframes|layer)\\b",
       "end": "^\\s*\\}|^\\s*\\*/"
     }
   },
   "indentationRules": {
-    "increaseIndentPattern": "^.*\\{[^}]*$|^\\s*@(?:if|for|each|else).*\\{\\s*$",
-    "decreaseIndentPattern": "^\\s*\\}"
+    "increaseIndentPattern": "^.*\\{[^}]*$|^\\s*@(?:if|for|each|else-if|else).*\\{\\s*$",
+    "decreaseIndentPattern": "^\\s*\\}",
+    "indentNextLinePattern": "^\\s*@(?:if|for|each|else-if|else)\\b[^{]*$"
   },
   "onEnterRules": [
     {
@@ -58,7 +59,12 @@
     {
       "beforeText": "^\\s*\\*/\\s*$",
       "action": { "indent": "none", "removeText": 1 }
+    },
+    {
+      "beforeText": "\\{\\s*$",
+      "afterText": "^\\s*\\}",
+      "action": { "indent": "indentOutdent", "appendText": "  " }
     }
   ],
-  "wordPattern": "(-?\\d*\\.\\d\\w*)|(@[a-zA-Z][a-zA-Z0-9]*)|([^\\`\\~\\!\\@\\#\\%\\^\\&\\*\\(\\)\\-\\=\\+\\[\\{\\]\\}\\\\\\|\\;\\:\\'\\\"\\,\\.\\<\\>\\/\\?\\s]+)"
+  "wordPattern": "(-?\\d*\\.\\d\\w*)|(@[a-zA-Z][a-zA-Z0-9-]*)|([^\\`\\~\\!\\@\\#\\%\\^\\&\\*\\(\\)\\-\\=\\+\\[\\{\\]\\}\\\\\\|\\;\\:\\'\\\"\\,\\.\\<\\>\\/\\?\\s]+)"
 }

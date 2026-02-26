@@ -17,6 +17,38 @@
     ],
     "description": "Create a new Pulse page component"
   },
+  "Pulse Page Full": {
+    "prefix": "pagefull",
+    "body": [
+      "@page ${1:ComponentName}",
+      "",
+      "import ${2:Component} from '${3:./Component.pulse}'",
+      "",
+      "state {",
+      "  ${4:property}: ${5:value}",
+      "}",
+      "",
+      "view {",
+      "  .${6:container} {",
+      "    $0",
+      "  }",
+      "}",
+      "",
+      "actions {",
+      "  ${7:actionName}() {",
+      "    ",
+      "  }",
+      "}",
+      "",
+      "style {",
+      "  .${6:container} {",
+      "    ",
+      "  }",
+      "}",
+      ""
+    ],
+    "description": "Create a full Pulse page with all blocks"
+  },
   "Pulse Component": {
     "prefix": "component",
     "body": [
@@ -44,6 +76,15 @@
     ],
     "description": "Add a state block"
   },
+  "Props Block": {
+    "prefix": "props",
+    "body": [
+      "props {",
+      "  ${1:propName}: ${2:defaultValue}",
+      "}"
+    ],
+    "description": "Add a props block"
+  },
   "View Block": {
     "prefix": "view",
     "body": [
@@ -60,11 +101,28 @@
     "body": [
       "style {",
       "  .${1:selector} {",
-      "    ${2:property}: ${3:value}",
+      "    ${2:property}: ${3:value};",
       "  }",
       "}"
     ],
     "description": "Add a style block"
+  },
+  "Style Block with SASS": {
+    "prefix": "stylesass",
+    "body": [
+      "style {",
+      "  \\$${1:primary}: ${2:#646cff};",
+      "",
+      "  .${3:selector} {",
+      "    ${4:property}: \\$${1:primary};",
+      "",
+      "    &:hover {",
+      "      $0",
+      "    }",
+      "  }",
+      "}"
+    ],
+    "description": "Add a style block with SASS variables"
   },
   "Actions Block": {
     "prefix": "actions",
@@ -90,6 +148,25 @@
     ],
     "description": "Add a router configuration"
   },
+  "Router Block with Guards": {
+    "prefix": "routerguard",
+    "body": [
+      "router {",
+      "  mode: \"${1|history,hash|}\"",
+      "",
+      "  routes {",
+      "    \"/\": ${2:HomePage}",
+      "    \"${3:/about}\": ${4:AboutPage}",
+      "    $0",
+      "  }",
+      "",
+      "  beforeEach(to, from) {",
+      "    ${5:// guard logic}",
+      "  }",
+      "}"
+    ],
+    "description": "Add a router with navigation guards"
+  },
   "Store Block": {
     "prefix": "store",
     "body": [
@@ -106,6 +183,28 @@
     ],
     "description": "Add a store configuration"
   },
+  "Store Block with Getters": {
+    "prefix": "storegetters",
+    "body": [
+      "store {",
+      "  state {",
+      "    ${1:property}: ${2:value}",
+      "  }",
+      "  getters {",
+      "    ${3:getterName}() {",
+      "      return this.${1:property}$0",
+      "    }",
+      "  }",
+      "  actions {",
+      "    ${4:actionName}(${5:value}) {",
+      "      this.${1:property} = ${5:value}",
+      "    }",
+      "  }",
+      "  persist: ${6|true,false|}",
+      "}"
+    ],
+    "description": "Add a store with getters and persistence"
+  },
   "Import": {
     "prefix": "import",
     "body": [
@@ -120,12 +219,26 @@
     ],
     "description": "Import named exports"
   },
+  "Import Namespace": {
+    "prefix": "importns",
+    "body": [
+      "import * as ${1:Module} from '${2:./module.pulse}'"
+    ],
+    "description": "Import namespace"
+  },
   "Click Handler": {
     "prefix": "@click",
     "body": [
       "@click(${1:handler})"
     ],
     "description": "Add click event handler"
+  },
+  "Submit Handler": {
+    "prefix": "@submit",
+    "body": [
+      "@submit(event.preventDefault(); ${1:handleSubmit}())"
+    ],
+    "description": "Add submit handler with preventDefault"
   },
   "Conditional": {
     "prefix": "@if",
@@ -136,14 +249,52 @@
     ],
     "description": "Add conditional rendering"
   },
+  "Conditional with Else": {
+    "prefix": "@ifelse",
+    "body": [
+      "@if(${1:condition}) {",
+      "  $2",
+      "} @else {",
+      "  $0",
+      "}"
+    ],
+    "description": "Add conditional rendering with else"
+  },
+  "Else If": {
+    "prefix": "@else-if",
+    "body": [
+      "@else-if(${1:condition}) {",
+      "  $0",
+      "}"
+    ],
+    "description": "Add else-if conditional"
+  },
   "Loop": {
     "prefix": "@for",
     "body": [
-      "@for(${1:item} in ${2:items}) {",
+      "@for(${1:item} ${2|in,of|} ${3:items}) {",
       "  $0",
       "}"
     ],
     "description": "Add loop rendering"
+  },
+  "Each Loop": {
+    "prefix": "@each",
+    "body": [
+      "@each(${1:items} as ${2:item}) {",
+      "  $0",
+      "}"
+    ],
+    "description": "Add each loop rendering"
+  },
+  "Each Loop with Index": {
+    "prefix": "@eachi",
+    "body": [
+      "@each(${1:items} as ${2:item}, ${3:index}) {",
+      "  $0",
+      "}"
+    ],
+    "description": "Add each loop with index variable"
   },
   "Slot": {
     "prefix": "slot",
@@ -152,6 +303,24 @@
     ],
     "description": "Add a slot for content projection"
   },
+  "Slot with Fallback": {
+    "prefix": "slotfb",
+    "body": [
+      "slot {",
+      "  $0",
+      "}"
+    ],
+    "description": "Add a default slot with fallback content"
+  },
+  "Named Slot Usage": {
+    "prefix": "@slot",
+    "body": [
+      "@slot(${1:name}) {",
+      "  $0",
+      "}"
+    ],
+    "description": "Fill a named slot in a component"
+  },
   "Link Directive": {
     "prefix": "@link",
     "body": [
@@ -159,12 +328,75 @@
     ],
     "description": "Add a router link"
   },
+  "Navigate Directive": {
+    "prefix": "@navigate",
+    "body": [
+      "@navigate(\"${1:/path}\")"
+    ],
+    "description": "Add programmatic navigation"
+  },
   "Outlet Directive": {
     "prefix": "@outlet",
     "body": [
       "@outlet"
     ],
     "description": "Add router outlet"
+  },
+  "Focus Trap": {
+    "prefix": "@focusTrap",
+    "body": [
+      "@focusTrap(${1|autoFocus=true\\, returnFocus=true,autoFocus=true,returnFocus=true|})"
+    ],
+    "description": "Add focus trap for modal/dialog"
+  },
+  "Screen Reader Only": {
+    "prefix": "@srOnly",
+    "body": [
+      "span @srOnly \"${1:accessible text}\""
+    ],
+    "description": "Add screen-reader-only text"
+  },
+  "Live Region Polite": {
+    "prefix": "@livep",
+    "body": [
+      ".${1:status} @live(polite) { \"${2:Status: {status}}\" }"
+    ],
+    "description": "Add polite live region for announcements"
+  },
+  "Mount Lifecycle": {
+    "prefix": "@mount",
+    "body": [
+      "@mount(${1:onMountHandler})"
+    ],
+    "description": "Add mount lifecycle handler"
+  },
+  "Unmount Lifecycle": {
+    "prefix": "@unmount",
+    "body": [
+      "@unmount(${1:onUnmountHandler})"
+    ],
+    "description": "Add unmount lifecycle handler"
+  },
+  "Client Directive": {
+    "prefix": "@client",
+    "body": [
+      "@client"
+    ],
+    "description": "Mark element as client-side only (SSR)"
+  },
+  "Server Directive": {
+    "prefix": "@server",
+    "body": [
+      "@server"
+    ],
+    "description": "Mark element as server-side only (SSR)"
+  },
+  "Model with Modifiers": {
+    "prefix": "@modelm",
+    "body": [
+      "@model.${1|lazy,trim,number|}(${2:value})"
+    ],
+    "description": "Add two-way binding with modifier"
   },
   "Button Element": {
     "prefix": "button",
@@ -176,28 +408,59 @@
   "Input Element": {
     "prefix": "input",
     "body": [
-      "input[type=${1|text,password,email,number|}] @model(${2:value})"
+      "input[type=${1|text,password,email,number,search,tel,url|}] @model(${2:value})"
     ],
     "description": "Create an input with two-way binding"
   },
   "Form Element": {
     "prefix": "form",
     "body": [
-      "form @submit(${1:handleSubmit}) {",
+      "form @submit(event.preventDefault(); ${1:handleSubmit}()) {",
       "  $0",
       "  button[type=submit] \"Submit\"",
       "}"
     ],
     "description": "Create a form with submit handler"
   },
-  "Each Loop": {
-    "prefix": "@each",
+  "Select Element": {
+    "prefix": "select",
     "body": [
-      "@each(${1:items} as ${2:item}) {",
-      "  $0",
+      "select @model(${1:selected}) {",
+      "  @each(${2:options} as ${3:option}) {",
+      "    option[value={${3:option}.${4:value}}] \"{${3:option}.${5:label}}\"",
+      "  }",
       "}"
     ],
-    "description": "Add each loop rendering"
+    "description": "Create a select dropdown with options"
+  },
+  "Dialog Modal": {
+    "prefix": "dialog",
+    "body": [
+      "@if(${1:isOpen}) {",
+      "  .modal-overlay @click(${1:isOpen} = false) {",
+      "    .modal @a11y(role=dialog, label=\"${2:Dialog title}\") @focusTrap(autoFocus=true, returnFocus=true) {",
+      "      h2 \"${2:Dialog title}\"",
+      "      $0",
+      "      button @click(${1:isOpen} = false) \"Close\"",
+      "    }",
+      "  }",
+      "}"
+    ],
+    "description": "Create an accessible modal dialog"
+  },
+  "A11y Directive": {
+    "prefix": "@a11y",
+    "body": [
+      "@a11y(role=${1:dialog}, label=\"${2:Description}\")"
+    ],
+    "description": "Add accessibility attributes"
+  },
+  "Live Region": {
+    "prefix": "@live",
+    "body": [
+      "@live(${1|polite,assertive|})"
+    ],
+    "description": "Add live region for screen reader announcements"
   },
   "Bind Directive": {
     "prefix": "@bind",
@@ -220,20 +483,6 @@
     ],
     "description": "Add two-way data binding"
   },
-  "A11y Directive": {
-    "prefix": "@a11y",
-    "body": [
-      "@a11y(role=${1:dialog}, label=\"${2:Description}\")"
-    ],
-    "description": "Add accessibility attributes"
-  },
-  "Live Region": {
-    "prefix": "@live",
-    "body": [
-      "@live(${1|polite,assertive|})"
-    ],
-    "description": "Add live region for screen reader announcements"
-  },
   "Getters Block": {
     "prefix": "getters",
     "body": [
@@ -244,5 +493,19 @@
       "}"
     ],
     "description": "Add a getters block"
+  },
+  "Use Client": {
+    "prefix": "useclient",
+    "body": [
+      "'use client'"
+    ],
+    "description": "Add 'use client' directive for SSR"
+  },
+  "Use Server": {
+    "prefix": "useserver",
+    "body": [
+      "'use server'"
+    ],
+    "description": "Add 'use server' directive for SSR"
   }
 }

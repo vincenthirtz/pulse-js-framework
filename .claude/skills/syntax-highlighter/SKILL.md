@@ -163,11 +163,15 @@ For nested structures (braces inside braces), create `-nested-*` rules that incl
 3. ~~**Route params**~~ - FIXED: `:param` and `*wildcard` highlighted via `route-params` rule
 4. **`@else @if` pattern** - Could be matched as compound keyword (low priority, `@else-if` is canonical)
 5. ~~**CSS class/ID selectors in style blocks**~~ - FIXED: Added `css-class-selector` and `css-id-selector` to `style-body`
-6. **Punctuation scoping** - Semicolons, commas, braces could have explicit punctuation scopes for theme authors
+6. ~~**Punctuation scoping**~~ - FIXED: View block braces scoped as `punctuation.section.block.{begin,end}.pulse`
 7. ~~**`&.class` and `&#id` in style blocks**~~ - FIXED: Added to `style-css-ampersand-pseudo`
 8. ~~**Lifecycle directives**~~ - FIXED: `@mount`/`@unmount` get `directive.lifecycle` scope
 9. ~~**`@extends` for Stylus**~~ - FIXED: `style-sass-extend` and `style-sass-at-rule` accept `@extends`
 10. ~~**Wildcard `*` selector**~~ - FIXED: `style-css-wildcard` rule added
+21. ~~**Missing DOM events**~~ - FIXED: Added clipboard (copy/cut/paste), animation, transition, focus (focusin/focusout), pointer (cancel/over/out), composition, selection, touch (cancel), load/error/abort events
+22. ~~**Router method definitions**~~ - FIXED: `router-method-definition` highlights `beforeEach`/`afterEach`/etc. as methods with parameter highlighting
+23. ~~**CSS @container name**~~ - FIXED: `style-css-container-name` highlights container names in `@container sidebar (...)`
+24. ~~**CSS @layer name**~~ - FIXED: `style-css-layer-name` highlights layer names in `@layer utilities`
 
 ### Priority 3 (Nice-to-have):
 11. **LESS mixin definitions** - Not distinctly styled vs CSS classes
