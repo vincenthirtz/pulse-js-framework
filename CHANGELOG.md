@@ -1,5 +1,26 @@
 # Changelog
 
+## [1.11.4] - 2026-02-26
+
+### Changes
+
+- fix(security): unify URL scheme checks (javascript/vbscript/data) in single block
+- fix(security): consolidate data: URI check to strict allowlist
+- fix(security): resolve remaining CodeQL alerts, add config for compiler exclusion
+- ci: upgrade CodeQL Action from v3 to v4
+- fix(security): resolve all 93 open CodeQL alerts
+- fix(compiler): resolve O(n²) perf issues, edge cases, dead code, and boost test coverage
+- feat(testing): add Pulse testing utilities library
+- fix(security): resolve remaining CodeQL alerts (log injection, TOCTOU, temp files)
+- fix(security): inline logger formatting, remove scaffold existsSync
+- fix(security): eliminate CodeQL alert patterns at source
+- fix(security): resolve remaining CodeQL alerts
+- fix(security): resolve all 25 CodeQL alerts
+- refactor(loader): centralize shared utilities, add quiet option, TypeScript types
+
+---
+
+
 ## [1.11.3] - 2026-02-24
 
 ### Changes
