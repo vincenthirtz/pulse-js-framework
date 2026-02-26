@@ -59,6 +59,8 @@ Parser.prototype.parseStyleBlock = function() {
     // Parsing failed - likely preprocessor syntax (LESS/SASS/Stylus)
     parseError = error;
     rules = []; // Clear any partial parse
+    // Warn so users know structured CSS parsing fell back to raw mode
+    console.warn(`[pulse] CSS parse warning: falling back to raw mode — ${error.message}`);
   }
 
   // Restore position to after the closing }
@@ -195,7 +197,10 @@ Parser.prototype.parseStyleRule = function() {
 };
 
 /**
- * Check if current position is a nested rule
+ * Check if current position is a nested rule.
+ * Scans forward for the first decisive token ({, :, or }) to determine
+ * if this is a nested rule (selector) or a property declaration.
+ * Bounded lookahead prevents O(n²) on deeply nested CSS.
  */
 Parser.prototype.isNestedRule = function() {
   const currentToken = this.peek(0);
@@ -207,35 +212,27 @@ Parser.prototype.isNestedRule = function() {
   }
 
   const startLine = currentToken.line;
-  let i = 0;
+  // Bounded lookahead — selectors/property names are never longer than ~50 tokens
+  const maxLookahead = 50;
 
-  while (this.peek(i) && this.peek(i).type !== TokenType.EOF) {
+  for (let i = 0; i < maxLookahead; i++) {
     const token = this.peek(i);
+    if (!token || token.type === TokenType.EOF) return false;
 
-    // Found { before : - this is a nested rule
+    // Found { before : → nested rule
     if (token.type === TokenType.LBRACE) return true;
 
-    // Found : - this is a property, not a nested rule
+    // Found : before { → property declaration
     if (token.type === TokenType.COLON) return false;
 
-    // Found } - end of current rule
+    // Found } → end of current rule block
     if (token.type === TokenType.RBRACE) return false;
 
-    if (token.line > startLine && i > 0) {
-      const nextLine = token.line;
-      let j = i;
-      while (this.peek(j) && this.peek(j).line === nextLine) {
-        const t = this.peek(j);
-        if (t.type === TokenType.LBRACE) return true;
-        if (t.type === TokenType.COLON) return false;
-        if (t.type === TokenType.RBRACE) return false;
-        j++;
-      }
-      return false;
-    }
-
-    i++;
+    // If we've moved past the starting line without finding a decisive token,
+    // default to property (most common case in CSS)
+    if (i > 0 && token.line > startLine) return false;
   }
+
   return false;
 };
 

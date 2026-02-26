@@ -15,6 +15,15 @@ import {
 } from './constants.js';
 
 /**
+ * Escape special regex characters in a string
+ * @param {string} str - String to escape
+ * @returns {string} Escaped string safe for use in RegExp
+ */
+function escapeRegExp(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
  * Transform AST expression to JS code
  * @param {Object} transformer - Transformer instance
  * @param {Object} node - AST node to transform
@@ -186,18 +195,26 @@ export function transformExpressionString(transformer, exprStr) {
   // Both are now reactive (useProp returns computed for uniform interface)
   let result = exprStr;
 
-  // First, handle assignments to state vars: stateVar = expr -> stateVar.set(expr)
-  // This must happen before the generic .get() replacement to avoid generating
-  // invalid code like stateVar.get() = expr (LHS of assignment is not a reference)
-  for (const stateVar of transformer.stateVars) {
+  // Build combined patterns once for all variables (O(1) regex compilations instead of O(n))
+  const stateVarsArr = [...transformer.stateVars];
+  const propVarsArr = [...transformer.propVars];
+
+  if (stateVarsArr.length > 0) {
+    const stateAlt = stateVarsArr.map(escapeRegExp).join('|');
+
+    // First, handle assignments to state vars: stateVar = expr -> stateVar.set(expr)
+    // This must happen before the generic .get() replacement to avoid generating
+    // invalid code like stateVar.get() = expr (LHS of assignment is not a reference)
+
     // Compound assignment: stateVar += expr -> stateVar.update(_v => _v + expr)
-    // Use bracket-balancing to find the end of the RHS expression
-    const compoundPattern = new RegExp(`\\b${stateVar}\\s*(\\+=|-=|\\*=|\\/=|&&=|\\|\\|=|\\?\\?=)\\s*`, 'g');
+    // Single combined regex for all state vars
+    const compoundPattern = new RegExp(`\\b(${stateAlt})\\s*(\\+=|-=|\\*=|\\/=|&&=|\\|\\|=|\\?\\?=)\\s*`, 'g');
     let compoundMatch;
     const compoundReplacements = [];
 
     while ((compoundMatch = compoundPattern.exec(result)) !== null) {
-      const op = compoundMatch[1];
+      const varName = compoundMatch[1];
+      const op = compoundMatch[2];
       const baseOp = op.slice(0, -1);
       const rhsStart = compoundMatch.index + compoundMatch[0].length;
 
@@ -220,7 +237,7 @@ export function transformExpressionString(transformer, exprStr) {
         compoundReplacements.push({
           start: compoundMatch.index,
           end: endIdx,
-          replacement: `${stateVar}.update(_v => _v ${baseOp} ${rhs})`
+          replacement: `${varName}.update(_v => _v ${baseOp} ${rhs})`
         });
       }
     }
@@ -232,12 +249,13 @@ export function transformExpressionString(transformer, exprStr) {
     }
 
     // Simple assignment: stateVar = expr -> stateVar.set(expr)
-    // Use bracket-balancing to find the end of the RHS expression
-    const simplePattern = new RegExp(`\\b${stateVar}\\s*=(?!=)\\s*`, 'g');
+    // Single combined regex for all state vars
+    const simplePattern = new RegExp(`\\b(${stateAlt})\\s*=(?!=)\\s*`, 'g');
     let simpleMatch;
     const simpleReplacements = [];
 
     while ((simpleMatch = simplePattern.exec(result)) !== null) {
+      const varName = simpleMatch[1];
       const rhsStart = simpleMatch.index + simpleMatch[0].length;
 
       let depth = 0;
@@ -258,7 +276,7 @@ export function transformExpressionString(transformer, exprStr) {
         simpleReplacements.push({
           start: simpleMatch.index,
           end: endIdx,
-          replacement: `${stateVar}.set(${rhs})`
+          replacement: `${varName}.set(${rhs})`
         });
       }
     }
@@ -268,31 +286,31 @@ export function transformExpressionString(transformer, exprStr) {
       const r = simpleReplacements[i];
       result = result.slice(0, r.start) + r.replacement + result.slice(r.end);
     }
-  }
 
-  // Transform state var reads (not already transformed to .get/.set/.update)
-  for (const stateVar of transformer.stateVars) {
+    // Transform state var reads (not already transformed to .get/.set/.update)
+    // Single combined regex for all state vars
     result = result.replace(
-      new RegExp(`\\b${stateVar}\\b(?!\\.(?:get|set|update))`, 'g'),
-      `${stateVar}.get()`
+      new RegExp(`\\b(${stateAlt})\\b(?!\\.(?:get|set|update))`, 'g'),
+      '$1.get()'
     );
   }
 
   // Transform prop vars (now also reactive via useProp)
   // Add optional chaining when followed by property access for nullable props
   // Props commonly receive null values (e.g., notification: null)
-  for (const propVar of transformer.propVars) {
+  if (propVarsArr.length > 0) {
+    const propAlt = propVarsArr.map(escapeRegExp).join('|');
     // Property access: propVar.x -> propVar.get()?.x
     // Guard against already-transformed: skip if followed by .get( or .set(
     result = result.replace(
-      new RegExp(`\\b${propVar}\\b(?=\\.(?!get\\(|set\\())`, 'g'),
-      `${propVar}.get()?`
+      new RegExp(`\\b(${propAlt})\\b(?=\\.(?!get\\(|set\\())`, 'g'),
+      '$1.get()?'
     );
     // Handle standalone prop var (not followed by property access)
     // Guard: skip if already followed by .get or .set
     result = result.replace(
-      new RegExp(`\\b${propVar}\\b(?!\\.(?:get|set)\\()(?!\\.)`, 'g'),
-      `${propVar}.get()`
+      new RegExp(`\\b(${propAlt})\\b(?!\\.(?:get|set)\\()(?!\\.)`, 'g'),
+      '$1.get()'
     );
   }
 
@@ -434,19 +452,27 @@ export function transformFunctionBody(transformer, tokens) {
   // Protect strings before transformations
   code = protectStrings(code);
 
-  // Build patterns for state variable transformation
-  const stateVarPattern = [...stateVars].join('|');
-  const funcPattern = [...actionNames, ...BUILTIN_FUNCTIONS].join('|');
-  const keywordsPattern = [...STATEMENT_KEYWORDS].join('|');
+  // Build patterns for state variable transformation (precompiled once)
+  const stateVarPattern = [...stateVars].map(escapeRegExp).join('|');
+  const funcPattern = [...actionNames, ...BUILTIN_FUNCTIONS].map(escapeRegExp).join('|');
+  const keywordsPattern = [...STATEMENT_KEYWORDS].map(escapeRegExp).join('|');
+
+  // Precompile boundary regex once (was O(n²) when created inside inner loop)
+  const keywordBoundary = new RegExp(`^\\s+(?:(?:${stateVarPattern})\\s*=(?!=)|(?:${keywordsPattern}|await|return)\\b|(?:${funcPattern})\\s*\\()`);
+
+  // Combined assignment pattern for all state vars (single regex instead of N)
+  const assignPattern = stateVars.size > 0
+    ? new RegExp(`\\b(${stateVarPattern})\\s*=(?!=)`, 'g')
+    : null;
 
   // Transform state var assignments: stateVar = value -> stateVar.set(value)
   // Match assignment and find end by tracking balanced brackets
-  for (const stateVar of stateVars) {
-    const pattern = new RegExp(`\\b${stateVar}\\s*=(?!=)`, 'g');
+  if (assignPattern) {
     let match;
     const replacements = [];
 
-    while ((match = pattern.exec(code)) !== null) {
+    while ((match = assignPattern.exec(code)) !== null) {
+      const stateVar = match[1];
       const startIdx = match.index + match[0].length;
 
       // Skip whitespace
@@ -508,7 +534,6 @@ export function transformFunctionBody(transformer, tokens) {
           // Check for whitespace followed by keyword/identifier that starts a new statement
           if (/\s/.test(ch)) {
             const rest = code.slice(i);
-            const keywordBoundary = new RegExp(`^\\s+(?:(?:${stateVarPattern})\\s*=(?!=)|(?:${keywordsPattern}|await|return)\\b|(?:${funcPattern})\\s*\\()`);
             if (keywordBoundary.test(rest)) {
               break;
             }
@@ -539,99 +564,72 @@ export function transformFunctionBody(transformer, tokens) {
   code = code.replace(/;+/g, ';');
   code = code.replace(/; ;/g, ';');
 
-  // Handle post-increment/decrement on state vars: stateVar++ -> ((v) => (stateVar.set(v + 1), v))(stateVar.get())
-  for (const stateVar of stateVars) {
+  // Handle post-increment/decrement on state vars
+  // Combined regex for all state vars (single pass instead of 4N passes)
+  if (stateVarPattern) {
     // Post-increment: stateVar++ (returns old value)
     code = code.replace(
-      new RegExp(`\\b${stateVar}\\s*\\+\\+`, 'g'),
-      `((v) => (${stateVar}.set(v + 1), v))(${stateVar}.get())`
+      new RegExp(`\\b(${stateVarPattern})\\s*\\+\\+`, 'g'),
+      (_, v) => `((v) => (${v}.set(v + 1), v))(${v}.get())`
     );
     // Post-decrement: stateVar-- (returns old value)
     code = code.replace(
-      new RegExp(`\\b${stateVar}\\s*--`, 'g'),
-      `((v) => (${stateVar}.set(v - 1), v))(${stateVar}.get())`
+      new RegExp(`\\b(${stateVarPattern})\\s*--`, 'g'),
+      (_, v) => `((v) => (${v}.set(v - 1), v))(${v}.get())`
     );
     // Pre-increment: ++stateVar (returns new value)
     code = code.replace(
-      new RegExp(`\\+\\+\\s*${stateVar}\\b`, 'g'),
-      `(${stateVar}.set(${stateVar}.get() + 1), ${stateVar}.get())`
+      new RegExp(`\\+\\+\\s*(${stateVarPattern})\\b`, 'g'),
+      (_, v) => `(${v}.set(${v}.get() + 1), ${v}.get())`
     );
     // Pre-decrement: --stateVar (returns new value)
     code = code.replace(
-      new RegExp(`--\\s*${stateVar}\\b`, 'g'),
-      `(${stateVar}.set(${stateVar}.get() - 1), ${stateVar}.get())`
+      new RegExp(`--\\s*(${stateVarPattern})\\b`, 'g'),
+      (_, v) => `(${v}.set(${v}.get() - 1), ${v}.get())`
     );
   }
 
+  // Helper: check if match at offset is an object key (shared by state/prop reads)
+  const isObjectKey = (str, match, offset) => {
+    const after = str.slice(offset + match.length, offset + match.length + 10);
+    if (!/^\s*:(?!:)/.test(after)) return false;
+    let depth = 0;
+    for (let i = offset - 1; i >= 0; i--) {
+      const ch = str[i];
+      if (ch === ')' || ch === ']') depth++;
+      else if (ch === '(' || ch === '[') depth--;
+      else if (ch === '}') depth++;
+      else if (ch === '{') {
+        if (depth === 0) return true;
+        depth--;
+      }
+      else if (ch === ',' && depth === 0) return true;
+      else if (ch === ';' && depth === 0) break;
+    }
+    return false;
+  };
+
   // Replace state var reads (not in assignments, not already with .get/.set)
-  // Allow spread operators (...stateVar) but block member access (obj.stateVar)
-  // Skip object literal keys (e.g., { users: value } - don't transform the key 'users')
-  for (const stateVar of stateVars) {
+  // Combined regex for all state vars (single pass instead of N passes)
+  if (stateVarPattern) {
     code = code.replace(
-      new RegExp(`(?:(?<=\\.\\.\\.)|(?<!\\.))\\b${stateVar}\\b(?!\\s*=(?!=)|\\s*\\(|\\s*\\.(?:get|set))`, 'g'),
-      (match, offset) => {
-        // Check if this is an object key by looking at context
-        // Pattern: after { or , and before : (with arbitrary content between)
-        const after = code.slice(offset + match.length, offset + match.length + 10);
-
-        // If followed by : (not ::), check if it's an object key
-        if (/^\s*:(?!:)/.test(after)) {
-          // Look backwards for the nearest { or , that would indicate object context
-          // We need to track bracket depth to handle nested structures
-          let depth = 0;
-          for (let i = offset - 1; i >= 0; i--) {
-            const ch = code[i];
-            if (ch === ')' || ch === ']') depth++;
-            else if (ch === '(' || ch === '[') depth--;
-            else if (ch === '}') depth++;
-            else if (ch === '{') {
-              if (depth === 0) {
-                // Found opening brace at same depth - this is an object key
-                return match;
-              }
-              depth--;
-            }
-            else if (ch === ',' && depth === 0) {
-              // Found comma at same depth - this is an object key
-              return match;
-            }
-            // Stop if we hit a semicolon at depth 0 (different statement)
-            else if (ch === ';' && depth === 0) break;
-          }
-        }
-
-        return `${stateVar}.get()`;
+      new RegExp(`(?:(?<=\\.\\.\\.)|(?<!\\.))\\b(${stateVarPattern})\\b(?!\\s*=(?!=)|\\s*\\(|\\s*\\.(?:get|set))`, 'g'),
+      (match, varName, offset) => {
+        if (isObjectKey(code, match, offset)) return match;
+        return `${varName}.get()`;
       }
     );
   }
 
   // Replace prop var reads (props are reactive via useProp, need .get() like state vars)
-  // For props: allow function calls (prop callbacks need .get()() pattern)
-  // Skip object keys, allow spreads, block member access
-  for (const propVar of propVars) {
+  // Combined regex for all prop vars (single pass instead of N passes)
+  if (propVars.size > 0) {
+    const propVarPattern = [...propVars].map(escapeRegExp).join('|');
     code = code.replace(
-      new RegExp(`(?:(?<=\\.\\.\\.)|(?<!\\.))\\b${propVar}\\b(?!\\s*=(?!=)|\\s*\\.(?:get|set))`, 'g'),
-      (match, offset) => {
-        // Check if this is an object key
-        const after = code.slice(offset + match.length, offset + match.length + 10);
-
-        if (/^\s*:(?!:)/.test(after)) {
-          let depth = 0;
-          for (let i = offset - 1; i >= 0; i--) {
-            const ch = code[i];
-            if (ch === ')' || ch === ']') depth++;
-            else if (ch === '(' || ch === '[') depth--;
-            else if (ch === '}') depth++;
-            else if (ch === '{') {
-              if (depth === 0) return match;
-              depth--;
-            }
-            else if (ch === ',' && depth === 0) return match;
-            else if (ch === ';' && depth === 0) break;
-          }
-        }
-
-        return `${propVar}.get()`;
+      new RegExp(`(?:(?<=\\.\\.\\.)|(?<!\\.))\\b(${propVarPattern})\\b(?!\\s*=(?!=)|\\s*\\.(?:get|set))`, 'g'),
+      (match, varName, offset) => {
+        if (isObjectKey(code, match, offset)) return match;
+        return `${varName}.get()`;
       }
     );
   }

@@ -144,10 +144,8 @@ export class Transformer {
     // Check directives for a11y usage
     if (node.directives) {
       for (const directive of node.directives) {
-        if (directive.type === 'A11yDirective') {
-          if (directive.attrs && directive.attrs.srOnly) {
-            this.usesA11y.srOnly = true;
-          }
+        if (directive.type === 'SrOnlyDirective') {
+          this.usesA11y.srOnly = true;
         } else if (directive.type === 'FocusTrapDirective') {
           this.usesA11y.trapFocus = true;
         }

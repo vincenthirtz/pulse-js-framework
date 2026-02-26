@@ -808,7 +808,7 @@ view { div @server { span "Server only" } }
     test('parses @srOnly directive', () => {
       const ast = parseSource('view { span @srOnly "Screen reader text" }');
       const el = ast.view.children[0];
-      const sr = el.directives.find(d => d.type === 'A11yDirective' && d.attrs.srOnly);
+      const sr = el.directives.find(d => d.type === 'SrOnlyDirective');
       assert.ok(sr);
     });
   });

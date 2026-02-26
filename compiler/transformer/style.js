@@ -113,7 +113,7 @@ function isConditionalGroupAtRule(selector) {
  */
 function isKeyframeStep(selector) {
   const trimmed = selector.trim();
-  return trimmed === 'from' || trimmed === 'to' || /^\d+%$/.test(trimmed);
+  return trimmed === 'from' || trimmed === 'to' || /^\d+(\.\d+)?%$/.test(trimmed);
 }
 
 /**
@@ -328,21 +328,24 @@ export function scopeStyleSelector(transformer, selector) {
     part = part.trim();
 
     // Split by whitespace but preserve combinators
-    // This regex splits on whitespace but keeps combinators as separate tokens
-    const tokens = part.split(/(\s*[>+~]\s*|\s+)/).filter(t => t.trim());
+    // This regex splits on whitespace but keeps combinators and spaces as separate tokens
+    const tokens = part.split(/(\s*[>+~]\s*|\s+)/).filter(t => t !== '');
     const result = [];
 
     for (let i = 0; i < tokens.length; i++) {
       const token = tokens[i].trim();
 
-      // Check if this is a combinator
+      // Check if this is a combinator (>, +, ~)
       if (combinators.has(token)) {
         result.push(` ${token} `);
         continue;
       }
 
-      // Skip empty tokens
-      if (!token) continue;
+      // Whitespace-only token = descendant combinator (space between selectors)
+      if (!token) {
+        result.push(' ');
+        continue;
+      }
 
       // Check if this segment is a global selector
       const segmentBase = token.split(/[.#\[]/)[0];

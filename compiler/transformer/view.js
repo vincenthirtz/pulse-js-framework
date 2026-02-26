@@ -24,6 +24,7 @@ export const VIEW_NODE_HANDLERS = {
   [NodeType.A11yDirective]: 'transformA11yDirective',
   [NodeType.LiveDirective]: 'transformLiveDirective',
   [NodeType.FocusTrapDirective]: 'transformFocusTrapDirective',
+  [NodeType.SrOnlyDirective]: 'transformSrOnlyDirective',
   // SSR directives
   [NodeType.ClientDirective]: 'transformClientDirective',
   [NodeType.ServerDirective]: 'transformServerDirective'
@@ -236,11 +237,6 @@ export function transformA11yDirective(transformer, node, indent) {
   const pad = ' '.repeat(indent);
   const attrs = node.attrs || {};
 
-  // Handle @srOnly - create visually hidden element
-  if (attrs.srOnly) {
-    return `${pad}srOnly(/* content */)`;
-  }
-
   // Build ARIA attributes object
   const ariaAttrs = Object.entries(attrs).map(([key, value]) => {
     // Map short names to aria- attributes (role is not prefixed)
@@ -263,7 +259,6 @@ export function buildA11yAttributes(transformer, directive) {
   const result = {};
 
   for (const [key, value] of Object.entries(attrs)) {
-    if (key === 'srOnly') continue;
     // Map short names to aria- attributes (role is not prefixed)
     const ariaKey = key === 'role' ? key : (key.startsWith('aria-') ? key : `aria-${key}`);
 
@@ -292,6 +287,19 @@ export function buildA11yAttributes(transformer, directive) {
 export function transformLiveDirective(transformer, node, indent) {
   const priority = node.priority || 'polite';
   return `'${priority}'`;
+}
+
+/**
+ * Transform @srOnly directive (as standalone view node)
+ * @param {Object} transformer - Transformer instance
+ * @param {Object} node - SrOnly directive node
+ * @param {number} indent - Indentation level
+ * @returns {string} JavaScript code
+ */
+export function transformSrOnlyDirective(transformer, node, indent) {
+  const pad = ' '.repeat(indent);
+  transformer.usesA11y.srOnly = true;
+  return `${pad}srOnly('')`;
 }
 
 /**
@@ -545,7 +553,8 @@ export function transformElement(transformer, node, indent) {
   }
 
   // Check for @srOnly directive
-  const srOnlyDirective = a11yDirectives.find(d => d.attrs && d.attrs.srOnly);
+  const srOnlyDirectives = node.directives.filter(d => d.type === NodeType.SrOnlyDirective);
+  const srOnlyDirective = srOnlyDirectives.length > 0 ? srOnlyDirectives[0] : null;
 
   // If @srOnly, wrap entire content
   if (srOnlyDirective) {
