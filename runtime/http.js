@@ -119,7 +119,12 @@ class HttpClient {
 
     // Prepend baseURL if url is relative
     if (config.baseURL && !url.startsWith('http://') && !url.startsWith('https://')) {
-      fullURL = config.baseURL.replace(/\/+$/, '') + '/' + url.replace(/^\/+/, '');
+      // Use indexOf/slice instead of regex to avoid ReDoS with repeated '/' chars
+      let base = config.baseURL;
+      while (base.endsWith('/')) base = base.slice(0, -1);
+      let path = url;
+      while (path.startsWith('/')) path = path.slice(1);
+      fullURL = base + '/' + path;
     }
 
     // Add query parameters

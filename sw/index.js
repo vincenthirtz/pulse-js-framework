@@ -224,6 +224,8 @@ export function createCacheStrategy(name, options = {}) {
  */
 export function enableSkipWaiting() {
   self.addEventListener('message', (event) => {
+    // Validate origin: only accept messages from the same origin as the service worker
+    if (event.origin && event.origin !== self.location.origin) return;
     if (event.data?.type === 'SKIP_WAITING') {
       self.skipWaiting();
     }

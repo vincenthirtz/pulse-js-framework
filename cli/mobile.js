@@ -3,7 +3,7 @@
  * Zero-dependency mobile platform for Pulse Framework
  */
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync, cpSync, readdirSync } from 'fs';
+import { mkdirSync, readFileSync, writeFileSync, cpSync, readdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
@@ -19,7 +19,7 @@ const CONFIG_FILE = 'pulse.mobile.json';
 // ============================================================================
 
 /** Create directory if it doesn't exist */
-const mkdirp = (path) => !existsSync(path) && mkdirSync(path, { recursive: true });
+const mkdirp = (path) => mkdirSync(path, { recursive: true });
 
 /** Create multiple directories at once */
 const mkdirs = (base, dirs) => dirs.forEach(d => mkdirp(join(base, d)));
@@ -83,24 +83,31 @@ async function initMobile(args) {
   console.log('Initializing Pulse Mobile...\n');
 
   // Check if dist exists
-  if (!existsSync(join(root, 'dist'))) {
-    console.warn('Warning: No dist/ folder found. Run "pulse build" first.\n');
+  try {
+    readdirSync(join(root, 'dist'));
+  } catch (e) {
+    if (e.code === 'ENOENT') {
+      console.warn('Warning: No dist/ folder found. Run "pulse build" first.\n');
+    } else {
+      throw e;
+    }
   }
 
   // Create mobile directory
-  if (!existsSync(mobileDir)) {
-    mkdirSync(mobileDir, { recursive: true });
-  }
+  mkdirSync(mobileDir, { recursive: true });
 
   // Read project name from package.json
   let projectName = 'PulseApp';
   let packageId = 'com.pulse.app';
 
   const packageJsonPath = join(root, 'package.json');
-  if (existsSync(packageJsonPath)) {
+  try {
     const pkg = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
     projectName = toPascalCase(pkg.name || 'PulseApp');
     packageId = `com.pulse.${pkg.name?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'app'}`;
+  } catch (e) {
+    if (e.code !== 'ENOENT') throw e;
+    // No package.json, use defaults
   }
 
   // Create default config
@@ -122,54 +129,70 @@ async function initMobile(args) {
   };
 
   // Write config if not exists
-  if (!existsSync(configPath)) {
-    writeFileSync(configPath, JSON.stringify(config, null, 2));
+  try {
+    writeFileSync(configPath, JSON.stringify(config, null, 2), { flag: 'wx' });
     console.log(`Created ${CONFIG_FILE}`);
-  } else {
-    console.log(`${CONFIG_FILE} already exists, skipping...`);
+  } catch (err) {
+    if (err.code === 'EEXIST') {
+      console.log(`${CONFIG_FILE} already exists, skipping...`);
+    } else {
+      throw err;
+    }
   }
 
   // Copy Android template
   const androidTemplateDir = join(__dirname, '..', 'mobile', 'templates', 'android');
   const androidDir = join(mobileDir, 'android');
 
-  if (!existsSync(androidDir)) {
-    if (existsSync(androidTemplateDir)) {
+  try {
+    readdirSync(androidDir);
+    console.log('Android directory exists, skipping...');
+  } catch (e) {
+    if (e.code !== 'ENOENT') throw e;
+    try {
+      readdirSync(androidTemplateDir);
       console.log('Initializing Android project...');
       copyAndProcessTemplate(androidTemplateDir, androidDir, config);
       console.log('Android project created.');
-    } else {
+    } catch (te) {
+      if (te.code !== 'ENOENT') throw te;
       console.log('Creating Android project structure...');
       createAndroidProject(androidDir, config);
       console.log('Android project created.');
     }
-  } else {
-    console.log('Android directory exists, skipping...');
   }
 
   // Copy iOS template
   const iosTemplateDir = join(__dirname, '..', 'mobile', 'templates', 'ios');
   const iosDir = join(mobileDir, 'ios');
 
-  if (!existsSync(iosDir)) {
-    if (existsSync(iosTemplateDir)) {
+  try {
+    readdirSync(iosDir);
+    console.log('iOS directory exists, skipping...');
+  } catch (e) {
+    if (e.code !== 'ENOENT') throw e;
+    try {
+      readdirSync(iosTemplateDir);
       console.log('Initializing iOS project...');
       copyAndProcessTemplate(iosTemplateDir, iosDir, config);
       console.log('iOS project created.');
-    } else {
+    } catch (te) {
+      if (te.code !== 'ENOENT') throw te;
       console.log('Creating iOS project structure...');
       createIOSProject(iosDir, config);
       console.log('iOS project created.');
     }
-  } else {
-    console.log('iOS directory exists, skipping...');
   }
 
   // Copy bridge script to dist if it exists
   const bridgeSource = join(__dirname, '..', 'mobile', 'bridge', 'pulse-native.js');
-  if (existsSync(join(root, 'dist')) && existsSync(bridgeSource)) {
+  try {
+    readdirSync(join(root, 'dist'));
     cpSync(bridgeSource, join(root, 'dist', 'pulse-native.js'));
     console.log('Native bridge script copied to dist/');
+  } catch (e) {
+    if (e.code !== 'ENOENT') throw e;
+    // dist or bridge source doesn't exist, skip
   }
 
   console.log(`
@@ -202,7 +225,10 @@ async function buildMobile(args) {
   const config = loadConfig(root);
 
   // First, ensure web build exists
-  if (!existsSync(join(root, config.webDir))) {
+  try {
+    readdirSync(join(root, config.webDir));
+  } catch (e) {
+    if (e.code !== 'ENOENT') throw e;
     console.log('Building web app first...');
     const { buildProject } = await import('./build.js');
     await buildProject([]);
@@ -268,9 +294,14 @@ async function syncAssets(args) {
 async function syncWebAssets(root, platform, config) {
   const webDir = join(root, config.webDir);
 
-  if (!existsSync(webDir)) {
-    console.error(`Web directory "${config.webDir}" not found. Run "pulse build" first.`);
-    process.exit(1);
+  try {
+    readdirSync(webDir);
+  } catch (e) {
+    if (e.code === 'ENOENT' || e.code === 'ENOTDIR') {
+      console.error(`Web directory "${config.webDir}" not found. Run "pulse build" first.`);
+      process.exit(1);
+    }
+    throw e;
   }
 
   let assetsDir;
@@ -288,8 +319,11 @@ async function syncWebAssets(root, platform, config) {
 
   // Copy native bridge
   const bridgeSource = join(__dirname, '..', 'mobile', 'bridge', 'pulse-native.js');
-  if (existsSync(bridgeSource)) {
+  try {
     cpSync(bridgeSource, join(assetsDir, 'pulse-native.js'));
+  } catch (e) {
+    if (e.code !== 'ENOENT') throw e;
+    // Bridge source not found, skip
   }
 
   console.log(`Web assets synced to ${platform}`);
@@ -301,9 +335,14 @@ async function syncWebAssets(root, platform, config) {
 async function buildAndroid(root, config) {
   const androidDir = join(root, MOBILE_DIR, 'android');
 
-  if (!existsSync(androidDir)) {
-    console.error('Android project not found. Run "pulse mobile init" first.');
-    process.exit(1);
+  try {
+    readdirSync(androidDir);
+  } catch (e) {
+    if (e.code === 'ENOENT' || e.code === 'ENOTDIR') {
+      console.error('Android project not found. Run "pulse mobile init" first.');
+      process.exit(1);
+    }
+    throw e;
   }
 
   console.log('Building Android APK...\n');
@@ -341,9 +380,14 @@ async function buildIOS(root, config) {
 
   const iosDir = join(root, MOBILE_DIR, 'ios');
 
-  if (!existsSync(iosDir)) {
-    console.error('iOS project not found. Run "pulse mobile init" first.');
-    process.exit(1);
+  try {
+    readdirSync(iosDir);
+  } catch (e) {
+    if (e.code === 'ENOENT' || e.code === 'ENOTDIR') {
+      console.error('iOS project not found. Run "pulse mobile init" first.');
+      process.exit(1);
+    }
+    throw e;
   }
 
   console.log('Building iOS app...\n');
@@ -443,17 +487,25 @@ async function runIOS(root, config) {
 function loadConfig(root) {
   const configPath = join(root, CONFIG_FILE);
 
-  if (!existsSync(configPath)) {
-    console.error(`No ${CONFIG_FILE} found. Run "pulse mobile init" first.`);
-    process.exit(1);
+  try {
+    return JSON.parse(readFileSync(configPath, 'utf-8'));
+  } catch (e) {
+    if (e.code === 'ENOENT') {
+      console.error(`No ${CONFIG_FILE} found. Run "pulse mobile init" first.`);
+      process.exit(1);
+    }
+    throw e;
   }
-
-  return JSON.parse(readFileSync(configPath, 'utf-8'));
 }
 
 /** Copy and process template files */
 function copyAndProcessTemplate(src, dest, config) {
-  if (!existsSync(src)) return;
+  try {
+    readdirSync(src);
+  } catch (e) {
+    if (e.code === 'ENOENT') return;
+    throw e;
+  }
   mkdirp(dest);
 
   for (const file of readdirSync(src, { withFileTypes: true })) {

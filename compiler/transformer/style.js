@@ -113,7 +113,7 @@ function isConditionalGroupAtRule(selector) {
  */
 function isKeyframeStep(selector) {
   const trimmed = selector.trim();
-  return trimmed === 'from' || trimmed === 'to' || /^\d+%$/.test(trimmed);
+  return trimmed === 'from' || trimmed === 'to' || /^\d+(\.\d+)?%$/.test(trimmed);
 }
 
 /**
@@ -289,6 +289,70 @@ export function flattenStyleRule(transformer, rule, parentSelector, output, atRu
 }
 
 /**
+ * Split a CSS selector into tokens, preserving combinators (>, +, ~) as separate tokens.
+ * Uses a linear scan instead of a regex split to avoid ReDoS on inputs with many spaces.
+ * @param {string} selector - A single CSS selector (no commas)
+ * @returns {string[]} Array of tokens (selectors and combinators)
+ */
+function splitSelectorTokens(selector) {
+  const tokens = [];
+  let current = '';
+  let i = 0;
+
+  while (i < selector.length) {
+    const ch = selector[i];
+
+    // Check for combinator characters
+    if (ch === '>' || ch === '+' || ch === '~') {
+      // Push any accumulated selector token
+      if (current.trim()) {
+        tokens.push(current.trim());
+        current = '';
+      }
+      // Push the combinator (with surrounding spaces for formatting)
+      tokens.push(` ${ch} `);
+      i++;
+      // Skip trailing whitespace after combinator
+      while (i < selector.length && /\s/.test(selector[i])) i++;
+      continue;
+    }
+
+    // Check for whitespace (descendant combinator)
+    if (/\s/.test(ch)) {
+      // Consume all consecutive whitespace
+      while (i < selector.length && /\s/.test(selector[i])) i++;
+      // Check if whitespace is followed by a combinator
+      if (i < selector.length && (selector[i] === '>' || selector[i] === '+' || selector[i] === '~')) {
+        // Don't push a space token; the combinator loop iteration will handle it
+        if (current.trim()) {
+          tokens.push(current.trim());
+          current = '';
+        }
+        continue;
+      }
+      // Plain whitespace = descendant combinator (space between selectors)
+      if (current.trim()) {
+        tokens.push(current.trim());
+        current = '';
+      }
+      // Push an empty string that will become a space separator
+      tokens.push(' ');
+      continue;
+    }
+
+    current += ch;
+    i++;
+  }
+
+  // Push final token
+  if (current.trim()) {
+    tokens.push(current.trim());
+  }
+
+  return tokens.filter(t => t !== '');
+}
+
+/**
  * Add scope to CSS selector
  * .container -> .container.p123abc
  * div -> div.p123abc
@@ -327,22 +391,25 @@ export function scopeStyleSelector(transformer, selector) {
   return selector.split(',').map(part => {
     part = part.trim();
 
-    // Split by whitespace but preserve combinators
-    // This regex splits on whitespace but keeps combinators as separate tokens
-    const tokens = part.split(/(\s*[>+~]\s*|\s+)/).filter(t => t.trim());
+    // Split selector into tokens, preserving CSS combinators (>, +, ~).
+    // Uses a programmatic approach instead of a single regex to avoid ReDoS.
+    const tokens = splitSelectorTokens(part);
     const result = [];
 
     for (let i = 0; i < tokens.length; i++) {
       const token = tokens[i].trim();
 
-      // Check if this is a combinator
+      // Check if this is a combinator (>, +, ~)
       if (combinators.has(token)) {
         result.push(` ${token} `);
         continue;
       }
 
-      // Skip empty tokens
-      if (!token) continue;
+      // Whitespace-only token = descendant combinator (space between selectors)
+      if (!token) {
+        result.push(' ');
+        continue;
+      }
 
       // Check if this segment is a global selector
       const segmentBase = token.split(/[.#\[]/)[0];

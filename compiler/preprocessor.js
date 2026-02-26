@@ -10,18 +10,73 @@
 
 import { createRequire } from 'module';
 
-// Cache for the sass module (null = not checked, false = not available, object = module)
-// Separate sync/async caches so sync failure doesn't prevent async import from succeeding
-let sassModule = null;
-let sassModuleAsync = null;
+// ============================================================================
+// Module Loading Factory — eliminates duplication across SASS/LESS/Stylus
+// ============================================================================
 
-// Cache for the less module
-let lessModule = null;
-let lessModuleAsync = null;
+/**
+ * Create a cached module loader (sync + async) for an optional dependency
+ * @param {string} packageName - npm package name to load
+ * @returns {{ loadSync, loadAsync, isAvailable, isAvailableAsync, reset }}
+ */
+function createModuleLoader(packageName) {
+  let syncCache = null;
+  let asyncCache = null;
 
-// Cache for the stylus module
-let stylusModule = null;
-let stylusModuleAsync = null;
+  /** @param {Error} err */
+  function isModuleNotFound(err) {
+    return err && (err.code === 'MODULE_NOT_FOUND' || err.code === 'ERR_MODULE_NOT_FOUND');
+  }
+
+  function loadSync() {
+    if (syncCache !== null) return syncCache;
+    try {
+      const require = createRequire(import.meta.url);
+      syncCache = require(packageName);
+      return syncCache;
+    } catch (err) {
+      if (isModuleNotFound(err)) {
+        syncCache = false;
+        return false;
+      }
+      // Corrupted install, syntax error, etc. — surface the real error
+      console.warn(`[pulse] Failed to load '${packageName}': ${err.message}`);
+      syncCache = false;
+      return false;
+    }
+  }
+
+  async function loadAsync() {
+    if (asyncCache !== null) return asyncCache;
+    if (syncCache !== null && syncCache !== false) return syncCache;
+    try {
+      const mod = await import(packageName);
+      syncCache = mod;
+      asyncCache = mod;
+      return mod;
+    } catch (err) {
+      if (isModuleNotFound(err)) {
+        const syncResult = loadSync();
+        asyncCache = syncResult || false;
+        return syncResult;
+      }
+      console.warn(`[pulse] Failed to load '${packageName}': ${err.message}`);
+      asyncCache = false;
+      return false;
+    }
+  }
+
+  function isAvailable() { return loadSync() !== false; }
+  async function isAvailableAsync() { return (await loadAsync()) !== false; }
+  function reset() { syncCache = null; asyncCache = null; }
+
+  return { loadSync, loadAsync, isAvailable, isAvailableAsync, reset };
+}
+
+// Create loaders for each preprocessor
+const sassLoader = createModuleLoader('sass');
+const lessLoader = createModuleLoader('less');
+const stylusLoader = createModuleLoader('stylus');
 
 /**
  * Patterns that indicate SASS/SCSS syntax
@@ -51,13 +106,13 @@ const SASS_PATTERNS = [
  */
 const LESS_PATTERNS = [
   /@[\w-]+\s*:/,            // Variables: @primary-color:
-  /\.[\w-]+\s*\([^)]*\)\s*\{/, // Mixins: .button-styles() { }
-  /\.[\w-]+\s*>\s*\([^)]*\)\s*\{/, // Parametric mixins: .button-styles > () { }
-  /\.[\w-]+\([^)]*\);/,     // Mixin calls: .button-styles();
+  /(?<!\()\.[\w-]+\s*\([^)]*\)\s*\{/, // Mixins: .button-styles() { } (not inside :not(.x) etc.)
+  /(?<!\()\.[\w-]+\s*>\s*\([^)]*\)\s*\{/, // Parametric mixins: .button-styles > () { }
+  /(?<!\()\.[\w-]+\([^)]*\);/,     // Mixin calls: .button-styles(); (not inside pseudo-class parens)
   /&:extend\(/,             // Extend: &:extend(.class)
   /@\{[\w-]+\}/,            // Interpolation: @{variable}
   /when\s*\(/,              // Guards: when (@a > 0)
-  /\.[\w-]+\(\)\s*when/,    // Guarded mixins
+  /(?<!\()\.[\w-]+\(\)\s*when/,    // Guarded mixins
   /@import\s+\(.*\)\s+['"]/, // Import options: @import (less) "file"
   /@plugin\s+['"][^'"]+['"]/, // Plugin: @plugin "plugin-name"
 ];
@@ -77,16 +132,6 @@ const STYLUS_PATTERNS = [
   /^\s*\+[\w-]+/m,          // Mixin calls with +: +button-style
   /\barguments\b/,           // Stylus arguments variable (word boundary)
   /^[\w-]+\s*\?=/m,         // Conditional assignment: var ?= value
-];
-
-/**
- * Patterns that indicate EITHER SASS or LESS syntax
- * These are shared between both preprocessors
- */
-const SHARED_PATTERNS = [
-  /&\s*\{/,                 // Parent selector nesting
-  /&:[\w-]+/,               // Parent pseudo-class: &:hover
-  /&\.[\w-]+/,              // Parent class: &.active
 ];
 
 /**
@@ -163,55 +208,10 @@ export function detectPreprocessor(css) {
   return 'none';
 }
 
-/**
- * Try to load the sass module from the user's project (sync version)
- * Uses require() for compatibility with sync contexts
- * @returns {object|false} The sass module or false if not available
- */
-export function tryLoadSassSync() {
-  // Return cached result if already checked
-  if (sassModule !== null) {
-    return sassModule;
-  }
-
-  try {
-    // Use createRequire to load sass synchronously from the user's project
-    const require = createRequire(import.meta.url);
-    sassModule = require('sass');
-    return sassModule;
-  } catch {
-    // sass not installed in user's project
-    sassModule = false;
-    return false;
-  }
-}
-
-/**
- * Try to load the sass module from the user's project (async version)
- * @returns {Promise<object|false>} The sass module or false if not available
- */
-export async function tryLoadSass() {
-  // Return cached async result first, then sync cache
-  if (sassModuleAsync !== null) {
-    return sassModuleAsync;
-  }
-  if (sassModule !== null && sassModule !== false) {
-    return sassModule;
-  }
-
-  try {
-    // Try to import sass from the user's project
-    const mod = await import('sass');
-    sassModule = mod;
-    sassModuleAsync = mod;
-    return mod;
-  } catch {
-    // Fall back to sync require
-    const syncResult = tryLoadSassSync();
-    sassModuleAsync = syncResult || false;
-    return syncResult;
-  }
-}
+/** @returns {object|false} The sass module or false */
+export function tryLoadSassSync() { return sassLoader.loadSync(); }
+/** @returns {Promise<object|false>} The sass module or false */
+export async function tryLoadSass() { return sassLoader.loadAsync(); }
 
 /**
  * Compile SASS/SCSS to CSS (sync version)
@@ -299,90 +299,45 @@ export async function compileSass(scss, options = {}) {
 // with support for both SASS and LESS auto-detection
 
 /**
- * Check if sass package is available in user's project
- * @returns {boolean}
+ * Generate utility functions for a preprocessor module loader.
+ * Eliminates boilerplate duplication across SASS/LESS/Stylus.
+ * @param {object} loader - Module loader from createModuleLoader()
+ * @param {function} versionExtractor - (mod) => string|null — extracts version from loaded module
+ * @returns {{ isAvailable, isAvailableAsync, getVersion, reset }}
  */
-export function isSassAvailable() {
-  const sass = tryLoadSassSync();
-  return sass !== false;
+function createPreprocessorUtils(loader, versionExtractor) {
+  return {
+    tryLoadSync: () => loader.loadSync(),
+    tryLoadAsync: () => loader.loadAsync(),
+    isAvailable: () => loader.isAvailable(),
+    isAvailableAsync: () => loader.isAvailableAsync(),
+    getVersion: () => {
+      const mod = loader.loadSync();
+      return mod ? versionExtractor(mod) : null;
+    },
+    reset: () => loader.reset(),
+  };
 }
 
-/**
- * Check if sass package is available (async)
- * @returns {Promise<boolean>}
- */
-export async function isSassAvailableAsync() {
-  const sass = await tryLoadSass();
-  return sass !== false;
-}
-
-/**
- * Get sass version if available
- * @returns {string|null}
- */
-export function getSassVersion() {
-  const sass = tryLoadSassSync();
-  if (sass && sass.info) {
-    // sass.info is a string like "dart-sass\t1.77.0"
-    const match = sass.info.match(/(\d+\.\d+\.\d+)/);
+const sassUtils = createPreprocessorUtils(sassLoader, mod => {
+  if (mod && mod.info) {
+    const match = mod.info.match(/(\d+\.\d+\.\d+)/);
     return match ? match[1] : null;
   }
   return null;
-}
+});
 
-/**
- * Reset the cached sass module (for testing)
- */
-export function resetSassCache() {
-  sassModule = null;
-}
+export function isSassAvailable() { return sassUtils.isAvailable(); }
+export async function isSassAvailableAsync() { return sassUtils.isAvailableAsync(); }
+export function getSassVersion() { return sassUtils.getVersion(); }
+export function resetSassCache() { sassUtils.reset(); }
 
 // ===== LESS SUPPORT =====
 
-/**
- * Try to load the less module from the user's project (sync version)
- * @returns {object|false} The less module or false if not available
- */
-export function tryLoadLessSync() {
-  // Return cached result if already checked
-  if (lessModule !== null) {
-    return lessModule;
-  }
-
-  try {
-    const require = createRequire(import.meta.url);
-    lessModule = require('less');
-    return lessModule;
-  } catch {
-    // less not installed in user's project
-    lessModule = false;
-    return false;
-  }
-}
-
-/**
- * Try to load the less module from the user's project (async version)
- * @returns {Promise<object|false>} The less module or false if not available
- */
-export async function tryLoadLess() {
-  if (lessModuleAsync !== null) {
-    return lessModuleAsync;
-  }
-  if (lessModule !== null && lessModule !== false) {
-    return lessModule;
-  }
-
-  try {
-    const mod = await import('less');
-    lessModule = mod;
-    lessModuleAsync = mod;
-    return mod;
-  } catch {
-    const syncResult = tryLoadLessSync();
-    lessModuleAsync = syncResult || false;
-    return syncResult;
-  }
-}
+/** @returns {object|false} The less module or false */
+export function tryLoadLessSync() { return lessLoader.loadSync(); }
+/** @returns {Promise<object|false>} The less module or false */
+export async function tryLoadLess() { return lessLoader.loadAsync(); }
 
 /**
  * Compile LESS to CSS (async - LESS is async-only)
@@ -448,89 +403,24 @@ export function compileLessSync(_less, _options = {}) {
   return null;
 }
 
-/**
- * Check if less package is available in user's project
- * @returns {boolean}
- */
-export function isLessAvailable() {
-  const less = tryLoadLessSync();
-  return less !== false;
-}
-
-/**
- * Check if less package is available (async)
- * @returns {Promise<boolean>}
- */
-export async function isLessAvailableAsync() {
-  const less = await tryLoadLess();
-  return less !== false;
-}
-
-/**
- * Get less version if available
- * @returns {string|null}
- */
-export function getLessVersion() {
-  const less = tryLoadLessSync();
-  if (less && less.version) {
-    return Array.isArray(less.version) ? less.version.join('.') : less.version;
+const lessUtils = createPreprocessorUtils(lessLoader, mod => {
+  if (mod && mod.version) {
+    return Array.isArray(mod.version) ? mod.version.join('.') : mod.version;
   }
   return null;
-}
+});
 
-/**
- * Reset the cached less module (for testing)
- */
-export function resetLessCache() {
-  lessModule = null;
-}
+export function isLessAvailable() { return lessUtils.isAvailable(); }
+export async function isLessAvailableAsync() { return lessUtils.isAvailableAsync(); }
+export function getLessVersion() { return lessUtils.getVersion(); }
+export function resetLessCache() { lessUtils.reset(); }
 
 // ===== STYLUS SUPPORT =====
 
-/**
- * Try to load the stylus module from the user's project (sync version)
- * @returns {object|false} The stylus module or false if not available
- */
-export function tryLoadStylusSync() {
-  // Return cached result if already checked
-  if (stylusModule !== null) {
-    return stylusModule;
-  }
-
-  try {
-    const require = createRequire(import.meta.url);
-    stylusModule = require('stylus');
-    return stylusModule;
-  } catch {
-    // stylus not installed in user's project
-    stylusModule = false;
-    return false;
-  }
-}
-
-/**
- * Try to load the stylus module from the user's project (async version)
- * @returns {Promise<object|false>} The stylus module or false if not available
- */
-export async function tryLoadStylus() {
-  if (stylusModuleAsync !== null) {
-    return stylusModuleAsync;
-  }
-  if (stylusModule !== null && stylusModule !== false) {
-    return stylusModule;
-  }
-
-  try {
-    const mod = await import('stylus');
-    stylusModule = mod;
-    stylusModuleAsync = mod;
-    return mod;
-  } catch {
-    const syncResult = tryLoadStylusSync();
-    stylusModuleAsync = syncResult || false;
-    return syncResult;
-  }
-}
+/** @returns {object|false} The stylus module or false */
+export function tryLoadStylusSync() { return stylusLoader.loadSync(); }
+/** @returns {Promise<object|false>} The stylus module or false */
+export async function tryLoadStylus() { return stylusLoader.loadAsync(); }
 
 /**
  * Compile Stylus to CSS (async)
@@ -638,42 +528,14 @@ export function compileStylusSync(stylus, options = {}) {
   }
 }
 
-/**
- * Check if stylus package is available in user's project
- * @returns {boolean}
- */
-export function isStylusAvailable() {
-  const stylus = tryLoadStylusSync();
-  return stylus !== false;
-}
+const stylusUtils = createPreprocessorUtils(stylusLoader, mod => {
+  return (mod && mod.version) ? mod.version : null;
+});
 
-/**
- * Check if stylus package is available (async)
- * @returns {Promise<boolean>}
- */
-export async function isStylusAvailableAsync() {
-  const stylus = await tryLoadStylus();
-  return stylus !== false;
-}
-
-/**
- * Get stylus version if available
- * @returns {string|null}
- */
-export function getStylusVersion() {
-  const stylus = tryLoadStylusSync();
-  if (stylus && stylus.version) {
-    return stylus.version;
-  }
-  return null;
-}
-
-/**
- * Reset the cached stylus module (for testing)
- */
-export function resetStylusCache() {
-  stylusModule = null;
-}
+export function isStylusAvailable() { return stylusUtils.isAvailable(); }
+export async function isStylusAvailableAsync() { return stylusUtils.isAvailableAsync(); }
+export function getStylusVersion() { return stylusUtils.getVersion(); }
+export function resetStylusCache() { stylusUtils.reset(); }
 
 /**
  * Preprocess CSS - auto-detect and compile SASS, LESS, or Stylus if detected (sync)

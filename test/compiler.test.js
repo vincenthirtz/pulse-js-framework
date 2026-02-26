@@ -866,9 +866,8 @@ view {
 }`;
     const ast = parse(source);
     const span = ast.view.children[0];
-    const a11yDirective = span.directives.find(d => d.type === 'A11yDirective');
-    assert.ok(a11yDirective !== undefined, 'Expected A11yDirective (srOnly)');
-    assert.strictEqual(a11yDirective.attrs.srOnly, true, 'Expected srOnly=true');
+    const srDirective = span.directives.find(d => d.type === 'SrOnlyDirective');
+    assert.ok(srDirective !== undefined, 'Expected SrOnlyDirective');
   });
 
   test('compiles @a11y directive to aria attributes', () => {

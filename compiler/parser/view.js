@@ -622,7 +622,5 @@ Parser.prototype.parseFocusTrapDirective = function() {
  * Parse @srOnly directive - visually hidden but accessible text
  */
 Parser.prototype.parseSrOnlyDirective = function() {
-  return new ASTNode(NodeType.A11yDirective, {
-    attrs: { srOnly: true }
-  });
+  return new ASTNode(NodeType.SrOnlyDirective, {});
 };

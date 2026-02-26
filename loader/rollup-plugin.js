@@ -29,34 +29,12 @@
 
 import { compile } from '../compiler/index.js';
 import {
-  preprocessStylesSync,
-  isSassAvailable,
-  isLessAvailable,
-  isStylusAvailable,
-  getSassVersion,
-  getLessVersion,
-  getStylusVersion,
-  detectPreprocessor
-} from '../compiler/preprocessor.js';
-import { dirname } from 'path';
-
-// Cache for preprocessor availability checks
-let preprocessorCache = null;
-
-/**
- * Check available preprocessors once
- */
-function checkPreprocessors() {
-  if (preprocessorCache) return preprocessorCache;
-
-  preprocessorCache = {
-    sass: isSassAvailable(),
-    less: isLessAvailable(),
-    stylus: isStylusAvailable()
-  };
-
-  return preprocessorCache;
-}
+  logPreprocessorAvailability,
+  extractCssFromOutput,
+  removeInlineStyles,
+  processStyles,
+  getPreprocessorOptions
+} from './shared.js';
 
 /**
  * Create Pulse Rollup plugin
@@ -67,6 +45,7 @@ export default function pulsePlugin(options = {}) {
     exclude = /node_modules/,
     sourceMap = true,
     extractCss = null, // Path to output CSS file, or null for inline
+    quiet = false,
     sass: sassOptions = {},
     less: lessOptions = {},
     stylus: stylusOptions = {}
@@ -89,22 +68,9 @@ export default function pulsePlugin(options = {}) {
       accumulatedCss = '';
       cssEmitted = false;
 
-      // Check preprocessor availability
-      const available = checkPreprocessors();
-      const preprocessors = [];
-
-      if (available.sass) {
-        preprocessors.push(`SASS ${getSassVersion() || 'unknown'}`);
-      }
-      if (available.less) {
-        preprocessors.push(`LESS ${getLessVersion() || 'unknown'}`);
-      }
-      if (available.stylus) {
-        preprocessors.push(`Stylus ${getStylusVersion() || 'unknown'}`);
-      }
-
-      if (preprocessors.length > 0) {
-        console.log(`[Pulse Rollup] Preprocessor support: ${preprocessors.join(', ')}`);
+      // Log preprocessor availability
+      if (!quiet) {
+        logPreprocessorAvailability('Pulse Rollup');
       }
     },
 
@@ -155,40 +121,24 @@ export default function pulsePlugin(options = {}) {
         let outputMap = result.map;
 
         // Extract CSS from compiled output
-        const stylesMatch = outputCode.match(/const styles = `([\s\S]*?)`;/);
+        const { css: extractedCss, found: cssFound } = extractCssFromOutput(outputCode);
 
-        if (stylesMatch) {
-          let css = stylesMatch[1];
-
-          // Check available preprocessors
-          const available = checkPreprocessors();
-          const preprocessor = detectPreprocessor(css);
+        if (cssFound) {
+          let css = extractedCss;
 
           // Preprocess if preprocessor detected and available
-          if (preprocessor !== 'none' && available[preprocessor]) {
-            try {
-              const preprocessorOptions = {
-                sass: sassOptions,
-                less: lessOptions,
-                stylus: stylusOptions
-              }[preprocessor];
+          const styleResult = processStyles(css, id, { sassOptions, lessOptions, stylusOptions });
+          css = styleResult.css;
 
-              const preprocessed = preprocessStylesSync(css, {
-                filename: id,
-                loadPaths: [dirname(id), ...(preprocessorOptions.loadPaths || [])],
-                compressed: preprocessorOptions.compressed || false,
-                preprocessor // Force detected preprocessor
-              });
+          if (styleResult.warning) {
+            this.warn(styleResult.warning);
+          }
 
-              css = preprocessed.css;
-
-              // Log preprocessor usage in verbose mode
-              if (preprocessorOptions.verbose) {
-                console.log(`[Pulse] Compiled ${preprocessor.toUpperCase()} in ${id}`);
-              }
-            } catch (preprocessorError) {
-              // Emit warning but continue with original CSS
-              this.warn(`${preprocessor.toUpperCase()} compilation warning: ${preprocessorError.message}`);
+          // Log preprocessor usage in verbose mode
+          if (styleResult.preprocessor !== 'none') {
+            const preprocessorOptions = getPreprocessorOptions(styleResult.preprocessor, { sassOptions, lessOptions, stylusOptions });
+            if (preprocessorOptions?.verbose) {
+              console.log(`[Pulse] Compiled ${styleResult.preprocessor.toUpperCase()} in ${id}`);
             }
           }
 
@@ -197,10 +147,7 @@ export default function pulsePlugin(options = {}) {
             accumulatedCss += `/* ${id} */\n${css}\n\n`;
 
             // Remove inline CSS injection from output
-            outputCode = outputCode.replace(
-              /\/\/ Styles\nconst styles = `[\s\S]*?`;\n\/\/ Inject styles\nconst styleEl = document\.createElement\("style"\);\nstyleEl\.textContent = styles;\ndocument\.head\.appendChild\(styleEl\);/,
-              '// Styles extracted to CSS file'
-            );
+            outputCode = removeInlineStyles(outputCode, '// Styles extracted to CSS file');
           }
           // else: keep inline CSS injection
         }
@@ -226,7 +173,9 @@ export default function pulsePlugin(options = {}) {
           source: accumulatedCss
         });
         cssEmitted = true;
-        console.log(`[Pulse] Emitted CSS to ${extractCss}`);
+        if (!quiet) {
+          console.log(`[Pulse] Emitted CSS to ${extractCss}`);
+        }
       }
     }
   };

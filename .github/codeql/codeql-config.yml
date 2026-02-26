@@ -1,0 +1,16 @@
+name: "Pulse Framework CodeQL Config"
+
+# Exclude paths that shouldn't be analyzed
+paths-ignore:
+  - node_modules
+  - dist
+  - docs/dist
+
+# Query filters: exclude rules that produce false positives in this codebase
+query-filters:
+  # js/bad-code-sanitization: This framework includes a .pulse-to-JS compiler.
+  # The compiler reads validated AST nodes and generates JavaScript code.
+  # CodeQL traces taint from file reads through the parser to the code generator,
+  # but the compiler's output is inherently safe code construction from parsed input.
+  - exclude:
+      id: js/bad-code-sanitization

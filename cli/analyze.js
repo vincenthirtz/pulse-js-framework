@@ -3,7 +3,7 @@
  * Analyzes bundle size and dependencies
  */
 
-import { readFileSync, statSync, existsSync } from 'fs';
+import { readFileSync, statSync, readdirSync } from 'fs';
 import { join, dirname, basename, relative } from 'path';
 import { findPulseFiles, parseArgs, formatBytes, relativePath, resolveImportPath } from './utils/file-utils.js';
 import { log } from './logger.js';
@@ -82,12 +82,20 @@ async function analyzeFiles(files, parse) {
 
   for (const file of files) {
     try {
-      const stats = statSync(file);
-      const source = readFileSync(file, 'utf-8');
+      let source;
+      let fileSize;
+      try {
+        const buffer = readFileSync(file);
+        source = buffer.toString('utf-8');
+        fileSize = buffer.length;
+      } catch (e) {
+        if (e.code !== 'ENOENT') throw e;
+        continue;
+      }
 
       const info = {
         path: relativePath(file),
-        size: stats.size,
+        size: fileSize,
         sizeFormatted: formatBytes(stats.size),
         lines: source.split('\n').length
       };
@@ -548,10 +556,15 @@ export async function runAnalyze(args) {
   const root = patterns[0] || '.';
 
   // Check if src directory exists
-  if (!existsSync(join(root, 'src'))) {
-    log.error('Error: No src/ directory found.');
-    log.info('Run this command from your Pulse project root.');
-    process.exit(1);
+  try {
+    readdirSync(join(root, 'src'));
+  } catch (err) {
+    if (err.code === 'ENOENT' || err.code === 'ENOTDIR') {
+      log.error('Error: No src/ directory found.');
+      log.info('Run this command from your Pulse project root.');
+      process.exit(1);
+    }
+    throw err;
   }
 
   const timer = createTimer();

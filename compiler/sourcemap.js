@@ -53,6 +53,10 @@ export class SourceMapGenerator {
     this.names = [];
     this.mappings = [];
 
+    // O(1) lookup maps for deduplication
+    this._sourceIndex = new Map();
+    this._nameIndex = new Map();
+
     // Current state for relative encoding
     this._lastGeneratedLine = 0;
     this._lastGeneratedColumn = 0;
@@ -69,11 +73,12 @@ export class SourceMapGenerator {
    * @returns {number} Source index
    */
   addSource(source, content = null) {
-    let index = this.sources.indexOf(source);
-    if (index === -1) {
+    let index = this._sourceIndex.get(source);
+    if (index === undefined) {
       index = this.sources.length;
       this.sources.push(source);
       this.sourcesContent.push(content);
+      this._sourceIndex.set(source, index);
     }
     return index;
   }
@@ -84,10 +89,11 @@ export class SourceMapGenerator {
    * @returns {number} Name index
    */
   addName(name) {
-    let index = this.names.indexOf(name);
-    if (index === -1) {
+    let index = this._nameIndex.get(name);
+    if (index === undefined) {
       index = this.names.length;
       this.names.push(name);
+      this._nameIndex.set(name, index);
     }
     return index;
   }

@@ -26,24 +26,24 @@ const log = loggers.dom;
  * Covers secrets, connection strings, file paths, env vars.
  */
 const SENSITIVE_MESSAGE_PATTERNS = [
-  // Connection strings
-  /postgres:\/\/[^@]+@[^/]+/gi,          // PostgreSQL
-  /mongodb(\+srv)?:\/\/[^@]+@[^/]+/gi,   // MongoDB
-  /mysql:\/\/[^@]+@[^/]+/gi,             // MySQL
-  /redis:\/\/[^@]+@[^/]+/gi,             // Redis
+  // Connection strings - bound quantifiers to prevent ReDoS on strings without '@'
+  /postgres:\/\/[^@\s]{1,256}@[^/\s]{1,256}/gi,          // PostgreSQL
+  /mongodb(?:\+srv)?:\/\/[^@\s]{1,256}@[^/\s]{1,256}/gi, // MongoDB
+  /mysql:\/\/[^@\s]{1,256}@[^/\s]{1,256}/gi,             // MySQL
+  /redis:\/\/[^@\s]{1,256}@[^/\s]{1,256}/gi,             // Redis
 
-  // API keys and tokens (common formats)
-  /[a-zA-Z0-9_-]{20,}/g,                 // Generic long tokens
+  // API keys and tokens (common formats) - bounded
+  /[a-zA-Z0-9_-]{20,200}/g,              // Generic long tokens
 
-  // Environment variable values (KEY=value patterns)
-  /\b[A-Z_]+=[^\s]+/g,
+  // Environment variable values (KEY=value patterns) - bounded
+  /\b[A-Z_]{1,100}=[^\s]{1,500}/g,
 
-  // File paths (Unix and Windows)
-  /\/[a-zA-Z0-9_\-./]+\.(js|ts|json|env|config)/gi,
-  /[A-Z]:\\[^"\s]+\.(js|ts|json|env|config)/gi,
+  // File paths (Unix and Windows) - non-overlapping segments, bounded
+  /\/[a-zA-Z0-9_-]{1,100}(?:\/[a-zA-Z0-9_-]{1,100}){0,20}\.[a-z]{1,6}/gi,
+  /[A-Z]:\\[a-zA-Z0-9_-]{1,100}(?:\\[a-zA-Z0-9_-]{1,100}){0,20}\.[a-z]{1,6}/gi,
 
-  // Email addresses
-  /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g,
+  // Email addresses - bounded segments to prevent ReDoS
+  /\b[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9.-]{1,253}\.[A-Za-z]{2,20}\b/g,
 
   // IP addresses
   /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g
@@ -152,11 +152,11 @@ export function sanitizeStackTrace(stack) {
     // First, strip absolute paths to relative paths
     let sanitizedLine = line;
 
-    // Replace absolute paths with relative (Unix)
-    sanitizedLine = sanitizedLine.replace(/\/[a-zA-Z0-9_\-./]+\/([a-zA-Z0-9_\-./]+\.(js|ts))/g, '$1');
+    // Replace absolute paths with relative (Unix) - bounded segments to avoid ReDoS
+    sanitizedLine = sanitizedLine.replace(/\/[a-zA-Z0-9_-]{1,100}(?:\/[a-zA-Z0-9_-]{1,100}){0,30}\/([a-zA-Z0-9_.-]{1,100}\.(js|ts))/g, '$1');
 
-    // Replace absolute paths with relative (Windows)
-    sanitizedLine = sanitizedLine.replace(/[A-Z]:\\[^"]+\\([a-zA-Z0-9_\-./\\]+\.(js|ts))/g, '$1');
+    // Replace absolute paths with relative (Windows) - bounded segments to avoid ReDoS
+    sanitizedLine = sanitizedLine.replace(/[A-Z]:\\[a-zA-Z0-9_-]{1,100}(?:\\[a-zA-Z0-9_-]{1,100}){0,30}\\([a-zA-Z0-9_.-]{1,100}\.(js|ts))/g, '$1');
 
     // NOW filter out internal/sensitive paths (after path conversion)
     let shouldFilter = false;

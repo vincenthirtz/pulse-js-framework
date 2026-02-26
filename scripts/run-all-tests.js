@@ -14,11 +14,13 @@ import { cpus } from 'os';
 const testGroups = {
   compiler: [
     'test:compiler',
+    'test:css-parsing',
+    'test:lexer-coverage-boost',
     'test:parser-coverage',
+    'test:preprocessor',
+    'test:preprocessor-coverage-boost',
     'test:sourcemap',
     'test:sourcemap-coverage-boost',
-    'test:css-parsing',
-    'test:preprocessor',
   ],
   reactivity: [
     'test:pulse',
@@ -159,9 +161,16 @@ const testGroups = {
     'test:a11y-focus-coverage-boost',
     'test:a11y-widgets-coverage-boost',
     'test:benchmarks',
+    'test:directives',
+    'test:expressions-coverage-boost',
+    'test:imports-coverage-boost',
     'test:integration',
     'test:integration-advanced',
     'test:lite',
+    'test:loader-shared',
+    'test:style-coverage-boost',
+    'test:testing',
+    'test:view-coverage-boost',
   ],
 };
 

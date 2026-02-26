@@ -66,10 +66,15 @@ const SECRET_PATTERNS = [
  */
 const XSS_PATTERNS = {
   scriptTag: /<script[\s>]/i,
-  eventHandler: /<[^>]+on\w+\s*=/i,
+  // Use non-overlapping groups: match tag name chars then specifically 'on' + handler name
+  // Avoids ReDoS by limiting [^>] to {1,1000} and using non-greedy match
+  eventHandler: /<[^>]{1,1000}?\bon\w+\s*=/i,
   javascriptProtocol: /javascript:/i,
   vbscriptProtocol: /vbscript:/i,
-  dataHtmlProtocol: /data:text\/html/i
+  // Match dangerous data: URIs - block data: with executable MIME types and SVG
+  dataProtocol: /data:\s*(?:text\/(?:html|javascript|xml)|image\/svg\+xml|application\/(?:javascript|x-javascript|ecmascript|xhtml\+xml|xml))/i,
+  // Catch-all for data: URIs not in allowlist (used in URL validation)
+  dataAny: /^\s*data\s*:/i
 };
 
 // ============================================================================
@@ -221,39 +226,51 @@ export function sanitizePropsForXSS(props, componentId) {
       let sanitized = value;
       let modified = false;
 
-      // Check for script tags
+      // Check for script tags - use loop to handle incomplete multi-character sanitization
       if (XSS_PATTERNS.scriptTag.test(sanitized)) {
         log.warn(`PSC: Script tag detected in prop '${path}' for '${componentId}'`);
-        sanitized = sanitized.replace(/<script[\s>]/gi, '&lt;script');
+        // Loop until all <script patterns are removed (handles nested/overlapping)
+        let prev;
+        do {
+          prev = sanitized;
+          sanitized = sanitized.replace(/<script[\s>]/gi, '&lt;script ');
+        } while (sanitized !== prev);
         modified = true;
       }
 
       // Check for event handlers in HTML-like content
       if (XSS_PATTERNS.eventHandler.test(sanitized)) {
         log.warn(`PSC: Event handler detected in prop '${path}' for '${componentId}'`);
-        sanitized = sanitized.replace(/on\w+\s*=/gi, 'data-blocked-event=');
+        sanitized = sanitized.replace(/\bon\w{1,50}\s*=/gi, 'data-blocked-event=');
         modified = true;
       }
 
-      // Check for javascript: protocol
-      if (XSS_PATTERNS.javascriptProtocol.test(sanitized)) {
-        log.warn(`PSC: javascript: protocol detected in prop '${path}' for '${componentId}'`);
-        sanitized = sanitized.replace(/javascript:/gi, 'blocked:');
-        modified = true;
-      }
-
-      // Check for vbscript: protocol
-      if (XSS_PATTERNS.vbscriptProtocol.test(sanitized)) {
-        log.warn(`PSC: vbscript: protocol detected in prop '${path}' for '${componentId}'`);
-        sanitized = sanitized.replace(/vbscript:/gi, 'blocked:');
-        modified = true;
-      }
-
-      // Check for data:text/html (can execute scripts)
-      if (XSS_PATTERNS.dataHtmlProtocol.test(sanitized)) {
-        log.warn(`PSC: data:text/html protocol detected in prop '${path}' for '${componentId}'`);
-        sanitized = sanitized.replace(/data:text\/html/gi, 'data:text/plain');
-        modified = true;
+      // Check for dangerous URL protocols: javascript:, vbscript:, data:
+      // All three are checked together to ensure complete URL scheme validation.
+      {
+        const DANGEROUS_PROTOCOLS = /(?:javascript|vbscript|data)\s*:/i;
+        if (DANGEROUS_PROTOCOLS.test(sanitized)) {
+          // Block javascript: and vbscript: unconditionally
+          if (/javascript\s*:/i.test(sanitized)) {
+            log.warn(`PSC: javascript: protocol detected in prop '${path}' for '${componentId}'`);
+            sanitized = sanitized.replace(/javascript\s*:/gi, 'blocked:');
+            modified = true;
+          }
+          if (/vbscript\s*:/i.test(sanitized)) {
+            log.warn(`PSC: vbscript: protocol detected in prop '${path}' for '${componentId}'`);
+            sanitized = sanitized.replace(/vbscript\s*:/gi, 'blocked:');
+            modified = true;
+          }
+          // Block data: URIs except safe image/text types - neutralize to data:text/plain
+          if (/data\s*:/i.test(sanitized)) {
+            const SAFE_DATA = /data:\s*(?:text\/plain|image\/(?:png|jpe?g|gif|webp|bmp|ico))(?:[;,]|$)/i;
+            if (!SAFE_DATA.test(sanitized)) {
+              log.warn(`PSC: blocked data: URI in prop '${path}' for '${componentId}'`);
+              sanitized = sanitized.replace(/data\s*:[^\s)"']{0,500}/gi, 'data:text/plain');
+              modified = true;
+            }
+          }
+        }
       }
 
       return sanitized;

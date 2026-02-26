@@ -30,34 +30,12 @@
 
 import { compile } from '../compiler/index.js';
 import {
-  preprocessStylesSync,
-  isSassAvailable,
-  isLessAvailable,
-  isStylusAvailable,
-  getSassVersion,
-  getLessVersion,
-  getStylusVersion,
-  detectPreprocessor
-} from '../compiler/preprocessor.js';
-import { dirname } from 'path';
-
-// Cache for preprocessor availability checks
-let preprocessorCache = null;
-
-/**
- * Check available preprocessors once
- */
-function checkPreprocessors() {
-  if (preprocessorCache) return preprocessorCache;
-
-  preprocessorCache = {
-    sass: isSassAvailable(),
-    less: isLessAvailable(),
-    stylus: isStylusAvailable()
-  };
-
-  return preprocessorCache;
-}
+  logPreprocessorAvailability,
+  extractCssFromOutput,
+  removeInlineStyles,
+  processStyles,
+  getPreprocessorOptions
+} from './shared.js';
 
 /**
  * Webpack loader for .pulse files
@@ -98,42 +76,24 @@ export default function pulseLoader(source) {
     let outputMap = result.map;
 
     // Extract CSS from compiled output
-    const stylesMatch = outputCode.match(/const styles = `([\s\S]*?)`;/);
+    const { css: extractedCss, found: cssFound } = extractCssFromOutput(outputCode);
 
-    if (stylesMatch) {
-      let css = stylesMatch[1];
-
-      // Check available preprocessors
-      const available = checkPreprocessors();
-      const preprocessor = detectPreprocessor(css);
+    if (cssFound) {
+      let css = extractedCss;
 
       // Preprocess if preprocessor detected and available
-      if (preprocessor !== 'none' && available[preprocessor]) {
-        try {
-          const preprocessorOptions = {
-            sass: sassOptions,
-            less: lessOptions,
-            stylus: stylusOptions
-          }[preprocessor];
+      const styleResult = processStyles(css, this.resourcePath, { sassOptions, lessOptions, stylusOptions });
+      css = styleResult.css;
 
-          const preprocessed = preprocessStylesSync(css, {
-            filename: this.resourcePath,
-            loadPaths: [dirname(this.resourcePath), ...(preprocessorOptions.loadPaths || [])],
-            compressed: preprocessorOptions.compressed || false,
-            preprocessor // Force detected preprocessor
-          });
+      if (styleResult.warning) {
+        this.emitWarning(new Error(styleResult.warning));
+      }
 
-          css = preprocessed.css;
-
-          // Log preprocessor usage in verbose mode
-          if (preprocessorOptions.verbose) {
-            console.log(`[Pulse] Compiled ${preprocessor.toUpperCase()} in ${this.resourcePath}`);
-          }
-        } catch (preprocessorError) {
-          // Emit warning but continue with original CSS
-          this.emitWarning(
-            new Error(`${preprocessor.toUpperCase()} compilation warning: ${preprocessorError.message}`)
-          );
+      // Log preprocessor usage in verbose mode
+      if (styleResult.preprocessor !== 'none') {
+        const preprocessorOptions = getPreprocessorOptions(styleResult.preprocessor, { sassOptions, lessOptions, stylusOptions });
+        if (preprocessorOptions?.verbose) {
+          console.log(`[Pulse] Compiled ${styleResult.preprocessor.toUpperCase()} in ${this.resourcePath}`);
         }
       }
 
@@ -148,8 +108,8 @@ export default function pulseLoader(source) {
 
         // Replace inline CSS injection with import statement
         // css-loader will process the CSS and style-loader will inject it
-        outputCode = outputCode.replace(
-          /\/\/ Styles\nconst styles = `[\s\S]*?`;\n\/\/ Inject styles\nconst styleEl = document\.createElement\("style"\);\nstyleEl\.textContent = styles;\ndocument\.head\.appendChild\(styleEl\);/,
+        outputCode = removeInlineStyles(
+          outputCode,
           `// Styles extracted - handled by css-loader\nimport "./${this.resourcePath.split('/').pop().replace(/\.pulse$/, '.pulse.css')}";`
         );
       }
@@ -200,26 +160,11 @@ if (module.hot) {
  * Used to log preprocessor availability
  */
 export function pitch() {
-  const available = checkPreprocessors();
   const options = this.getOptions() || {};
 
   // Log preprocessor availability once on first run
-  if (!pulseLoader._logged && options.verbose !== false) {
-    const preprocessors = [];
-    if (available.sass) {
-      preprocessors.push(`SASS ${getSassVersion() || 'unknown'}`);
-    }
-    if (available.less) {
-      preprocessors.push(`LESS ${getLessVersion() || 'unknown'}`);
-    }
-    if (available.stylus) {
-      preprocessors.push(`Stylus ${getStylusVersion() || 'unknown'}`);
-    }
-
-    if (preprocessors.length > 0) {
-      console.log(`[Pulse Webpack] Preprocessor support: ${preprocessors.join(', ')}`);
-    }
-
+  if (!pulseLoader._logged && options.verbose !== false && !options.quiet) {
+    logPreprocessorAvailability('Pulse Webpack');
     pulseLoader._logged = true;
   }
 }

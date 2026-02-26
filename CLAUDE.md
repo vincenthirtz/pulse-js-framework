@@ -11,6 +11,8 @@ Pulse is a lightweight, declarative JavaScript framework for building reactive S
 - **Accessibility-first** - built-in a11y helpers, auto-ARIA, and audit tools
 - **Optional SASS support** - automatic SCSS compilation if `sass` is installed
 
+**Primary language:** JavaScript (vanilla JS, not TypeScript). Supporting files use YAML (GitHub Actions), JSON (configs), Markdown (docs), HTML, and CSS.
+
 **Version:** See package.json | **License:** MIT | **Node.js:** >= 20.0.0
 
 ## Quick Commands
@@ -88,17 +90,15 @@ pulse preview           # Serve dist/ at http://localhost:4173
 
 ## Git Workflow
 
+After making changes, always commit and push to the **develop** branch unless told otherwise.
+
 When committing and pushing, always pull/rebase first to handle remote changes:
 
 ```bash
-# Before pushing, always rebase
-git pull --rebase origin <branch>
-git push origin <branch>
-
-# Example workflow
+# Default workflow: commit and push to develop
 git add -A
 git commit -m "feat: implement feature"
-git pull --rebase origin develop  # Rebase before push
+git pull --rebase origin develop
 git push origin develop
 ```
 
@@ -124,6 +124,7 @@ To invoke a skill, use: `/skill-name`
 - `/senior-developer` - Feature implementation
 - `/qa-testing` - Test writing and validation
 - `/security-reviewer` - Security audits
+- `/ship` - Run tests, commit, and push to develop in one step
 
 ## Working with Large File Sets
 
@@ -294,6 +295,16 @@ Detailed API documentation is in `.claude/context/`. These are **never loaded au
 | `performance-algorithms.md` | batch(), computed lazy/eager, LIS algorithm, LRU cache, effect cleanup | Optimizing performance or understanding internals |
 | `error-reference.md` | Compiler, runtime, lint, a11y, and form error codes | Debugging errors or writing validators |
 | `css-preprocessors.md` | SASS/SCSS, LESS, Stylus syntax, detection, compilation API | Working on CSS preprocessor support |
+| `dsl-reference.md` | .pulse DSL syntax, blocks, directives, slots, router/store blocks, expressions | Working on .pulse files or compiler |
+| `cli-reference.md` | All CLI commands, flags, configuration, env vars, exit codes | Working on CLI or project tooling |
+| `security.md` | escapeHtml, sanitizeUrl, sanitizeCSSValue, safeSetAttribute, store/router security | Working on security, XSS prevention, or input validation |
+| `mobile-native.md` | Native APIs, platform detection, storage, device info, Android/iOS config | Working on mobile/native features |
+| `build-tools.md` | Vite, Webpack, Rollup, ESBuild, Parcel, SWC plugin configs and options | Working on build tool integrations |
+| `ide-extensions.md` | VS Code extension, IntelliJ plugin, snippets, installation | Working on IDE support or syntax highlighting |
+| `ci-release.md` | CI/CD workflows, release process, branch protection, PR automation, secrets | Working on CI/CD, releases, or GitHub workflows |
+| `examples-catalog.md` | All 29 example projects with features and APIs demonstrated | Creating examples or checking feature coverage |
+| `adrs.md` | All 13 ADRs, milestone plans, foundational architecture principles | Checking architecture decisions or planning features |
+| `e2e-testing.md` | Playwright E2E tests, utilities, CI integration, test categories | Working on E2E tests or documentation site testing |
 
 **Usage pattern for skills/agents:**
 ```
@@ -506,10 +517,11 @@ npm test -- --coverage
 **Important testing guidelines:**
 
 1. **Use node:test** - Do NOT use Jest, Mocha, or other frameworks
-2. **Async cleanup** - Always provide cleanup for async operations to prevent hanging tests
-3. **Timeout handling** - Use `AbortSignal.timeout()` or explicit timeouts for async tests
-4. **Mock DOM** - Use the project's MockDOMAdapter for DOM-dependent tests
-5. **No hardcoded timing** - Avoid `setTimeout` in tests; use proper async patterns
+2. **Run full suite after each fix** - When fixing test failures, always run the full test suite (`npm test`) after each fix iteration to catch regressions. Watch for hanging async tests — always add timeouts and ensure proper cleanup
+3. **Async cleanup** - Always provide cleanup for async operations to prevent hanging tests
+4. **Timeout handling** - Use `AbortSignal.timeout()` or explicit timeouts for async tests
+5. **Mock DOM** - Use the project's MockDOMAdapter for DOM-dependent tests. Note: MockDOMAdapter does NOT support `scrollTop` or real DOM attributes — mock them explicitly. Node.js native `Event` has read-only `target` — use `Object.defineProperty`
+6. **No hardcoded timing** - Avoid `setTimeout` in tests; use proper async patterns. For debounced functions, use explicit timer mocks not real delays
 
 **Good async test pattern:**
 ```javascript
@@ -558,6 +570,14 @@ describe('DOM tests', () => {
 - Hardcoded `setTimeout(done, 100)` delays
 - Missing mock DOM setup for DOM-dependent code
 - Not handling promise rejections in async tests
+
+## CI/CD & GitHub Actions
+
+When working on GitHub Actions workflows:
+
+1. **GITHUB_TOKEN cannot trigger downstream workflows** — use a PAT (Personal Access Token) if a workflow needs to trigger other workflows
+2. **Always validate YAML syntax** before committing workflow files — a single indentation error breaks the entire pipeline
+3. **Test `jq` expressions locally** before embedding them in workflow files — shell quoting and escaping differ between local and CI environments
 
 ## Development Notes
 

@@ -14,7 +14,7 @@
  * use `pulse release` instead of `npm version`.
  */
 
-import { readFileSync, writeFileSync, existsSync } from 'fs';
+import { readFileSync, writeFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
@@ -43,16 +43,22 @@ const updatedFiles = [];
 for (const file of files) {
   const filePath = join(root, file.path);
 
-  if (!existsSync(filePath)) {
-    console.log(`  Skipping ${file.path} (not found)`);
-    continue;
+  let content;
+  try {
+    content = readFileSync(filePath, 'utf-8');
+  } catch (err) {
+    if (err.code === 'ENOENT') { console.log(`  Skipping ${file.path} (not found)`); continue; }
+    throw err;
   }
-
-  let content = readFileSync(filePath, 'utf-8');
   const newContent = content.replace(file.pattern, file.replacement);
 
   if (content !== newContent) {
-    writeFileSync(filePath, newContent);
+    try {
+      writeFileSync(filePath, newContent);
+    } catch (err) {
+      if (err.code === 'ENOENT') { console.log(`  Skipping ${file.path} (not found)`); continue; }
+      throw err;
+    }
     console.log(`  Updated ${file.path}`);
     updatedFiles.push(file.path);
   } else {

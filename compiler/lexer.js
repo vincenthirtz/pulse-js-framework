@@ -197,11 +197,18 @@ export class Token {
  */
 export class Lexer {
   constructor(source) {
+    if (source == null) {
+      throw new Error('Lexer: source must be a string, got ' + typeof source);
+    }
     this.source = source;
     this.pos = 0;
     this.line = 1;
     this.column = 1;
     this.tokens = [];
+    // Block context tracking (avoids O(n) backward scans)
+    this._currentBlock = null; // 'view' | 'style' | 'state' | 'actions' | 'router' | 'store' | null
+    this._blockDepth = 0;      // brace depth within current block
+    this._parenDepth = 0;      // parentheses depth within current block (for expression context)
   }
 
   /**
@@ -264,6 +271,8 @@ export class Lexer {
         }
       } else if (char === '/' && this.peek() === '*') {
         // Multi-line comment
+        const commentLine = this.line;
+        const commentCol = this.column;
         this.advance(); // /
         this.advance(); // *
         while (!this.isEOF() && !(this.current() === '*' && this.peek() === '/')) {
@@ -272,6 +281,9 @@ export class Lexer {
         if (!this.isEOF()) {
           this.advance(); // *
           this.advance(); // /
+        } else {
+          // Unclosed block comment — emit error token so downstream gets a clear diagnostic
+          this.tokens.push(new Token(TokenType.ERROR, 'Unterminated block comment', commentLine, commentCol));
         }
       } else {
         break;
@@ -572,10 +584,19 @@ export class Lexer {
   /**
    * Tokenize the entire source
    */
+  /**
+   * Set of top-level block keywords that define context
+   */
+  static BLOCK_KEYWORDS = new Set([
+    TokenType.VIEW, TokenType.STYLE, TokenType.STATE,
+    TokenType.ACTIONS, TokenType.ROUTER, TokenType.STORE
+  ]);
+
   tokenize() {
     this.tokens = [];
-    let inViewBlock = false;
-    let braceDepth = 0;
+    this._currentBlock = null;
+    this._blockDepth = 0;
+    let _pendingBlock = null; // keyword waiting for its opening brace
 
     while (!this.isEOF()) {
       this.skipWhitespace();
@@ -645,20 +666,35 @@ export class Lexer {
       switch (char) {
         case '{':
           this.advance();
-          braceDepth++;
+          if (_pendingBlock) {
+            this._currentBlock = _pendingBlock;
+            this._blockDepth = 1;
+            this._parenDepth = 0;
+            _pendingBlock = null;
+          } else if (this._currentBlock) {
+            this._blockDepth++;
+          }
           this.tokens.push(new Token(TokenType.LBRACE, '{', startLine, startColumn));
           continue;
         case '}':
           this.advance();
-          braceDepth--;
+          if (this._currentBlock) {
+            this._blockDepth--;
+            if (this._blockDepth === 0) {
+              this._currentBlock = null;
+              this._parenDepth = 0;
+            }
+          }
           this.tokens.push(new Token(TokenType.RBRACE, '}', startLine, startColumn));
           continue;
         case '(':
           this.advance();
+          if (this._currentBlock) this._parenDepth++;
           this.tokens.push(new Token(TokenType.LPAREN, '(', startLine, startColumn));
           continue;
         case ')':
           this.advance();
+          if (this._currentBlock) this._parenDepth--;
           this.tokens.push(new Token(TokenType.RPAREN, ')', startLine, startColumn));
           continue;
         case '[':
@@ -875,9 +911,14 @@ export class Lexer {
         const forceIdent = inStyle && cssReservedWords.has(word);
 
         if (shouldBeKeyword) {
-          this.tokens.push(this.readIdentifier(false));
+          const token = this.readIdentifier(false);
+          this.tokens.push(token);
+          // Track top-level block keywords for context detection
+          if (Lexer.BLOCK_KEYWORDS.has(token.type) && !this._currentBlock) {
+            _pendingBlock = token.type.toLowerCase();
+          }
         } else if (this.isViewContext() && this.couldBeSelector()) {
-          // Only treat as selector if not a keyword
+          // Only treat as selector if in view context (checks paren depth)
           this.tokens.push(this.readSelector());
         } else {
           this.tokens.push(this.readIdentifier(forceIdent));
@@ -896,23 +937,10 @@ export class Lexer {
 
   /**
    * Check if we're in a style context (inside style block)
+   * Uses tracked block context for O(1) lookup
    */
   isStyleContext() {
-    // Look back through tokens for 'style' keyword
-    for (let i = this.tokens.length - 1; i >= 0; i--) {
-      const token = this.tokens[i];
-      if (token.type === TokenType.STYLE) {
-        return true;
-      }
-      if (token.type === TokenType.STATE ||
-          token.type === TokenType.VIEW ||
-          token.type === TokenType.ACTIONS ||
-          token.type === TokenType.ROUTER ||
-          token.type === TokenType.STORE) {
-        return false;
-      }
-    }
-    return false;
+    return this._currentBlock === 'style';
   }
 
   /**
@@ -933,11 +961,13 @@ export class Lexer {
 
   /**
    * Check if we're in a view context where selectors are expected
+   * Uses tracked block context and paren depth for O(1) lookup
    */
   isViewContext() {
-    // Look back through tokens for 'view' keyword
-    let inView = false;
-    let parenDepth = 0;
+    if (this._currentBlock !== 'view') return false;
+
+    // Inside parentheses = expression context, not selector context
+    if (this._parenDepth > 0) return false;
 
     // After @ token, next word is directive name (not selector)
     const lastToken = this.tokens[this.tokens.length - 1];
@@ -945,36 +975,7 @@ export class Lexer {
       return false;
     }
 
-    for (let i = this.tokens.length - 1; i >= 0; i--) {
-      const token = this.tokens[i];
-
-      // Track parentheses depth (backwards)
-      if (token.type === TokenType.RPAREN) {
-        parenDepth++;
-      } else if (token.type === TokenType.LPAREN) {
-        parenDepth--;
-        // If we go negative, we're inside parentheses (expression context)
-        if (parenDepth < 0) {
-          return false;  // Inside expression, not selector context
-        }
-      }
-
-      if (token.type === TokenType.VIEW) {
-        inView = true;
-        break;
-      }
-      if (token.type === TokenType.STATE ||
-          token.type === TokenType.ACTIONS ||
-          token.type === TokenType.STYLE ||
-          token.type === TokenType.ROUTER ||
-          token.type === TokenType.STORE ||
-          token.type === TokenType.ROUTES ||
-          token.type === TokenType.GETTERS) {
-        return false;
-      }
-    }
-
-    return inView;
+    return true;
   }
 
   /**

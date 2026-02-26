@@ -6,7 +6,7 @@
 
 import { fileURLToPath } from 'url';
 import { dirname, join, resolve, relative } from 'path';
-import { existsSync, mkdirSync, writeFileSync, readFileSync, readdirSync, watch, cpSync, statSync } from 'fs';
+import { mkdirSync, writeFileSync, readFileSync, readdirSync, watch, accessSync } from 'fs';
 import { log } from './logger.js';
 import { findPulseFiles, parseArgs } from './utils/file-utils.js';
 import { runHelp } from './help.js';
@@ -218,7 +218,9 @@ function copyExampleTemplate(templateName, projectPath, projectName) {
   const examplesDir = join(__dirname, '..', 'examples');
   const templateDir = join(examplesDir, templateName);
 
-  if (!existsSync(templateDir)) {
+  try {
+    accessSync(templateDir);
+  } catch (e) {
     throw new Error(`Template "${templateName}" not found at ${templateDir}`);
   }
 
@@ -226,9 +228,7 @@ function copyExampleTemplate(templateName, projectPath, projectName) {
    * Recursively copy directory, transforming JS files
    */
   function copyDir(src, dest) {
-    if (!existsSync(dest)) {
-      mkdirSync(dest, { recursive: true });
-    }
+    mkdirSync(dest, { recursive: true });
 
     const entries = readdirSync(src, { withFileTypes: true });
 
@@ -272,17 +272,24 @@ function copyExampleTemplate(templateName, projectPath, projectName) {
 
   // Copy src directory
   const srcDir = join(templateDir, 'src');
-  if (existsSync(srcDir)) {
+  try {
+    readdirSync(srcDir);
     copyDir(srcDir, join(projectPath, 'src'));
+  } catch (e) {
+    if (e.code !== 'ENOENT') throw e;
+    // No src directory in template, skip
   }
 
   // Copy index.html if exists
   const indexHtml = join(templateDir, 'index.html');
-  if (existsSync(indexHtml)) {
+  try {
     let content = readFileSync(indexHtml, 'utf-8');
     // Update title to project name
     content = content.replace(/<title>[^<]*<\/title>/, `<title>${projectName}</title>`);
     writeFileSync(join(projectPath, 'index.html'), content);
+  } catch (e) {
+    if (e.code !== 'ENOENT') throw e;
+    // No index.html in template, skip
   }
 
   return true;
@@ -312,9 +319,13 @@ async function createProject(args) {
 
   const projectPath = resolve(process.cwd(), projectName);
 
-  if (existsSync(projectPath)) {
+  try {
+    accessSync(projectPath);
     log.error(`Directory "${projectName}" already exists.`);
     process.exit(1);
+  } catch (e) {
+    if (e.code !== 'ENOENT') throw e;
+    // Path doesn't exist, safe to create
   }
 
   const useTypescript = options.typescript || options.ts || false;
@@ -675,34 +686,30 @@ async function initProject(args) {
   log.info(`Initializing Pulse project in current directory${useTypescript ? ' (TypeScript)' : ''}...`);
 
   // Create src directory if it doesn't exist
-  if (!existsSync(join(cwd, 'src'))) {
-    mkdirSync(join(cwd, 'src'));
-  }
+  mkdirSync(join(cwd, 'src'), { recursive: true });
 
   // Create public directory if it doesn't exist
-  if (!existsSync(join(cwd, 'public'))) {
-    mkdirSync(join(cwd, 'public'));
-  }
+  mkdirSync(join(cwd, 'public'), { recursive: true });
 
   // Check for existing package.json
   const pkgPath = join(cwd, 'package.json');
   let pkg = {};
 
-  if (existsSync(pkgPath)) {
-    try {
-      const pkgContent = readFileSync(pkgPath, 'utf-8');
-      if (!pkgContent.trim()) {
-        log.warn('Existing package.json is empty, creating new one.');
-      } else {
-        pkg = JSON.parse(pkgContent);
-        log.info('Found existing package.json, merging...');
-      }
-    } catch (e) {
-      if (e instanceof SyntaxError) {
-        log.warn(`Invalid JSON in package.json: ${e.message}. Creating new one.`);
-      } else {
-        log.warn(`Could not read package.json: ${e.message}. Creating new one.`);
-      }
+  try {
+    const pkgContent = readFileSync(pkgPath, 'utf-8');
+    if (!pkgContent.trim()) {
+      log.warn('Existing package.json is empty, creating new one.');
+    } else {
+      pkg = JSON.parse(pkgContent);
+      log.info('Found existing package.json, merging...');
+    }
+  } catch (e) {
+    if (e.code === 'ENOENT') {
+      // No existing package.json, will create new one
+    } else if (e instanceof SyntaxError) {
+      log.warn(`Invalid JSON in package.json: ${e.message}. Creating new one.`);
+    } else {
+      log.warn(`Could not read package.json: ${e.message}. Creating new one.`);
     }
   }
 
@@ -742,7 +749,7 @@ async function initProject(args) {
   const viteConfigExt = useTypescript ? 'ts' : 'js';
   const viteConfigPath = join(cwd, `vite.config.${viteConfigExt}`);
 
-  if (!existsSync(viteConfigPath) && !existsSync(join(cwd, 'vite.config.js')) && !existsSync(join(cwd, 'vite.config.ts'))) {
+  {
     const viteConfig = `import { defineConfig } from 'vite';
 import pulse from 'pulse-js-framework/vite';
 
@@ -750,12 +757,17 @@ export default defineConfig({
   plugins: [pulse()]
 });
 `;
-    writeFileSync(viteConfigPath, viteConfig);
-    log.success(`Created vite.config.${viteConfigExt}`);
+    // Use atomic wx flag to avoid TOCTOU race (no existsSync check needed)
+    try {
+      writeFileSync(viteConfigPath, viteConfig, { flag: 'wx' });
+      log.success(`Created vite.config.${viteConfigExt}`);
+    } catch (e) {
+      if (e.code !== 'EEXIST') throw e;
+    }
   }
 
-  // Create tsconfig if TypeScript
-  if (useTypescript && !existsSync(join(cwd, 'tsconfig.json'))) {
+  // Create tsconfig if TypeScript (use wx flag to avoid TOCTOU race)
+  if (useTypescript) {
     const tsConfig = {
       compilerOptions: {
         target: 'ES2022',
@@ -777,13 +789,17 @@ export default defineConfig({
       exclude: ['node_modules', 'dist']
     };
 
-    writeFileSync(join(cwd, 'tsconfig.json'), JSON.stringify(tsConfig, null, 2));
-    log.success('Created tsconfig.json');
+    try {
+      writeFileSync(join(cwd, 'tsconfig.json'), JSON.stringify(tsConfig, null, 2), { flag: 'wx' });
+      log.success('Created tsconfig.json');
+    } catch (e) {
+      if (e.code !== 'EEXIST') throw e;
+    }
   }
 
   // Create index.html if it doesn't exist
   const indexHtmlPath = join(cwd, 'index.html');
-  if (!existsSync(indexHtmlPath)) {
+  {
     const mainExt = useTypescript ? 'ts' : 'js';
     const indexHtml = `<!DOCTYPE html>
 <html lang="en">
@@ -798,14 +814,18 @@ export default defineConfig({
 </body>
 </html>
 `;
-    writeFileSync(indexHtmlPath, indexHtml);
-    log.success('Created index.html');
+    try {
+      writeFileSync(indexHtmlPath, indexHtml, { flag: 'wx' });
+      log.success('Created index.html');
+    } catch (e) {
+      if (e.code !== 'EEXIST') throw e;
+    }
   }
 
   // Create main entry file if it doesn't exist
   const mainExt = useTypescript ? 'ts' : 'js';
   const mainPath = join(cwd, 'src', `main.${mainExt}`);
-  if (!existsSync(mainPath)) {
+  {
     const mainContent = useTypescript
       ? `import App from './App.pulse';
 
@@ -821,13 +841,17 @@ if (import.meta.hot) {
 
 App.mount('#app');
 `;
-    writeFileSync(mainPath, mainContent);
-    log.success(`Created src/main.${mainExt}`);
+    try {
+      writeFileSync(mainPath, mainContent, { flag: 'wx' });
+      log.success(`Created src/main.${mainExt}`);
+    } catch (e) {
+      if (e.code !== 'EEXIST') throw e;
+    }
   }
 
   // Create App.pulse if it doesn't exist
   const appPulsePath = join(cwd, 'src', 'App.pulse');
-  if (!existsSync(appPulsePath)) {
+  {
     const appPulse = `@page App
 
 // Welcome to Pulse Framework!
@@ -970,20 +994,28 @@ style {
   }
 }
 `;
-    writeFileSync(appPulsePath, appPulse);
-    log.success('Created src/App.pulse');
+    try {
+      writeFileSync(appPulsePath, appPulse, { flag: 'wx' });
+      log.success('Created src/App.pulse');
+    } catch (e) {
+      if (e.code !== 'EEXIST') throw e;
+    }
   }
 
   // Create .gitignore if it doesn't exist
   const gitignorePath = join(cwd, '.gitignore');
-  if (!existsSync(gitignorePath)) {
+  {
     const gitignore = `node_modules
 dist
 .DS_Store
 *.local
 ${useTypescript ? '*.tsbuildinfo\n' : ''}`;
-    writeFileSync(gitignorePath, gitignore);
-    log.success('Created .gitignore');
+    try {
+      writeFileSync(gitignorePath, gitignore, { flag: 'wx' });
+      log.success('Created .gitignore');
+    } catch (e) {
+      if (e.code !== 'EEXIST') throw e;
+    }
   }
 
   log.info(`
@@ -1283,9 +1315,7 @@ async function compileFiles(args) {
         if (result.success) {
           // Ensure output directory exists
           const outDir = dirname(outputFile);
-          if (!existsSync(outDir)) {
-            mkdirSync(outDir, { recursive: true });
-          }
+          mkdirSync(outDir, { recursive: true });
           writeFileSync(outputFile, result.code);
           log.info(`Compiled: ${relPath} -> ${relOutput}`);
           writtenCount++;

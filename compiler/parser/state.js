@@ -34,14 +34,18 @@ Parser.prototype.parsePropsBlock = function() {
 };
 
 /**
- * Parse a props property (name: defaultValue)
+ * Parse a property declaration (name: value) — shared by props and state blocks
  */
-Parser.prototype.parsePropsProperty = function() {
+Parser.prototype.parseProperty = function() {
   const name = this.expect(TokenType.IDENT);
   this.expect(TokenType.COLON);
   const value = this.parseValue();
   return new ASTNode(NodeType.Property, { name: name.value, value });
 };
+
+// Aliases for semantic clarity in callers
+Parser.prototype.parsePropsProperty = Parser.prototype.parseProperty;
+Parser.prototype.parseStateProperty = Parser.prototype.parseProperty;
 
 // ============================================================
 // State Block Parsing
@@ -61,16 +65,6 @@ Parser.prototype.parseStateBlock = function() {
 
   this.expect(TokenType.RBRACE);
   return new ASTNode(NodeType.StateBlock, { properties });
-};
-
-/**
- * Parse a state property
- */
-Parser.prototype.parseStateProperty = function() {
-  const name = this.expect(TokenType.IDENT);
-  this.expect(TokenType.COLON);
-  const value = this.parseValue();
-  return new ASTNode(NodeType.Property, { name: name.value, value });
 };
 
 // ============================================================

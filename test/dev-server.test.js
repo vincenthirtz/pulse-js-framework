@@ -10,7 +10,7 @@
 import { test, describe, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert';
 import { createServer, get as httpGetNode } from 'node:http';
-import { mkdirSync, writeFileSync, rmSync, existsSync, readFileSync, statSync } from 'fs';
+import { mkdirSync, writeFileSync, rmSync, readFileSync } from 'fs';
 import { join, extname } from 'path';
 import { compile } from '../compiler/index.js';
 
@@ -24,9 +24,7 @@ import { compile } from '../compiler/index.js';
 const TEST_DIR = join(process.cwd(), '.test-dev-server');
 
 function setupTestProject() {
-  if (existsSync(TEST_DIR)) {
-    rmSync(TEST_DIR, { recursive: true, force: true });
-  }
+  rmSync(TEST_DIR, { recursive: true, force: true });
   mkdirSync(TEST_DIR, { recursive: true });
   mkdirSync(join(TEST_DIR, 'src'), { recursive: true });
 
@@ -72,9 +70,7 @@ style {
 }
 
 function cleanupTestProject() {
-  if (existsSync(TEST_DIR)) {
-    rmSync(TEST_DIR, { recursive: true, force: true });
-  }
+  rmSync(TEST_DIR, { recursive: true, force: true });
 }
 
 // We test by creating a minimal HTTP server that mirrors dev server logic
@@ -490,36 +486,37 @@ async function createTestServer(root) {
 
         // .pulse files
         if (pathname.endsWith('.pulse')) {
-          if (existsSync(filePath)) {
-            try {
-              const source = readFileSync(filePath, 'utf-8');
-              const result = compile(source, {
-                runtime: '/runtime/index.js',
-                sourceMap: true,
-                inlineSourceMap: true,
-                sourceFileName: pathname
+          try {
+            const source = readFileSync(filePath, 'utf-8');
+            const result = compile(source, {
+              runtime: '/runtime/index.js',
+              sourceMap: true,
+              inlineSourceMap: true,
+              sourceFileName: pathname
+            });
+            if (result.success) {
+              response.writeHead(200, {
+                'Content-Type': 'application/javascript',
+                'Cache-Control': 'no-cache, no-store, must-revalidate'
               });
-              if (result.success) {
-                response.writeHead(200, {
-                  'Content-Type': 'application/javascript',
-                  'Cache-Control': 'no-cache, no-store, must-revalidate'
-                });
-                response.end(result.code);
-              } else {
-                response.writeHead(500, { 'Content-Type': 'text/plain' });
-                response.end(`Compilation error`);
-              }
-            } catch (error) {
+              response.end(result.code);
+            } else {
               response.writeHead(500, { 'Content-Type': 'text/plain' });
-              response.end(`Error: ${error.message}`);
+              response.end(`Compilation error`);
             }
             return;
+          } catch (error) {
+            if (error.code !== 'ENOENT') {
+              response.writeHead(500, { 'Content-Type': 'text/plain' });
+              response.end(`Error: ${error.message}`);
+              return;
+            }
           }
         }
 
         // JS files
         if (pathname.endsWith('.js') || pathname.endsWith('.mjs')) {
-          if (existsSync(filePath)) {
+          try {
             const content = readFileSync(filePath, 'utf-8');
             response.writeHead(200, {
               'Content-Type': 'application/javascript',
@@ -527,32 +524,45 @@ async function createTestServer(root) {
             });
             response.end(content);
             return;
+          } catch (e) {
+            if (e.code !== 'ENOENT') throw e;
           }
         }
 
         // Static files
-        if (existsSync(filePath) && statSync(filePath).isFile()) {
-          const ext = extname(filePath);
-          const mimeType = MIME_TYPES[ext] || 'application/octet-stream';
-          let content = readFileSync(filePath);
-          if (ext === '.html') {
-            content = content.toString().replace('</body>', LIVERELOAD_SCRIPT);
+        {
+          let fileContent;
+          try {
+            fileContent = readFileSync(filePath);
+          } catch (err) {
+            if (err.code !== 'ENOENT' && err.code !== 'EISDIR') throw err;
+            fileContent = null;
           }
-          response.writeHead(200, { 'Content-Type': mimeType });
-          response.end(content);
-          return;
+          if (fileContent !== null) {
+            const ext = extname(filePath);
+            const mimeType = MIME_TYPES[ext] || 'application/octet-stream';
+            let content = fileContent;
+            if (ext === '.html') {
+              content = content.toString().replace('</body>', LIVERELOAD_SCRIPT);
+            }
+            response.writeHead(200, { 'Content-Type': mimeType });
+            response.end(content);
+            return;
+          }
         }
 
         // SPA fallback
         const ext = extname(pathname);
         if (!ext || ext === '') {
           const indexPath = join(root, 'index.html');
-          if (existsSync(indexPath)) {
+          try {
             let content = readFileSync(indexPath, 'utf-8');
             content = content.replace('</body>', LIVERELOAD_SCRIPT);
             response.writeHead(200, { 'Content-Type': 'text/html' });
             response.end(content);
             return;
+          } catch (e) {
+            if (e.code !== 'ENOENT') throw e;
           }
         }
 

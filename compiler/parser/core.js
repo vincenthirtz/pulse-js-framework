@@ -39,6 +39,7 @@ export const NodeType = {
   A11yDirective: 'A11yDirective',
   LiveDirective: 'LiveDirective',
   FocusTrapDirective: 'FocusTrapDirective',
+  SrOnlyDirective: 'SrOnlyDirective',
 
   // SSR directives
   ClientDirective: 'ClientDirective',
