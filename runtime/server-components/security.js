@@ -66,10 +66,13 @@ const SECRET_PATTERNS = [
  */
 const XSS_PATTERNS = {
   scriptTag: /<script[\s>]/i,
-  eventHandler: /<[^>]+on\w+\s*=/i,
+  // Use non-overlapping groups: match tag name chars then specifically 'on' + handler name
+  // Avoids ReDoS by limiting [^>] to {1,1000} and using non-greedy match
+  eventHandler: /<[^>]{1,1000}?\bon\w+\s*=/i,
   javascriptProtocol: /javascript:/i,
   vbscriptProtocol: /vbscript:/i,
-  dataHtmlProtocol: /data:text\/html/i
+  // Match all dangerous data: MIME types (html, javascript, etc.)
+  dataProtocol: /data:\s*(?:text\/(?:html|javascript)|application\/(?:javascript|x-javascript|ecmascript))/i
 };
 
 // ============================================================================
@@ -221,17 +224,22 @@ export function sanitizePropsForXSS(props, componentId) {
       let sanitized = value;
       let modified = false;
 
-      // Check for script tags
+      // Check for script tags - use loop to handle incomplete multi-character sanitization
       if (XSS_PATTERNS.scriptTag.test(sanitized)) {
         log.warn(`PSC: Script tag detected in prop '${path}' for '${componentId}'`);
-        sanitized = sanitized.replace(/<script[\s>]/gi, '&lt;script');
+        // Loop until all <script patterns are removed (handles nested/overlapping)
+        let prev;
+        do {
+          prev = sanitized;
+          sanitized = sanitized.replace(/<script[\s>]/gi, '&lt;script ');
+        } while (sanitized !== prev);
         modified = true;
       }
 
       // Check for event handlers in HTML-like content
       if (XSS_PATTERNS.eventHandler.test(sanitized)) {
         log.warn(`PSC: Event handler detected in prop '${path}' for '${componentId}'`);
-        sanitized = sanitized.replace(/on\w+\s*=/gi, 'data-blocked-event=');
+        sanitized = sanitized.replace(/\bon\w{1,50}\s*=/gi, 'data-blocked-event=');
         modified = true;
       }
 
@@ -249,10 +257,10 @@ export function sanitizePropsForXSS(props, componentId) {
         modified = true;
       }
 
-      // Check for data:text/html (can execute scripts)
-      if (XSS_PATTERNS.dataHtmlProtocol.test(sanitized)) {
-        log.warn(`PSC: data:text/html protocol detected in prop '${path}' for '${componentId}'`);
-        sanitized = sanitized.replace(/data:text\/html/gi, 'data:text/plain');
+      // Check for dangerous data: protocols (html, javascript, etc.)
+      if (XSS_PATTERNS.dataProtocol.test(sanitized)) {
+        log.warn(`PSC: dangerous data: protocol detected in prop '${path}' for '${componentId}'`);
+        sanitized = sanitized.replace(/data:\s*(?:text\/(?:html|javascript)|application\/(?:javascript|x-javascript|ecmascript))/gi, 'data:text/plain');
         modified = true;
       }
 

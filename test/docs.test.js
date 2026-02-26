@@ -197,7 +197,7 @@ test('index.html has structured data (JSON-LD)', () => {
   const content = readFileSync(join(docsDir, 'index.html'), 'utf-8');
   assert(content.includes('application/ld+json'), 'Should have JSON-LD');
   assert(content.includes('@context'), 'JSON-LD should have @context');
-  assert(content.includes('schema.org'), 'Should use schema.org');
+  assert(content.includes('https://schema.org') || content.includes('http://schema.org'), 'Should use schema.org as full URL');
 });
 
 test('index.html has theme-color meta', () => {

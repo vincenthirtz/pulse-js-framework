@@ -13,6 +13,9 @@ test-fixtures-analyze
 coverage
 .test-runner-project
 .test-dev-server
+test/.tmp-ssg
+.commit-msg-*.tmp
+.release-notes-*.tmp.md
 
 # Playwright
 playwright-report/

@@ -97,7 +97,7 @@ test.describe('Console Error Detection', () => {
         if (isDocumentNav && is403) return;
 
         // Skip GitHub API errors (rate limiting in CI without auth token)
-        if (url.includes('api.github.com')) return;
+        try { if (new URL(url).hostname === 'api.github.com') return; } catch { /* ignore invalid URLs */ }
 
         networkErrors.push({
           url,

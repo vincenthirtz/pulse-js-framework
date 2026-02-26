@@ -7,7 +7,7 @@
  * @module pulse-js-framework/runtime/server-components/actions-server
  */
 
-import { sanitizeError, isProductionMode } from './error-sanitizer.js';
+import { sanitizeError } from './error-sanitizer.js';
 import { CSRFTokenStore } from './security-csrf.js';
 import { createRateLimitMiddleware } from './security-ratelimit.js';
 
@@ -357,22 +357,25 @@ export function createServerActionMiddleware(options = {}) {
       res.json(result);
     } catch (error) {
       if (onError) {
-        // Custom error handler - still sanitize before passing
+        // Custom error handler - sanitize before passing, never expose stack traces
         const sanitized = sanitizeError(error, {
-          includeStack: !isProductionMode(),
-          maxStackLines: 5
+          includeStack: false,
+          maxStackLines: 0
         });
-        onError(sanitized, req, res);
+        const { stack, ...safeError } = sanitized;
+        onError(safeError, req, res);
       } else {
-        // Default error handler - return sanitized error with backward-compatible format
+        // Default error handler - never expose stack traces to clients
         const sanitized = sanitizeError(error, {
-          includeStack: !isProductionMode(),
-          maxStackLines: 5
+          includeStack: false,
+          maxStackLines: 0
         });
         // Include both 'error' (backward compat) and 'message' fields
+        // Never include stack trace in client response to prevent info leakage
+        const { stack, ...safeResponse } = sanitized;
         res.status(500).json({
-          ...sanitized,
-          error: sanitized.message  // Backward compatibility
+          ...safeResponse,
+          error: safeResponse.message  // Backward compatibility
         });
       }
     }
@@ -533,12 +536,13 @@ export async function createFastifyActionPlugin(fastify, options = {}) {
 
       return result;
     } catch (error) {
-      // Sanitize error before sending to client
+      // Sanitize error before sending to client - never expose stack traces
       const sanitized = sanitizeError(error, {
-        includeStack: !isProductionMode(),
-        maxStackLines: 5
+        includeStack: false,
+        maxStackLines: 0
       });
-      return reply.code(500).send(sanitized);
+      const { stack, ...safeResponse } = sanitized;
+      return reply.code(500).send(safeResponse);
     }
   });
 }
@@ -697,12 +701,13 @@ export function createHonoActionMiddleware(options = {}) {
 
       return c.json(result);
     } catch (error) {
-      // Sanitize error before sending to client
+      // Sanitize error before sending to client - never expose stack traces
       const sanitized = sanitizeError(error, {
-        includeStack: !isProductionMode(),
-        maxStackLines: 5
+        includeStack: false,
+        maxStackLines: 0
       });
-      return c.json(sanitized, 500);
+      const { stack, ...safeResponse } = sanitized;
+      return c.json(safeResponse, 500);
     }
   };
 }

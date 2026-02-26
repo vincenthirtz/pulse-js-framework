@@ -877,8 +877,13 @@ function matchesSelector(element, selector) {
   if (!selector || element.nodeType !== Node.ELEMENT_NODE) return false;
 
   // Handle multiple selectors (comma-separated) - careful with commas inside :not()
-  if (selector.includes(',') && !selector.match(/:not\([^)]*,[^)]*\)/)) {
-    return selector.split(',').some(s => matchesSelector(element, s.trim()));
+  if (selector.includes(',')) {
+    // Check if comma is inside :not() by finding :not(...) and checking for commas within
+    const notContent = selector.match(/:not\(([^)]*)\)/);
+    const hasCommaInNot = notContent && notContent[1].includes(',');
+    if (!hasCommaInNot) {
+      return selector.split(',').some(s => matchesSelector(element, s.trim()));
+    }
   }
 
   // Handle child combinator (e.g., "details > summary")

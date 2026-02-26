@@ -10,7 +10,7 @@
 import { test, describe, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert';
 import { createServer, get as httpGetNode } from 'node:http';
-import { mkdirSync, writeFileSync, rmSync, existsSync, readFileSync } from 'fs';
+import { mkdirSync, writeFileSync, rmSync, readFileSync } from 'fs';
 import { join, extname } from 'path';
 import { compile } from '../compiler/index.js';
 
@@ -24,9 +24,7 @@ import { compile } from '../compiler/index.js';
 const TEST_DIR = join(process.cwd(), '.test-dev-server');
 
 function setupTestProject() {
-  if (existsSync(TEST_DIR)) {
-    rmSync(TEST_DIR, { recursive: true, force: true });
-  }
+  rmSync(TEST_DIR, { recursive: true, force: true });
   mkdirSync(TEST_DIR, { recursive: true });
   mkdirSync(join(TEST_DIR, 'src'), { recursive: true });
 
@@ -72,9 +70,7 @@ style {
 }
 
 function cleanupTestProject() {
-  if (existsSync(TEST_DIR)) {
-    rmSync(TEST_DIR, { recursive: true, force: true });
-  }
+  rmSync(TEST_DIR, { recursive: true, force: true });
 }
 
 // We test by creating a minimal HTTP server that mirrors dev server logic

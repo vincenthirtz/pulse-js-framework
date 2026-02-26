@@ -891,6 +891,7 @@ export function PlaygroundPage() {
 
     // Listen for messages from iframe
     window.addEventListener('message', (e) => {
+      if (e.origin !== window.location.origin) return;
       if (e.data.type === 'success') {
         status.textContent = t('playground.success');
         status.className = 'preview-status success';

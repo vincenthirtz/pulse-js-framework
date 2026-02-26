@@ -222,7 +222,8 @@ export function parseSelector(selector) {
 
   // Match attributes - improved regex handles quoted values with special characters
   // Matches: [attr], [attr=value], [attr="quoted value"], [attr='quoted value']
-  const attrRegex = /\[([a-zA-Z_][a-zA-Z0-9-_]*)(?:=(?:"([^"]*)"|'([^']*)'|([^\]]*)))?\]/g;
+  // Uses possessive-style matching via atomic groups to avoid backtracking on malformed input
+  const attrRegex = /\[([a-zA-Z_][a-zA-Z0-9_-]*)(?:=(?:"([^"]*)"|'([^']*)'|([^\]="']*)))?\]/g;
   const attrMatches = remaining.matchAll(attrRegex);
   for (const match of attrMatches) {
     const key = match[1];

@@ -4,7 +4,7 @@
  * Builds Pulse projects for production
  */
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, statSync, copyFileSync } from 'fs';
+import { readFileSync, writeFileSync, mkdirSync, readdirSync, copyFileSync } from 'fs';
 import { join, extname, relative, dirname } from 'path';
 import { compile } from '../compiler/index.js';
 import { preprocessStylesSync, isSassAvailable, getSassVersion } from '../compiler/preprocessor.js';
@@ -39,13 +39,12 @@ export async function buildProject(args) {
   // Check if vite is available
   try {
     const viteConfig = join(root, 'vite.config.js');
-    if (existsSync(viteConfig)) {
-      const spinner = createSpinner('Building with Vite...');
-      const { build } = await import('vite');
-      await build({ root });
-      spinner.success(`Built with Vite in ${timer.format()}`);
-      return;
-    }
+    readFileSync(viteConfig, 'utf-8'); // Throws ENOENT if missing
+    const spinner = createSpinner('Building with Vite...');
+    const { build } = await import('vite');
+    await build({ root });
+    spinner.success(`Built with Vite in ${timer.format()}`);
+    return;
   } catch (e) {
     // Vite not available, use built-in build
   }
@@ -60,22 +59,29 @@ export async function buildProject(args) {
   }
 
   // Create output directory
-  if (!existsSync(outDir)) {
-    mkdirSync(outDir, { recursive: true });
-  }
+  mkdirSync(outDir, { recursive: true });
 
   // Copy public files
   const publicDir = join(root, 'public');
-  if (existsSync(publicDir)) {
+  try {
+    readdirSync(publicDir);
     copyDir(publicDir, outDir);
+  } catch (e) {
+    if (e.code !== 'ENOENT') throw e;
+    // No public directory, skip
   }
 
   // Count files for progress bar
   const srcDir = join(root, 'src');
-  const fileCount = existsSync(srcDir) ? countFiles(srcDir) : 0;
+  let fileCount = 0;
+  try {
+    fileCount = countFiles(srcDir);
+  } catch (e) {
+    if (e.code !== 'ENOENT') throw e;
+  }
 
   // Process source files with progress bar
-  if (existsSync(srcDir) && fileCount > 0) {
+  if (fileCount > 0) {
     const progress = createProgressBar({
       total: fileCount,
       label: 'Compiling',
@@ -87,7 +93,7 @@ export async function buildProject(args) {
 
   // Copy and process index.html
   const indexHtml = join(root, 'index.html');
-  if (existsSync(indexHtml)) {
+  try {
     let html = readFileSync(indexHtml, 'utf-8');
 
     // Update script paths for production
@@ -100,6 +106,9 @@ export async function buildProject(args) {
     html = html.replace(/\.pulse"/g, '.js"');
 
     writeFileSync(join(outDir, 'index.html'), html);
+  } catch (e) {
+    if (e.code !== 'ENOENT') throw e;
+    // No index.html, skip
   }
 
   // Bundle runtime
@@ -146,13 +155,11 @@ To preview:
  */
 function countFiles(dir) {
   let count = 0;
-  const files = readdirSync(dir);
+  const entries = readdirSync(dir, { withFileTypes: true });
 
-  for (const file of files) {
-    const fullPath = join(dir, file);
-    const stat = statSync(fullPath);
-    if (stat.isDirectory()) {
-      count += countFiles(fullPath);
+  for (const entry of entries) {
+    if (entry.isDirectory()) {
+      count += countFiles(join(dir, entry.name));
     } else {
       count++;
     }
@@ -168,9 +175,7 @@ function countFiles(dir) {
  * @param {Object} [progress] - Progress bar instance
  */
 function processDirectory(srcDir, outDir, progress = null) {
-  if (!existsSync(outDir)) {
-    mkdirSync(outDir, { recursive: true });
-  }
+  mkdirSync(outDir, { recursive: true });
 
   const entries = readdirSync(srcDir, { withFileTypes: true });
 
@@ -301,8 +306,10 @@ function readRuntimeFile(filename) {
   ];
 
   for (const path of paths) {
-    if (existsSync(path)) {
+    try {
       return readFileSync(path, 'utf-8');
+    } catch (e) {
+      if (e.code !== 'ENOENT') throw e;
     }
   }
 
@@ -439,18 +446,15 @@ export function minifyJS(code) {
  * Copy a directory recursively
  */
 function copyDir(src, dest) {
-  if (!existsSync(dest)) {
-    mkdirSync(dest, { recursive: true });
-  }
+  mkdirSync(dest, { recursive: true });
 
-  const files = readdirSync(src);
+  const entries = readdirSync(src, { withFileTypes: true });
 
-  for (const file of files) {
-    const srcPath = join(src, file);
-    const destPath = join(dest, file);
-    const stat = statSync(srcPath);
+  for (const entry of entries) {
+    const srcPath = join(src, entry.name);
+    const destPath = join(dest, entry.name);
 
-    if (stat.isDirectory()) {
+    if (entry.isDirectory()) {
       copyDir(srcPath, destPath);
     } else {
       copyFileSync(srcPath, destPath);
@@ -466,24 +470,28 @@ export async function previewBuild(args) {
   const root = process.cwd();
   const distDir = join(root, 'dist');
 
-  if (!existsSync(distDir)) {
-    log.error('No dist folder found. Run "pulse build" first.');
-    process.exit(1);
+  try {
+    readdirSync(distDir);
+  } catch (e) {
+    if (e.code === 'ENOENT' || e.code === 'ENOTDIR') {
+      log.error('No dist folder found. Run "pulse build" first.');
+      process.exit(1);
+    }
+    throw e;
   }
 
   // Check if vite is available for preview
   try {
     const viteConfig = join(root, 'vite.config.js');
-    if (existsSync(viteConfig)) {
-      log.info('Using Vite preview...');
-      const { preview } = await import('vite');
-      const server = await preview({
-        root,
-        preview: { port }
-      });
-      server.printUrls();
-      return;
-    }
+    readFileSync(viteConfig, 'utf-8'); // Throws ENOENT if missing
+    log.info('Using Vite preview...');
+    const { preview } = await import('vite');
+    const server = await preview({
+      root,
+      preview: { port }
+    });
+    server.printUrls();
+    return;
   } catch (e) {
     // Vite not available, use built-in server
   }

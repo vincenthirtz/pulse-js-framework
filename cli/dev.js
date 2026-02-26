@@ -5,7 +5,7 @@
  */
 
 import { createServer } from 'http';
-import { readFileSync, existsSync, statSync, watch } from 'fs';
+import { readFileSync, watch } from 'fs';
 import { join, extname, resolve, dirname } from 'path';
 import { compile } from '../compiler/index.js';
 import { preprocessStylesSync, isSassAvailable, getSassVersion } from '../compiler/preprocessor.js';
@@ -76,17 +76,16 @@ export async function startDevServer(args) {
   // Check if vite is available, use it if so
   try {
     const viteConfig = join(root, 'vite.config.js');
-    if (existsSync(viteConfig)) {
-      log.info('Vite config detected, using Vite...');
-      const { createServer: createViteServer } = await import('vite');
-      const server = await createViteServer({
-        root,
-        server: { port }
-      });
-      await server.listen();
-      server.printUrls();
-      return;
-    }
+    readFileSync(viteConfig, 'utf-8'); // Throws ENOENT if missing
+    log.info('Vite config detected, using Vite...');
+    const { createServer: createViteServer } = await import('vite');
+    const server = await createViteServer({
+      root,
+      server: { port }
+    });
+    await server.listen();
+    server.printUrls();
+    return;
   } catch (e) {
     // Vite not available, use built-in server
   }
@@ -348,7 +347,7 @@ function watchFiles(root) {
   const srcDir = join(root, 'src');
   let debounceTimer = null;
 
-  if (existsSync(srcDir)) {
+  try {
     watch(srcDir, { recursive: true }, (eventType, filename) => {
       if (filename && (filename.endsWith('.pulse') || filename.endsWith('.js') || filename.endsWith('.css'))) {
         // Debounce to avoid multiple reloads
@@ -360,6 +359,9 @@ function watchFiles(root) {
       }
     });
     log.debug('Watching src/ for changes...');
+  } catch (e) {
+    if (e.code !== 'ENOENT') throw e;
+    // No src directory, skip watching
   }
 }
 

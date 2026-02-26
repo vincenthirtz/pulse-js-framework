@@ -183,9 +183,11 @@ export function hintsToHTML(hints) {
   if (!hints || hints.length === 0) return '';
 
   return hints.map(hint => {
-    const parts = [`rel="${hint.rel}"`, `href="${escapeHTML(hint.href)}"`];
-    if (hint.as) parts.push(`as="${hint.as}"`);
-    if (hint.type) parts.push(`type="${hint.type}"`);
+    // Escape href for safe use in HTML attributes (escapeHTML handles &, <, > but also escape quotes)
+    const safeHref = escapeHTML(hint.href).replace(/"/g, '&quot;');
+    const parts = [`rel="${escapeHTML(hint.rel)}"`, `href="${safeHref}"`];
+    if (hint.as) parts.push(`as="${escapeHTML(hint.as)}"`);
+    if (hint.type) parts.push(`type="${escapeHTML(hint.type).replace(/"/g, '&quot;')}"`);
     if (hint.crossorigin) parts.push('crossorigin');
     return `<link ${parts.join(' ')}>`;
   }).join('\n');

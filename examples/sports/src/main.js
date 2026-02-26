@@ -128,7 +128,7 @@ async function fetchFromRSS(feedUrl) {
       return Array.from(items).slice(0, 10).map((item, index) => ({
         id: `rss-${index}`,
         title: item.querySelector('title')?.textContent || 'Sans titre',
-        summary: item.querySelector('description')?.textContent?.replace(/<[^>]*>/g, '').slice(0, 150) + '...' || '',
+        summary: (() => { let s = item.querySelector('description')?.textContent || ''; let prev; do { prev = s; s = s.replace(/<[^>]*>/g, ''); } while (s !== prev); return s.slice(0, 150) + '...'; })() || '',
         url: item.querySelector('link')?.textContent || '#',
         time: formatDate(item.querySelector('pubDate')?.textContent),
         source: "L'Équipe",

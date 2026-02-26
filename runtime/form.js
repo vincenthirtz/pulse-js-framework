@@ -98,7 +98,8 @@ export const validators = {
   email: (message = 'Invalid email address') => ({
     validate: (value) => {
       if (!value) return true;
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      // Anchored with atomic-style matching: limit local part and domain to avoid ReDoS
+      const emailRegex = /^[^\s@]{1,64}@[^\s@]{1,253}\.[^\s@]{1,63}$/;
       return emailRegex.test(value) || message;
     }
   }),
@@ -298,8 +299,8 @@ export const validators = {
     debounce: options.debounce ?? 300,
     validate: async (value, allValues) => {
       if (!value) return true;
-      // First check format synchronously
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      // First check format synchronously (length-bounded to prevent ReDoS)
+      const emailRegex = /^[^\s@]{1,64}@[^\s@]{1,253}\.[^\s@]{1,63}$/;
       if (!emailRegex.test(value)) {
         return 'Invalid email address';
       }

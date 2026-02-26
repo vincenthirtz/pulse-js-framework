@@ -30,12 +30,13 @@ export { escapeHtml, sanitizeUrl };
  */
 export function unescapeHtml(str) {
   if (str == null) return '';
+  // Unescape &amp; LAST to avoid double-unescaping (e.g., '&amp;lt;' -> '&lt;' -> '<')
   return String(str)
-    .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'");
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/g, '&');
 }
 
 /**

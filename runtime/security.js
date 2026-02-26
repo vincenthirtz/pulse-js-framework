@@ -280,7 +280,19 @@ export function sanitizeHtml(html, options = {}) {
   // Use browser's DOMParser for safe parsing
   if (typeof DOMParser === 'undefined') {
     // Fallback for non-browser environments: strip all tags
-    return html.replace(/<[^>]*>/g, '');
+    // Use a loop-based approach to avoid O(n^2) regex backtracking on strings with many '<'
+    let result = '';
+    let inTag = false;
+    for (let i = 0; i < html.length; i++) {
+      if (html[i] === '<') {
+        inTag = true;
+      } else if (html[i] === '>') {
+        inTag = false;
+      } else if (!inTag) {
+        result += html[i];
+      }
+    }
+    return result;
   }
 
   const parser = new DOMParser();

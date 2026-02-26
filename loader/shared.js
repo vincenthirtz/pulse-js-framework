@@ -108,11 +108,11 @@ export function logPreprocessorAvailability(pluginLabel, options = {}) {
 // ============================================================================
 
 /** Regex to extract CSS from compiled .pulse output */
-export const STYLES_MATCH_REGEX = /const styles = `([\s\S]*?)`;/;
+export const STYLES_MATCH_REGEX = /const styles = `([^`]*)`;/;
 
 /** Regex to remove inline style injection block (handles optional SCOPE_ID line) */
 export const INLINE_STYLES_REMOVAL_REGEX =
-  /\/\/ Styles\n(?:const SCOPE_ID = '[^']*';\n)?const styles = `[\s\S]*?`;\n\n\/\/ Inject styles\nconst styleEl = document\.createElement\("style"\);\n(?:styleEl\.setAttribute\([^)]*\);\n)?styleEl\.textContent = styles;\ndocument\.head\.appendChild\(styleEl\);/;
+  /\/\/ Styles\n(?:const SCOPE_ID = '[^']*';\n)?const styles = `[^`]*`;\n\n\/\/ Inject styles\nconst styleEl = document\.createElement\("style"\);\n(?:styleEl\.setAttribute\([^)]*\);\n)?styleEl\.textContent = styles;\ndocument\.head\.appendChild\(styleEl\);/;
 
 // ============================================================================
 // CSS Helpers

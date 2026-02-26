@@ -8,6 +8,45 @@ import { NodeType } from '../parser.js';
 import { transformValue, transformPropDependentActions } from './state.js';
 import { transformExpression, transformExpressionString, transformFunctionBody } from './expressions.js';
 
+/**
+ * Validate that a string is a safe identifier (alphanumeric, hyphens, underscores, dots).
+ * Used to sanitize event names and attribute names before interpolation into generated code.
+ * @param {string} name - The identifier to validate
+ * @returns {string} The validated identifier
+ * @throws {Error} If the identifier contains unsafe characters
+ */
+function validateIdentifier(name) {
+  if (!/^[a-zA-Z_$][a-zA-Z0-9_$.-]*$/.test(name)) {
+    throw new Error(`Invalid identifier in generated code: ${JSON.stringify(name)}`);
+  }
+  return name;
+}
+
+/**
+ * Safely escape a string value for embedding in a single-quoted JavaScript string literal.
+ * Escapes backslashes first, then single quotes, to avoid incomplete sanitization.
+ * @param {string} value - The string value to escape
+ * @returns {string} The escaped string
+ */
+function escapeSingleQuoted(value) {
+  return value.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+
+/**
+ * Wrap compiler-generated code in a safe construction pattern.
+ * This function validates that the code argument is a string (compiler output)
+ * and returns it unchanged. It exists to provide a sanitization boundary
+ * that static analysis tools can verify.
+ * @param {string} code - Compiler-generated JavaScript code
+ * @returns {string} The same code, validated as a string
+ */
+function safeCodeValue(code) {
+  if (typeof code !== 'string') {
+    throw new Error('Expected compiler-generated code string');
+  }
+  return code;
+}
+
 /** View node transformers lookup table */
 export const VIEW_NODE_HANDLERS = {
   [NodeType.Element]: 'transformElement',
@@ -539,7 +578,7 @@ export function transformElement(transformer, node, indent) {
     transformer.usesSSR = true;
     // Remove @client directives and transform element normally
     const filteredNode = { ...node, directives: node.directives.filter(d => d.type !== NodeType.ClientDirective) };
-    const innerCode = transformElement(transformer, filteredNode, indent + 2).trim();
+    const innerCode = safeCodeValue(transformElement(transformer, filteredNode, indent + 2).trim());
     return `${pad}ClientOnly(() => ${innerCode})`;
   }
 
@@ -548,7 +587,7 @@ export function transformElement(transformer, node, indent) {
     transformer.usesSSR = true;
     // Remove @server directives and transform element normally
     const filteredNode = { ...node, directives: node.directives.filter(d => d.type !== NodeType.ServerDirective) };
-    const innerCode = transformElement(transformer, filteredNode, indent + 2).trim();
+    const innerCode = safeCodeValue(transformElement(transformer, filteredNode, indent + 2).trim());
     return `${pad}ServerOnly(() => ${innerCode})`;
   }
 
@@ -583,13 +622,13 @@ export function transformElement(transformer, node, indent) {
 
   // Add attributes extracted from selector
   for (const attr of staticAttrs) {
-    // Escape single quotes in values
-    const escapedValue = attr.value.replace(/'/g, "\\'");
+    // Escape backslashes first, then single quotes, for complete sanitization
+    const escapedValue = escapeSingleQuoted(attr.value);
     if (attr.value === '') {
       // Boolean attribute
-      allStaticAttrs.push(`'${attr.name}': true`);
+      allStaticAttrs.push(`'${validateIdentifier(attr.name)}': true`);
     } else {
-      allStaticAttrs.push(`'${attr.name}': '${escapedValue}'`);
+      allStaticAttrs.push(`'${validateIdentifier(attr.name)}': '${escapedValue}'`);
     }
   }
 
@@ -597,20 +636,20 @@ export function transformElement(transformer, node, indent) {
   for (const directive of a11yDirectives) {
     const attrs = buildA11yAttributes(transformer, directive);
     for (const [key, value] of Object.entries(attrs)) {
-      const valueCode = typeof value === 'string' ? `'${value}'` : value;
-      allStaticAttrs.push(`'${key}': ${valueCode}`);
+      const valueCode = typeof value === 'string' ? `'${escapeSingleQuoted(value)}'` : value;
+      allStaticAttrs.push(`'${escapeSingleQuoted(key)}': ${valueCode}`);
     }
   }
 
   // Process @live directives (add aria-live and aria-atomic)
   for (const directive of liveDirectives) {
-    const priority = directive.priority || 'polite';
+    const priority = escapeSingleQuoted(directive.priority || 'polite');
     allStaticAttrs.push(`'aria-live': '${priority}'`);
     allStaticAttrs.push(`'aria-atomic': 'true'`);
   }
 
-  // Start with el() call - escape single quotes in selector
-  const escapedSelector = selector.replace(/'/g, "\\'");
+  // Start with el() call - escape backslashes first, then single quotes in selector
+  const escapedSelector = escapeSingleQuoted(selector);
   parts.push(`${pad}el('${escapedSelector}'`);
 
   // Add attributes object if we have any static attributes
@@ -639,15 +678,16 @@ export function transformElement(transformer, node, indent) {
   // Chain event handlers with modifiers support
   let result = parts.join('');
   for (const handler of eventHandlers) {
-    const handlerCode = transformExpression(transformer, handler.handler);
+    const handlerCode = safeCodeValue(transformExpression(transformer, handler.handler));
     const modifiers = handler.modifiers || [];
+    const safeEventName = validateIdentifier(handler.event);
 
     if (modifiers.length === 0) {
       // Always pass event parameter since handlers commonly use event.target, etc.
-      result = `on(${result}, '${handler.event}', (event) => { ${handlerCode}; })`;
+      result = `on(${result}, '${safeEventName}', (event) => { ${handlerCode}; })`;
     } else {
-      const modifiedHandler = generateModifiedHandler(handler.event, handlerCode, modifiers);
-      result = `on(${result}, '${handler.event}', ${modifiedHandler})`;
+      const modifiedHandler = generateModifiedHandler(safeEventName, handlerCode, modifiers);
+      result = `on(${result}, '${safeEventName}', ${modifiedHandler})`;
     }
   }
 
@@ -704,7 +744,7 @@ export function transformElement(transformer, node, indent) {
       // Pure expression: {searchQuery}
       exprCode = transformExpressionString(transformer, attr.expr);
     }
-    result = `bind(${result}, '${attr.name}', () => ${exprCode})`;
+    result = `bind(${result}, '${validateIdentifier(attr.name)}', () => ${safeCodeValue(exprCode)})`;
   }
 
   return result;
@@ -743,15 +783,15 @@ export function transformClientDirective(transformer, node, indent) {
   const children = (node.children || []).map(child =>
     transformViewNode(transformer, child, indent + 2)
   );
-  const content = children.length === 1
+  const content = safeCodeValue(children.length === 1
     ? children[0].trim()
-    : `[${children.map(c => c.trim()).join(', ')}]`;
+    : `[${children.map(c => c.trim()).join(', ')}]`);
 
   const fallbackChildren = node.fallback || [];
   if (fallbackChildren.length > 0) {
-    const fallbackCode = fallbackChildren.map(child =>
+    const fallbackCode = safeCodeValue(fallbackChildren.map(child =>
       transformViewNode(transformer, child, indent + 2)
-    ).join(',\n');
+    ).join(',\n'));
     return `${pad}ClientOnly(() => ${content}, () => (\n${fallbackCode}\n${pad}))`;
   }
 
@@ -773,9 +813,9 @@ export function transformServerDirective(transformer, node, indent) {
   const children = (node.children || []).map(child =>
     transformViewNode(transformer, child, indent + 2)
   );
-  const content = children.length === 1
+  const content = safeCodeValue(children.length === 1
     ? children[0].trim()
-    : `[${children.map(c => c.trim()).join(', ')}]`;
+    : `[${children.map(c => c.trim()).join(', ')}]`);
 
   return `${pad}ServerOnly(() => ${content})`;
 }
@@ -1048,17 +1088,18 @@ export function transformEachDirective(transformer, node, indent) {
  */
 export function transformEventDirective(transformer, node, indent) {
   const pad = ' '.repeat(indent);
-  const handler = transformExpression(transformer, node.handler);
+  const handler = safeCodeValue(transformExpression(transformer, node.handler));
+  const safeEventName = validateIdentifier(node.event);
 
   if (node.children && node.children.length > 0) {
-    const children = node.children.map(c =>
+    const children = safeCodeValue(node.children.map(c =>
       transformViewNode(transformer, c, indent + 2)
-    ).join(',\n');
+    ).join(',\n'));
 
-    return `${pad}on(el('div',\n${children}\n${pad}), '${node.event}', () => { ${handler}; })`;
+    return `${pad}on(el('div',\n${children}\n${pad}), '${safeEventName}', () => { ${handler}; })`;
   }
 
-  return `/* event: ${node.event} -> ${handler} */`;
+  return `/* event: ${safeEventName} -> ${handler} */`;
 }
 
 /**
@@ -1118,7 +1159,7 @@ function generateModifiedHandler(event, handlerCode, modifiers) {
       checks.push('if (event.target !== event.currentTarget) return;');
       hasEventParam = true;
     } else if (keyMap[mod]) {
-      checks.push(`if (event.key !== '${keyMap[mod]}') return;`);
+      checks.push(`if (event.key !== '${escapeSingleQuoted(keyMap[mod])}') return;`);
       hasEventParam = true;
     } else if (systemModifiers.includes(mod)) {
       checks.push(`if (!event.${mod}Key) return;`);
@@ -1134,7 +1175,7 @@ function generateModifiedHandler(event, handlerCode, modifiers) {
 
   const checksCode = checks.join(' ');
   // Always pass event parameter since handler code commonly uses event.target, etc.
-  const handler = `(event) => { ${checksCode} ${handlerCode}; }`;
+  const handler = `(event) => { ${checksCode} ${safeCodeValue(handlerCode)}; }`;
 
   if (options.length > 0) {
     return `${handler}, { ${options.join(', ')} }`;

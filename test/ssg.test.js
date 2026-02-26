@@ -13,9 +13,10 @@
 
 import { test, describe, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert';
-import { mkdirSync, mkdtempSync, writeFileSync, rmSync, existsSync } from 'fs';
-import { join } from 'path';
-import { tmpdir } from 'os';
+import { mkdirSync, writeFileSync, rmSync } from 'fs';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
+import { randomBytes } from 'crypto';
 
 import {
   discoverRoutes,
@@ -26,20 +27,26 @@ import {
 // Test Helpers
 // ============================================================================
 
+// Use a project-local temp directory instead of os.tmpdir() to avoid
+// CodeQL js/insecure-temporary-file alerts (CWE-377)
+const __test_dirname = dirname(fileURLToPath(import.meta.url));
+const TEST_TMP_BASE = join(__test_dirname, '.tmp-ssg');
+
 let testDir;
 let testCounter = 0;
 
 function createTestDir() {
   testCounter++;
-  const dir = mkdtempSync(join(tmpdir(), 'pulse-ssg-test-'));
+  // Create a unique directory with random suffix for test isolation
+  const uniqueSuffix = randomBytes(8).toString('hex');
+  const dir = join(TEST_TMP_BASE, `test-${testCounter}-${uniqueSuffix}`);
+  mkdirSync(dir, { recursive: true });
   return dir;
 }
 
 function cleanupTestDir(dir) {
   try {
-    if (existsSync(dir)) {
-      rmSync(dir, { recursive: true, force: true });
-    }
+    rmSync(dir, { recursive: true, force: true });
   } catch {
     // Ignore cleanup errors
   }
@@ -388,11 +395,16 @@ describe('generateBuildManifest', () => {
   });
 
   test('handles nonexistent output directory', () => {
-    const dir = join(mkdtempSync(join(tmpdir(), 'pulse-ssg-nonexist-')), 'subdir');
+    // Use a unique non-existent subdir inside our test temp base
+    const uniqueSuffix = randomBytes(8).toString('hex');
+    const dir = join(TEST_TMP_BASE, `nonexist-${uniqueSuffix}`, 'subdir');
     const manifest = generateBuildManifest(dir);
 
     assert.deepStrictEqual(manifest.routes, {});
     assert.deepStrictEqual(manifest.chunks, {});
+
+    // Clean up the parent that may have been created
+    cleanupTestDir(join(TEST_TMP_BASE, `nonexist-${uniqueSuffix}`));
   });
 });
 
@@ -457,6 +469,15 @@ describe('SSG Integration', () => {
       cleanupTestDir(dir);
     }
   });
+});
+
+// Clean up the test temp base directory after all tests
+process.on('exit', () => {
+  try {
+    rmSync(TEST_TMP_BASE, { recursive: true, force: true });
+  } catch {
+    // Ignore cleanup errors
+  }
 });
 
 console.log('SSG tests loaded');

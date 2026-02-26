@@ -10,11 +10,10 @@
  * - Push to remote
  */
 
-import { readFileSync, writeFileSync, unlinkSync, mkdtempSync } from 'fs';
+import { readFileSync, writeFileSync, unlinkSync, openSync, closeSync, ftruncateSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
-import { tmpdir } from 'os';
 import { randomBytes } from 'crypto';
 import { createInterface } from 'readline';
 import https from 'https';
@@ -23,6 +22,30 @@ import { runDocsTest } from './docs-test.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..');
+
+/**
+ * Atomically read-modify-write a file using a file descriptor to prevent TOCTOU races.
+ * Opens the file with 'r+' flag, reads content, applies transform, truncates, and writes.
+ * Returns false if the file doesn't exist (ENOENT), true on success.
+ */
+function atomicReadModifyWrite(filePath, transformFn) {
+  let fd;
+  try {
+    fd = openSync(filePath, 'r+');
+  } catch (err) {
+    if (err.code === 'ENOENT') return false;
+    throw err;
+  }
+  try {
+    const content = readFileSync(fd, 'utf-8');
+    const newContent = transformFn(content);
+    ftruncateSync(fd, 0);
+    writeFileSync(fd, newContent, { encoding: 'utf-8' });
+  } finally {
+    closeSync(fd);
+  }
+  return true;
+}
 
 /**
  * Prompt user for input
@@ -213,18 +236,14 @@ function updatePackageJson(newVersion) {
 function updateDocsState(newVersion) {
   const statePath = join(root, 'docs/src/state.js');
 
-  let content;
-  try {
-    content = readFileSync(statePath, 'utf-8');
-  } catch (err) {
-    if (err.code === 'ENOENT') { log.warn('  docs/src/state.js not found, skipping'); return; }
-    throw err;
-  }
-  content = content.replace(
-    /export const version = '[^']+'/,
-    `export const version = '${newVersion}'`
-  );
-  writeFileSync(statePath, content);
+  const updated = atomicReadModifyWrite(statePath, (content) => {
+    return content.replace(
+      /export const version = '[^']+'/,
+      `export const version = '${newVersion}'`
+    );
+  });
+
+  if (!updated) { log.warn('  docs/src/state.js not found, skipping'); return; }
   log.info(`  Updated docs/src/state.js to v${newVersion}`);
 }
 
@@ -233,14 +252,6 @@ function updateDocsState(newVersion) {
  */
 function updateChangelog(newVersion, title, changes) {
   const changelogPath = join(root, 'CHANGELOG.md');
-
-  let content;
-  try {
-    content = readFileSync(changelogPath, 'utf-8');
-  } catch (err) {
-    if (err.code === 'ENOENT') { log.warn('  CHANGELOG.md not found, skipping'); return; }
-    throw err;
-  }
 
   // Build changelog entry
   const date = getCurrentDate();
@@ -282,18 +293,22 @@ function updateChangelog(newVersion, title, changes) {
     entry += '\n';
   }
 
-  // Insert after the header section (after line 6)
-  const lines = content.split('\n');
-  const insertIndex = lines.findIndex(line => line.startsWith('## ['));
+  // Atomically read-modify-write to prevent TOCTOU race (CWE-367)
+  const updated = atomicReadModifyWrite(changelogPath, (content) => {
+    const lines = content.split('\n');
+    const insertIndex = lines.findIndex(line => line.startsWith('## ['));
 
-  if (insertIndex !== -1) {
-    lines.splice(insertIndex, 0, entry);
-  } else {
-    // No existing version entries, add after header
-    lines.push(entry);
-  }
+    if (insertIndex !== -1) {
+      lines.splice(insertIndex, 0, entry);
+    } else {
+      // No existing version entries, add after header
+      lines.push(entry);
+    }
 
-  writeFileSync(changelogPath, lines.join('\n'));
+    return lines.join('\n');
+  });
+
+  if (!updated) { log.warn('  CHANGELOG.md not found, skipping'); return; }
   log.info(`  Updated CHANGELOG.md with v${newVersion}`);
 }
 
@@ -303,13 +318,6 @@ function updateChangelog(newVersion, title, changes) {
 function updateDocsChangelog(newVersion, title, changes) {
   const changelogPagePath = join(root, 'docs/src/pages/ChangelogPage.js');
 
-  let content;
-  try {
-    content = readFileSync(changelogPagePath, 'utf-8');
-  } catch (err) {
-    if (err.code === 'ENOENT') { log.warn('  docs/src/pages/ChangelogPage.js not found, skipping'); return; }
-    throw err;
-  }
   const monthYear = getCurrentMonthYear();
 
   // Build HTML changelog section
@@ -344,15 +352,18 @@ function updateDocsChangelog(newVersion, title, changes) {
     </section>
 `;
 
-  // Find where to insert (after the intro paragraph, before first section)
-  const insertMarker = '<section class="doc-section changelog-section">';
-  const insertIndex = content.indexOf(insertMarker);
+  // Atomically read-modify-write to prevent TOCTOU race (CWE-367)
+  const updated = atomicReadModifyWrite(changelogPagePath, (content) => {
+    const insertMarker = '<section class="doc-section changelog-section">';
+    const insertIndex = content.indexOf(insertMarker);
 
-  if (insertIndex !== -1) {
-    content = content.slice(0, insertIndex) + section + content.slice(insertIndex);
-  }
+    if (insertIndex !== -1) {
+      return content.slice(0, insertIndex) + section + content.slice(insertIndex);
+    }
+    return content;
+  });
 
-  writeFileSync(changelogPagePath, content);
+  if (!updated) { log.warn('  docs/src/pages/ChangelogPage.js not found, skipping'); return; }
   log.info(`  Updated docs/src/pages/ChangelogPage.js with v${newVersion}`);
 }
 
@@ -600,8 +611,8 @@ function createGitHubRelease(version, title, changes) {
     notes += '\n';
   }
 
-  // Write notes to temp file
-  const tempFile = join(mkdtempSync(join(tmpdir(), 'pulse-release-')), `notes-${randomBytes(8).toString('hex')}.md`);
+  // Write notes to a temp file in the project root (avoids os.tmpdir() for CWE-377)
+  const tempFile = join(root, `.release-notes-${randomBytes(16).toString('hex')}.tmp.md`);
   writeFileSync(tempFile, notes, 'utf-8');
 
   try {
@@ -663,8 +674,8 @@ function gitCommitTagPush(newVersion, title, changes, dryRun = false) {
     return { success: false, stage: 'add', error: result.error };
   }
 
-  // git commit using temp file for cross-platform compatibility
-  const tempFile = join(mkdtempSync(join(tmpdir(), 'pulse-release-')), `commit-${randomBytes(8).toString('hex')}.txt`);
+  // git commit using temp file for cross-platform compatibility (avoids os.tmpdir() for CWE-377)
+  const tempFile = join(root, `.commit-msg-${randomBytes(16).toString('hex')}.tmp`);
   writeFileSync(tempFile, commitMessage, 'utf-8');
   try {
     result = execGitCommand(`git commit -F "${tempFile}"`, 'git commit');
@@ -776,8 +787,8 @@ function gitCommitTagNoPush(newVersion, title, changes) {
     return { success: false, stage: 'add', error: result.error };
   }
 
-  // git commit using temp file for cross-platform compatibility
-  const tempFile = join(mkdtempSync(join(tmpdir(), 'pulse-release-')), `commit-${randomBytes(8).toString('hex')}.txt`);
+  // git commit using temp file for cross-platform compatibility (avoids os.tmpdir() for CWE-377)
+  const tempFile = join(root, `.commit-msg-${randomBytes(16).toString('hex')}.tmp`);
   writeFileSync(tempFile, commitMessage, 'utf-8');
   try {
     result = execGitCommand(`git commit -F "${tempFile}"`, 'git commit');

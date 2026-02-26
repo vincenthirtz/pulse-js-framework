@@ -7,7 +7,7 @@
  * @module pulse-js-framework/server/utils
  */
 
-import { readFileSync, existsSync } from 'fs';
+import { readFileSync } from 'fs';
 import { extname, resolve, sep } from 'path';
 
 // ============================================================================
@@ -104,11 +104,15 @@ export function readTemplate(templatePath) {
     return templateCache.get(templatePath);
   }
 
-  if (!existsSync(templatePath)) {
-    throw new Error(`[Pulse Server] Template not found: ${templatePath}`);
+  let content;
+  try {
+    content = readFileSync(templatePath, 'utf-8');
+  } catch (e) {
+    if (e.code === 'ENOENT') {
+      throw new Error(`[Pulse Server] Template not found: ${templatePath}`);
+    }
+    throw e;
   }
-
-  const content = readFileSync(templatePath, 'utf-8');
   templateCache.set(templatePath, content);
   return content;
 }

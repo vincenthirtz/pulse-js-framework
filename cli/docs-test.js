@@ -8,7 +8,7 @@
  * - .pulse file compilation check
  */
 
-import { readFileSync, existsSync, readdirSync, statSync } from 'fs';
+import { readFileSync, readdirSync, accessSync } from 'fs';
 import { join, dirname, relative } from 'path';
 import { fileURLToPath } from 'url';
 import { createServer } from 'http';
@@ -27,18 +27,23 @@ const SKIP_DIRS = ['node_modules', '.git', 'dist', 'build', '.next', '.nuxt', 'c
  * Collect all JS files recursively
  */
 function collectJsFiles(dir, files = []) {
-  if (!existsSync(dir)) return files;
+  let entries;
+  try {
+    entries = readdirSync(dir, { withFileTypes: true });
+  } catch (e) {
+    if (e.code === 'ENOENT') return files;
+    throw e;
+  }
 
-  for (const entry of readdirSync(dir)) {
+  for (const entry of entries) {
     // Skip common non-source directories
-    if (SKIP_DIRS.includes(entry)) continue;
+    if (SKIP_DIRS.includes(entry.name)) continue;
 
-    const fullPath = join(dir, entry);
-    const stat = statSync(fullPath);
+    const fullPath = join(dir, entry.name);
 
-    if (stat.isDirectory()) {
+    if (entry.isDirectory()) {
       collectJsFiles(fullPath, files);
-    } else if (entry.endsWith('.js')) {
+    } else if (entry.name.endsWith('.js')) {
       files.push(fullPath);
     }
   }
@@ -50,18 +55,23 @@ function collectJsFiles(dir, files = []) {
  * Collect all .pulse files recursively
  */
 function collectPulseFiles(dir, files = []) {
-  if (!existsSync(dir)) return files;
+  let entries;
+  try {
+    entries = readdirSync(dir, { withFileTypes: true });
+  } catch (e) {
+    if (e.code === 'ENOENT') return files;
+    throw e;
+  }
 
-  for (const entry of readdirSync(dir)) {
+  for (const entry of entries) {
     // Skip common non-source directories
-    if (SKIP_DIRS.includes(entry)) continue;
+    if (SKIP_DIRS.includes(entry.name)) continue;
 
-    const fullPath = join(dir, entry);
-    const stat = statSync(fullPath);
+    const fullPath = join(dir, entry.name);
 
-    if (stat.isDirectory()) {
+    if (entry.isDirectory()) {
       collectPulseFiles(fullPath, files);
-    } else if (entry.endsWith('.pulse')) {
+    } else if (entry.name.endsWith('.pulse')) {
       files.push(fullPath);
     }
   }
@@ -194,10 +204,16 @@ function resolveImport(importPath, fromFile) {
 
   // Add .js extension if missing
   if (!resolved.endsWith('.js') && !resolved.endsWith('.pulse')) {
-    if (existsSync(resolved + '.js')) {
+    try {
+      accessSync(resolved + '.js');
       resolved += '.js';
-    } else if (existsSync(resolved + '/index.js')) {
-      resolved = join(resolved, 'index.js');
+    } catch (e) {
+      try {
+        accessSync(resolved + '/index.js');
+        resolved = join(resolved, 'index.js');
+      } catch (_e) {
+        // Neither exists, return as-is
+      }
     }
   }
 
@@ -224,7 +240,9 @@ function validateImports(filePath) {
     // Skip pulse-js-framework imports
     if (importPath.includes('pulse-js-framework')) continue;
 
-    if (!existsSync(resolved)) {
+    try {
+      accessSync(resolved);
+    } catch (_e) {
       errors.push({
         file: filePath,
         importPath,

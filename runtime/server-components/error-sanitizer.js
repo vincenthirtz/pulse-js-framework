@@ -38,9 +38,9 @@ const SENSITIVE_MESSAGE_PATTERNS = [
   // Environment variable values (KEY=value patterns)
   /\b[A-Z_]+=[^\s]+/g,
 
-  // File paths (Unix and Windows)
-  /\/[a-zA-Z0-9_\-./]+\.(js|ts|json|env|config)/gi,
-  /[A-Z]:\\[^"\s]+\.(js|ts|json|env|config)/gi,
+  // File paths (Unix and Windows) - use non-overlapping char classes to prevent ReDoS
+  /\/[a-zA-Z0-9_\-]+(?:\/[a-zA-Z0-9_\-]+)*\.[a-z]{1,6}/gi,
+  /[A-Z]:\\[a-zA-Z0-9_\-]+(?:\\[a-zA-Z0-9_\-]+)*\.[a-z]{1,6}/gi,
 
   // Email addresses
   /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g,
@@ -152,11 +152,11 @@ export function sanitizeStackTrace(stack) {
     // First, strip absolute paths to relative paths
     let sanitizedLine = line;
 
-    // Replace absolute paths with relative (Unix)
-    sanitizedLine = sanitizedLine.replace(/\/[a-zA-Z0-9_\-./]+\/([a-zA-Z0-9_\-./]+\.(js|ts))/g, '$1');
+    // Replace absolute paths with relative (Unix) - non-overlapping segments to avoid ReDoS
+    sanitizedLine = sanitizedLine.replace(/\/[a-zA-Z0-9_\-]+(?:\/[a-zA-Z0-9_\-]+)*\/([a-zA-Z0-9_\-.]+\.(js|ts))/g, '$1');
 
-    // Replace absolute paths with relative (Windows)
-    sanitizedLine = sanitizedLine.replace(/[A-Z]:\\[^"]+\\([a-zA-Z0-9_\-./\\]+\.(js|ts))/g, '$1');
+    // Replace absolute paths with relative (Windows) - non-overlapping segments to avoid ReDoS
+    sanitizedLine = sanitizedLine.replace(/[A-Z]:\\[a-zA-Z0-9_\-]+(?:\\[a-zA-Z0-9_\-]+)*\\([a-zA-Z0-9_\-.]+\.(js|ts))/g, '$1');
 
     // NOW filter out internal/sensitive paths (after path conversion)
     let shouldFilter = false;
