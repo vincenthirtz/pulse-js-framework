@@ -259,17 +259,14 @@ export function sanitizePropsForXSS(props, componentId) {
         modified = true;
       }
 
-      // Check for dangerous data: protocols (html, javascript, svg, etc.)
-      if (XSS_PATTERNS.dataProtocol.test(sanitized)) {
-        log.warn(`PSC: dangerous data: protocol detected in prop '${path}' for '${componentId}'`);
-        sanitized = sanitized.replace(/data:\s*(?:text\/(?:html|javascript|xml)|image\/svg\+xml|application\/(?:javascript|x-javascript|ecmascript|xhtml\+xml|xml))/gi, 'data:text/plain');
-        modified = true;
-      } else if (XSS_PATTERNS.dataAny.test(sanitized)) {
-        // Block any data: URI that isn't an explicitly safe type (images, plain text)
-        const safeDataTypes = /^data:\s*(?:text\/plain|image\/(?:png|jpe?g|gif|webp|bmp|ico))/i;
-        if (!safeDataTypes.test(sanitized)) {
-          log.warn(`PSC: unrecognized data: protocol in prop '${path}' for '${componentId}'`);
-          sanitized = sanitized.replace(/^data:[^,]*/i, 'data:text/plain');
+      // Check for ALL data: URIs - strict allowlist approach
+      // Only allow safe image types and plain text; block everything else including
+      // data:text/html, data:text/javascript, data:image/svg+xml, data:application/*, etc.
+      if (/data\s*:/i.test(sanitized)) {
+        const SAFE_DATA_TYPES = /data:\s*(?:text\/plain|image\/(?:png|jpe?g|gif|webp|bmp|ico))(?:[;,]|$)/i;
+        if (!SAFE_DATA_TYPES.test(sanitized)) {
+          log.warn(`PSC: blocked data: URI in prop '${path}' for '${componentId}'`);
+          sanitized = sanitized.replace(/data\s*:[^\s)"']{0,500}/gi, 'data:text/plain');
           modified = true;
         }
       }
