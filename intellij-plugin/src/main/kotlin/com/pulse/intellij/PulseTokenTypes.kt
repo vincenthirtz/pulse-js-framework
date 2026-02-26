@@ -21,6 +21,11 @@ object PulseTokenTypes {
     val IDENTIFIER = IElementType("IDENTIFIER", PulseLanguage)
     val COMPONENT = IElementType("COMPONENT", PulseLanguage)
     val DIRECTIVE = IElementType("DIRECTIVE", PulseLanguage)
+    val EVENT_DIRECTIVE = IElementType("EVENT_DIRECTIVE", PulseLanguage)
+    val A11Y_DIRECTIVE = IElementType("A11Y_DIRECTIVE", PulseLanguage)
+    val ROUTER_DIRECTIVE = IElementType("ROUTER_DIRECTIVE", PulseLanguage)
+    val LIFECYCLE_DIRECTIVE = IElementType("LIFECYCLE_DIRECTIVE", PulseLanguage)
+    val CONTROL_FLOW = IElementType("CONTROL_FLOW", PulseLanguage)
     val SLOT = IElementType("SLOT", PulseLanguage)
 
     // Selectors

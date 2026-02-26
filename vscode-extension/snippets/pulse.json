@@ -20,7 +20,7 @@
   "Pulse Component": {
     "prefix": "component",
     "body": [
-      "@page ${1:ComponentName}",
+      "@component ${1:ComponentName}",
       "",
       "props {",
       "  ${2:propName}: ${3:defaultValue}",
@@ -189,5 +189,60 @@
       "}"
     ],
     "description": "Create a form with submit handler"
+  },
+  "Each Loop": {
+    "prefix": "@each",
+    "body": [
+      "@each(${1:items} as ${2:item}) {",
+      "  $0",
+      "}"
+    ],
+    "description": "Add each loop rendering"
+  },
+  "Bind Directive": {
+    "prefix": "@bind",
+    "body": [
+      "@bind(${1:attribute}, ${2:expression})"
+    ],
+    "description": "Add reactive attribute binding"
+  },
+  "On Directive": {
+    "prefix": "@on",
+    "body": [
+      "@on(${1:event}, ${2:handler})"
+    ],
+    "description": "Add generic event handler"
+  },
+  "Model Directive": {
+    "prefix": "@model",
+    "body": [
+      "@model(${1:value})"
+    ],
+    "description": "Add two-way data binding"
+  },
+  "A11y Directive": {
+    "prefix": "@a11y",
+    "body": [
+      "@a11y(role=${1:dialog}, label=\"${2:Description}\")"
+    ],
+    "description": "Add accessibility attributes"
+  },
+  "Live Region": {
+    "prefix": "@live",
+    "body": [
+      "@live(${1|polite,assertive|})"
+    ],
+    "description": "Add live region for screen reader announcements"
+  },
+  "Getters Block": {
+    "prefix": "getters",
+    "body": [
+      "getters {",
+      "  ${1:getterName}() {",
+      "    return $0",
+      "  }",
+      "}"
+    ],
+    "description": "Add a getters block"
   }
 }

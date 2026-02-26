@@ -63,21 +63,46 @@ class PulseLexer : LexerBase() {
                 currentTokenEnd = findNumberEnd()
                 currentTokenType = PulseTokenTypes.NUMBER
             }
+            // Template string
+            c == '`' -> {
+                currentTokenEnd = findTemplateStringEnd()
+                currentTokenType = PulseTokenTypes.STRING
+            }
             // Directive (@)
             c == '@' -> {
                 currentTokenEnd = findIdentifierEnd(currentOffset + 1)
-                currentTokenType = PulseTokenTypes.DIRECTIVE
+                val name = if (currentTokenEnd > currentOffset + 1)
+                    buffer.substring(currentOffset + 1, currentTokenEnd) else ""
+                currentTokenType = when (name) {
+                    "click", "dblclick", "input", "change", "submit", "blur", "focus",
+                    "keydown", "keyup", "keypress", "mouseenter", "mouseleave",
+                    "mouseover", "mouseout", "mousedown", "mouseup", "wheel",
+                    "scroll", "resize", "dragenter", "dragover", "dragleave",
+                    "dragstart", "dragend", "drop", "touchstart", "touchend",
+                    "touchmove", "contextmenu", "pointerdown", "pointerup",
+                    "pointermove", "pointerenter", "pointerleave",
+                    "on", "bind", "model" -> PulseTokenTypes.EVENT_DIRECTIVE
+                    "a11y", "live", "focusTrap", "srOnly" -> PulseTokenTypes.A11Y_DIRECTIVE
+                    "link", "navigate", "outlet", "back", "forward" -> PulseTokenTypes.ROUTER_DIRECTIVE
+                    "mount", "unmount" -> PulseTokenTypes.LIFECYCLE_DIRECTIVE
+                    "if", "else", "else-if", "for", "each" -> PulseTokenTypes.CONTROL_FLOW
+                    "slot" -> PulseTokenTypes.SLOT
+                    "page", "component", "route" -> PulseTokenTypes.BLOCK_KEYWORD
+                    else -> PulseTokenTypes.DIRECTIVE
+                }
             }
             // Identifier or keyword
             c.isLetter() || c == '_' -> {
                 currentTokenEnd = findIdentifierEnd(currentOffset)
                 val text = buffer.substring(currentOffset, currentTokenEnd)
                 currentTokenType = when (text) {
-                    "import", "from", "as" -> PulseTokenTypes.KEYWORD
+                    "import", "from", "as", "export" -> PulseTokenTypes.KEYWORD
                     "state", "props", "view", "style", "actions",
                     "router", "store", "routes", "getters" -> PulseTokenTypes.BLOCK_KEYWORD
                     "true", "false", "null", "undefined" -> PulseTokenTypes.CONSTANT
-                    "if", "else", "return", "this" -> PulseTokenTypes.KEYWORD
+                    "if", "else", "return", "this", "const", "let", "var",
+                    "function", "async", "await", "new", "typeof",
+                    "instanceof", "in", "of" -> PulseTokenTypes.KEYWORD
                     "slot" -> PulseTokenTypes.SLOT
                     else -> if (text[0].isUpperCase()) PulseTokenTypes.COMPONENT else PulseTokenTypes.IDENTIFIER
                 }
@@ -117,9 +142,15 @@ class PulseLexer : LexerBase() {
                 currentTokenEnd = currentOffset + 1
                 currentTokenType = PulseTokenTypes.RPAREN
             }
+            // Comma and semicolon
+            c == ',' || c == ';' -> {
+                currentTokenEnd = currentOffset + 1
+                currentTokenType = PulseTokenTypes.OPERATOR
+            }
             // Operators
             c == ':' || c == '=' || c == '+' || c == '-' || c == '*' ||
-            c == '/' || c == '<' || c == '>' || c == '!' || c == '&' || c == '|' -> {
+            c == '/' || c == '<' || c == '>' || c == '!' || c == '&' || c == '|' ||
+            c == '?' || c == '%' || c == '^' || c == '~' -> {
                 currentTokenEnd = findOperatorEnd()
                 currentTokenType = PulseTokenTypes.OPERATOR
             }
@@ -181,6 +212,22 @@ class PulseLexer : LexerBase() {
         return pos
     }
 
+    private fun findTemplateStringEnd(): Int {
+        var pos = currentOffset + 1
+        while (pos < endOffset) {
+            val ch = buffer[pos]
+            if (ch == '\\' && pos + 1 < endOffset) {
+                pos += 2
+                continue
+            }
+            if (ch == '`') {
+                return pos + 1
+            }
+            pos++
+        }
+        return endOffset
+    }
+
     private fun findOperatorEnd(): Int {
         var pos = currentOffset + 1
         val c = buffer[currentOffset]
@@ -190,12 +237,21 @@ class PulseLexer : LexerBase() {
             if ((c == '=' && next == '=') || (c == '!' && next == '=') ||
                 (c == '<' && next == '=') || (c == '>' && next == '=') ||
                 (c == '&' && next == '&') || (c == '|' && next == '|') ||
-                (c == '+' && next == '+') || (c == '-' && next == '-')) {
+                (c == '+' && next == '+') || (c == '-' && next == '-') ||
+                (c == '?' && next == '?') || (c == '?' && next == '.') ||
+                (c == '=' && next == '>') || (c == '*' && next == '*')) {
                 pos++
-                // Three-character operators (===, !==)
-                if (pos < endOffset && (c == '=' || c == '!') && buffer[pos] == '=') {
-                    pos++
+                // Three-character operators (===, !==, ??=, ||=, &&=)
+                if (pos < endOffset) {
+                    if ((c == '=' || c == '!') && buffer[pos] == '=') pos++
+                    else if (c == '?' && next == '?' && buffer[pos] == '=') pos++
+                    else if (c == '|' && next == '|' && buffer[pos] == '=') pos++
+                    else if (c == '&' && next == '&' && buffer[pos] == '=') pos++
                 }
+            }
+            // Compound assignment (+=, -=, *=, /=, %=, ^=)
+            else if (next == '=' && (c == '+' || c == '-' || c == '*' || c == '/' || c == '%' || c == '^')) {
+                pos++
             }
         }
         return pos

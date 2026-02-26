@@ -33,6 +33,11 @@ class PulseSyntaxHighlighter : SyntaxHighlighterBase() {
 
         // Directives
         val DIRECTIVE = createTextAttributesKey("PULSE_DIRECTIVE", DefaultLanguageHighlighterColors.METADATA)
+        val EVENT_DIRECTIVE = createTextAttributesKey("PULSE_EVENT_DIRECTIVE", DefaultLanguageHighlighterColors.METADATA)
+        val A11Y_DIRECTIVE = createTextAttributesKey("PULSE_A11Y_DIRECTIVE", DefaultLanguageHighlighterColors.METADATA)
+        val ROUTER_DIRECTIVE = createTextAttributesKey("PULSE_ROUTER_DIRECTIVE", DefaultLanguageHighlighterColors.METADATA)
+        val LIFECYCLE_DIRECTIVE = createTextAttributesKey("PULSE_LIFECYCLE_DIRECTIVE", DefaultLanguageHighlighterColors.METADATA)
+        val CONTROL_FLOW = createTextAttributesKey("PULSE_CONTROL_FLOW", DefaultLanguageHighlighterColors.KEYWORD)
         val SLOT = createTextAttributesKey("PULSE_SLOT", DefaultLanguageHighlighterColors.METADATA)
 
         // Selectors
@@ -67,6 +72,11 @@ class PulseSyntaxHighlighter : SyntaxHighlighterBase() {
             PulseTokenTypes.IDENTIFIER -> arrayOf(IDENTIFIER)
             PulseTokenTypes.COMPONENT -> arrayOf(COMPONENT)
             PulseTokenTypes.DIRECTIVE -> arrayOf(DIRECTIVE)
+            PulseTokenTypes.EVENT_DIRECTIVE -> arrayOf(EVENT_DIRECTIVE)
+            PulseTokenTypes.A11Y_DIRECTIVE -> arrayOf(A11Y_DIRECTIVE)
+            PulseTokenTypes.ROUTER_DIRECTIVE -> arrayOf(ROUTER_DIRECTIVE)
+            PulseTokenTypes.LIFECYCLE_DIRECTIVE -> arrayOf(LIFECYCLE_DIRECTIVE)
+            PulseTokenTypes.CONTROL_FLOW -> arrayOf(CONTROL_FLOW)
             PulseTokenTypes.SLOT -> arrayOf(SLOT)
             PulseTokenTypes.CLASS_SELECTOR -> arrayOf(CLASS_SELECTOR)
             PulseTokenTypes.ID_SELECTOR -> arrayOf(ID_SELECTOR)
