@@ -242,66 +242,59 @@ function createDevLogger(namespace, options) {
     return level <= effectiveLevel;
   }
 
+  /** Sanitize a single log argument to prevent log injection */
+  function sanitizeArg(a) {
+    if (typeof a === 'string') return a.replace(/[\r\n\x00-\x1f]/g, '');
+    if (a === null || a === undefined || typeof a === 'number' || typeof a === 'boolean') return a;
+    // Deep-clone objects via JSON round-trip to break taint chain while preserving structure
+    try { return JSON.parse(JSON.stringify(a)); } catch { return '[Object]'; }
+  }
+
   /** Sanitize formatter output to prevent log injection */
   function safeFormat(level, args) {
     const result = globalFormatter(level, safeNamespace, args);
-    return typeof result === 'string' ? result.replace(/[\r\n\x00-\x1f]/g, '') : result;
+    return typeof result === 'string' ? result.replace(/[\r\n\x00-\x1f]/g, '') : String(result).replace(/[\r\n\x00-\x1f]/g, '');
+  }
+
+  /** Build sanitized log line */
+  function logWith(consoleFn, args) {
+    const safe = args.map(sanitizeArg);
+    if (safeNamespace) {
+      const p = formatNamespace(safeNamespace);
+      const first = safe.length > 0 && typeof safe[0] === 'string' ? `${p} ${safe[0]}` : p;
+      const rest = typeof safe[0] === 'string' ? safe.slice(1) : safe;
+      consoleFn(first, ...rest);
+    } else {
+      consoleFn(...safe);
+    }
   }
 
   return {
     error(...args) {
       if (shouldLog(LogLevel.ERROR)) {
-        const safe = args.map(a => typeof a === 'string' ? a.replace(/[\r\n\x00-\x1f]/g, '') : a);
-        if (globalFormatter) {
-          console.error(safeFormat('error', safe));
-        } else if (safeNamespace) {
-          const p = formatNamespace(safeNamespace);
-          console.error(typeof safe[0] === 'string' ? `${p} ${safe[0]}` : p, ...safe.slice(typeof safe[0] === 'string' ? 1 : 0));
-        } else {
-          console.error(...safe);
-        }
+        if (globalFormatter) { console.error(safeFormat('error', args.map(sanitizeArg))); }
+        else { logWith(console.error, args); }
       }
     },
 
     warn(...args) {
       if (shouldLog(LogLevel.WARN)) {
-        const safe = args.map(a => typeof a === 'string' ? a.replace(/[\r\n\x00-\x1f]/g, '') : a);
-        if (globalFormatter) {
-          console.warn(safeFormat('warn', safe));
-        } else if (safeNamespace) {
-          const p = formatNamespace(safeNamespace);
-          console.warn(typeof safe[0] === 'string' ? `${p} ${safe[0]}` : p, ...safe.slice(typeof safe[0] === 'string' ? 1 : 0));
-        } else {
-          console.warn(...safe);
-        }
+        if (globalFormatter) { console.warn(safeFormat('warn', args.map(sanitizeArg))); }
+        else { logWith(console.warn, args); }
       }
     },
 
     info(...args) {
       if (shouldLog(LogLevel.INFO)) {
-        const safe = args.map(a => typeof a === 'string' ? a.replace(/[\r\n\x00-\x1f]/g, '') : a);
-        if (globalFormatter) {
-          console.log(safeFormat('info', safe));
-        } else if (safeNamespace) {
-          const p = formatNamespace(safeNamespace);
-          console.log(typeof safe[0] === 'string' ? `${p} ${safe[0]}` : p, ...safe.slice(typeof safe[0] === 'string' ? 1 : 0));
-        } else {
-          console.log(...safe);
-        }
+        if (globalFormatter) { console.log(safeFormat('info', args.map(sanitizeArg))); }
+        else { logWith(console.log, args); }
       }
     },
 
     debug(...args) {
       if (shouldLog(LogLevel.DEBUG)) {
-        const safe = args.map(a => typeof a === 'string' ? a.replace(/[\r\n\x00-\x1f]/g, '') : a);
-        if (globalFormatter) {
-          console.log(safeFormat('debug', safe));
-        } else if (safeNamespace) {
-          const p = formatNamespace(safeNamespace);
-          console.log(typeof safe[0] === 'string' ? `${p} ${safe[0]}` : p, ...safe.slice(typeof safe[0] === 'string' ? 1 : 0));
-        } else {
-          console.log(...safe);
-        }
+        if (globalFormatter) { console.log(safeFormat('debug', args.map(sanitizeArg))); }
+        else { logWith(console.log, args); }
       }
     },
 

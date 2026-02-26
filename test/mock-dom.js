@@ -878,9 +878,10 @@ function matchesSelector(element, selector) {
 
   // Handle multiple selectors (comma-separated) - careful with commas inside :not()
   if (selector.includes(',')) {
-    // Check if comma is inside :not() by finding :not(...) and checking for commas within
-    const notContent = selector.match(/:not\(([^)]*)\)/);
-    const hasCommaInNot = notContent && notContent[1].includes(',');
+    // Check if comma is inside :not() using indexOf (avoids ReDoS with regex)
+    const notIdx = selector.indexOf(':not(');
+    const closeIdx = notIdx !== -1 ? selector.indexOf(')', notIdx + 5) : -1;
+    const hasCommaInNot = closeIdx !== -1 && selector.slice(notIdx + 5, closeIdx).includes(',');
     if (!hasCommaInNot) {
       return selector.split(',').some(s => matchesSelector(element, s.trim()));
     }

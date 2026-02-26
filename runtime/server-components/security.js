@@ -71,8 +71,10 @@ const XSS_PATTERNS = {
   eventHandler: /<[^>]{1,1000}?\bon\w+\s*=/i,
   javascriptProtocol: /javascript:/i,
   vbscriptProtocol: /vbscript:/i,
-  // Match all dangerous data: MIME types (html, javascript, etc.)
-  dataProtocol: /data:\s*(?:text\/(?:html|javascript)|application\/(?:javascript|x-javascript|ecmascript))/i
+  // Match dangerous data: URIs - block data: with executable MIME types and SVG
+  dataProtocol: /data:\s*(?:text\/(?:html|javascript|xml)|image\/svg\+xml|application\/(?:javascript|x-javascript|ecmascript|xhtml\+xml|xml))/i,
+  // Catch-all for data: URIs not in allowlist (used in URL validation)
+  dataAny: /^\s*data\s*:/i
 };
 
 // ============================================================================
@@ -257,11 +259,19 @@ export function sanitizePropsForXSS(props, componentId) {
         modified = true;
       }
 
-      // Check for dangerous data: protocols (html, javascript, etc.)
+      // Check for dangerous data: protocols (html, javascript, svg, etc.)
       if (XSS_PATTERNS.dataProtocol.test(sanitized)) {
         log.warn(`PSC: dangerous data: protocol detected in prop '${path}' for '${componentId}'`);
-        sanitized = sanitized.replace(/data:\s*(?:text\/(?:html|javascript)|application\/(?:javascript|x-javascript|ecmascript))/gi, 'data:text/plain');
+        sanitized = sanitized.replace(/data:\s*(?:text\/(?:html|javascript|xml)|image\/svg\+xml|application\/(?:javascript|x-javascript|ecmascript|xhtml\+xml|xml))/gi, 'data:text/plain');
         modified = true;
+      } else if (XSS_PATTERNS.dataAny.test(sanitized)) {
+        // Block any data: URI that isn't an explicitly safe type (images, plain text)
+        const safeDataTypes = /^data:\s*(?:text\/plain|image\/(?:png|jpe?g|gif|webp|bmp|ico))/i;
+        if (!safeDataTypes.test(sanitized)) {
+          log.warn(`PSC: unrecognized data: protocol in prop '${path}' for '${componentId}'`);
+          sanitized = sanitized.replace(/^data:[^,]*/i, 'data:text/plain');
+          modified = true;
+        }
       }
 
       return sanitized;

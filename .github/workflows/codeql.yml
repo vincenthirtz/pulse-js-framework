@@ -31,6 +31,7 @@ jobs:
         with:
           languages: javascript
           queries: security-extended
+          config-file: ./.github/codeql/codeql-config.yml
 
       - name: Run CodeQL analysis
         uses: github/codeql-action/analyze@89a39a4e59826350b863aa6b6252a07ad50cf83e # v4

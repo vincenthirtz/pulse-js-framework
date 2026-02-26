@@ -362,20 +362,19 @@ export function createServerActionMiddleware(options = {}) {
           includeStack: false,
           maxStackLines: 0
         });
-        const { stack, ...safeError } = sanitized;
-        onError(safeError, req, res);
+        onError({ message: String(sanitized.message || 'Internal Server Error'), code: sanitized.code || 'INTERNAL_ERROR' }, req, res);
       } else {
-        // Default error handler - never expose stack traces to clients
+        // Default error handler - build response from scratch to prevent stack trace leakage
         const sanitized = sanitizeError(error, {
           includeStack: false,
           maxStackLines: 0
         });
-        // Include both 'error' (backward compat) and 'message' fields
-        // Never include stack trace in client response to prevent info leakage
-        const { stack, ...safeResponse } = sanitized;
+        // Only expose safe, known fields - never spread the sanitized object
+        const safeMessage = String(sanitized.message || 'Internal Server Error');
         res.status(500).json({
-          ...safeResponse,
-          error: safeResponse.message  // Backward compatibility
+          message: safeMessage,
+          error: safeMessage,
+          code: sanitized.code || 'INTERNAL_ERROR'
         });
       }
     }
@@ -541,8 +540,8 @@ export async function createFastifyActionPlugin(fastify, options = {}) {
         includeStack: false,
         maxStackLines: 0
       });
-      const { stack, ...safeResponse } = sanitized;
-      return reply.code(500).send(safeResponse);
+      const safeMsg = String(sanitized.message || 'Internal Server Error');
+      return reply.code(500).send({ message: safeMsg, error: safeMsg, code: sanitized.code || 'INTERNAL_ERROR' });
     }
   });
 }
@@ -706,8 +705,8 @@ export function createHonoActionMiddleware(options = {}) {
         includeStack: false,
         maxStackLines: 0
       });
-      const { stack, ...safeResponse } = sanitized;
-      return c.json(safeResponse, 500);
+      const safeMsg = String(sanitized.message || 'Internal Server Error');
+      return c.json({ message: safeMsg, error: safeMsg, code: sanitized.code || 'INTERNAL_ERROR' }, 500);
     }
   };
 }

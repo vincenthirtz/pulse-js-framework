@@ -438,26 +438,30 @@ export function transformFunctionBody(transformer, tokens) {
   // Protect string literals from state var replacement
   const stringPlaceholders = [];
   const protectStrings = (str) => {
-    // Match string and template literals, handling escape sequences.
-    // Uses three separate patterns (one per quote type) to avoid ReDoS.
-    // Each pattern: quote + (non-quote-non-backslash chars | escape sequence)* + quote
-    // The [^"\\]* / [^'\\]* / [^`\\]* greedily consumes safe chars without backtracking.
-    return str
-      .replace(/"(?:[^"\\]|\\.)*"/g, (match) => {
+    // Linear scan to find and replace string/template literals with placeholders.
+    // Avoids regex to prevent any ReDoS risk from adversarial input.
+    let result = '';
+    let i = 0;
+    while (i < str.length) {
+      const ch = str[i];
+      if (ch === '"' || ch === "'" || ch === '`') {
+        const quote = ch;
+        let j = i + 1;
+        while (j < str.length) {
+          if (str[j] === '\\') { j += 2; continue; }
+          if (str[j] === quote) { j++; break; }
+          j++;
+        }
         const index = stringPlaceholders.length;
-        stringPlaceholders.push(match);
-        return `__STRING_${index}__`;
-      })
-      .replace(/'(?:[^'\\]|\\.)*'/g, (match) => {
-        const index = stringPlaceholders.length;
-        stringPlaceholders.push(match);
-        return `__STRING_${index}__`;
-      })
-      .replace(/`(?:[^`\\]|\\.)*`/g, (match) => {
-        const index = stringPlaceholders.length;
-        stringPlaceholders.push(match);
-        return `__STRING_${index}__`;
-      });
+        stringPlaceholders.push(str.slice(i, j));
+        result += `__STRING_${index}__`;
+        i = j;
+      } else {
+        result += ch;
+        i++;
+      }
+    }
+    return result;
   };
   const restoreStrings = (str) => {
     return str.replace(/__STRING_(\d+)__/g, (_, index) => stringPlaceholders[parseInt(index)]);
