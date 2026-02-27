@@ -73,6 +73,11 @@ export async function startDevServer(args) {
     }
   }
 
+  if (isNaN(port) || port < 1 || port > 65535) {
+    log.error(`Invalid port: ${args[0] || args[1]}. Must be between 1 and 65535.`);
+    process.exit(1);
+  }
+
   // Check if vite is available, use it if so
   try {
     const viteConfig = join(root, 'vite.config.js');

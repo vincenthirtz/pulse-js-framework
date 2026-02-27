@@ -189,6 +189,11 @@
     "LICENSE"
   ],
   "scripts": {
+    "lint": "node cli/index.js lint",
+    "format": "node cli/index.js format",
+    "analyze": "node cli/index.js analyze",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm test",
     "bench": "node benchmarks/index.js",
     "bench:json": "node benchmarks/index.js --json",
     "build:netlify": "node scripts/build-netlify.js",

@@ -87,12 +87,13 @@ describe('Pulse Security Module', () => {
       assert.ok(DANGEROUS_KEYS.has('__lookupSetter__'));
     });
 
-    it('should contain Object prototype methods', () => {
-      assert.ok(DANGEROUS_KEYS.has('hasOwnProperty'));
-      assert.ok(DANGEROUS_KEYS.has('isPrototypeOf'));
-      assert.ok(DANGEROUS_KEYS.has('propertyIsEnumerable'));
-      assert.ok(DANGEROUS_KEYS.has('toString'));
-      assert.ok(DANGEROUS_KEYS.has('valueOf'));
+    it('should not over-block valid property names', () => {
+      // These are valid own-property names, not prototype pollution vectors
+      assert.ok(!DANGEROUS_KEYS.has('hasOwnProperty'));
+      assert.ok(!DANGEROUS_KEYS.has('isPrototypeOf'));
+      assert.ok(!DANGEROUS_KEYS.has('propertyIsEnumerable'));
+      assert.ok(!DANGEROUS_KEYS.has('toString'));
+      assert.ok(!DANGEROUS_KEYS.has('valueOf'));
     });
 
     it('should contain dangerous globals', () => {

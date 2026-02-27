@@ -162,8 +162,8 @@ describe('isDangerousKey — deep coverage', () => {
     assert.strictEqual(isDangerousKey('__lookupSetter__'), true);
   });
 
-  test('returns true for hasOwnProperty', () => {
-    assert.strictEqual(isDangerousKey('hasOwnProperty'), true);
+  test('returns false for hasOwnProperty (valid own-property name)', () => {
+    assert.strictEqual(isDangerousKey('hasOwnProperty'), false);
   });
 
   test('returns true for eval', () => {
@@ -1481,12 +1481,18 @@ describe('DANGEROUS_KEYS constant', () => {
     const expected = [
       '__proto__', 'constructor', 'prototype',
       '__defineGetter__', '__defineSetter__', '__lookupGetter__', '__lookupSetter__',
-      'hasOwnProperty', 'isPrototypeOf', 'propertyIsEnumerable',
-      'toLocaleString', 'toString', 'valueOf',
       'eval', 'Function'
     ];
     for (const key of expected) {
       assert.ok(DANGEROUS_KEYS.has(key), `DANGEROUS_KEYS should contain "${key}"`);
+    }
+  });
+
+  test('does not over-block valid property names', () => {
+    const validNames = ['hasOwnProperty', 'isPrototypeOf', 'propertyIsEnumerable',
+      'toLocaleString', 'toString', 'valueOf'];
+    for (const key of validNames) {
+      assert.ok(!DANGEROUS_KEYS.has(key), `DANGEROUS_KEYS should not contain "${key}"`);
     }
   });
 

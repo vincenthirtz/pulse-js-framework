@@ -495,8 +495,10 @@ export function useAsync(asyncFn, options = {}) {
  * @property {number} [cacheTime=300000] - Time in ms to keep data in cache (5 min default)
  */
 
-// Global resource cache
-const resourceCache = new Map();
+// Global resource cache with bounded size to prevent unbounded memory growth
+import { LRUCache } from './lru-cache.js';
+const RESOURCE_CACHE_MAX_SIZE = 1000;
+const resourceCache = new LRUCache(RESOURCE_CACHE_MAX_SIZE);
 
 /**
  * Create a reactive resource with caching, auto-refresh, and stale-while-revalidate.
