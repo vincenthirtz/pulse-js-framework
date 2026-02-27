@@ -6,8 +6,9 @@
  * @module test/analyze
  */
 
-import { mkdirSync, writeFileSync, rmSync, existsSync } from 'fs';
+import { mkdirSync, mkdtempSync, writeFileSync, rmSync, existsSync } from 'fs';
 import { join } from 'path';
+import { tmpdir } from 'node:os';
 import { buildImportGraph, analyzeBundle, runAnalyze } from '../cli/analyze.js';
 import {
   findPulseFiles,
@@ -32,7 +33,7 @@ import {
 // Test Fixtures Setup
 // =============================================================================
 
-const TEST_DIR = join(process.cwd(), 'test-fixtures-analyze');
+const TEST_DIR = mkdtempSync(join(tmpdir(), 'pulse-test-analyze-'));
 const SRC_DIR = join(TEST_DIR, 'src');
 
 function setupTestFixtures() {
@@ -1566,7 +1567,7 @@ testAsync('runAnalyze handles -v short flag', async () => {
 
 testAsync('runAnalyze exits with error when src directory missing', async () => {
   // Create temp dir without src
-  const tempDir = join(process.cwd(), 'test-no-src-dir');
+  const tempDir = mkdtempSync(join(tmpdir(), 'pulse-test-no-src-'));
   mkdirSync(tempDir, { recursive: true });
 
   const mocks = setupCommandMocks();
@@ -1837,7 +1838,7 @@ view { div "Deep ${i}" }
 
 testAsync('buildDependencyTree handles empty import graph', async () => {
   // Create project with no imports
-  const emptyDir = join(process.cwd(), 'test-empty-imports');
+  const emptyDir = mkdtempSync(join(tmpdir(), 'pulse-test-empty-imports-'));
   mkdirSync(join(emptyDir, 'src'), { recursive: true });
   writeFileSync(join(emptyDir, 'src', 'Lonely.pulse'), `
 @page Lonely
@@ -1940,7 +1941,7 @@ view { div "broken" }
 
 testAsync('analyzeStateUsage returns empty array when no state', async () => {
   // Create project with no state
-  const noStateDir = join(process.cwd(), 'test-no-state');
+  const noStateDir = mkdtempSync(join(tmpdir(), 'pulse-test-no-state-'));
   mkdirSync(join(noStateDir, 'src'), { recursive: true });
   writeFileSync(join(noStateDir, 'src', 'Stateless.pulse'), `
 @page Stateless

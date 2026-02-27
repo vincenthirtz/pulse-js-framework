@@ -12,7 +12,7 @@
 
 import { describe, it, test, beforeEach, afterEach, before } from 'node:test';
 import assert from 'node:assert';
-import { mkdirSync, writeFileSync, rmSync, existsSync } from 'fs';
+import { mkdirSync, mkdtempSync, writeFileSync, rmSync, existsSync } from 'fs';
 import { join, resolve } from 'path';
 import { tmpdir } from 'os';
 
@@ -830,7 +830,7 @@ describe('SubscriptionManager – dispose (lines 239-242)', () => {
 let tmpRoot;
 
 before(() => {
-  tmpRoot = join(tmpdir(), `pulse-file-utils-test-${Date.now()}`);
+  tmpRoot = mkdtempSync(join(tmpdir(), 'pulse-file-utils-test-'));
   mkdirSync(tmpRoot, { recursive: true });
   mkdirSync(join(tmpRoot, 'src'), { recursive: true });
   mkdirSync(join(tmpRoot, 'src', 'components'), { recursive: true });
