@@ -195,6 +195,41 @@ const MAX_BUFFER = 10 * 1024 * 1024;
 const CONCURRENCY = Math.max(4, cpus().length);
 
 /**
+ * Parse shard configuration from TEST_SHARD env var or --shard CLI arg.
+ * Format: "X/Y" where X is the current shard (1-based) and Y is the total.
+ * Returns null if no sharding is configured.
+ */
+function parseShard() {
+  const raw = process.env.TEST_SHARD || process.argv.find(a => a.startsWith('--shard='))?.split('=')[1];
+  if (!raw) return null;
+
+  const match = raw.match(/^(\d+)\/(\d+)$/);
+  if (!match) {
+    console.error(`  Invalid shard format: "${raw}" (expected "X/Y", e.g. "1/2")`);
+    process.exit(1);
+  }
+
+  const current = parseInt(match[1], 10);
+  const total = parseInt(match[2], 10);
+
+  if (current < 1 || current > total || total < 1) {
+    console.error(`  Invalid shard range: ${current}/${total}`);
+    process.exit(1);
+  }
+
+  return { current, total };
+}
+
+/**
+ * Split an array of scripts into shards and return the requested shard.
+ * Uses round-robin distribution to balance across shards.
+ */
+function applySharding(scripts, shard) {
+  if (!shard) return scripts;
+  return scripts.filter((_, i) => (i % shard.total) === (shard.current - 1));
+}
+
+/**
  * Run a single test script via `npm run <script>`.
  * Returns a promise that resolves with the result.
  */
@@ -303,13 +338,20 @@ function formatDuration(ms) {
  * Main test runner.
  */
 async function runAllTests() {
+  const shard = parseShard();
   const allScripts = Object.values(testGroups).flat();
-  console.log(`\n  Running ${allScripts.length} test suites (concurrency: ${CONCURRENCY})...\n`);
+  const scripts = applySharding(allScripts, shard);
+
+  if (shard) {
+    console.log(`\n  Shard ${shard.current}/${shard.total}: running ${scripts.length}/${allScripts.length} test suites (concurrency: ${CONCURRENCY})...\n`);
+  } else {
+    console.log(`\n  Running ${allScripts.length} test suites (concurrency: ${CONCURRENCY})...\n`);
+  }
 
   const startTime = Date.now();
 
-  // Run all tests in parallel with concurrency limit
-  const allResults = await runWithConcurrency(allScripts, CONCURRENCY);
+  // Run tests in parallel with concurrency limit
+  const allResults = await runWithConcurrency(scripts, CONCURRENCY);
 
   const totalDuration = Date.now() - startTime;
 
@@ -317,8 +359,11 @@ async function runAllTests() {
   const resultMap = new Map(allResults.map((r) => [r.script, r]));
 
   // Print results grouped by domain
-  for (const [group, scripts] of Object.entries(testGroups)) {
-    const groupResults = scripts.map((s) => resultMap.get(s));
+  const scriptSet = new Set(scripts);
+  for (const [group, groupScripts] of Object.entries(testGroups)) {
+    const activeScripts = groupScripts.filter((s) => scriptSet.has(s));
+    if (activeScripts.length === 0) continue;
+    const groupResults = activeScripts.map((s) => resultMap.get(s));
     const allPassed = groupResults.every((r) => r.passed);
     const groupDuration = groupResults.reduce((sum, r) => sum + r.duration, 0);
 
@@ -343,9 +388,12 @@ async function runAllTests() {
   console.log('='.repeat(60));
   console.log('TEST SUMMARY');
   console.log('='.repeat(60));
+  if (shard) {
+    console.log(`  Shard:       ${shard.current}/${shard.total}`);
+  }
   console.log(`  Passed:      ${passed.length}`);
   console.log(`  Failed:      ${failed.length}`);
-  console.log(`  Total:       ${allScripts.length}`);
+  console.log(`  Total:       ${scripts.length}${shard ? `/${allScripts.length}` : ''}`);
   console.log(`  Wall time:   ${formatDuration(totalDuration)}`);
   console.log(`  CPU time:    ${formatDuration(allResults.reduce((s, r) => s + r.duration, 0))}`);
   console.log(`  Concurrency: ${CONCURRENCY}`);
