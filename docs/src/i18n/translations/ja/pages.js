@@ -1175,6 +1175,27 @@ export default {
     factor3: 'CPU周波数スケーリングとサーマルスロットリング',
     factor4: 'ブラウザ拡張機能とDevToolsの状態',
 
+    // 新しいカテゴリ
+    store: 'ストア',
+    form: 'フォーム',
+    routerUtils: 'ルーターユーティリティ',
+    context: 'Context API',
+    a11y: 'アクセシビリティ',
+
+    // CI結果
+    ciResults: 'CIベンチマーク結果',
+    ciLoading: '最新のCI結果を読み込み中...',
+    ciNoData: 'CIベンチマークデータはまだありません。',
+    ciUnavailable: 'CI結果は現在利用できません。developへの次のプッシュ後に表示されます。',
+    ciLastRun: '最終実行',
+    ciBenchmark: 'ベンチマーク',
+    ciMean: '平均',
+    ciMedian: '中央値',
+    ciP95: 'P95',
+    ciOpsPerSec: 'Ops/秒',
+    ciStdDev: '標準偏差',
+    ciNote: 'GitHub Actions CI（ubuntu-latest、Node.js 20）での結果。',
+
     // Navigation
     nextPerformance: '次へ：パフォーマンスガイド →'
   },

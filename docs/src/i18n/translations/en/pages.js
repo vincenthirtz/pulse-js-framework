@@ -1233,6 +1233,27 @@ export default {
     factor3: 'CPU frequency scaling and thermal throttling',
     factor4: 'Browser extensions and DevTools state',
 
+    // New categories
+    store: 'Store',
+    form: 'Form',
+    routerUtils: 'Router Utilities',
+    context: 'Context API',
+    a11y: 'Accessibility',
+
+    // CI Results
+    ciResults: 'CI Benchmark Results',
+    ciLoading: 'Loading latest CI results...',
+    ciNoData: 'No CI benchmark data available yet.',
+    ciUnavailable: 'CI results are not currently available. Results will appear after the next push to develop.',
+    ciLastRun: 'Last run',
+    ciBenchmark: 'Benchmark',
+    ciMean: 'Mean',
+    ciMedian: 'Median',
+    ciP95: 'P95',
+    ciOpsPerSec: 'Ops/sec',
+    ciStdDev: 'Std Dev',
+    ciNote: 'Results from GitHub Actions CI on ubuntu-latest, Node.js 20.',
+
     // Navigation
     nextPerformance: 'Next: Performance Guide →'
   },

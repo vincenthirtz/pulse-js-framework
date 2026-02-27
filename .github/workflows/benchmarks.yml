@@ -185,10 +185,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
@@ -201,6 +205,15 @@ jobs:
 
       - name: Run benchmarks and save baseline
         run: node benchmarks/index.js --save 2>/dev/null
+
+      - name: Save latest results for docs
+        run: |
+          node benchmarks/index.js --json > benchmarks/results/latest.json 2>/dev/null || true
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add benchmarks/results/latest.json
+          git diff --staged --quiet || git commit -m "chore(bench): update latest results [skip ci]"
+          git push origin develop
 
       - name: Cache baseline
         uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4

@@ -4,7 +4,15 @@
  */
 
 import { el, pulse, effect, computed, batch } from '/runtime/index.js';
+import { createStore, createActions, createGetters } from '/runtime/store.js';
+import { useForm, validators } from '/runtime/form.js';
+import { createContext, Provider, useContext, disposeContext } from '/runtime/context.js';
+import { matchRoute, parseQuery, buildQueryString } from '/runtime/router/utils.js';
+import { getContrastRatio, meetsContrastRequirement } from '/runtime/a11y/contrast.js';
 import { t, navigateLocale } from '../state.js';
+
+const CI_RESULTS_URL =
+  'https://raw.githubusercontent.com/vincenthirtz/pulse-js-framework/develop/benchmarks/results/latest.json';
 
 // Benchmark utilities
 function formatNumber(num) {
@@ -338,8 +346,332 @@ const benchmarks = {
         final.get();
       }, 5000);
     }
+  },
+
+  // --- Store ---
+  storeCreation: {
+    name: 'Store Creation (10 props)',
+    description: 'createStore() with 10 reactive properties',
+    iterations: 5000,
+    run: () => {
+      return runBenchmark(() => {
+        const state = {};
+        for (let i = 0; i < 10; i++) state[`prop${i}`] = i;
+        createStore(state);
+      }, 5000);
+    }
+  },
+
+  storeRead: {
+    name: 'Store Read (10,000x)',
+    description: 'Read 3 store properties per iteration',
+    iterations: 10000,
+    run: () => {
+      const store = createStore({ count: 0, name: 'test', active: true });
+      return runBenchmark(() => {
+        store.count.get();
+        store.name.get();
+        store.active.get();
+      }, 10000);
+    }
+  },
+
+  storeActions: {
+    name: 'Store Actions Dispatch',
+    description: 'createActions() dispatch 100 updates per iter',
+    iterations: 1000,
+    run: () => {
+      const store = createStore({ count: 0 });
+      const actions = createActions(store, {
+        increment: (s) => s.count.update(n => n + 1)
+      });
+      return runBenchmark(() => {
+        for (let i = 0; i < 100; i++) actions.increment();
+      }, 1000);
+    }
+  },
+
+  storeGetters: {
+    name: 'Store Computed Getters',
+    description: 'createGetters() access 1,000x',
+    iterations: 1000,
+    run: () => {
+      const store = createStore({ count: 5, multiplier: 3 });
+      const getters = createGetters(store, {
+        doubled: (s) => s.count.get() * 2,
+        product: (s) => s.count.get() * s.multiplier.get()
+      });
+      return runBenchmark(() => {
+        getters.doubled.get();
+        getters.product.get();
+      }, 1000);
+    }
+  },
+
+  // --- Form ---
+  formCreation: {
+    name: 'Form Creation (5 fields)',
+    description: 'useForm() with 5 validated fields',
+    iterations: 2000,
+    run: () => {
+      return runBenchmark(() => {
+        const form = useForm(
+          { name: '', email: '', password: '', age: '', city: '' },
+          {
+            name: [validators.required()],
+            email: [validators.required(), validators.email()],
+            password: [validators.required(), validators.minLength(8)],
+            age: [],
+            city: [validators.required()]
+          }
+        );
+        if (form.dispose) form.dispose();
+      }, 2000);
+    }
+  },
+
+  formValidation: {
+    name: 'Validator Chain (5 rules)',
+    description: 'Run 5 validators per iteration',
+    iterations: 10000,
+    run: () => {
+      const rules = [
+        validators.required(),
+        validators.minLength(3),
+        validators.maxLength(50),
+        validators.pattern(/^[a-zA-Z0-9]+$/),
+        validators.custom((v) => v !== 'admin' || 'Reserved')
+      ];
+      return runBenchmark(() => {
+        for (const rule of rules) rule.validate('testuser');
+      }, 10000);
+    }
+  },
+
+  formFieldUpdate: {
+    name: 'Form Field Update',
+    description: 'field.onChange() with validation (500x)',
+    iterations: 500,
+    run: () => {
+      const form = useForm(
+        { email: '' },
+        { email: [validators.required(), validators.email()] },
+        { validateOnChange: true }
+      );
+      let i = 0;
+      const result = runBenchmark(() => {
+        form.fields.email.onChange(`user${i++}@example.com`);
+      }, 500);
+      if (form.dispose) form.dispose();
+      return result;
+    }
+  },
+
+  // --- Router Utils ---
+  routeMatchStatic: {
+    name: 'Route Match (static)',
+    description: 'matchRoute() static paths 1,000x',
+    iterations: 10000,
+    run: () => {
+      return runBenchmark(() => {
+        matchRoute('/about', '/about');
+        matchRoute('/dashboard/analytics', '/dashboard/analytics');
+      }, 10000);
+    }
+  },
+
+  routeMatchDynamic: {
+    name: 'Route Match (dynamic params)',
+    description: 'matchRoute() with :params 1,000x',
+    iterations: 10000,
+    run: () => {
+      return runBenchmark(() => {
+        matchRoute('/user/:id', '/user/123');
+        matchRoute('/user/:id/posts/:postId', '/user/42/posts/99');
+      }, 10000);
+    }
+  },
+
+  queryParse: {
+    name: 'Query String Parse',
+    description: 'parseQuery() with 10 params',
+    iterations: 10000,
+    run: () => {
+      return runBenchmark(() => {
+        parseQuery('page=1&limit=20&sort=name&order=asc&filter=active&search=hello&lang=en&theme=dark&debug=true&v=2');
+      }, 10000);
+    }
+  },
+
+  queryBuild: {
+    name: 'Query String Build',
+    description: 'buildQueryString() with 6 params',
+    iterations: 10000,
+    run: () => {
+      const params = { page: 1, limit: 20, sort: 'name', order: 'asc', filter: 'active', search: 'hello world' };
+      return runBenchmark(() => {
+        buildQueryString(params);
+      }, 10000);
+    }
+  },
+
+  // --- Context ---
+  contextCreation: {
+    name: 'Context Creation',
+    description: 'createContext() + disposeContext() 1,000x',
+    iterations: 1000,
+    run: () => {
+      return runBenchmark(() => {
+        const ctx = createContext('default');
+        disposeContext(ctx);
+      }, 1000);
+    }
+  },
+
+  contextProviderRead: {
+    name: 'Provider + useContext',
+    description: 'Provide value, read context 500x',
+    iterations: 500,
+    run: () => {
+      return runBenchmark(() => {
+        const ctx = createContext('initial');
+        Provider(ctx, 'provided', () => {
+          const val = useContext(ctx);
+          val.get();
+        });
+        disposeContext(ctx);
+      }, 500);
+    }
+  },
+
+  contextNested: {
+    name: 'Nested Providers (5 deep)',
+    description: 'Nested Provider depth=5, 100x',
+    iterations: 100,
+    run: () => {
+      return runBenchmark(() => {
+        const ctx = createContext(0);
+        let render = () => { const val = useContext(ctx); return val.get(); };
+        for (let d = 5; d >= 1; d--) {
+          const inner = render;
+          render = () => Provider(ctx, d, inner);
+        }
+        render();
+        disposeContext(ctx);
+      }, 100);
+    }
+  },
+
+  // --- A11y ---
+  a11yContrastHex: {
+    name: 'Contrast Ratio (hex)',
+    description: 'getContrastRatio() hex colors',
+    iterations: 10000,
+    run: () => {
+      const pairs = [
+        ['#000000', '#ffffff'], ['#333333', '#f5f5f5'],
+        ['#646cff', '#ffffff'], ['#ff4444', '#000000']
+      ];
+      let idx = 0;
+      return runBenchmark(() => {
+        const [fg, bg] = pairs[idx++ % pairs.length];
+        getContrastRatio(fg, bg);
+      }, 10000);
+    }
+  },
+
+  a11yContrastCheck: {
+    name: 'WCAG Contrast Check',
+    description: 'meetsContrastRequirement() AA/AAA',
+    iterations: 10000,
+    run: () => {
+      const ratios = [1.5, 3.0, 4.5, 7.0, 10.0, 15.0, 21.0];
+      let idx = 0;
+      return runBenchmark(() => {
+        const ratio = ratios[idx++ % ratios.length];
+        meetsContrastRequirement(ratio, 'AA', 'normal');
+        meetsContrastRequirement(ratio, 'AAA', 'large');
+      }, 10000);
+    }
+  },
+
+  a11yContrastMixed: {
+    name: 'Contrast (mixed formats)',
+    description: 'Mix of hex and rgb() inputs',
+    iterations: 5000,
+    run: () => {
+      let i = 0;
+      return runBenchmark(() => {
+        getContrastRatio('#333', '#fff');
+        getContrastRatio(`rgb(${i++ % 256}, 100, 200)`, '#000');
+      }, 5000);
+    }
   }
 };
+
+async function fetchAndRenderCIResults(container) {
+  try {
+    const res = await fetch(CI_RESULTS_URL, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+
+    if (!data.suites || data.suites.length === 0) {
+      container.innerHTML = `<p class="ci-empty">${t('benchmarks.ciNoData')}</p>`;
+      return;
+    }
+
+    const ts = new Date(data.timestamp).toLocaleString();
+    let html = `
+      <div class="ci-meta">
+        <span>${t('benchmarks.ciLastRun')}: <strong>${ts}</strong></span>
+        <span>Node: <strong>${data.node}</strong></span>
+        <span>Platform: <strong>${data.platform} / ${data.arch}</strong></span>
+      </div>
+    `;
+
+    for (const suite of data.suites) {
+      html += `
+        <details class="ci-suite">
+          <summary class="ci-suite-name">${suite.name}
+            <span class="ci-suite-count">${suite.results.length} benchmarks</span>
+          </summary>
+          <table class="doc-table ci-table">
+            <thead>
+              <tr>
+                <th>${t('benchmarks.ciBenchmark')}</th>
+                <th>${t('benchmarks.ciMean')}</th>
+                <th>${t('benchmarks.ciMedian')}</th>
+                <th>${t('benchmarks.ciP95')}</th>
+                <th>${t('benchmarks.ciOpsPerSec')}</th>
+                <th>${t('benchmarks.ciStdDev')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${suite.results.map(r => `
+                <tr>
+                  <td>${r.name}</td>
+                  <td>${formatTime(r.mean)}</td>
+                  <td>${formatTime(r.median)}</td>
+                  <td>${formatTime(r.p95)}</td>
+                  <td class="highlight">${formatNumber(r.opsPerSec)}</td>
+                  <td>\u00b1${r.stddev ? formatTime(r.stddev) : '-'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </details>
+      `;
+    }
+
+    container.innerHTML = html;
+  } catch {
+    container.innerHTML = `
+      <div class="ci-unavailable">
+        <p>${t('benchmarks.ciUnavailable')}</p>
+      </div>
+    `;
+  }
+}
 
 export function BenchmarksPage() {
   const page = el('.page.docs-page.benchmarks-page');
@@ -450,6 +782,39 @@ export function BenchmarksPage() {
     </section>
 
     <section class="doc-section">
+      <h2>${t('benchmarks.store')}</h2>
+      <div class="benchmark-grid" id="store-benchmarks"></div>
+    </section>
+
+    <section class="doc-section">
+      <h2>${t('benchmarks.form')}</h2>
+      <div class="benchmark-grid" id="form-benchmarks"></div>
+    </section>
+
+    <section class="doc-section">
+      <h2>${t('benchmarks.routerUtils')}</h2>
+      <div class="benchmark-grid" id="router-benchmarks"></div>
+    </section>
+
+    <section class="doc-section">
+      <h2>${t('benchmarks.context')}</h2>
+      <div class="benchmark-grid" id="context-benchmarks"></div>
+    </section>
+
+    <section class="doc-section">
+      <h2>${t('benchmarks.a11y')}</h2>
+      <div class="benchmark-grid" id="a11y-benchmarks"></div>
+    </section>
+
+    <section class="doc-section">
+      <h2>${t('benchmarks.ciResults')}</h2>
+      <p class="ci-description">${t('benchmarks.ciNote')}</p>
+      <div id="ci-results-container">
+        <div class="ci-loading">${t('benchmarks.ciLoading')}</div>
+      </div>
+    </section>
+
+    <section class="doc-section">
       <h2>${t('benchmarks.comparison')}</h2>
       <p>${t('benchmarks.comparisonIntro')}</p>
 
@@ -554,7 +919,12 @@ export function BenchmarksPage() {
     'effects-benchmarks': ['effectCreation', 'effectTrigger'],
     'batching-benchmarks': ['batchUpdates', 'unbatchedUpdates'],
     'dom-benchmarks': ['domCreation', 'domNested', 'listRenderKeyed', 'listUpdate'],
-    'advanced-benchmarks': ['manySignals', 'diamondDependency', 'deepReactivity']
+    'advanced-benchmarks': ['manySignals', 'diamondDependency', 'deepReactivity'],
+    'store-benchmarks': ['storeCreation', 'storeRead', 'storeActions', 'storeGetters'],
+    'form-benchmarks': ['formCreation', 'formValidation', 'formFieldUpdate'],
+    'router-benchmarks': ['routeMatchStatic', 'routeMatchDynamic', 'queryParse', 'queryBuild'],
+    'context-benchmarks': ['contextCreation', 'contextProviderRead', 'contextNested'],
+    'a11y-benchmarks': ['a11yContrastHex', 'a11yContrastCheck', 'a11yContrastMixed']
   };
 
   for (const [containerId, keys] of Object.entries(categories)) {
@@ -582,6 +952,12 @@ export function BenchmarksPage() {
       card.querySelector('.run-btn').addEventListener('click', () => runSingle(key));
       container.appendChild(card);
     }
+  }
+
+  // Fetch and render CI results
+  const ciContainer = page.querySelector('#ci-results-container');
+  if (ciContainer) {
+    fetchAndRenderCIResults(ciContainer);
   }
 
   // Update results reactively
@@ -814,6 +1190,73 @@ export function BenchmarksPage() {
     @keyframes spin {
       from { transform: rotate(0deg); }
       to { transform: rotate(360deg); }
+    }
+
+    .benchmarks-page .ci-description {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+    }
+
+    .benchmarks-page .ci-meta {
+      display: flex;
+      gap: 2rem;
+      flex-wrap: wrap;
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem 1.25rem;
+      margin-bottom: 1.5rem;
+      font-size: 0.9rem;
+    }
+
+    .benchmarks-page .ci-suite {
+      margin-bottom: 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .benchmarks-page .ci-suite-name {
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 0.75rem 1rem;
+      background: var(--code-bg);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .benchmarks-page .ci-suite-name:hover {
+      background: var(--border);
+    }
+
+    .benchmarks-page .ci-suite-count {
+      font-weight: 400;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .benchmarks-page .ci-table {
+      margin: 0;
+      font-size: 0.85rem;
+      border-radius: 0;
+    }
+
+    .benchmarks-page .ci-table .highlight {
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    .benchmarks-page .ci-loading,
+    .benchmarks-page .ci-empty,
+    .benchmarks-page .ci-unavailable {
+      padding: 2rem;
+      text-align: center;
+      color: var(--text-muted);
+      background: var(--code-bg);
+      border-radius: 8px;
     }
 
     @media (max-width: 768px) {

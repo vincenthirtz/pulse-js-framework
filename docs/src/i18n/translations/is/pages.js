@@ -1175,6 +1175,27 @@ export default {
     factor3: 'Örgjörvatíðni og hitalækkun',
     factor4: 'Vafraviðbætur og DevTools staða',
 
+    // Nýir flokkar
+    store: 'Store',
+    form: 'Form',
+    routerUtils: 'Router hjálpartæki',
+    context: 'Context API',
+    a11y: 'Aðgengi',
+
+    // CI niðurstöður
+    ciResults: 'CI viðmiðunarniðurstöður',
+    ciLoading: 'Hleð nýjustu CI niðurstöðum...',
+    ciNoData: 'Engin CI viðmiðunargögn tiltæk ennþá.',
+    ciUnavailable: 'CI niðurstöður eru ekki tiltækar eins og er. Þær birtast eftir næstu push á develop.',
+    ciLastRun: 'Síðasta keyrsla',
+    ciBenchmark: 'Viðmið',
+    ciMean: 'Meðaltal',
+    ciMedian: 'Miðgildi',
+    ciP95: 'P95',
+    ciOpsPerSec: 'Ops/s',
+    ciStdDev: 'Staðalfrávik',
+    ciNote: 'Niðurstöður frá GitHub Actions CI á ubuntu-latest, Node.js 20.',
+
     // Navigation
     nextPerformance: 'Næst: Afkastaleiðbeiningar →'
   },

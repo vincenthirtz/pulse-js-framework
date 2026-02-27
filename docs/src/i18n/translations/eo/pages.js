@@ -1175,6 +1175,27 @@ export default {
     factor3: 'CPU-frekvenca skalado kaj termala limigado',
     factor4: 'Retumilaj kromaĵoj kaj DevTools-stato',
 
+    // Novaj kategorioj
+    store: 'Stokejo',
+    form: 'Formularo',
+    routerUtils: 'Enkursigilaj utilaĵoj',
+    context: 'Context API',
+    a11y: 'Alirebleco',
+
+    // CI-rezultoj
+    ciResults: 'CI-etalaj rezultoj',
+    ciLoading: 'Ŝarĝante lastajn CI-rezultojn...',
+    ciNoData: 'Neniuj CI-etalaj datumoj disponeblaj ankoraŭ.',
+    ciUnavailable: 'CI-rezultoj ne estas nuntempe disponeblaj. Ili aperos post la sekva puŝo al develop.',
+    ciLastRun: 'Lasta rulo',
+    ciBenchmark: 'Etalo',
+    ciMean: 'Meznombro',
+    ciMedian: 'Mediano',
+    ciP95: 'P95',
+    ciOpsPerSec: 'Ops/s',
+    ciStdDev: 'Std-devio',
+    ciNote: 'Rezultoj de GitHub Actions CI sur ubuntu-latest, Node.js 20.',
+
     // Navigation
     nextPerformance: 'Sekva: Efikeco-Gvidilo →'
   },

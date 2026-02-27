@@ -1175,6 +1175,27 @@ export default {
     factor3: 'Escalonamento de frequência da CPU e limitação térmica',
     factor4: 'Extensões do navegador e estado do DevTools',
 
+    // Novas categorias
+    store: 'Store',
+    form: 'Formulário',
+    routerUtils: 'Utilitários do router',
+    context: 'API de Context',
+    a11y: 'Acessibilidade',
+
+    // Resultados CI
+    ciResults: 'Resultados CI de benchmarks',
+    ciLoading: 'Carregando últimos resultados CI...',
+    ciNoData: 'Nenhum dado de benchmark CI disponível.',
+    ciUnavailable: 'Os resultados CI não estão disponíveis no momento. Aparecerão após o próximo push para develop.',
+    ciLastRun: 'Última execução',
+    ciBenchmark: 'Benchmark',
+    ciMean: 'Média',
+    ciMedian: 'Mediana',
+    ciP95: 'P95',
+    ciOpsPerSec: 'Ops/s',
+    ciStdDev: 'Desvio padrão',
+    ciNote: 'Resultados do GitHub Actions CI em ubuntu-latest, Node.js 20.',
+
     // Navigation
     nextPerformance: 'Próximo: Guia de Performance →'
   },
