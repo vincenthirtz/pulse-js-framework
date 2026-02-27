@@ -16,6 +16,7 @@ coverage:
 ignore:
   - "docs/**/*"
   - "examples/**/*"
+  - "benchmarks/**/*"     # Benchmark files don't need coverage
   - ".github/**/*"
   - "*.md"
   - "test/**/*"           # Test files themselves don't need coverage
