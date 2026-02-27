@@ -20,6 +20,10 @@ import path from 'path';
 import { pathToFileURL } from 'url';
 import { formatResults } from './utils.js';
 import { resetContext } from '../runtime/pulse.js';
+import { setLogLevel, LogLevel } from '../runtime/logger.js';
+
+// Suppress framework logging during benchmarks to keep stdout clean (especially --json)
+setLogLevel(LogLevel.SILENT);
 
 const args = process.argv.slice(2);
 const isJson = args.includes('--json');
