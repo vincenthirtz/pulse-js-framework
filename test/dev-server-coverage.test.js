@@ -19,7 +19,8 @@ import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert';
 import { createServer } from 'node:http';
 import { get as httpGetNode } from 'node:http';
-import { mkdirSync, writeFileSync, rmSync, existsSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, writeFileSync, rmSync, existsSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { startDevServer } from '../cli/dev.js';
 
@@ -28,7 +29,7 @@ import { startDevServer } from '../cli/dev.js';
 // =============================================================================
 
 const PROJECT_ROOT = process.cwd();
-const BASE_TEST_DIR = join(PROJECT_ROOT, '.test-dev-coverage');
+const BASE_TEST_DIR = mkdtempSync(join(tmpdir(), 'pulse-test-dev-cov-'));
 
 /**
  * Get a free port by briefly listening on port 0

@@ -13,16 +13,17 @@
 import { test, describe, beforeEach, afterEach, mock } from 'node:test';
 import assert from 'node:assert';
 import {
-  mkdirSync, writeFileSync, rmSync, existsSync,
+  mkdirSync, mkdtempSync, writeFileSync, rmSync, existsSync,
   readFileSync, readdirSync, statSync
 } from 'fs';
 import { join, resolve } from 'path';
+import { tmpdir } from 'node:os';
 import { get as httpGet } from 'http';
 import { buildProject, previewBuild } from '../cli/build.js';
 
 // Use a unique test directory based on process.pid to avoid collisions
 const PROJECT_ROOT = process.cwd();
-const TEST_DIR = join(PROJECT_ROOT, `.test-build-cov-${process.pid}`);
+const TEST_DIR = mkdtempSync(join(tmpdir(), 'pulse-test-build-cov-'));
 
 // Minimal valid .pulse source
 const MINIMAL_PULSE = `@page Test

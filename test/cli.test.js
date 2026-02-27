@@ -8,8 +8,9 @@
 
 import { test, describe } from 'node:test';
 import assert from 'node:assert';
-import { existsSync, mkdirSync, writeFileSync, rmSync, readFileSync } from 'fs';
+import { existsSync, mkdirSync, mkdtempSync, writeFileSync, rmSync, readFileSync } from 'fs';
 import { join, resolve } from 'path';
+import { tmpdir } from 'node:os';
 import { findPulseFiles, parseArgs, formatBytes, relativePath, resolveImportPath } from '../cli/utils/file-utils.js';
 import { compile } from '../compiler/index.js';
 import { runHelp, getAvailableCommands, getCommandDefinition } from '../cli/help.js';
@@ -414,7 +415,7 @@ describe('findPulseFiles Tests', () => {
 
 describe('resolveImportPath Tests', () => {
   // Create temporary test files for import resolution
-  const testDir = join(process.cwd(), '.test-cli-temp');
+  const testDir = mkdtempSync(join(tmpdir(), 'pulse-test-cli-'));
 
   function setupTestFiles() {
     if (!existsSync(testDir)) {

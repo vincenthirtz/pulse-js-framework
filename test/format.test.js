@@ -10,8 +10,9 @@ import { test, describe, beforeEach } from 'node:test';
 import assert from 'node:assert';
 import { PulseFormatter, FormatOptions, formatFile, runFormat } from '../cli/format.js';
 import { parse } from '../compiler/index.js';
-import { existsSync, mkdirSync, writeFileSync, rmSync, readFileSync } from 'fs';
+import { existsSync, mkdirSync, mkdtempSync, writeFileSync, rmSync, readFileSync } from 'fs';
 import { join } from 'path';
+import { tmpdir } from 'node:os';
 
 /**
  * Formats Pulse source code
@@ -840,7 +841,7 @@ view { div "test" }`;
 
   describe('formatFile and runFormat Tests', () => {
 
-    const FORMAT_TEST_DIR = join(process.cwd(), '.test-format-project');
+    const FORMAT_TEST_DIR = mkdtempSync(join(tmpdir(), 'pulse-test-format-'));
 
     function setupFormatTestDir(files = {}) {
       if (existsSync(FORMAT_TEST_DIR)) {

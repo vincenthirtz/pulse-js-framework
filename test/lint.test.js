@@ -9,8 +9,9 @@
 import { strict as assert } from 'node:assert';
 import { SemanticAnalyzer, LintRules, formatDiagnostic, runLint, lintFile, applyFixes } from '../cli/lint.js';
 import { parse } from '../compiler/index.js';
-import { existsSync, mkdirSync, writeFileSync, rmSync, readFileSync } from 'fs';
+import { existsSync, mkdirSync, mkdtempSync, writeFileSync, rmSync, readFileSync } from 'fs';
 import { join } from 'path';
+import { tmpdir } from 'node:os';
 import {
   test,
   testAsync,
@@ -1741,7 +1742,7 @@ test('all rules have required properties', () => {
 
 printSection('runLint and lintFiles Tests');
 
-const LINT_TEST_DIR = join(process.cwd(), '.test-lint-project');
+const LINT_TEST_DIR = mkdtempSync(join(tmpdir(), 'pulse-test-lint-'));
 
 function setupLintTestDir(files = {}) {
   if (existsSync(LINT_TEST_DIR)) {

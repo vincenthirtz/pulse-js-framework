@@ -10,8 +10,9 @@
 import { test, describe, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert';
 import { createServer, get as httpGetNode } from 'node:http';
-import { mkdirSync, writeFileSync, rmSync, readFileSync } from 'fs';
+import { mkdirSync, mkdtempSync, writeFileSync, rmSync, readFileSync } from 'fs';
 import { join, extname } from 'path';
+import { tmpdir } from 'node:os';
 import { compile } from '../compiler/index.js';
 
 // We test by importing the module and calling startDevServer with a temp directory
@@ -21,7 +22,7 @@ import { compile } from '../compiler/index.js';
 // Helpers
 // =============================================================================
 
-const TEST_DIR = join(process.cwd(), '.test-dev-server');
+const TEST_DIR = mkdtempSync(join(tmpdir(), 'pulse-test-dev-server-'));
 
 function setupTestProject() {
   rmSync(TEST_DIR, { recursive: true, force: true });
