@@ -6,6 +6,9 @@
  * @module test/utils-coverage
  */
 
+import { test, describe } from 'node:test';
+import assert from 'node:assert';
+
 import {
   escapeHtml,
   unescapeHtml,
@@ -29,60 +32,6 @@ import {
 } from '../runtime/utils.js';
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
-
-// Simple test utilities
-let passed = 0;
-let failed = 0;
-
-function assert(condition, message) {
-  if (!condition) {
-    throw new Error(message || 'Assertion failed');
-  }
-}
-
-function assertEqual(actual, expected, message) {
-  if (actual !== expected) {
-    throw new Error(message || `Expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
-  }
-}
-
-function assertDeepEqual(actual, expected, message) {
-  if (JSON.stringify(actual) !== JSON.stringify(expected)) {
-    throw new Error(message || `Expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
-  }
-}
-
-function test(name, fn) {
-  try {
-    fn();
-    console.log(`✓ ${name}`);
-    passed++;
-  } catch (error) {
-    console.log(`✗ ${name}`);
-    console.log(`  ${error.message}`);
-    failed++;
-  }
-}
-
-async function testAsync(name, fn) {
-  try {
-    await fn();
-    console.log(`✓ ${name}`);
-    passed++;
-  } catch (error) {
-    console.log(`✗ ${name}`);
-    console.log(`  ${error.message}`);
-    failed++;
-  }
-}
-
-console.log('\n--- Utils Coverage Tests ---\n');
-
-// =============================================================================
-// Window Event Helper Coverage Tests
-// =============================================================================
-
-console.log('Window Event Helpers:');
 
 // Save original window
 const originalWindow = globalThis.window;
@@ -109,360 +58,364 @@ function createMockWindow() {
   };
 }
 
-test('isBrowser returns true when window exists', () => {
-  globalThis.window = {};
-  assertEqual(isBrowser(), true, 'Should return true');
-  globalThis.window = originalWindow;
-});
+// =============================================================================
+// Window Event Helper Coverage Tests
+// =============================================================================
 
-test('isBrowser returns false when window is undefined', () => {
-  const saved = globalThis.window;
-  delete globalThis.window;
-  assertEqual(isBrowser(), false, 'Should return false');
-  globalThis.window = saved;
-});
+describe('Window Event Helpers', () => {
+  test('isBrowser returns true when window exists', () => {
+    globalThis.window = {};
+    assert.strictEqual(isBrowser(), true, 'Should return true');
+    globalThis.window = originalWindow;
+  });
 
-test('onWindowEvent adds listener and returns cleanup', () => {
-  const mockWindow = createMockWindow();
-  globalThis.window = mockWindow;
+  test('isBrowser returns false when window is undefined', () => {
+    const saved = globalThis.window;
+    delete globalThis.window;
+    assert.strictEqual(isBrowser(), false, 'Should return false');
+    globalThis.window = saved;
+  });
 
-  let called = false;
-  const handler = () => { called = true; };
-  const cleanup = onWindowEvent('focus', handler, () => {});
+  test('onWindowEvent adds listener and returns cleanup', () => {
+    const mockWindow = createMockWindow();
+    globalThis.window = mockWindow;
 
-  assert(typeof cleanup === 'function', 'Should return cleanup function');
-  assertEqual(mockWindow._listeners.focus.length, 1, 'Should add listener');
+    let called = false;
+    const handler = () => { called = true; };
+    const cleanup = onWindowEvent('focus', handler, () => {});
 
-  // Dispatch event
-  mockWindow._dispatch('focus');
-  assertEqual(called, true, 'Handler should be called');
+    assert.ok(typeof cleanup === 'function', 'Should return cleanup function');
+    assert.strictEqual(mockWindow._listeners.focus.length, 1, 'Should add listener');
 
-  // Cleanup
-  cleanup();
-  assertEqual(mockWindow._listeners.focus.length, 0, 'Should remove listener');
+    // Dispatch event
+    mockWindow._dispatch('focus');
+    assert.strictEqual(called, true, 'Handler should be called');
 
-  globalThis.window = originalWindow;
-});
+    // Cleanup
+    cleanup();
+    assert.strictEqual(mockWindow._listeners.focus.length, 0, 'Should remove listener');
 
-test('onWindowEvent with options parameter', () => {
-  const mockWindow = createMockWindow();
-  globalThis.window = mockWindow;
+    globalThis.window = originalWindow;
+  });
 
-  const options = { capture: true, passive: true };
-  const cleanup = onWindowEvent('scroll', () => {}, () => {}, options);
+  test('onWindowEvent with options parameter', () => {
+    const mockWindow = createMockWindow();
+    globalThis.window = mockWindow;
 
-  assertEqual(mockWindow._listeners.scroll[0].options, options, 'Should pass options');
+    const options = { capture: true, passive: true };
+    const cleanup = onWindowEvent('scroll', () => {}, () => {}, options);
 
-  cleanup();
-  globalThis.window = originalWindow;
-});
+    assert.strictEqual(mockWindow._listeners.scroll[0].options, options, 'Should pass options');
 
-test('onWindowEvent returns null when not in browser', () => {
-  const saved = globalThis.window;
-  delete globalThis.window;
+    cleanup();
+    globalThis.window = originalWindow;
+  });
 
-  const result = onWindowEvent('focus', () => {}, () => {});
-  assertEqual(result, null, 'Should return null');
+  test('onWindowEvent returns null when not in browser', () => {
+    const saved = globalThis.window;
+    delete globalThis.window;
 
-  globalThis.window = saved;
-});
+    const result = onWindowEvent('focus', () => {}, () => {});
+    assert.strictEqual(result, null, 'Should return null');
 
-test('onWindowEvent calls onCleanup with cleanup function', () => {
-  const mockWindow = createMockWindow();
-  globalThis.window = mockWindow;
+    globalThis.window = saved;
+  });
 
-  let registeredCleanup = null;
-  const onCleanup = (fn) => { registeredCleanup = fn; };
+  test('onWindowEvent calls onCleanup with cleanup function', () => {
+    const mockWindow = createMockWindow();
+    globalThis.window = mockWindow;
 
-  onWindowEvent('focus', () => {}, onCleanup);
+    let registeredCleanup = null;
+    const onCleanup = (fn) => { registeredCleanup = fn; };
 
-  assert(typeof registeredCleanup === 'function', 'Should register cleanup');
+    onWindowEvent('focus', () => {}, onCleanup);
 
-  // Execute the registered cleanup
-  registeredCleanup();
-  assertEqual(mockWindow._listeners.focus.length, 0, 'Cleanup should remove listener');
+    assert.ok(typeof registeredCleanup === 'function', 'Should register cleanup');
 
-  globalThis.window = originalWindow;
-});
+    // Execute the registered cleanup
+    registeredCleanup();
+    assert.strictEqual(mockWindow._listeners.focus.length, 0, 'Cleanup should remove listener');
 
-test('onWindowFocus is shorthand for focus event', () => {
-  const mockWindow = createMockWindow();
-  globalThis.window = mockWindow;
+    globalThis.window = originalWindow;
+  });
 
-  let called = false;
-  const cleanup = onWindowFocus(() => { called = true; }, () => {});
+  test('onWindowFocus is shorthand for focus event', () => {
+    const mockWindow = createMockWindow();
+    globalThis.window = mockWindow;
 
-  mockWindow._dispatch('focus');
-  assertEqual(called, true, 'Should respond to focus');
+    let called = false;
+    const cleanup = onWindowFocus(() => { called = true; }, () => {});
 
-  cleanup();
-  globalThis.window = originalWindow;
-});
+    mockWindow._dispatch('focus');
+    assert.strictEqual(called, true, 'Should respond to focus');
 
-test('onWindowOnline is shorthand for online event', () => {
-  const mockWindow = createMockWindow();
-  globalThis.window = mockWindow;
+    cleanup();
+    globalThis.window = originalWindow;
+  });
 
-  let called = false;
-  const cleanup = onWindowOnline(() => { called = true; }, () => {});
+  test('onWindowOnline is shorthand for online event', () => {
+    const mockWindow = createMockWindow();
+    globalThis.window = mockWindow;
 
-  mockWindow._dispatch('online');
-  assertEqual(called, true, 'Should respond to online');
+    let called = false;
+    const cleanup = onWindowOnline(() => { called = true; }, () => {});
 
-  cleanup();
-  globalThis.window = originalWindow;
-});
+    mockWindow._dispatch('online');
+    assert.strictEqual(called, true, 'Should respond to online');
 
-test('onWindowOffline is shorthand for offline event', () => {
-  const mockWindow = createMockWindow();
-  globalThis.window = mockWindow;
+    cleanup();
+    globalThis.window = originalWindow;
+  });
 
-  let called = false;
-  const cleanup = onWindowOffline(() => { called = true; }, () => {});
+  test('onWindowOffline is shorthand for offline event', () => {
+    const mockWindow = createMockWindow();
+    globalThis.window = mockWindow;
 
-  mockWindow._dispatch('offline');
-  assertEqual(called, true, 'Should respond to offline');
+    let called = false;
+    const cleanup = onWindowOffline(() => { called = true; }, () => {});
 
-  cleanup();
-  globalThis.window = originalWindow;
-});
+    mockWindow._dispatch('offline');
+    assert.strictEqual(called, true, 'Should respond to offline');
 
-test('onNetworkChange handles both online and offline', () => {
-  const mockWindow = createMockWindow();
-  globalThis.window = mockWindow;
+    cleanup();
+    globalThis.window = originalWindow;
+  });
 
-  let onlineCalled = false;
-  let offlineCalled = false;
+  test('onNetworkChange handles both online and offline', () => {
+    const mockWindow = createMockWindow();
+    globalThis.window = mockWindow;
 
-  const cleanup = onNetworkChange({
-    onOnline: () => { onlineCalled = true; },
-    onOffline: () => { offlineCalled = true; }
-  }, () => {});
+    let onlineCalled = false;
+    let offlineCalled = false;
 
-  mockWindow._dispatch('online');
-  assertEqual(onlineCalled, true, 'Should handle online');
+    const cleanup = onNetworkChange({
+      onOnline: () => { onlineCalled = true; },
+      onOffline: () => { offlineCalled = true; }
+    }, () => {});
 
-  mockWindow._dispatch('offline');
-  assertEqual(offlineCalled, true, 'Should handle offline');
+    mockWindow._dispatch('online');
+    assert.strictEqual(onlineCalled, true, 'Should handle online');
 
-  cleanup();
-  globalThis.window = originalWindow;
-});
+    mockWindow._dispatch('offline');
+    assert.strictEqual(offlineCalled, true, 'Should handle offline');
 
-test('onNetworkChange with only onOnline handler', () => {
-  const mockWindow = createMockWindow();
-  globalThis.window = mockWindow;
+    cleanup();
+    globalThis.window = originalWindow;
+  });
 
-  let onlineCalled = false;
+  test('onNetworkChange with only onOnline handler', () => {
+    const mockWindow = createMockWindow();
+    globalThis.window = mockWindow;
 
-  const cleanup = onNetworkChange({
-    onOnline: () => { onlineCalled = true; }
-  }, () => {});
+    let onlineCalled = false;
 
-  assert(typeof cleanup === 'function', 'Should return cleanup');
-  assertEqual(mockWindow._listeners.online.length, 1, 'Should add online listener');
-  assertEqual(mockWindow._listeners.offline, undefined, 'Should not add offline listener');
+    const cleanup = onNetworkChange({
+      onOnline: () => { onlineCalled = true; }
+    }, () => {});
 
-  cleanup();
-  globalThis.window = originalWindow;
-});
+    assert.ok(typeof cleanup === 'function', 'Should return cleanup');
+    assert.strictEqual(mockWindow._listeners.online.length, 1, 'Should add online listener');
+    assert.strictEqual(mockWindow._listeners.offline, undefined, 'Should not add offline listener');
 
-test('onNetworkChange with only onOffline handler', () => {
-  const mockWindow = createMockWindow();
-  globalThis.window = mockWindow;
+    cleanup();
+    globalThis.window = originalWindow;
+  });
 
-  let offlineCalled = false;
+  test('onNetworkChange with only onOffline handler', () => {
+    const mockWindow = createMockWindow();
+    globalThis.window = mockWindow;
 
-  const cleanup = onNetworkChange({
-    onOffline: () => { offlineCalled = true; }
-  }, () => {});
+    let offlineCalled = false;
 
-  assert(typeof cleanup === 'function', 'Should return cleanup');
-  assertEqual(mockWindow._listeners.offline.length, 1, 'Should add offline listener');
-  assertEqual(mockWindow._listeners.online, undefined, 'Should not add online listener');
+    const cleanup = onNetworkChange({
+      onOffline: () => { offlineCalled = true; }
+    }, () => {});
 
-  cleanup();
-  globalThis.window = originalWindow;
-});
+    assert.ok(typeof cleanup === 'function', 'Should return cleanup');
+    assert.strictEqual(mockWindow._listeners.offline.length, 1, 'Should add offline listener');
+    assert.strictEqual(mockWindow._listeners.online, undefined, 'Should not add online listener');
 
-test('onNetworkChange returns null when not in browser', () => {
-  const saved = globalThis.window;
-  delete globalThis.window;
+    cleanup();
+    globalThis.window = originalWindow;
+  });
 
-  const result = onNetworkChange({
-    onOnline: () => {},
-    onOffline: () => {}
-  }, () => {});
+  test('onNetworkChange returns null when not in browser', () => {
+    const saved = globalThis.window;
+    delete globalThis.window;
 
-  assertEqual(result, null, 'Should return null');
+    const result = onNetworkChange({
+      onOnline: () => {},
+      onOffline: () => {}
+    }, () => {});
 
-  globalThis.window = saved;
-});
+    assert.strictEqual(result, null, 'Should return null');
 
-test('onNetworkChange cleanup calls all registered cleanups', () => {
-  const mockWindow = createMockWindow();
-  globalThis.window = mockWindow;
+    globalThis.window = saved;
+  });
 
-  const cleanup = onNetworkChange({
-    onOnline: () => {},
-    onOffline: () => {}
-  }, () => {});
+  test('onNetworkChange cleanup calls all registered cleanups', () => {
+    const mockWindow = createMockWindow();
+    globalThis.window = mockWindow;
 
-  assertEqual(mockWindow._listeners.online.length, 1, 'Should have online listener');
-  assertEqual(mockWindow._listeners.offline.length, 1, 'Should have offline listener');
+    const cleanup = onNetworkChange({
+      onOnline: () => {},
+      onOffline: () => {}
+    }, () => {});
 
-  cleanup();
+    assert.strictEqual(mockWindow._listeners.online.length, 1, 'Should have online listener');
+    assert.strictEqual(mockWindow._listeners.offline.length, 1, 'Should have offline listener');
 
-  assertEqual(mockWindow._listeners.online.length, 0, 'Should remove online listener');
-  assertEqual(mockWindow._listeners.offline.length, 0, 'Should remove offline listener');
+    cleanup();
 
-  globalThis.window = originalWindow;
+    assert.strictEqual(mockWindow._listeners.online.length, 0, 'Should remove online listener');
+    assert.strictEqual(mockWindow._listeners.offline.length, 0, 'Should remove offline listener');
+
+    globalThis.window = originalWindow;
+  });
 });
 
 // =============================================================================
 // safeSetAttribute with DOM Adapter Coverage Tests
 // =============================================================================
 
-console.log('\nsafeSetAttribute with DOM Adapter:');
+describe('safeSetAttribute with DOM Adapter', () => {
+  test('safeSetAttribute uses provided DOM adapter', () => {
+    const setAttributes = [];
+    const mockAdapter = {
+      setAttribute: (el, name, value) => {
+        setAttributes.push({ el, name, value });
+      }
+    };
 
-test('safeSetAttribute uses provided DOM adapter', () => {
-  const setAttributes = [];
-  const mockAdapter = {
-    setAttribute: (el, name, value) => {
-      setAttributes.push({ el, name, value });
-    }
-  };
+    const mockElement = {};
 
-  const mockElement = {};
+    safeSetAttribute(mockElement, 'data-test', 'value', {}, mockAdapter);
 
-  safeSetAttribute(mockElement, 'data-test', 'value', {}, mockAdapter);
+    assert.strictEqual(setAttributes.length, 1, 'Should call adapter');
+    assert.strictEqual(setAttributes[0].name, 'data-test', 'Should pass attribute name');
+    assert.strictEqual(setAttributes[0].value, 'value', 'Should pass attribute value');
+  });
 
-  assertEqual(setAttributes.length, 1, 'Should call adapter');
-  assertEqual(setAttributes[0].name, 'data-test', 'Should pass attribute name');
-  assertEqual(setAttributes[0].value, 'value', 'Should pass attribute value');
-});
+  test('safeSetAttribute falls back to element.setAttribute when no adapter', () => {
+    const attrs = {};
+    const mockElement = {
+      setAttribute: (name, value) => { attrs[name] = value; }
+    };
 
-test('safeSetAttribute falls back to element.setAttribute when no adapter', () => {
-  const attrs = {};
-  const mockElement = {
-    setAttribute: (name, value) => { attrs[name] = value; }
-  };
+    safeSetAttribute(mockElement, 'data-test', 'value');
 
-  safeSetAttribute(mockElement, 'data-test', 'value');
-
-  assertEqual(attrs['data-test'], 'value', 'Should use element.setAttribute');
+    assert.strictEqual(attrs['data-test'], 'value', 'Should use element.setAttribute');
+  });
 });
 
 // =============================================================================
 // safeSetStyle with DOM Adapter Coverage Tests
 // =============================================================================
 
-console.log('\nsafeSetStyle with DOM Adapter:');
+describe('safeSetStyle with DOM Adapter', () => {
+  test('safeSetStyle uses provided DOM adapter', () => {
+    const setStyles = [];
+    const mockAdapter = {
+      setStyle: (el, prop, value) => {
+        setStyles.push({ el, prop, value });
+      }
+    };
 
-test('safeSetStyle uses provided DOM adapter', () => {
-  const setStyles = [];
-  const mockAdapter = {
-    setStyle: (el, prop, value) => {
-      setStyles.push({ el, prop, value });
-    }
-  };
+    const mockElement = { style: {} };
 
-  const mockElement = { style: {} };
+    safeSetStyle(mockElement, 'color', 'red', {}, mockAdapter);
 
-  safeSetStyle(mockElement, 'color', 'red', {}, mockAdapter);
+    assert.strictEqual(setStyles.length, 1, 'Should call adapter');
+    assert.strictEqual(setStyles[0].prop, 'color', 'Should pass property name');
+    assert.strictEqual(setStyles[0].value, 'red', 'Should pass property value');
+  });
 
-  assertEqual(setStyles.length, 1, 'Should call adapter');
-  assertEqual(setStyles[0].prop, 'color', 'Should pass property name');
-  assertEqual(setStyles[0].value, 'red', 'Should pass property value');
-});
+  test('safeSetStyle falls back to element.style when no adapter', () => {
+    const mockElement = { style: {} };
 
-test('safeSetStyle falls back to element.style when no adapter', () => {
-  const mockElement = { style: {} };
+    safeSetStyle(mockElement, 'backgroundColor', 'blue');
 
-  safeSetStyle(mockElement, 'backgroundColor', 'blue');
+    assert.strictEqual(mockElement.style.backgroundColor, 'blue', 'Should use element.style');
+  });
 
-  assertEqual(mockElement.style.backgroundColor, 'blue', 'Should use element.style');
-});
+  test('safeSetStyle with adapter handles blocked values', () => {
+    const setStyles = [];
+    const mockAdapter = {
+      setStyle: (el, prop, value) => {
+        setStyles.push({ el, prop, value });
+      }
+    };
 
-test('safeSetStyle with adapter handles blocked values', () => {
-  const setStyles = [];
-  const mockAdapter = {
-    setStyle: (el, prop, value) => {
-      setStyles.push({ el, prop, value });
-    }
-  };
+    const mockElement = { style: {} };
 
-  const mockElement = { style: {} };
+    // This has a semicolon, so it should be blocked but sanitized portion set
+    const result = safeSetStyle(mockElement, 'color', 'red; margin: 0', {}, mockAdapter);
 
-  // This has a semicolon, so it should be blocked but sanitized portion set
-  const result = safeSetStyle(mockElement, 'color', 'red; margin: 0', {}, mockAdapter);
-
-  assertEqual(result, false, 'Should return false for blocked value');
-  // Sanitized value should still be set
-  assertEqual(setStyles.length, 1, 'Should set sanitized value');
-  assertEqual(setStyles[0].value, 'red', 'Should set sanitized portion');
+    assert.strictEqual(result, false, 'Should return false for blocked value');
+    // Sanitized value should still be set
+    assert.strictEqual(setStyles.length, 1, 'Should set sanitized value');
+    assert.strictEqual(setStyles[0].value, 'red', 'Should set sanitized portion');
+  });
 });
 
 // =============================================================================
 // sanitizeCSSValue Additional Coverage Tests
 // =============================================================================
 
-console.log('\nsanitizeCSSValue Additional Coverage:');
+describe('sanitizeCSSValue Additional Coverage', () => {
+  test('sanitizeCSSValue blocks behavior: property', () => {
+    // behavior: with a value that doesn't contain url()
+    const result = sanitizeCSSValue('behavior: something');
+    assert.strictEqual(result.safe, false, 'Should block behavior');
+    assert.ok(result.blocked.includes('behavior'), 'Should detect behavior pattern');
+  });
 
-test('sanitizeCSSValue blocks behavior: property', () => {
-  // behavior: with a value that doesn't contain url()
-  const result = sanitizeCSSValue('behavior: something');
-  assertEqual(result.safe, false, 'Should block behavior');
-  assert(result.blocked.includes('behavior'), 'Should detect behavior pattern');
-});
+  test('sanitizeCSSValue blocks -moz-binding', () => {
+    // -moz-binding without url() to test that specific pattern
+    const result = sanitizeCSSValue('-moz-binding value');
+    assert.strictEqual(result.safe, false, 'Should block -moz-binding');
+    assert.ok(result.blocked.includes('-moz-binding'), 'Should detect -moz-binding pattern');
+  });
 
-test('sanitizeCSSValue blocks -moz-binding', () => {
-  // -moz-binding without url() to test that specific pattern
-  const result = sanitizeCSSValue('-moz-binding value');
-  assertEqual(result.safe, false, 'Should block -moz-binding');
-  assert(result.blocked.includes('-moz-binding'), 'Should detect -moz-binding pattern');
-});
-
-test('sanitizeCSSValue with allowMultiple option', () => {
-  const result = sanitizeCSSValue('color: red; margin: 10px', { allowMultiple: true });
-  assertEqual(result.safe, true, 'Should allow multiple with option');
-  assertEqual(result.value, 'color: red; margin: 10px');
+  test('sanitizeCSSValue with allowMultiple option', () => {
+    const result = sanitizeCSSValue('color: red; margin: 10px', { allowMultiple: true });
+    assert.strictEqual(result.safe, true, 'Should allow multiple with option');
+    assert.strictEqual(result.value, 'color: red; margin: 10px');
+  });
 });
 
 // =============================================================================
 // sanitizeUrl Additional Coverage Tests
 // =============================================================================
 
-console.log('\nsanitizeUrl Additional Coverage:');
+describe('sanitizeUrl Additional Coverage', () => {
+  test('sanitizeUrl handles malformed URL encoding gracefully', () => {
+    // Malformed percent encoding
+    const result = sanitizeUrl('%ZZ%invalid');
 
-test('sanitizeUrl handles malformed URL encoding gracefully', () => {
-  // Malformed percent encoding
-  const result = sanitizeUrl('%ZZ%invalid');
+    // Should not throw, may return null or the original
+    assert.ok(result === null || typeof result === 'string', 'Should handle malformed encoding');
+  });
 
-  // Should not throw, may return null or the original
-  assert(result === null || typeof result === 'string', 'Should handle malformed encoding');
-});
+  test('sanitizeUrl with allowRelative: false blocks relative paths', () => {
+    assert.strictEqual(sanitizeUrl('/path', { allowRelative: false }), null);
+    assert.strictEqual(sanitizeUrl('./path', { allowRelative: false }), null);
+    assert.strictEqual(sanitizeUrl('../path', { allowRelative: false }), null);
+    assert.strictEqual(sanitizeUrl('page.html', { allowRelative: false }), null);
+  });
 
-test('sanitizeUrl with allowRelative: false blocks relative paths', () => {
-  assertEqual(sanitizeUrl('/path', { allowRelative: false }), null);
-  assertEqual(sanitizeUrl('./path', { allowRelative: false }), null);
-  assertEqual(sanitizeUrl('../path', { allowRelative: false }), null);
-  assertEqual(sanitizeUrl('page.html', { allowRelative: false }), null);
-});
+  test('sanitizeUrl blocks protocol-relative URLs', () => {
+    assert.strictEqual(sanitizeUrl('//evil.com/page'), null, 'Should block //');
+  });
 
-test('sanitizeUrl blocks protocol-relative URLs', () => {
-  assertEqual(sanitizeUrl('//evil.com/page'), null, 'Should block //');
-});
-
-test('sanitizeUrl allows https even with special chars after', () => {
-  assertEqual(sanitizeUrl('https://example.com/path?query=1&other=2'), 'https://example.com/path?query=1&other=2');
+  test('sanitizeUrl allows https even with special chars after', () => {
+    assert.strictEqual(sanitizeUrl('https://example.com/path?query=1&other=2'), 'https://example.com/path?query=1&other=2');
+  });
 });
 
 // =============================================================================
 // safeSetAttribute Additional Coverage Tests
 // =============================================================================
-
-console.log('\nsafeSetAttribute Additional Coverage:');
 
 function createMockElement() {
   const attrs = {};
@@ -474,164 +427,153 @@ function createMockElement() {
   };
 }
 
-test('safeSetAttribute allows allowUnsafeHtml for srcdoc', () => {
-  const el = createMockElement();
-  const result = safeSetAttribute(el, 'srcdoc', '<p>Hello</p>', { allowUnsafeHtml: true });
-  assertEqual(result, true, 'Should allow with option');
-  assertEqual(el.getAttribute('srcdoc'), '<p>Hello</p>');
-});
-
-test('safeSetAttribute sanitizes all URL attributes', () => {
-  const urlAttrs = ['href', 'src', 'action', 'formaction', 'data', 'poster',
-                    'cite', 'codebase', 'background', 'profile', 'usemap',
-                    'longdesc', 'dynsrc', 'lowsrc', 'srcset', 'imagesrcset'];
-
-  for (const attr of urlAttrs) {
+describe('safeSetAttribute Additional Coverage', () => {
+  test('safeSetAttribute allows allowUnsafeHtml for srcdoc', () => {
     const el = createMockElement();
-    const result = safeSetAttribute(el, attr, 'javascript:alert(1)');
-    assertEqual(result, false, `Should block dangerous ${attr}`);
-  }
-});
+    const result = safeSetAttribute(el, 'srcdoc', '<p>Hello</p>', { allowUnsafeHtml: true });
+    assert.strictEqual(result, true, 'Should allow with option');
+    assert.strictEqual(el.getAttribute('srcdoc'), '<p>Hello</p>');
+  });
 
-test('safeSetAttribute handles numeric values', () => {
-  const el = createMockElement();
-  safeSetAttribute(el, 'data-count', 42);
-  assertEqual(el.getAttribute('data-count'), '42', 'Should convert number to string');
-});
+  test('safeSetAttribute sanitizes all URL attributes', () => {
+    const urlAttrs = ['href', 'src', 'action', 'formaction', 'data', 'poster',
+                      'cite', 'codebase', 'background', 'profile', 'usemap',
+                      'longdesc', 'dynsrc', 'lowsrc', 'srcset', 'imagesrcset'];
 
-test('safeSetAttribute handles boolean values', () => {
-  const el = createMockElement();
-  safeSetAttribute(el, 'data-enabled', true);
-  assertEqual(el.getAttribute('data-enabled'), 'true', 'Should convert boolean to string');
+    for (const attr of urlAttrs) {
+      const el = createMockElement();
+      const result = safeSetAttribute(el, attr, 'javascript:alert(1)');
+      assert.strictEqual(result, false, `Should block dangerous ${attr}`);
+    }
+  });
+
+  test('safeSetAttribute handles numeric values', () => {
+    const el = createMockElement();
+    safeSetAttribute(el, 'data-count', 42);
+    assert.strictEqual(el.getAttribute('data-count'), '42', 'Should convert number to string');
+  });
+
+  test('safeSetAttribute handles boolean values', () => {
+    const el = createMockElement();
+    safeSetAttribute(el, 'data-enabled', true);
+    assert.strictEqual(el.getAttribute('data-enabled'), 'true', 'Should convert boolean to string');
+  });
 });
 
 // =============================================================================
 // deepClone Additional Coverage Tests
 // =============================================================================
 
-console.log('\ndeepClone Additional Coverage:');
+describe('deepClone Additional Coverage', () => {
+  test('deepClone handles undefined', () => {
+    assert.strictEqual(deepClone(undefined), undefined);
+  });
 
-test('deepClone handles undefined', () => {
-  assertEqual(deepClone(undefined), undefined);
-});
+  test('deepClone handles empty array', () => {
+    const result = deepClone([]);
+    assert.deepStrictEqual(result, []);
+    assert.ok(result !== [], 'Should be different array reference');
+  });
 
-test('deepClone handles empty array', () => {
-  const result = deepClone([]);
-  assertDeepEqual(result, []);
-  assert(result !== [], 'Should be different array reference');
-});
+  test('deepClone handles empty object', () => {
+    const result = deepClone({});
+    assert.deepStrictEqual(result, {});
+  });
 
-test('deepClone handles empty object', () => {
-  const result = deepClone({});
-  assertDeepEqual(result, {});
-});
+  test('deepClone does not clone prototype properties', () => {
+    function Parent() {}
+    Parent.prototype.inherited = 'value';
 
-test('deepClone does not clone prototype properties', () => {
-  function Parent() {}
-  Parent.prototype.inherited = 'value';
+    const obj = new Parent();
+    obj.own = 'property';
 
-  const obj = new Parent();
-  obj.own = 'property';
+    const clone = deepClone(obj);
 
-  const clone = deepClone(obj);
-
-  assertEqual(clone.own, 'property', 'Should clone own property');
-  assertEqual(clone.inherited, undefined, 'Should not clone inherited property');
+    assert.strictEqual(clone.own, 'property', 'Should clone own property');
+    assert.strictEqual(clone.inherited, undefined, 'Should not clone inherited property');
+  });
 });
 
 // =============================================================================
 // debounce Additional Coverage Tests
 // =============================================================================
 
-console.log('\ndebounce Additional Coverage:');
+describe('debounce Additional Coverage', () => {
+  test('debounce preserves this context', async () => {
+    const obj = {
+      value: 42,
+      getValue: debounce(function() {
+        return this.value;
+      }, 10)
+    };
 
-await testAsync('debounce preserves this context', async () => {
-  const obj = {
-    value: 42,
-    getValue: debounce(function() {
-      return this.value;
-    }, 10)
-  };
+    let result;
+    obj.getValue = debounce(function() {
+      result = this.value;
+    }, 10);
 
-  let result;
-  obj.getValue = debounce(function() {
-    result = this.value;
-  }, 10);
+    obj.getValue.call(obj);
+    await sleep(20);
 
-  obj.getValue.call(obj);
-  await sleep(20);
+    assert.strictEqual(result, 42, 'Should preserve this context');
+  });
 
-  assertEqual(result, 42, 'Should preserve this context');
-});
+  test('debounce cancel can be called multiple times', async () => {
+    let called = 0;
+    const debounced = debounce(() => called++, 50);
 
-await testAsync('debounce cancel can be called multiple times', async () => {
-  let called = 0;
-  const debounced = debounce(() => called++, 50);
+    debounced();
+    debounced.cancel();
+    debounced.cancel(); // Should not throw
+    debounced.cancel();
 
-  debounced();
-  debounced.cancel();
-  debounced.cancel(); // Should not throw
-  debounced.cancel();
-
-  await sleep(60);
-  assertEqual(called, 0, 'Should remain cancelled');
+    await sleep(60);
+    assert.strictEqual(called, 0, 'Should remain cancelled');
+  });
 });
 
 // =============================================================================
 // throttle Additional Coverage Tests
 // =============================================================================
 
-console.log('\nthrottle Additional Coverage:');
+describe('throttle Additional Coverage', () => {
+  test('throttle preserves this context', async () => {
+    let result;
+    const throttled = throttle(function() {
+      result = this.value;
+    }, 10);
 
-await testAsync('throttle preserves this context', async () => {
-  let result;
-  const throttled = throttle(function() {
-    result = this.value;
-  }, 10);
+    const obj = { value: 123 };
+    throttled.call(obj);
 
-  const obj = { value: 123 };
-  throttled.call(obj);
+    assert.strictEqual(result, 123, 'Should preserve this context');
+  });
 
-  assertEqual(result, 123, 'Should preserve this context');
+  test('throttle cancel can be called when no pending call', async () => {
+    const throttled = throttle(() => {}, 50);
+
+    // Call once (immediate execution)
+    throttled();
+
+    // Cancel when no pending
+    throttled.cancel(); // Should not throw
+
+    assert.ok(true, 'Should not throw');
+  });
+
+  test('throttle schedules trailing call with arguments', async () => {
+    let lastArg = null;
+    const throttled = throttle((arg) => {
+      lastArg = arg;
+    }, 50);
+
+    throttled('first'); // Immediate
+    assert.strictEqual(lastArg, 'first');
+
+    throttled('second'); // Scheduled for later
+
+    await sleep(60);
+    // The throttle implementation uses the args from when the timeout was scheduled
+    assert.strictEqual(lastArg, 'second', 'Should execute trailing call');
+  });
 });
-
-await testAsync('throttle cancel can be called when no pending call', async () => {
-  const throttled = throttle(() => {}, 50);
-
-  // Call once (immediate execution)
-  throttled();
-
-  // Cancel when no pending
-  throttled.cancel(); // Should not throw
-
-  assert(true, 'Should not throw');
-});
-
-await testAsync('throttle schedules trailing call with arguments', async () => {
-  let lastArg = null;
-  const throttled = throttle((arg) => {
-    lastArg = arg;
-  }, 50);
-
-  throttled('first'); // Immediate
-  assertEqual(lastArg, 'first');
-
-  throttled('second'); // Scheduled for later
-
-  await sleep(60);
-  // The throttle implementation uses the args from when the timeout was scheduled
-  assertEqual(lastArg, 'second', 'Should execute trailing call');
-});
-
-// =============================================================================
-// Results
-// =============================================================================
-
-console.log('\n--- Results ---\n');
-console.log(`Passed: ${passed}`);
-console.log(`Failed: ${failed}`);
-console.log(`Total:  ${passed + failed}`);
-
-if (failed > 0) {
-  process.exit(1);
-}

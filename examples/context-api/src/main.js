@@ -3,8 +3,8 @@
  * Sets up reactive context providers and mounts the App component.
  */
 
-import { pulse, effect } from '../../../runtime/index.js';
-import { provideMany } from '../../../runtime/context.js';
+import { pulse, effect } from 'pulse-js-framework/runtime';
+import { provideMany } from 'pulse-js-framework/runtime/context';
 import { ThemeContext, AuthContext, LocaleContext, themes } from './contexts.js';
 import App from './App.pulse';
 

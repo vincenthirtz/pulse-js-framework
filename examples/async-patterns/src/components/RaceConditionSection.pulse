@@ -2,7 +2,7 @@
  * RaceConditionSection - Demonstrates createVersionedAsync
  */
 
-import { createVersionedAsync } from '../../../../runtime/async.js'
+import { createVersionedAsync } from 'pulse-js-framework/runtime/async'
 import { mockFetch } from '../mock-api.js'
 
 @component RaceConditionSection

@@ -2,8 +2,8 @@
  * GraphQL Setup - Mock DB, resolver, client, and query constants
  */
 
-import { pulse } from '../../../runtime/index.js';
-import { createGraphQLClient, setDefaultClient } from '../../../runtime/graphql.js';
+import { pulse } from 'pulse-js-framework/runtime';
+import { createGraphQLClient, setDefaultClient } from 'pulse-js-framework/runtime/graphql';
 
 // ── Shared State ─────────────────────────────────────────────
 export const currentView = pulse('list');

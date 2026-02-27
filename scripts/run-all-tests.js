@@ -157,6 +157,7 @@ const testGroups = {
     'test:rollup-plugin',
     'test:swc-plugin',
     'test:vite-plugin',
+    'test:vite-plugin-server-components',
     'test:webpack-loader',
   ],
   ecosystem: [

@@ -2,7 +2,7 @@
  * FocusSection - Focus management demos
  */
 
-import { createRovingTabindex } from '../../../../runtime/a11y.js'
+import { createRovingTabindex } from 'pulse-js-framework/runtime/a11y'
 import { modalOpen, isKeyboardUser } from '../store.js'
 
 @component FocusSection

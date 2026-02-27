@@ -63,7 +63,7 @@ class MockWebSocket {
         } else {
           this.simulateOpen();
         }
-      }, 10);
+      }, 10).unref();
     }
   }
 
@@ -81,7 +81,7 @@ class MockWebSocket {
       if (this.onclose) {
         this.onclose({ code, reason, wasClean: code === 1000 });
       }
-    }, 0);
+    }, 0).unref();
   }
 
   simulateOpen() {
@@ -204,7 +204,7 @@ describe('Reconnection Tests', () => {
         setTimeout(() => {
           this.simulateError();
           this.simulateClose(1006);
-        }, 10);
+        }, 10).unref();
       }
     };
 

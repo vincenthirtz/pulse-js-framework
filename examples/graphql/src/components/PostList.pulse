@@ -2,8 +2,8 @@
  * PostList - Displays list of posts with filtering and like mutation
  */
 
-import { useQuery, useMutation } from '../../../../runtime/graphql.js'
-import { effect, pulse } from '../../../../runtime/index.js'
+import { useQuery, useMutation } from 'pulse-js-framework/runtime/graphql'
+import { effect, pulse } from 'pulse-js-framework/runtime'
 import { currentView, selectedPostId, GET_POSTS, LIKE_POST } from '../graphql-setup.js'
 
 @component PostList

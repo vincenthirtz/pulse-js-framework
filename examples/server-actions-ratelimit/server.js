@@ -18,7 +18,7 @@ import { fileURLToPath } from 'url';
 import {
   createServerActionMiddleware,
   registerServerAction
-} from '../../runtime/server-components/index.js';
+} from 'pulse-js-framework/runtime/server-components';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 

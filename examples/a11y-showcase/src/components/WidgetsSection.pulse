@@ -3,7 +3,7 @@
  * Uses imperative a11y APIs in actions since widgets need DOM references
  */
 
-import { createDisclosure, createAccordion, createTabs, createTooltip, createMenu } from '../../../../runtime/a11y.js'
+import { createDisclosure, createAccordion, createTabs, createTooltip, createMenu } from 'pulse-js-framework/runtime/a11y'
 import { notify } from '../store.js'
 
 @component WidgetsSection

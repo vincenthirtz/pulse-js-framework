@@ -9,8 +9,7 @@
  * Strategy:
  * - Each describe block starts ONE real server on a unique free port
  * - All tests in a block share that server
- * - Servers are not explicitly closed (startDevServer doesn't return
- *   the server handle) but the test process exits cleanly
+ * - Servers are closed via tracked handles in a global after() hook
  *
  * @module test/dev-server-coverage
  */
@@ -23,6 +22,26 @@ import { mkdirSync, mkdtempSync, writeFileSync, rmSync, existsSync } from 'node:
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { startDevServer } from '../cli/dev.js';
+
+// =============================================================================
+// Server Handle Tracking (for proper cleanup)
+// =============================================================================
+
+const serverHandles = [];
+
+async function startTrackedServer(args) {
+  const handle = await startDevServer(args);
+  if (handle) serverHandles.push(handle);
+  return handle;
+}
+
+// Close all servers and watchers after all tests complete
+after(() => {
+  for (const handle of serverHandles) {
+    try { handle.server.close(); } catch {}
+    try { if (handle.watcher) handle.watcher.close(); } catch {}
+  }
+});
 
 // =============================================================================
 // Helpers
@@ -204,7 +223,7 @@ describe('Dev Server Coverage - Main HTTP Handler', { timeout: 30000 }, () => {
     console.warn = () => {};
 
     // Start the real dev server
-    startDevServer([testDir, String(port)]);
+    startTrackedServer([testDir, String(port)]);
 
     // Wait for the server to be ready
     await waitForPort(port);
@@ -463,7 +482,7 @@ describe('Dev Server Coverage - Argument Parsing', { timeout: 30000 }, () => {
       console.warn = () => {};
 
       // Pass only port (numeric first arg)
-      startDevServer([String(port)]);
+      startTrackedServer([String(port)]);
       await waitForPort(port);
 
       console.log = origLog;
@@ -519,7 +538,7 @@ describe('Dev Server Coverage - Argument Parsing', { timeout: 30000 }, () => {
 
       // Use directory-only arg (no port, defaults to 3000, but we need free port)
       // Instead, test dir+port to exercise the else branch of arg parsing
-      startDevServer([testDir, String(port)]);
+      startTrackedServer([testDir, String(port)]);
       await waitForPort(port);
 
       console.log = origLog;
@@ -554,7 +573,7 @@ describe('Dev Server Coverage - Vite Detection', { timeout: 30000 }, () => {
     console.error = () => {};
     console.warn = () => {};
 
-    startDevServer([testDir, String(port)]);
+    startTrackedServer([testDir, String(port)]);
     await waitForPort(port);
 
     console.log = origLog;
@@ -617,7 +636,7 @@ view {
     console.error = () => {};
     console.warn = () => {};
 
-    startDevServer([testDir, String(port)]);
+    startTrackedServer([testDir, String(port)]);
     await waitForPort(port);
 
     console.log = origLog;
@@ -686,7 +705,7 @@ describe('Dev Server Coverage - Runtime Paths', { timeout: 30000 }, () => {
     console.error = () => {};
     console.warn = () => {};
 
-    startDevServer([testDir, String(port)]);
+    startTrackedServer([testDir, String(port)]);
     await waitForPort(port);
 
     console.log = origLog;
@@ -739,7 +758,7 @@ describe('Dev Server Coverage - node_modules Paths', { timeout: 30000 }, () => {
     console.error = () => {};
     console.warn = () => {};
 
-    startDevServer([testDir, String(port)]);
+    startTrackedServer([testDir, String(port)]);
     await waitForPort(port);
 
     console.log = origLog;
@@ -785,7 +804,7 @@ describe('Dev Server Coverage - LiveReload Client Management', { timeout: 30000 
     console.error = () => {};
     console.warn = () => {};
 
-    startDevServer([testDir, String(port)]);
+    startTrackedServer([testDir, String(port)]);
     await waitForPort(port);
 
     console.log = origLog;
@@ -853,7 +872,7 @@ describe('Dev Server Coverage - File Watching', { timeout: 30000 }, () => {
     console.error = () => {};
     console.warn = () => {};
 
-    startDevServer([testDir, String(port)]);
+    startTrackedServer([testDir, String(port)]);
     await waitForPort(port);
 
     console.log = origLog;
@@ -883,7 +902,7 @@ describe('Dev Server Coverage - File Watching', { timeout: 30000 }, () => {
     console.warn = () => {};
 
     // This should exercise the ENOENT catch in watchFiles (lines 362-365)
-    startDevServer([testDir, String(port)]);
+    startTrackedServer([testDir, String(port)]);
     await waitForPort(port);
 
     console.log = origLog;
@@ -920,7 +939,7 @@ describe('Dev Server Coverage - SPA Fallback Edge Cases', { timeout: 30000 }, ()
     console.error = () => {};
     console.warn = () => {};
 
-    startDevServer([testDir, String(port)]);
+    startTrackedServer([testDir, String(port)]);
 
     // Wait a bit for the server to start (no index.html to test against)
     await new Promise(r => setTimeout(r, 1000));
@@ -987,7 +1006,7 @@ describe('Dev Server Coverage - File Change LiveReload', { timeout: 30000 }, () 
     console.error = () => {};
     console.warn = () => {};
 
-    startDevServer([testDir, String(port)]);
+    startTrackedServer([testDir, String(port)]);
     await waitForPort(port);
 
     console.log = origLog;
@@ -1089,7 +1108,7 @@ describe('Dev Server Coverage - All MIME Types', { timeout: 30000 }, () => {
     console.error = () => {};
     console.warn = () => {};
 
-    startDevServer([testDir, String(port)]);
+    startTrackedServer([testDir, String(port)]);
     await waitForPort(port);
 
     console.log = origLog;
@@ -1176,7 +1195,7 @@ describe('Dev Server Coverage - LiveReload Script Content', { timeout: 30000 }, 
     console.error = () => {};
     console.warn = () => {};
 
-    startDevServer([testDir, String(port)]);
+    startTrackedServer([testDir, String(port)]);
     await waitForPort(port);
 
     console.log = origLog;
@@ -1261,7 +1280,7 @@ style {
     console.error = () => {};
     console.warn = () => {};
 
-    startDevServer([testDir, String(port)]);
+    startTrackedServer([testDir, String(port)]);
     await waitForPort(port);
 
     console.log = origLog;

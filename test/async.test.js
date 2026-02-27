@@ -666,5 +666,3 @@ describe('usePolling Tests', () => {
   });
 });
 
-// Force clean exit after all tests complete (open handles from async operations)
-after(() => { process.exitCode = 0; });

@@ -4,8 +4,8 @@
  * for import by the App.pulse component.
  */
 
-import { pulse, computed } from '../../../runtime/index.js';
-import { useForm, useFileField, validators } from '../../../runtime/form.js';
+import { pulse, computed } from 'pulse-js-framework/runtime';
+import { useForm, useFileField, validators } from 'pulse-js-framework/runtime/form';
 
 // ── Registration Form ───────────────────────────────────────────────
 

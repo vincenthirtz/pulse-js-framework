@@ -133,7 +133,7 @@ class MockWebSocket {
     setTimeout(() => {
       this.readyState = MockWebSocket.CLOSED;
       this.dispatchEvent({ type: 'close', code, reason, wasClean: code === 1000 });
-    }, 0);
+    }, 0).unref();
   }
 
   dispatchEvent(event) {
@@ -988,8 +988,3 @@ describe('Subscription Backoff Tests', () => {
   });
 });
 
-// Force clean exit after all tests complete (open handles from WebSocket reconnection timers)
-after(() => {
-  process.exitCode = 0;
-  setTimeout(() => process.exit(0), 500).unref();
-});

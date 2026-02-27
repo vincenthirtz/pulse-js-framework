@@ -647,6 +647,8 @@ describe('Async - coverage gaps', () => {
     await wait(80);
     // fireCount should not have grown significantly
     assert.ok(fireCount <= beforeAbort + 2, 'Interval should self-clear after abort makes context stale');
+
+    controller.cleanup();
   });
 
   test('ctx.setInterval self-clears when superseded by new begin', async () => {

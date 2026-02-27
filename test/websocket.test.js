@@ -62,7 +62,7 @@ class MockWebSocket {
       if (this.onclose) {
         this.onclose({ code, reason, wasClean: code === 1000 });
       }
-    }, 0);
+    }, 0).unref();
   }
 
   // Test helpers

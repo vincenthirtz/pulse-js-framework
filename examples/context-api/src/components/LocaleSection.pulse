@@ -3,7 +3,7 @@
  * Demonstrates LocaleContext with useContext
  */
 
-import { useContext } from '../../../../runtime/context.js'
+import { useContext } from 'pulse-js-framework/runtime/context'
 import { LocaleContext, translations } from '../contexts.js'
 
 @component LocaleSection

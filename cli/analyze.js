@@ -96,7 +96,7 @@ async function analyzeFiles(files, parse) {
       const info = {
         path: relativePath(file),
         size: fileSize,
-        sizeFormatted: formatBytes(stats.size),
+        sizeFormatted: formatBytes(fileSize),
         lines: source.split('\n').length
       };
 
@@ -246,25 +246,42 @@ function calculateViewDepth(view, depth = 0) {
  * Count directives in view
  */
 function countDirectives(view, count = 0) {
+  // Handle arrays (e.g., IfDirective.consequent is an array of nodes)
+  if (Array.isArray(view)) {
+    for (const child of view) {
+      count = countDirectivesNode(child, count);
+    }
+    return count;
+  }
+
   if (!view || !view.children) return count;
 
   for (const child of view.children) {
-    if (child.type === 'IfDirective') count++;
-    if (child.type === 'EachDirective') count++;
-    if (child.directives) count += child.directives.length;
+    count = countDirectivesNode(child, count);
+  }
 
-    if (child.children) {
-      count = countDirectives(child, count);
-    }
-    if (child.consequent) {
-      count = countDirectives(child.consequent, count);
-    }
-    if (child.alternate) {
-      count = countDirectives(child.alternate, count);
-    }
-    if (child.body) {
-      count = countDirectives(child.body, count);
-    }
+  return count;
+}
+
+function countDirectivesNode(child, count) {
+  if (child.type === 'IfDirective') count++;
+  if (child.type === 'EachDirective') count++;
+  if (child.directives) count += child.directives.length;
+
+  if (child.children) {
+    count = countDirectives(child, count);
+  }
+  if (child.consequent) {
+    count = countDirectives(child.consequent, count);
+  }
+  if (child.alternate) {
+    count = countDirectives(child.alternate, count);
+  }
+  if (child.body) {
+    count = countDirectives(child.body, count);
+  }
+  if (child.template) {
+    count = countDirectives(child.template, count);
   }
 
   return count;

@@ -19,625 +19,582 @@ import {
   provideMany
 } from '../runtime/context.js';
 
-import {
-  test,
-  testAsync,
-  runAsyncTests,
-  assert,
-  assertEqual,
-  assertDeepEqual,
-  assertTruthy,
-  assertFalsy,
-  printResults,
-  exitWithCode,
-  printSection,
-  wait,
-  createSpy
-} from './utils.js';
-
-// Reset before each test
-function beforeEach() {
-  resetContext();
-}
+import { test, describe, beforeEach } from 'node:test';
+import assert from 'node:assert';
+import { wait } from './utils.js';
 
 // =============================================================================
 // Deep Nesting Tests
 // =============================================================================
 
-printSection('Deep Nesting Tests');
+describe('Deep Nesting Tests', () => {
+  beforeEach(() => {
+    resetContext();
+  });
 
-test('handles deeply nested providers', () => {
-  beforeEach();
+  test('handles deeply nested providers', () => {
+    const ctx = createContext(0);
+    let deepestValue = null;
 
-  const ctx = createContext(0);
-  let deepestValue = null;
+    // Create 20 levels of nesting
+    let currentFn = () => {
+      deepestValue = useContext(ctx).get();
+    };
 
-  // Create 20 levels of nesting
-  let currentFn = () => {
-    deepestValue = useContext(ctx).get();
-  };
+    for (let i = 19; i >= 0; i--) {
+      const innerFn = currentFn;
+      currentFn = () => Provider(ctx, i, innerFn);
+    }
 
-  for (let i = 19; i >= 0; i--) {
-    const innerFn = currentFn;
-    currentFn = () => Provider(ctx, i, innerFn);
-  }
+    currentFn();
 
-  currentFn();
+    // Should have the innermost value
+    assert.strictEqual(deepestValue, 19);
+    assert.strictEqual(getContextDepth(ctx), 0, 'Should restore depth after execution');
 
-  // Should have the innermost value
-  assertEqual(deepestValue, 19);
-  assertEqual(getContextDepth(ctx), 0, 'Should restore depth after execution');
+    disposeContext(ctx);
+  });
 
-  disposeContext(ctx);
-});
+  test('nested providers restore correctly after exception', () => {
+    const ctx = createContext('default');
 
-test('nested providers restore correctly after exception', () => {
-  beforeEach();
+    try {
+      Provider(ctx, 'level1', () => {
+        assert.strictEqual(useContext(ctx).get(), 'level1');
 
-  const ctx = createContext('default');
+        try {
+          Provider(ctx, 'level2', () => {
+            assert.strictEqual(useContext(ctx).get(), 'level2');
+            throw new Error('Test error');
+          });
+        } catch (e) {
+          // Caught
+        }
 
-  try {
-    Provider(ctx, 'level1', () => {
-      assertEqual(useContext(ctx).get(), 'level1');
+        // Should still be at level1
+        assert.strictEqual(useContext(ctx).get(), 'level1');
+      });
+    } catch (e) {
+      // Outer catch
+    }
 
-      try {
-        Provider(ctx, 'level2', () => {
-          assertEqual(useContext(ctx).get(), 'level2');
-          throw new Error('Test error');
-        });
-      } catch (e) {
-        // Caught
-      }
+    // Should be back to default
+    assert.strictEqual(useContext(ctx).get(), 'default');
 
-      // Should still be at level1
-      assertEqual(useContext(ctx).get(), 'level1');
-    });
-  } catch (e) {
-    // Outer catch
-  }
+    disposeContext(ctx);
+  });
 
-  // Should be back to default
-  assertEqual(useContext(ctx).get(), 'default');
+  test('multiple contexts at different depths', () => {
+    const ctx1 = createContext('ctx1-default');
+    const ctx2 = createContext('ctx2-default');
+    const ctx3 = createContext('ctx3-default');
 
-  disposeContext(ctx);
-});
+    let captured = {};
 
-test('multiple contexts at different depths', () => {
-  beforeEach();
-
-  const ctx1 = createContext('ctx1-default');
-  const ctx2 = createContext('ctx2-default');
-  const ctx3 = createContext('ctx3-default');
-
-  let captured = {};
-
-  Provider(ctx1, 'ctx1-level1', () => {
-    Provider(ctx2, 'ctx2-level1', () => {
-      Provider(ctx1, 'ctx1-level2', () => {
-        Provider(ctx3, 'ctx3-level1', () => {
-          captured.ctx1 = useContext(ctx1).get();
-          captured.ctx2 = useContext(ctx2).get();
-          captured.ctx3 = useContext(ctx3).get();
+    Provider(ctx1, 'ctx1-level1', () => {
+      Provider(ctx2, 'ctx2-level1', () => {
+        Provider(ctx1, 'ctx1-level2', () => {
+          Provider(ctx3, 'ctx3-level1', () => {
+            captured.ctx1 = useContext(ctx1).get();
+            captured.ctx2 = useContext(ctx2).get();
+            captured.ctx3 = useContext(ctx3).get();
+          });
         });
       });
     });
+
+    assert.strictEqual(captured.ctx1, 'ctx1-level2');
+    assert.strictEqual(captured.ctx2, 'ctx2-level1');
+    assert.strictEqual(captured.ctx3, 'ctx3-level1');
+
+    disposeContext(ctx1);
+    disposeContext(ctx2);
+    disposeContext(ctx3);
   });
-
-  assertEqual(captured.ctx1, 'ctx1-level2');
-  assertEqual(captured.ctx2, 'ctx2-level1');
-  assertEqual(captured.ctx3, 'ctx3-level1');
-
-  disposeContext(ctx1);
-  disposeContext(ctx2);
-  disposeContext(ctx3);
 });
 
 // =============================================================================
 // Context with Effects Tests
 // =============================================================================
 
-printSection('Context with Effects Tests');
+describe('Context with Effects Tests', () => {
+  beforeEach(() => {
+    resetContext();
+  });
 
-test('context value changes trigger effects', () => {
-  beforeEach();
+  test('context value changes trigger effects', () => {
+    const ThemeContext = createContext('light');
+    const themePulse = pulse('light');
+    let effectRunCount = 0;
 
-  const ThemeContext = createContext('light');
-  const themePulse = pulse('light');
-  let effectRunCount = 0;
+    Provider(ThemeContext, themePulse, () => {
+      const theme = useContext(ThemeContext);
 
-  Provider(ThemeContext, themePulse, () => {
-    const theme = useContext(ThemeContext);
+      effect(() => {
+        theme.get();
+        effectRunCount++;
+      });
 
-    effect(() => {
-      theme.get();
-      effectRunCount++;
+      // Update theme
+      themePulse.set('dark');
     });
 
-    // Update theme
-    themePulse.set('dark');
+    assert.strictEqual(effectRunCount, 2, 'Effect should run on change');
+
+    disposeContext(ThemeContext);
   });
 
-  assertEqual(effectRunCount, 2, 'Effect should run on change');
+  test('context with computed values', () => {
+    const UserContext = createContext({ name: 'Guest', role: 'visitor' });
+    const userPulse = pulse({ name: 'John', role: 'admin' });
+    let isAdmin = null;
 
-  disposeContext(ThemeContext);
-});
+    Provider(UserContext, userPulse, () => {
+      const user = useContext(UserContext);
+      const adminComputed = computed(() => user.get().role === 'admin');
 
-test('context with computed values', () => {
-  beforeEach();
+      isAdmin = adminComputed.get();
 
-  const UserContext = createContext({ name: 'Guest', role: 'visitor' });
-  const userPulse = pulse({ name: 'John', role: 'admin' });
-  let isAdmin = null;
+      // Change role
+      userPulse.set({ name: 'John', role: 'user' });
+      isAdmin = adminComputed.get();
+    });
 
-  Provider(UserContext, userPulse, () => {
-    const user = useContext(UserContext);
-    const adminComputed = computed(() => user.get().role === 'admin');
+    assert.strictEqual(isAdmin, false, 'Computed should react to context changes');
 
-    isAdmin = adminComputed.get();
-
-    // Change role
-    userPulse.set({ name: 'John', role: 'user' });
-    isAdmin = adminComputed.get();
+    disposeContext(UserContext);
   });
-
-  assertEqual(isAdmin, false, 'Computed should react to context changes');
-
-  disposeContext(UserContext);
 });
 
 // =============================================================================
 // useContextSelector Tests
 // =============================================================================
 
-printSection('useContextSelector Tests');
-
-test('useContextSelector with complex selector', () => {
-  beforeEach();
-
-  const StateContext = createContext({
-    user: { name: 'John', preferences: { theme: 'dark' } },
-    settings: { notifications: true }
+describe('useContextSelector Tests', () => {
+  beforeEach(() => {
+    resetContext();
   });
 
-  let selectedTheme = null;
+  test('useContextSelector with complex selector', () => {
+    const StateContext = createContext({
+      user: { name: 'John', preferences: { theme: 'dark' } },
+      settings: { notifications: true }
+    });
 
-  Provider(StateContext, {
-    user: { name: 'Jane', preferences: { theme: 'light' } },
-    settings: { notifications: false }
-  }, () => {
-    const theme = useContextSelector(
-      (state) => state.get().user.preferences.theme,
-      StateContext
-    );
-    selectedTheme = theme.get();
+    let selectedTheme = null;
+
+    Provider(StateContext, {
+      user: { name: 'Jane', preferences: { theme: 'light' } },
+      settings: { notifications: false }
+    }, () => {
+      const theme = useContextSelector(
+        (state) => state.get().user.preferences.theme,
+        StateContext
+      );
+      selectedTheme = theme.get();
+    });
+
+    assert.strictEqual(selectedTheme, 'light');
+
+    disposeContext(StateContext);
   });
 
-  assertEqual(selectedTheme, 'light');
+  test('useContextSelector combines multiple contexts', () => {
+    const AuthContext = createContext({ loggedIn: false });
+    const ThemeContext = createContext('light');
+    const LanguageContext = createContext('en');
 
-  disposeContext(StateContext);
-});
+    let combined = null;
 
-test('useContextSelector combines multiple contexts', () => {
-  beforeEach();
+    provideMany([
+      [AuthContext, { loggedIn: true, user: 'admin' }],
+      [ThemeContext, 'dark'],
+      [LanguageContext, 'fr']
+    ], () => {
+      const appState = useContextSelector(
+        (auth, theme, lang) => ({
+          isAdmin: auth.get().user === 'admin',
+          isDark: theme.get() === 'dark',
+          isFrench: lang.get() === 'fr'
+        }),
+        AuthContext,
+        ThemeContext,
+        LanguageContext
+      );
 
-  const AuthContext = createContext({ loggedIn: false });
-  const ThemeContext = createContext('light');
-  const LanguageContext = createContext('en');
+      combined = appState.get();
+    });
 
-  let combined = null;
+    assert.deepStrictEqual(combined, {
+      isAdmin: true,
+      isDark: true,
+      isFrench: true
+    });
 
-  provideMany([
-    [AuthContext, { loggedIn: true, user: 'admin' }],
-    [ThemeContext, 'dark'],
-    [LanguageContext, 'fr']
-  ], () => {
-    const appState = useContextSelector(
-      (auth, theme, lang) => ({
-        isAdmin: auth.get().user === 'admin',
-        isDark: theme.get() === 'dark',
-        isFrench: lang.get() === 'fr'
-      }),
-      AuthContext,
-      ThemeContext,
-      LanguageContext
-    );
-
-    combined = appState.get();
+    disposeContext(AuthContext);
+    disposeContext(ThemeContext);
+    disposeContext(LanguageContext);
   });
-
-  assertDeepEqual(combined, {
-    isAdmin: true,
-    isDark: true,
-    isFrench: true
-  });
-
-  disposeContext(AuthContext);
-  disposeContext(ThemeContext);
-  disposeContext(LanguageContext);
 });
 
 // =============================================================================
 // provideMany Tests
 // =============================================================================
 
-printSection('provideMany Advanced Tests');
+describe('provideMany Advanced Tests', () => {
+  beforeEach(() => {
+    resetContext();
+  });
 
-test('provideMany handles large number of contexts', () => {
-  beforeEach();
+  test('provideMany handles large number of contexts', () => {
+    const contexts = [];
+    const providers = [];
 
-  const contexts = [];
-  const providers = [];
+    // Create 20 contexts
+    for (let i = 0; i < 20; i++) {
+      const ctx = createContext(`default-${i}`);
+      contexts.push(ctx);
+      providers.push([ctx, `value-${i}`]);
+    }
 
-  // Create 20 contexts
-  for (let i = 0; i < 20; i++) {
-    const ctx = createContext(`default-${i}`);
-    contexts.push(ctx);
-    providers.push([ctx, `value-${i}`]);
-  }
+    let capturedValues = [];
 
-  let capturedValues = [];
+    provideMany(providers, () => {
+      capturedValues = contexts.map((ctx) => {
+        return useContext(ctx).get();
+      });
+    });
 
-  provideMany(providers, () => {
-    capturedValues = contexts.map((ctx, i) => {
-      return useContext(ctx).get();
+    // All values should be set
+    for (let i = 0; i < 20; i++) {
+      assert.strictEqual(capturedValues[i], `value-${i}`);
+    }
+
+    // All should be restored
+    contexts.forEach((ctx, i) => {
+      assert.strictEqual(useContext(ctx).get(), `default-${i}`);
+      disposeContext(ctx);
     });
   });
 
-  // All values should be set
-  for (let i = 0; i < 20; i++) {
-    assertEqual(capturedValues[i], `value-${i}`);
-  }
+  test('provideMany with mix of static and pulse values', () => {
+    const StaticContext = createContext('static-default');
+    const ReactiveContext = createContext('reactive-default');
+    const reactivePulse = pulse('reactive-value');
 
-  // All should be restored
-  contexts.forEach((ctx, i) => {
-    assertEqual(useContext(ctx).get(), `default-${i}`);
-    disposeContext(ctx);
+    let values = {};
+
+    provideMany([
+      [StaticContext, 'static-value'],
+      [ReactiveContext, reactivePulse]
+    ], () => {
+      values.static = useContext(StaticContext).get();
+      values.reactive = useContext(ReactiveContext).get();
+
+      // Update reactive
+      reactivePulse.set('updated-reactive');
+      values.updatedReactive = useContext(ReactiveContext).get();
+    });
+
+    assert.strictEqual(values.static, 'static-value');
+    assert.strictEqual(values.reactive, 'reactive-value');
+    assert.strictEqual(values.updatedReactive, 'updated-reactive');
+
+    disposeContext(StaticContext);
+    disposeContext(ReactiveContext);
   });
-});
-
-test('provideMany with mix of static and pulse values', () => {
-  beforeEach();
-
-  const StaticContext = createContext('static-default');
-  const ReactiveContext = createContext('reactive-default');
-  const reactivePulse = pulse('reactive-value');
-
-  let values = {};
-
-  provideMany([
-    [StaticContext, 'static-value'],
-    [ReactiveContext, reactivePulse]
-  ], () => {
-    values.static = useContext(StaticContext).get();
-    values.reactive = useContext(ReactiveContext).get();
-
-    // Update reactive
-    reactivePulse.set('updated-reactive');
-    values.updatedReactive = useContext(ReactiveContext).get();
-  });
-
-  assertEqual(values.static, 'static-value');
-  assertEqual(values.reactive, 'reactive-value');
-  assertEqual(values.updatedReactive, 'updated-reactive');
-
-  disposeContext(StaticContext);
-  disposeContext(ReactiveContext);
 });
 
 // =============================================================================
 // Memory and Cleanup Tests
 // =============================================================================
 
-printSection('Memory and Cleanup Tests');
+describe('Memory and Cleanup Tests', () => {
+  beforeEach(() => {
+    resetContext();
+  });
 
-test('disposeContext cleans up properly', () => {
-  beforeEach();
+  test('disposeContext cleans up properly', () => {
+    const ctx = createContext('test');
 
-  const ctx = createContext('test');
+    assert.ok(isContext(ctx), 'Should be valid context');
 
-  assertTruthy(isContext(ctx), 'Should be valid context');
+    disposeContext(ctx);
 
-  disposeContext(ctx);
+    assert.ok(!isContext(ctx), 'Should not be valid after dispose');
+  });
 
-  assertFalsy(isContext(ctx), 'Should not be valid after dispose');
-});
+  test('multiple disposeContext calls are safe', () => {
+    const ctx = createContext('test');
 
-test('multiple disposeContext calls are safe', () => {
-  beforeEach();
+    disposeContext(ctx);
+    disposeContext(ctx);
+    disposeContext(ctx);
 
-  const ctx = createContext('test');
+    // Should not throw
+    assert.ok(true, 'Multiple dispose calls should be safe');
+  });
 
-  disposeContext(ctx);
-  disposeContext(ctx);
-  disposeContext(ctx);
+  test('using disposed context falls back to default', () => {
+    const ctx = createContext('default-value');
 
-  // Should not throw
-  assertTruthy(true, 'Multiple dispose calls should be safe');
-});
+    // Use before dispose
+    assert.strictEqual(useContext(ctx).get(), 'default-value');
 
-test('using disposed context falls back to default', () => {
-  beforeEach();
+    disposeContext(ctx);
 
-  const ctx = createContext('default-value');
-
-  // Use before dispose
-  assertEqual(useContext(ctx).get(), 'default-value');
-
-  disposeContext(ctx);
-
-  // After dispose, should throw or return default
-  try {
-    const value = useContext(ctx);
-    // If it doesn't throw, should return something safe
-    assertTruthy(true, 'Should handle disposed context');
-  } catch (e) {
-    // Throwing is also acceptable - any error is fine for invalid context
-    assertTruthy(e instanceof Error, 'Should throw an error for disposed context');
-  }
+    // After dispose, should throw or return default
+    try {
+      useContext(ctx);
+      // If it doesn't throw, should return something safe
+      assert.ok(true, 'Should handle disposed context');
+    } catch (e) {
+      // Throwing is also acceptable - any error is fine for invalid context
+      assert.ok(e instanceof Error, 'Should throw an error for disposed context');
+    }
+  });
 });
 
 // =============================================================================
 // Performance Tests
 // =============================================================================
 
-printSection('Performance Tests');
+describe('Performance Tests', () => {
+  beforeEach(() => {
+    resetContext();
+  });
 
-test('rapid context access performance', () => {
-  beforeEach();
+  test('rapid context access performance', () => {
+    const ctx = createContext(0);
 
-  const ctx = createContext(0);
+    Provider(ctx, 42, () => {
+      const start = Date.now();
 
-  Provider(ctx, 42, () => {
+      // Access context 10000 times
+      for (let i = 0; i < 10000; i++) {
+        useContext(ctx).get();
+      }
+
+      const duration = Date.now() - start;
+
+      // Should complete in reasonable time (< 1 second)
+      assert.ok(duration < 1000, `Should be fast, took ${duration}ms`);
+    });
+
+    disposeContext(ctx);
+  });
+
+  test('rapid provider creation performance', () => {
+    const ctx = createContext(0);
     const start = Date.now();
 
-    // Access context 10000 times
-    for (let i = 0; i < 10000; i++) {
-      useContext(ctx).get();
+    // Create many nested providers
+    for (let i = 0; i < 1000; i++) {
+      Provider(ctx, i, () => {
+        useContext(ctx).get();
+      });
     }
 
     const duration = Date.now() - start;
+    assert.ok(duration < 2000, `Should be reasonably fast, took ${duration}ms`);
 
-    // Should complete in reasonable time (< 1 second)
-    assertTruthy(duration < 1000, `Should be fast, took ${duration}ms`);
+    disposeContext(ctx);
   });
-
-  disposeContext(ctx);
-});
-
-test('rapid provider creation performance', () => {
-  beforeEach();
-
-  const ctx = createContext(0);
-  const start = Date.now();
-
-  // Create many nested providers
-  for (let i = 0; i < 1000; i++) {
-    Provider(ctx, i, () => {
-      useContext(ctx).get();
-    });
-  }
-
-  const duration = Date.now() - start;
-  assertTruthy(duration < 2000, `Should be reasonably fast, took ${duration}ms`);
-
-  disposeContext(ctx);
 });
 
 // =============================================================================
 // Edge Cases Tests
 // =============================================================================
 
-printSection('Edge Cases Tests');
-
-test('context with null default value', () => {
-  beforeEach();
-
-  const ctx = createContext(null);
-
-  assertEqual(useContext(ctx).get(), null);
-
-  Provider(ctx, 'provided', () => {
-    assertEqual(useContext(ctx).get(), 'provided');
+describe('Edge Cases Tests', () => {
+  beforeEach(() => {
+    resetContext();
   });
 
-  assertEqual(useContext(ctx).get(), null);
+  test('context with null default value', () => {
+    const ctx = createContext(null);
 
-  disposeContext(ctx);
-});
+    assert.strictEqual(useContext(ctx).get(), null);
 
-test('context with undefined default value', () => {
-  beforeEach();
+    Provider(ctx, 'provided', () => {
+      assert.strictEqual(useContext(ctx).get(), 'provided');
+    });
 
-  const ctx = createContext(undefined);
+    assert.strictEqual(useContext(ctx).get(), null);
 
-  assertEqual(useContext(ctx).get(), undefined);
-
-  Provider(ctx, 'defined', () => {
-    assertEqual(useContext(ctx).get(), 'defined');
+    disposeContext(ctx);
   });
 
-  disposeContext(ctx);
-});
+  test('context with undefined default value', () => {
+    const ctx = createContext(undefined);
 
-test('context with function default value', () => {
-  beforeEach();
+    assert.strictEqual(useContext(ctx).get(), undefined);
 
-  const defaultFn = () => 'default-result';
-  const providedFn = () => 'provided-result';
+    Provider(ctx, 'defined', () => {
+      assert.strictEqual(useContext(ctx).get(), 'defined');
+    });
 
-  const ctx = createContext(defaultFn);
-
-  assertEqual(useContext(ctx).get()(), 'default-result');
-
-  Provider(ctx, providedFn, () => {
-    assertEqual(useContext(ctx).get()(), 'provided-result');
+    disposeContext(ctx);
   });
 
-  disposeContext(ctx);
-});
+  test('context with function default value', () => {
+    const defaultFn = () => 'default-result';
+    const providedFn = () => 'provided-result';
 
-test('context with array default value', () => {
-  beforeEach();
+    const ctx = createContext(defaultFn);
 
-  const ctx = createContext([1, 2, 3]);
+    assert.strictEqual(useContext(ctx).get()(), 'default-result');
 
-  assertDeepEqual(useContext(ctx).get(), [1, 2, 3]);
+    Provider(ctx, providedFn, () => {
+      assert.strictEqual(useContext(ctx).get()(), 'provided-result');
+    });
 
-  Provider(ctx, [4, 5, 6], () => {
-    assertDeepEqual(useContext(ctx).get(), [4, 5, 6]);
+    disposeContext(ctx);
   });
 
-  disposeContext(ctx);
-});
+  test('context with array default value', () => {
+    const ctx = createContext([1, 2, 3]);
 
-test('context displayName for debugging', () => {
-  beforeEach();
+    assert.deepStrictEqual(useContext(ctx).get(), [1, 2, 3]);
 
-  const ctx = createContext('test', { displayName: 'MyTestContext' });
+    Provider(ctx, [4, 5, 6], () => {
+      assert.deepStrictEqual(useContext(ctx).get(), [4, 5, 6]);
+    });
 
-  assertEqual(ctx.displayName, 'MyTestContext');
-
-  disposeContext(ctx);
-});
-
-test('Provider returns children result', () => {
-  beforeEach();
-
-  const ctx = createContext('default');
-
-  const result = Provider(ctx, 'value', () => {
-    return 'child-return-value';
+    disposeContext(ctx);
   });
 
-  assertEqual(result, 'child-return-value');
+  test('context displayName for debugging', () => {
+    const ctx = createContext('test', { displayName: 'MyTestContext' });
 
-  disposeContext(ctx);
-});
+    assert.strictEqual(ctx.displayName, 'MyTestContext');
 
-test('Consumer returns render result', () => {
-  beforeEach();
-
-  const ctx = createContext('default');
-
-  const result = Consumer(ctx, (value) => {
-    return `rendered-${value.get()}`;
+    disposeContext(ctx);
   });
 
-  assertEqual(result, 'rendered-default');
+  test('Provider returns children result', () => {
+    const ctx = createContext('default');
 
-  disposeContext(ctx);
+    const result = Provider(ctx, 'value', () => {
+      return 'child-return-value';
+    });
+
+    assert.strictEqual(result, 'child-return-value');
+
+    disposeContext(ctx);
+  });
+
+  test('Consumer returns render result', () => {
+    const ctx = createContext('default');
+
+    const result = Consumer(ctx, (value) => {
+      return `rendered-${value.get()}`;
+    });
+
+    assert.strictEqual(result, 'rendered-default');
+
+    disposeContext(ctx);
+  });
 });
 
 // =============================================================================
 // Concurrent Usage Tests
 // =============================================================================
 
-printSection('Concurrent Usage Tests');
-
-testAsync('context survives async operations', async () => {
-  beforeEach();
-
-  const ctx = createContext('default');
-
-  let asyncValue = null;
-
-  Provider(ctx, 'async-value', async () => {
-    // Immediate value
-    assertEqual(useContext(ctx).get(), 'async-value');
-
-    await wait(50);
-
-    // After async wait, still in same execution context
-    // Note: This may not work as context is synchronous
-    // but should not crash
-    try {
-      asyncValue = useContext(ctx).get();
-    } catch (e) {
-      asyncValue = 'context-lost';
-    }
+describe('Concurrent Usage Tests', () => {
+  beforeEach(() => {
+    resetContext();
   });
 
-  await wait(100);
+  test('context survives async operations', async () => {
+    const ctx = createContext('default');
 
-  // Context behavior after async may vary
-  assertTruthy(true, 'Should handle async operations');
+    Provider(ctx, 'async-value', async () => {
+      // Immediate value
+      assert.strictEqual(useContext(ctx).get(), 'async-value');
 
-  disposeContext(ctx);
-});
+      await wait(50);
 
-testAsync('multiple independent context trees', async () => {
-  beforeEach();
+      // After async wait, still in same execution context
+      // Note: This may not work as context is synchronous
+      // but should not crash
+      try {
+        useContext(ctx).get();
+      } catch (e) {
+        asyncValue = 'context-lost';
+      }
+    });
 
-  const ctx = createContext('default');
+    await wait(100);
 
-  // Simulate two independent render trees
-  const tree1Result = Provider(ctx, 'tree1', () => {
-    return useContext(ctx).get();
+    // Context behavior after async may vary
+    assert.ok(true, 'Should handle async operations');
+
+    disposeContext(ctx);
   });
 
-  const tree2Result = Provider(ctx, 'tree2', () => {
-    return useContext(ctx).get();
+  test('multiple independent context trees', async () => {
+    const ctx = createContext('default');
+
+    // Simulate two independent render trees
+    const tree1Result = Provider(ctx, 'tree1', () => {
+      return useContext(ctx).get();
+    });
+
+    const tree2Result = Provider(ctx, 'tree2', () => {
+      return useContext(ctx).get();
+    });
+
+    assert.strictEqual(tree1Result, 'tree1');
+    assert.strictEqual(tree2Result, 'tree2');
+
+    disposeContext(ctx);
   });
-
-  assertEqual(tree1Result, 'tree1');
-  assertEqual(tree2Result, 'tree2');
-
-  disposeContext(ctx);
 });
 
 // =============================================================================
 // Error Handling Tests
 // =============================================================================
 
-printSection('Error Handling Tests');
+describe('Error Handling Tests', () => {
+  beforeEach(() => {
+    resetContext();
+  });
 
-test('useContext with invalid context throws', () => {
-  beforeEach();
+  test('useContext with invalid context throws', () => {
+    let threw = false;
 
-  let threw = false;
+    try {
+      useContext(null);
+    } catch (e) {
+      threw = true;
+      assert.ok(e.message.includes('context'), 'Error should mention context');
+    }
 
-  try {
-    useContext(null);
-  } catch (e) {
-    threw = true;
-    assertTruthy(e.message.includes('context'), 'Error should mention context');
-  }
+    assert.ok(threw, 'Should throw for null context');
+  });
 
-  assertTruthy(threw, 'Should throw for null context');
+  test('Provider with invalid context throws', () => {
+    let threw = false;
+
+    try {
+      Provider(null, 'value', () => {});
+    } catch (e) {
+      threw = true;
+    }
+
+    assert.ok(threw, 'Should throw for null context in Provider');
+  });
+
+  test('Consumer with invalid context throws', () => {
+    let threw = false;
+
+    try {
+      Consumer({}, () => {});
+    } catch (e) {
+      threw = true;
+    }
+
+    assert.ok(threw, 'Should throw for invalid context in Consumer');
+  });
 });
-
-test('Provider with invalid context throws', () => {
-  beforeEach();
-
-  let threw = false;
-
-  try {
-    Provider(null, 'value', () => {});
-  } catch (e) {
-    threw = true;
-  }
-
-  assertTruthy(threw, 'Should throw for null context in Provider');
-});
-
-test('Consumer with invalid context throws', () => {
-  beforeEach();
-
-  let threw = false;
-
-  try {
-    Consumer({}, () => {});
-  } catch (e) {
-    threw = true;
-  }
-
-  assertTruthy(threw, 'Should throw for invalid context in Consumer');
-});
-
-// =============================================================================
-// Run Tests
-// =============================================================================
-
-await runAsyncTests();
-printResults();
-exitWithCode();

@@ -3,7 +3,7 @@
  * Demonstrates ThemeContext with useContext
  */
 
-import { useContext } from '../../../../runtime/context.js'
+import { useContext } from 'pulse-js-framework/runtime/context'
 import { ThemeContext, themes } from '../contexts.js'
 
 @component ThemeSection
