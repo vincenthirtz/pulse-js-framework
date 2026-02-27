@@ -657,7 +657,9 @@ export function createWebSocket(url, options = {}) {
 
   function disconnect(code = 1000, reason) {
     intentionalClose = true;
-    opts.reconnect = false;
+    // Note: do NOT mutate opts.reconnect here — intentionalClose flag
+    // is sufficient to prevent reconnection, and mutating opts would
+    // permanently disable reconnect even after a subsequent connect() call
     if (socket && socket.readyState < 2) {
       state.set('closing');
       socket.close(code, reason);

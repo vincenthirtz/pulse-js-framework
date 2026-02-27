@@ -738,6 +738,8 @@ export function useResource(key, fetcher, options = {}) {
       clearInterval(intervalId);
       intervalId = null;
     }
+    // Abort any in-flight fetch to prevent stale updates after dispose
+    versionController.cleanup();
   };
 
   return {
