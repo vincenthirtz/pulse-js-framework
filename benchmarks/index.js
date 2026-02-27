@@ -19,6 +19,7 @@ import fs from 'fs';
 import path from 'path';
 import { pathToFileURL } from 'url';
 import { formatResults } from './utils.js';
+import { resetContext } from '../runtime/pulse.js';
 
 const args = process.argv.slice(2);
 const isJson = args.includes('--json');
@@ -118,6 +119,10 @@ async function main() {
     }
 
     try {
+      // Reset reactive context between suites to prevent accumulated
+      // effects/subscriptions from prior suites causing stack overflows
+      resetContext();
+
       const result = await runFn();
       if (result && !result.skipped) {
         suites.push(result);

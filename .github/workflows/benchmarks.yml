@@ -1,0 +1,209 @@
+name: Benchmarks
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'runtime/**'
+      - 'compiler/**'
+      - 'benchmarks/**'
+      - 'package.json'
+      - 'package-lock.json'
+  push:
+    branches: [develop]
+    paths:
+      - 'runtime/**'
+      - 'compiler/**'
+      - 'benchmarks/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: benchmarks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  benchmark:
+    name: Performance Benchmarks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Restore baseline
+        id: baseline
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: benchmarks/results/baseline.json
+          key: bench-baseline-${{ github.base_ref || 'develop' }}
+          restore-keys: |
+            bench-baseline-develop
+            bench-baseline-
+
+      - name: Run benchmarks (JSON)
+        id: bench
+        run: |
+          if [ -f benchmarks/results/baseline.json ]; then
+            node benchmarks/index.js --json --compare > bench-results.json 2>bench-stderr.txt || true
+          else
+            node benchmarks/index.js --json > bench-results.json 2>bench-stderr.txt
+          fi
+
+          # Extract regression count
+          REGRESSIONS=$(jq '.regressions | length // 0' bench-results.json 2>/dev/null || echo "0")
+          SUITE_COUNT=$(jq '.suites | length' bench-results.json 2>/dev/null || echo "0")
+          echo "regressions=$REGRESSIONS" >> "$GITHUB_OUTPUT"
+          echo "suite_count=$SUITE_COUNT" >> "$GITHUB_OUTPUT"
+
+      - name: Run benchmarks (human-readable)
+        run: |
+          if [ -f benchmarks/results/baseline.json ]; then
+            node benchmarks/index.js --compare 2>/dev/null || true
+          else
+            node benchmarks/index.js 2>/dev/null
+          fi
+
+      - name: Generate summary
+        run: |
+          echo "## Performance Benchmarks" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+          SUITE_COUNT=$(jq '.suites | length' bench-results.json)
+          TOTAL_BENCHMARKS=$(jq '[.suites[].results | length] | add' bench-results.json)
+          NODE_VER=$(jq -r '.node' bench-results.json)
+
+          echo "**Suites:** $SUITE_COUNT | **Benchmarks:** $TOTAL_BENCHMARKS | **Node:** $NODE_VER" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+          # Per-suite summary table
+          echo "| Suite | Benchmarks | Fastest | Slowest |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|-------|-----------|---------|---------|" >> "$GITHUB_STEP_SUMMARY"
+
+          jq -r '.suites[] | "| \(.name) | \(.results | length) | \(.results | min_by(.mean) | .name) (\(.results | min_by(.mean) | .mean)ms) | \(.results | max_by(.mean) | .name) (\(.results | max_by(.mean) | .mean)ms) |"' bench-results.json >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
+
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+          # Regressions
+          REGRESSIONS=$(jq '.regressions // [] | length' bench-results.json)
+          if [ "$REGRESSIONS" -gt 0 ]; then
+            echo "### :warning: Regressions Detected ($REGRESSIONS)" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "| Suite | Benchmark | Baseline | Current | Change |" >> "$GITHUB_STEP_SUMMARY"
+            echo "|-------|-----------|----------|---------|--------|" >> "$GITHUB_STEP_SUMMARY"
+            jq -r '.regressions[] | "| \(.suite) | \(.benchmark) | \(.baseline)ms | \(.current)ms | +\(.changePercent)% |"' bench-results.json >> "$GITHUB_STEP_SUMMARY"
+          else
+            if [ -f benchmarks/results/baseline.json ]; then
+              echo ":white_check_mark: **No performance regressions detected** (threshold: 10%)" >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo ":information_source: No baseline available for comparison. Saving initial baseline." >> "$GITHUB_STEP_SUMMARY"
+            fi
+          fi
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7
+        with:
+          script: |
+            const fs = require('fs');
+            const results = JSON.parse(fs.readFileSync('bench-results.json', 'utf8'));
+            const regressions = results.regressions || [];
+            const suites = results.suites || [];
+            const totalBenchmarks = suites.reduce((sum, s) => sum + (s.results?.length || 0), 0);
+
+            let body = `## Performance Benchmarks\n\n`;
+            body += `**${suites.length} suites** | **${totalBenchmarks} benchmarks** | Node ${results.node}\n\n`;
+
+            if (regressions.length > 0) {
+              body += `### :warning: ${regressions.length} Regression(s) Detected\n\n`;
+              body += `| Suite | Benchmark | Baseline | Current | Change |\n`;
+              body += `|-------|-----------|----------|---------|--------|\n`;
+              for (const r of regressions) {
+                body += `| ${r.suite} | ${r.benchmark} | ${r.baseline}ms | ${r.current}ms | **+${r.changePercent}%** |\n`;
+              }
+            } else {
+              body += `:white_check_mark: No performance regressions detected (threshold: 10%)\n`;
+            }
+
+            body += `\n<details><summary>Suite Results</summary>\n\n`;
+            for (const suite of suites) {
+              body += `**${suite.name}** (${suite.results.length} benchmarks)\n`;
+              body += `| Benchmark | Mean | Ops/s |\n|-----------|------|-------|\n`;
+              for (const r of suite.results) {
+                body += `| ${r.name} | ${r.mean}ms | ${r.opsPerSec.toLocaleString()} |\n`;
+              }
+              body += `\n`;
+            }
+            body += `</details>`;
+
+            // Find existing benchmark comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c => c.body?.startsWith('## Performance Benchmarks'));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+      - name: Fail on regressions
+        if: steps.bench.outputs.regressions != '0' && github.event_name == 'pull_request'
+        run: |
+          echo "::error::${{ steps.bench.outputs.regressions }} performance regression(s) detected (>10% slower than baseline)"
+          exit 1
+
+  # Save baseline on develop push (after merge)
+  update-baseline:
+    name: Update Baseline
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run benchmarks and save baseline
+        run: node benchmarks/index.js --save 2>/dev/null
+
+      - name: Cache baseline
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: benchmarks/results/baseline.json
+          key: bench-baseline-develop

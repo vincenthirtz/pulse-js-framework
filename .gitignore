@@ -13,6 +13,7 @@ test-fixtures-analyze
 coverage
 .test-runner-project
 .test-dev-server
+.test-dev-coverage
 test/.tmp-ssg
 .commit-msg-*.tmp
 .release-notes-*.tmp.md
