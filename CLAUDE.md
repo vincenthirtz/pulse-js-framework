@@ -290,6 +290,7 @@ Detailed API documentation is in `.claude/context/`. These are **never loaded au
 | `api-ssr-server.md` | renderToString, hydrate, streaming SSR, Server Components, Server Actions, PSC wire format, security | Working on SSR, server components, or server actions |
 | `api-a11y-devtools.md` | announce, trapFocus, ARIA widgets, validateA11y, enableDevTools, time-travel, a11y audit | Working on accessibility or devtools |
 | `api-utils.md` | escapeHtml, sanitizeUrl, Logger, LRUCache, DOMAdapter, Errors, Native, HMR, Lite build | Working on utils, security, errors, native, or HMR |
+| `api-animation-persistence-sse.md` | animate, useTransition, useSpring, stagger, configureAnimations, withPersistence, createLocalStorageAdapter, createIndexedDBAdapter, createSSE, useSSE | Working on animations, client-side persistence, or Server-Sent Events |
 | `getting-started.md` | Quick Start, First App tutorial, Testing tutorial | Onboarding or creating examples |
 | `export-map.md` | All import paths for every module | Checking correct import paths |
 | `performance-algorithms.md` | batch(), computed lazy/eager, LIS algorithm, LRU cache, effect cleanup | Optimizing performance or understanding internals |

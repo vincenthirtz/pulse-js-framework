@@ -28,9 +28,17 @@ const BOOLEAN_ATTRS = new Set([
 ]);
 
 /**
- * Attributes that should be skipped during serialization.
+ * Attributes that should be skipped during serialization
+ * (handled separately or not meaningful in server-generated HTML).
  */
 const SKIP_ATTRS = new Set(['class', 'id', 'style']);
+
+/**
+ * Regex matching inline event handler attributes (onclick, onload, etc.).
+ * These have no meaning in server-side rendered HTML and are skipped to
+ * avoid leaking server-side handler references into the output.
+ */
+const ON_ATTR_RE = /^on[a-z]/;
 
 // ============================================================================
 // HTML Escaping
@@ -118,8 +126,10 @@ function serializeAttributes(element) {
   // Other attributes from _attributes Map
   if (element._attributes) {
     for (const [name, value] of element._attributes) {
-      // Skip already handled attributes
+      // Skip already handled attributes and inline event handlers (on* attrs
+      // are meaningless in SSR output and could expose server-side details).
       if (SKIP_ATTRS.has(name)) continue;
+      if (ON_ATTR_RE.test(name)) continue;
 
       if (BOOLEAN_ATTRS.has(name)) {
         // Boolean attributes: present if truthy
@@ -188,8 +198,12 @@ export function serializeToHTML(node, options = {}) {
   // Comment node (nodeType 8)
   if (node.nodeType === 8) {
     const data = node.data ?? node.textContent ?? '';
-    // Escape sequences that could break out of HTML comments
-    const safeData = data.replace(/--/g, '\\u002d\\u002d').replace(/>/g, '\\u003e');
+    // Prevent premature comment close: replace every occurrence of "--" so that
+    // "-->" cannot appear in the output, and escape ">" as an HTML entity so
+    // the sequence can never be reconstructed by a browser.
+    const safeData = String(data)
+      .replace(/--/g, '&#x2D;&#x2D;')
+      .replace(/>/g, '&#x3E;');
     return `${prefix}<!--${safeData}-->`;
   }
 
