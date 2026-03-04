@@ -188,19 +188,48 @@ class EventEmitter {
 }
 
 /**
- * Message queue for offline message buffering
+ * Message queue for offline message buffering.
+ *
+ * Supports three eviction strategies for when the queue is full:
+ * - 'fifo'      : Drop the oldest message (default). Good for streaming data
+ *                 where fresh updates are more valuable than stale ones.
+ * - 'drop-new'  : Silently discard the incoming message. Good for idempotent
+ *                 commands where the first enqueue is the authoritative one.
+ * - 'drop-all'  : Wipe the entire queue before adding the new message. Good
+ *                 for "replace previous state" semantics (e.g. cursor position).
  */
 class MessageQueue {
   #queue = [];
   #maxSize;
+  #evictionStrategy;
 
-  constructor(maxSize = 100) {
+  /**
+   * @param {number} [maxSize=100] - Maximum number of messages to buffer.
+   *   Use 0 to disable queuing entirely (every enqueue is a no-op).
+   * @param {'fifo'|'drop-new'|'drop-all'} [evictionStrategy='fifo']
+   */
+  constructor(maxSize = 100, evictionStrategy = 'fifo') {
     this.#maxSize = maxSize;
+    this.#evictionStrategy = evictionStrategy;
   }
 
   enqueue(message) {
+    // maxSize = 0 means queuing is disabled
+    if (this.#maxSize === 0) return;
+
     if (this.#queue.length >= this.#maxSize) {
-      this.#queue.shift(); // Drop oldest (FIFO overflow)
+      switch (this.#evictionStrategy) {
+        case 'fifo':
+          this.#queue.shift(); // Drop oldest message
+          break;
+        case 'drop-new':
+          return; // Discard the incoming message
+        case 'drop-all':
+          this.#queue = []; // Wipe everything before adding new
+          break;
+        default:
+          this.#queue.shift(); // Safe fallback to FIFO
+      }
     }
     this.#queue.push(message);
   }
@@ -212,6 +241,7 @@ class MessageQueue {
   }
 
   get length() { return this.#queue.length; }
+  get evictionStrategy() { return this.#evictionStrategy; }
   clear() { this.#queue = []; }
 }
 
@@ -301,6 +331,7 @@ const DEFAULT_OPTIONS = {
   // Message handling
   queueWhileDisconnected: true,
   maxQueueSize: 100,
+  queueEvictionStrategy: 'fifo', // 'fifo' | 'drop-new' | 'drop-all'
   messageType: 'json',
   autoParseJson: true
 };
@@ -353,7 +384,7 @@ export function createWebSocket(url, options = {}) {
   // === Internal State ===
   let socket = null;
   let intentionalClose = false;
-  const messageQueue = new MessageQueue(opts.maxQueueSize);
+  const messageQueue = new MessageQueue(opts.maxQueueSize, opts.queueEvictionStrategy);
   const eventEmitter = new EventEmitter();
   const versionController = createVersionedAsync();
 

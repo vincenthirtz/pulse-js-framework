@@ -20,6 +20,11 @@ class PulseColorSettingsPage : ColorSettingsPage {
             AttributesDescriptor("Identifiers//Identifier", PulseSyntaxHighlighter.IDENTIFIER),
             AttributesDescriptor("Identifiers//Component", PulseSyntaxHighlighter.COMPONENT),
             AttributesDescriptor("Directives//Directive (@)", PulseSyntaxHighlighter.DIRECTIVE),
+            AttributesDescriptor("Directives//Event (@click, @on...)", PulseSyntaxHighlighter.EVENT_DIRECTIVE),
+            AttributesDescriptor("Directives//Accessibility (@a11y, @live...)", PulseSyntaxHighlighter.A11Y_DIRECTIVE),
+            AttributesDescriptor("Directives//Router (@link, @outlet...)", PulseSyntaxHighlighter.ROUTER_DIRECTIVE),
+            AttributesDescriptor("Directives//Lifecycle (@mount, @unmount)", PulseSyntaxHighlighter.LIFECYCLE_DIRECTIVE),
+            AttributesDescriptor("Directives//Control flow (@if, @for...)", PulseSyntaxHighlighter.CONTROL_FLOW),
             AttributesDescriptor("Directives//Slot", PulseSyntaxHighlighter.SLOT),
             AttributesDescriptor("Selectors//Class selector (.)", PulseSyntaxHighlighter.CLASS_SELECTOR),
             AttributesDescriptor("Selectors//ID selector (#)", PulseSyntaxHighlighter.ID_SELECTOR),
@@ -52,20 +57,39 @@ view {
   .counter#main {
     h1 "Count: {count}"
 
+    // Event directives
     Button.primary @click(count++) {
       Icon "plus"
       "Increment"
     }
+    input @on(input, handleInput)
+    input @model(name)
 
+    // Control flow
     @if(count > 10) {
       p.warning "High count!"
+    } @else {
+      p "Keep going!"
     }
 
-    @for(item in items) {
+    @each(items as item, index) {
       li "{item.name}"
     }
 
-    slot "actions"
+    // Accessibility directives
+    div @a11y(role=dialog, label="Modal") {
+      .content @live(polite) { "{status}" }
+      .modal @focusTrap { "Trapped content" }
+    }
+
+    // Router directives
+    @link("/home") "Home"
+    @outlet
+
+    // Lifecycle directives
+    div @mount(onReady) @unmount(cleanup) {
+      slot "actions"
+    }
   }
 }
 

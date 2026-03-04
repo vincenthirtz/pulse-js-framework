@@ -3,7 +3,7 @@
  * Demonstrates AuthContext with useContext
  */
 
-import { useContext } from '../../../../runtime/context.js'
+import { useContext } from 'pulse-js-framework/runtime/context'
 import { AuthContext, mockUsers } from '../contexts.js'
 
 @component AuthSection

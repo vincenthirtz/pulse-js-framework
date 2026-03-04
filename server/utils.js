@@ -150,7 +150,15 @@ export function resolveStaticAsset(pathname, distDir, options = {}) {
   const { maxAge = 31536000, immutable = true } = options;
 
   // Security: prevent directory traversal
-  const normalized = pathname.replace(/\.\./g, '').replace(/\/+/g, '/');
+  // Decode percent-encoded sequences first to catch %2e%2e and similar bypasses
+  let decoded;
+  try {
+    decoded = decodeURIComponent(pathname);
+  } catch {
+    // Malformed percent-encoding — reject
+    return null;
+  }
+  const normalized = decoded.replace(/\/+/g, '/');
   const resolvedDist = resolve(distDir) + sep;
   const filePath = resolve(distDir, normalized);
 

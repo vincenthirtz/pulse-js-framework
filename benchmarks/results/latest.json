@@ -1,0 +1,1635 @@
+{
+  "framework": "pulse-js-framework",
+  "timestamp": "2026-03-04T14:44:31.099Z",
+  "node": "v20.20.0",
+  "platform": "linux",
+  "arch": "x64",
+  "suites": [
+    {
+      "name": "A11y",
+      "results": [
+        {
+          "name": "getContrastRatio() hex (1000x)",
+          "iterations": 100,
+          "mean": 0.015,
+          "median": 0.015,
+          "min": 0.014,
+          "max": 0.037,
+          "p95": 0.016,
+          "p99": 0.037,
+          "stddev": 0.003,
+          "opsPerSec": 66469
+        },
+        {
+          "name": "meetsContrastRequirement() (1000x)",
+          "iterations": 100,
+          "mean": 0.111,
+          "median": 0.08,
+          "min": 0.062,
+          "max": 0.629,
+          "p95": 0.277,
+          "p99": 0.629,
+          "stddev": 0.095,
+          "opsPerSec": 9045
+        },
+        {
+          "name": "getContrastRatio() rgb (1000x)",
+          "iterations": 100,
+          "mean": 0.062,
+          "median": 0.054,
+          "min": 0.053,
+          "max": 0.249,
+          "p95": 0.128,
+          "p99": 0.249,
+          "stddev": 0.027,
+          "opsPerSec": 16197
+        },
+        {
+          "name": "announceQueue add+clear (1000x)",
+          "iterations": 100,
+          "mean": 0.147,
+          "median": 0.088,
+          "min": 0.061,
+          "max": 0.773,
+          "p95": 0.461,
+          "p99": 0.773,
+          "stddev": 0.148,
+          "opsPerSec": 6803
+        },
+        {
+          "name": "getContrastRatio() mixed formats (500x)",
+          "iterations": 100,
+          "mean": 0.037,
+          "median": 0.027,
+          "min": 0.026,
+          "max": 0.132,
+          "p95": 0.079,
+          "p99": 0.132,
+          "stddev": 0.021,
+          "opsPerSec": 26824
+        }
+      ],
+      "timestamp": "2026-03-04T14:44:21.623Z"
+    },
+    {
+      "name": "Async",
+      "results": [
+        {
+          "name": "createVersionedAsync() (1000x)",
+          "iterations": 100,
+          "mean": 0.147,
+          "median": 0.125,
+          "min": 0.122,
+          "max": 0.317,
+          "p95": 0.208,
+          "p99": 0.317,
+          "stddev": 0.037,
+          "opsPerSec": 6799
+        },
+        {
+          "name": "versioned begin+abort cycle (1000x)",
+          "iterations": 100,
+          "mean": 0.225,
+          "median": 0.201,
+          "min": 0.187,
+          "max": 0.398,
+          "p95": 0.344,
+          "p99": 0.398,
+          "stddev": 0.048,
+          "opsPerSec": 4448
+        },
+        {
+          "name": "useAsync() creation (200x)",
+          "iterations": 100,
+          "mean": 0.155,
+          "median": 0.129,
+          "min": 0.055,
+          "max": 0.431,
+          "p95": 0.363,
+          "p99": 0.431,
+          "stddev": 0.096,
+          "opsPerSec": 6440
+        },
+        {
+          "name": "useAsync state reads (1000x)",
+          "iterations": 100,
+          "mean": 0.023,
+          "median": 0.003,
+          "min": 0.003,
+          "max": 0.174,
+          "p95": 0.132,
+          "p99": 0.174,
+          "stddev": 0.047,
+          "opsPerSec": 42649
+        },
+        {
+          "name": "useResource() creation (200x)",
+          "iterations": 100,
+          "mean": 1.153,
+          "median": 0.187,
+          "min": 0.149,
+          "max": 9.65,
+          "p95": 7.164,
+          "p99": 9.65,
+          "stddev": 2.206,
+          "opsPerSec": 867
+        },
+        {
+          "name": "getResourceCacheStats() (1000x)",
+          "iterations": 100,
+          "mean": 0.078,
+          "median": 0.035,
+          "min": 0.024,
+          "max": 4.205,
+          "p95": 0.066,
+          "p99": 4.205,
+          "stddev": 0.415,
+          "opsPerSec": 12842
+        },
+        {
+          "name": "useAsync reset() (500x)",
+          "iterations": 100,
+          "mean": 0.243,
+          "median": 0.1,
+          "min": 0.063,
+          "max": 10.214,
+          "p95": 0.302,
+          "p99": 10.214,
+          "stddev": 1.016,
+          "opsPerSec": 4110
+        }
+      ],
+      "timestamp": "2026-03-04T14:44:21.877Z"
+    },
+    {
+      "name": "Compiler",
+      "results": [
+        {
+          "name": "tokenize() simple component",
+          "iterations": 100,
+          "mean": 0.065,
+          "median": 0.057,
+          "min": 0.042,
+          "max": 0.139,
+          "p95": 0.117,
+          "p99": 0.139,
+          "stddev": 0.022,
+          "opsPerSec": 15477
+        },
+        {
+          "name": "tokenize() complex component",
+          "iterations": 100,
+          "mean": 0.51,
+          "median": 0.445,
+          "min": 0.263,
+          "max": 2.691,
+          "p95": 0.916,
+          "p99": 2.691,
+          "stddev": 0.333,
+          "opsPerSec": 1962
+        },
+        {
+          "name": "parse() simple component",
+          "iterations": 100,
+          "mean": 0.088,
+          "median": 0.072,
+          "min": 0.065,
+          "max": 0.562,
+          "p95": 0.144,
+          "p99": 0.562,
+          "stddev": 0.054,
+          "opsPerSec": 11337
+        },
+        {
+          "name": "parse() complex component",
+          "iterations": 100,
+          "mean": 0.901,
+          "median": 0.735,
+          "min": 0.58,
+          "max": 2.079,
+          "p95": 1.509,
+          "p99": 2.079,
+          "stddev": 0.34,
+          "opsPerSec": 1109
+        },
+        {
+          "name": "transform() simple AST",
+          "iterations": 100,
+          "mean": 0.059,
+          "median": 0.047,
+          "min": 0.044,
+          "max": 0.263,
+          "p95": 0.125,
+          "p99": 0.263,
+          "stddev": 0.034,
+          "opsPerSec": 17085
+        },
+        {
+          "name": "transform() complex AST",
+          "iterations": 100,
+          "mean": 0.502,
+          "median": 0.537,
+          "min": 0.302,
+          "max": 1.123,
+          "p95": 0.716,
+          "p99": 1.123,
+          "stddev": 0.148,
+          "opsPerSec": 1992
+        },
+        {
+          "name": "compile() end-to-end simple",
+          "iterations": 100,
+          "mean": 0.196,
+          "median": 0.193,
+          "min": 0.112,
+          "max": 0.858,
+          "p95": 0.282,
+          "p99": 0.858,
+          "stddev": 0.082,
+          "opsPerSec": 5115
+        },
+        {
+          "name": "compile() end-to-end complex",
+          "iterations": 50,
+          "mean": 1.353,
+          "median": 1.081,
+          "min": 0.999,
+          "max": 2.534,
+          "p95": 2.064,
+          "p99": 2.534,
+          "stddev": 0.42,
+          "opsPerSec": 739
+        }
+      ],
+      "timestamp": "2026-03-04T14:44:22.231Z"
+    },
+    {
+      "name": "Context",
+      "results": [
+        {
+          "name": "createContext() (1000x)",
+          "iterations": 100,
+          "mean": 1.054,
+          "median": 0.587,
+          "min": 0.361,
+          "max": 16.843,
+          "p95": 3.937,
+          "p99": 16.843,
+          "stddev": 2.189,
+          "opsPerSec": 949
+        },
+        {
+          "name": "Provider + useContext (500x)",
+          "iterations": 100,
+          "mean": 0.155,
+          "median": 0.061,
+          "min": 0.052,
+          "max": 3.953,
+          "p95": 0.463,
+          "p99": 3.953,
+          "stddev": 0.399,
+          "opsPerSec": 6461
+        },
+        {
+          "name": "nested Provider depth=10 (100x)",
+          "iterations": 100,
+          "mean": 0.15,
+          "median": 0.114,
+          "min": 0.1,
+          "max": 0.517,
+          "p95": 0.305,
+          "p99": 0.517,
+          "stddev": 0.073,
+          "opsPerSec": 6684
+        },
+        {
+          "name": "useContext().get() read (1000x)",
+          "iterations": 100,
+          "mean": 0.019,
+          "median": 0.017,
+          "min": 0.016,
+          "max": 0.049,
+          "p95": 0.028,
+          "p99": 0.049,
+          "stddev": 0.005,
+          "opsPerSec": 52289
+        },
+        {
+          "name": "Consumer() (500x)",
+          "iterations": 100,
+          "mean": 0.098,
+          "median": 0.078,
+          "min": 0.053,
+          "max": 0.442,
+          "p95": 0.23,
+          "p99": 0.442,
+          "stddev": 0.069,
+          "opsPerSec": 10182
+        },
+        {
+          "name": "useContextSelector() 3 contexts (500x)",
+          "iterations": 100,
+          "mean": 1.135,
+          "median": 0.423,
+          "min": 0.364,
+          "max": 9.052,
+          "p95": 8.14,
+          "p99": 9.052,
+          "stddev": 2.068,
+          "opsPerSec": 881
+        },
+        {
+          "name": "provideMany() 5 contexts (200x)",
+          "iterations": 100,
+          "mean": 0.234,
+          "median": 0.171,
+          "min": 0.157,
+          "max": 1.922,
+          "p95": 0.474,
+          "p99": 1.922,
+          "stddev": 0.19,
+          "opsPerSec": 4268
+        }
+      ],
+      "timestamp": "2026-03-04T14:44:22.581Z"
+    },
+    {
+      "name": "DevTools",
+      "results": [
+        {
+          "name": "trackedPulse() creation (1000x)",
+          "iterations": 100,
+          "mean": 1.077,
+          "median": 0.369,
+          "min": 0.228,
+          "max": 14.606,
+          "p95": 5.315,
+          "p99": 14.606,
+          "stddev": 2.095,
+          "opsPerSec": 928
+        },
+        {
+          "name": "trackedPulse set() (1000x)",
+          "iterations": 100,
+          "mean": 0.043,
+          "median": 0.032,
+          "min": 0.029,
+          "max": 0.144,
+          "p95": 0.084,
+          "p99": 0.144,
+          "stddev": 0.02,
+          "opsPerSec": 23323
+        },
+        {
+          "name": "takeSnapshot() (500x)",
+          "iterations": 100,
+          "mean": 0.379,
+          "median": 0.283,
+          "min": 0.265,
+          "max": 5.4,
+          "p95": 0.35,
+          "p99": 5.4,
+          "stddev": 0.632,
+          "opsPerSec": 2640
+        },
+        {
+          "name": "travelTo() back/forward (500x)",
+          "iterations": 100,
+          "mean": 0.146,
+          "median": 0.133,
+          "min": 0.116,
+          "max": 0.702,
+          "p95": 0.204,
+          "p99": 0.702,
+          "stddev": 0.075,
+          "opsPerSec": 6845
+        },
+        {
+          "name": "getHistory() (1000x)",
+          "iterations": 100,
+          "mean": 0.052,
+          "median": 0.041,
+          "min": 0.03,
+          "max": 0.527,
+          "p95": 0.086,
+          "p99": 0.527,
+          "stddev": 0.063,
+          "opsPerSec": 19158
+        },
+        {
+          "name": "getDependencyGraph() (200x)",
+          "iterations": 100,
+          "mean": 0.068,
+          "median": 0.032,
+          "min": 0.027,
+          "max": 0.585,
+          "p95": 0.222,
+          "p99": 0.585,
+          "stddev": 0.084,
+          "opsPerSec": 14641
+        },
+        {
+          "name": "profile() (500x)",
+          "iterations": 100,
+          "mean": 0.156,
+          "median": 0.135,
+          "min": 0.128,
+          "max": 0.965,
+          "p95": 0.343,
+          "p99": 0.965,
+          "stddev": 0.098,
+          "opsPerSec": 6416
+        }
+      ],
+      "timestamp": "2026-03-04T14:44:22.804Z"
+    },
+    {
+      "name": "DOM Creation",
+      "results": [
+        {
+          "name": "el(\"div\") simple (1000x)",
+          "iterations": 100,
+          "mean": 0.358,
+          "median": 0.337,
+          "min": 0.302,
+          "max": 1.035,
+          "p95": 0.629,
+          "p99": 1.035,
+          "stddev": 0.106,
+          "opsPerSec": 2794
+        },
+        {
+          "name": "el(\"div.class#id\") (1000x)",
+          "iterations": 100,
+          "mean": 0.414,
+          "median": 0.385,
+          "min": 0.351,
+          "max": 0.954,
+          "p95": 0.637,
+          "p99": 0.954,
+          "stddev": 0.103,
+          "opsPerSec": 2413
+        },
+        {
+          "name": "el(\"input[type=text]\") (1000x)",
+          "iterations": 100,
+          "mean": 0.771,
+          "median": 0.718,
+          "min": 0.681,
+          "max": 1.766,
+          "p95": 1.183,
+          "p99": 1.766,
+          "stddev": 0.179,
+          "opsPerSec": 1297
+        },
+        {
+          "name": "nested el() depth=5 (100x)",
+          "iterations": 100,
+          "mean": 0.604,
+          "median": 0.551,
+          "min": 0.514,
+          "max": 1.538,
+          "p95": 1.025,
+          "p99": 1.538,
+          "stddev": 0.169,
+          "opsPerSec": 1656
+        },
+        {
+          "name": "el() with reactive text (100x)",
+          "iterations": 100,
+          "mean": 0.417,
+          "median": 0.162,
+          "min": 0.126,
+          "max": 5.536,
+          "p95": 0.639,
+          "p99": 5.536,
+          "stddev": 0.88,
+          "opsPerSec": 2397
+        },
+        {
+          "name": "text() reactive (1000x)",
+          "iterations": 100,
+          "mean": 1.314,
+          "median": 0.384,
+          "min": 0.268,
+          "max": 11.258,
+          "p95": 6.609,
+          "p99": 11.258,
+          "stddev": 2.189,
+          "opsPerSec": 761
+        },
+        {
+          "name": "list() initial render 100 items",
+          "iterations": 100,
+          "mean": 0.498,
+          "median": 0.372,
+          "min": 0.221,
+          "max": 6.813,
+          "p95": 0.593,
+          "p99": 6.813,
+          "stddev": 0.817,
+          "opsPerSec": 2009
+        },
+        {
+          "name": "list() initial render 1000 items",
+          "iterations": 20,
+          "mean": 12.443,
+          "median": 11.405,
+          "min": 11.263,
+          "max": 16.962,
+          "p95": 16.962,
+          "p99": 16.962,
+          "stddev": 2.112,
+          "opsPerSec": 80
+        },
+        {
+          "name": "when() toggle 100x",
+          "iterations": 100,
+          "mean": 0.342,
+          "median": 0.268,
+          "min": 0.137,
+          "max": 4.217,
+          "p95": 0.532,
+          "p99": 4.217,
+          "stddev": 0.416,
+          "opsPerSec": 2922
+        }
+      ],
+      "timestamp": "2026-03-04T14:44:23.760Z"
+    },
+    {
+      "name": "DOM List Features",
+      "results": [
+        {
+          "name": "list (no recycle) remove+add 50 items",
+          "iterations": 100,
+          "mean": 0.601,
+          "median": 0.424,
+          "min": 0.347,
+          "max": 4.842,
+          "p95": 1.018,
+          "p99": 4.842,
+          "stddev": 0.661,
+          "opsPerSec": 1663
+        },
+        {
+          "name": "list (recycle) remove+add 50 items",
+          "iterations": 100,
+          "mean": 0.765,
+          "median": 0.451,
+          "min": 0.415,
+          "max": 5.195,
+          "p95": 1.413,
+          "p99": 5.195,
+          "stddev": 0.795,
+          "opsPerSec": 1307
+        },
+        {
+          "name": "list() + individual handlers (100 items)",
+          "iterations": 100,
+          "mean": 0.333,
+          "median": 0.223,
+          "min": 0.207,
+          "max": 5.742,
+          "p95": 0.277,
+          "p99": 5.742,
+          "stddev": 0.736,
+          "opsPerSec": 3000
+        },
+        {
+          "name": "delegatedList() single handler (100 items)",
+          "iterations": 100,
+          "mean": 0.64,
+          "median": 0.283,
+          "min": 0.207,
+          "max": 6.204,
+          "p95": 1.837,
+          "p99": 6.204,
+          "stddev": 0.906,
+          "opsPerSec": 1562
+        },
+        {
+          "name": "delegatedList() + recycle (100 items, churn 50)",
+          "iterations": 100,
+          "mean": 0.808,
+          "median": 0.495,
+          "min": 0.433,
+          "max": 5.291,
+          "p95": 3.403,
+          "p99": 5.291,
+          "stddev": 0.793,
+          "opsPerSec": 1237
+        },
+        {
+          "name": "pool acquire+release cycle (1000x)",
+          "iterations": 100,
+          "mean": 0.253,
+          "median": 0.154,
+          "min": 0.148,
+          "max": 2.853,
+          "p95": 0.42,
+          "p99": 2.853,
+          "stddev": 0.304,
+          "opsPerSec": 3952
+        }
+      ],
+      "timestamp": "2026-03-04T14:44:24.154Z"
+    },
+    {
+      "name": "Form",
+      "results": [
+        {
+          "name": "useForm() 5 fields",
+          "iterations": 100,
+          "mean": 0.024,
+          "median": 0.023,
+          "min": 0.022,
+          "max": 0.042,
+          "p95": 0.028,
+          "p99": 0.042,
+          "stddev": 0.003,
+          "opsPerSec": 41430
+        },
+        {
+          "name": "useForm() 20 fields",
+          "iterations": 50,
+          "mean": 0.077,
+          "median": 0.077,
+          "min": 0.057,
+          "max": 0.118,
+          "p95": 0.103,
+          "p99": 0.118,
+          "stddev": 0.013,
+          "opsPerSec": 12959
+        },
+        {
+          "name": "validators.required() (1000x)",
+          "iterations": 100,
+          "mean": 0.007,
+          "median": 0.003,
+          "min": 0.002,
+          "max": 0.075,
+          "p95": 0.052,
+          "p99": 0.075,
+          "stddev": 0.014,
+          "opsPerSec": 153646
+        },
+        {
+          "name": "validator chain 5 rules (1000x)",
+          "iterations": 100,
+          "mean": 0.153,
+          "median": 0.136,
+          "min": 0.133,
+          "max": 0.582,
+          "p95": 0.154,
+          "p99": 0.582,
+          "stddev": 0.074,
+          "opsPerSec": 6550
+        },
+        {
+          "name": "field.setValue() with validation (500x)",
+          "iterations": 100,
+          "mean": 0.446,
+          "median": 0.436,
+          "min": 0.228,
+          "max": 1.568,
+          "p95": 0.613,
+          "p99": 1.568,
+          "stddev": 0.154,
+          "opsPerSec": 2240
+        },
+        {
+          "name": "form reset() 10 fields",
+          "iterations": 100,
+          "mean": 0.266,
+          "median": 0.213,
+          "min": 0.101,
+          "max": 3.773,
+          "p95": 0.411,
+          "p99": 3.773,
+          "stddev": 0.363,
+          "opsPerSec": 3761
+        },
+        {
+          "name": "handleSubmit() 10 fields",
+          "iterations": 100,
+          "mean": 1.205,
+          "median": 0.806,
+          "min": 0.745,
+          "max": 5.82,
+          "p95": 5.437,
+          "p99": 5.82,
+          "stddev": 1.191,
+          "opsPerSec": 830
+        }
+      ],
+      "timestamp": "2026-03-04T14:44:24.466Z"
+    },
+    {
+      "name": "GraphQL",
+      "results": [
+        {
+          "name": "generateCacheKey() (1000x)",
+          "iterations": 100,
+          "mean": 1.53,
+          "median": 1.459,
+          "min": 1.422,
+          "max": 2.642,
+          "p95": 1.872,
+          "p99": 2.642,
+          "stddev": 0.206,
+          "opsPerSec": 654
+        },
+        {
+          "name": "extractOperationName() (1000x)",
+          "iterations": 100,
+          "mean": 0.068,
+          "median": 0.053,
+          "min": 0.051,
+          "max": 0.668,
+          "p95": 0.077,
+          "p99": 0.668,
+          "stddev": 0.076,
+          "opsPerSec": 14791
+        },
+        {
+          "name": "createGraphQLClient() (200x)",
+          "iterations": 100,
+          "mean": 0.36,
+          "median": 0.32,
+          "min": 0.29,
+          "max": 0.948,
+          "p95": 0.831,
+          "p99": 0.948,
+          "stddev": 0.142,
+          "opsPerSec": 2780
+        },
+        {
+          "name": "GraphQLError methods (1000x)",
+          "iterations": 100,
+          "mean": 0.118,
+          "median": 0.049,
+          "min": 0.036,
+          "max": 0.525,
+          "p95": 0.22,
+          "p99": 0.525,
+          "stddev": 0.092,
+          "opsPerSec": 8483
+        },
+        {
+          "name": "generateCacheKey() complex vars (500x)",
+          "iterations": 100,
+          "mean": 2.807,
+          "median": 2.717,
+          "min": 2.632,
+          "max": 3.248,
+          "p95": 3.108,
+          "p99": 3.248,
+          "stddev": 0.172,
+          "opsPerSec": 356
+        }
+      ],
+      "timestamp": "2026-03-04T14:44:25.056Z"
+    },
+    {
+      "name": "HTTP",
+      "results": [
+        {
+          "name": "createHttp() (500x)",
+          "iterations": 100,
+          "mean": 0.105,
+          "median": 0.066,
+          "min": 0.062,
+          "max": 0.555,
+          "p95": 0.29,
+          "p99": 0.555,
+          "stddev": 0.097,
+          "opsPerSec": 9486
+        },
+        {
+          "name": "client.create() derived (500x)",
+          "iterations": 100,
+          "mean": 0.408,
+          "median": 0.356,
+          "min": 0.339,
+          "max": 1.901,
+          "p95": 0.495,
+          "p99": 1.901,
+          "stddev": 0.228,
+          "opsPerSec": 2451
+        },
+        {
+          "name": "client.getUri() (1000x)",
+          "iterations": 100,
+          "mean": 3.567,
+          "median": 2.974,
+          "min": 2.911,
+          "max": 12.285,
+          "p95": 5.494,
+          "p99": 12.285,
+          "stddev": 1.433,
+          "opsPerSec": 280
+        },
+        {
+          "name": "interceptor use() (1000x)",
+          "iterations": 100,
+          "mean": 0.128,
+          "median": 0.066,
+          "min": 0.042,
+          "max": 1.091,
+          "p95": 0.237,
+          "p99": 1.091,
+          "stddev": 0.125,
+          "opsPerSec": 7813
+        },
+        {
+          "name": "interceptor use+eject cycle (500x)",
+          "iterations": 100,
+          "mean": 0.073,
+          "median": 0.067,
+          "min": 0.032,
+          "max": 0.537,
+          "p95": 0.142,
+          "p99": 0.537,
+          "stddev": 0.058,
+          "opsPerSec": 13733
+        },
+        {
+          "name": "client.isCancel() (1000x)",
+          "iterations": 100,
+          "mean": 0.03,
+          "median": 0.031,
+          "min": 0.01,
+          "max": 0.111,
+          "p95": 0.033,
+          "p99": 0.111,
+          "stddev": 0.01,
+          "opsPerSec": 33124
+        }
+      ],
+      "timestamp": "2026-03-04T14:44:25.557Z"
+    },
+    {
+      "name": "List Reconciliation",
+      "results": [
+        {
+          "name": "computeLIS n=100",
+          "iterations": 100,
+          "mean": 0.038,
+          "median": 0.035,
+          "min": 0.032,
+          "max": 0.065,
+          "p95": 0.049,
+          "p99": 0.065,
+          "stddev": 0.007,
+          "opsPerSec": 26607
+        },
+        {
+          "name": "computeLIS n=1000",
+          "iterations": 100,
+          "mean": 0.091,
+          "median": 0.09,
+          "min": 0.088,
+          "max": 0.098,
+          "p95": 0.097,
+          "p99": 0.098,
+          "stddev": 0.002,
+          "opsPerSec": 11025
+        },
+        {
+          "name": "list append 10 items (to 100)",
+          "iterations": 100,
+          "mean": 0.588,
+          "median": 0.604,
+          "min": 0.231,
+          "max": 5.122,
+          "p95": 0.662,
+          "p99": 5.122,
+          "stddev": 0.666,
+          "opsPerSec": 1700
+        },
+        {
+          "name": "list prepend 10 items (to 100)",
+          "iterations": 100,
+          "mean": 0.383,
+          "median": 0.257,
+          "min": 0.232,
+          "max": 4.4,
+          "p95": 0.502,
+          "p99": 4.4,
+          "stddev": 0.564,
+          "opsPerSec": 2612
+        },
+        {
+          "name": "list remove 10 items (from 100)",
+          "iterations": 100,
+          "mean": 0.317,
+          "median": 0.233,
+          "min": 0.219,
+          "max": 4.231,
+          "p95": 0.287,
+          "p99": 4.231,
+          "stddev": 0.552,
+          "opsPerSec": 3152
+        },
+        {
+          "name": "list reverse 100 items",
+          "iterations": 100,
+          "mean": 0.67,
+          "median": 0.507,
+          "min": 0.404,
+          "max": 4.984,
+          "p95": 0.971,
+          "p99": 4.984,
+          "stddev": 0.686,
+          "opsPerSec": 1493
+        },
+        {
+          "name": "list shuffle 100 items",
+          "iterations": 100,
+          "mean": 0.753,
+          "median": 0.533,
+          "min": 0.431,
+          "max": 5.063,
+          "p95": 1.121,
+          "p99": 5.063,
+          "stddev": 0.631,
+          "opsPerSec": 1328
+        },
+        {
+          "name": "list swap 2 items (in 100)",
+          "iterations": 100,
+          "mean": 0.536,
+          "median": 0.434,
+          "min": 0.415,
+          "max": 5.571,
+          "p95": 0.497,
+          "p99": 5.571,
+          "stddev": 0.663,
+          "opsPerSec": 1865
+        },
+        {
+          "name": "list clear + repopulate 100 items",
+          "iterations": 100,
+          "mean": 0.659,
+          "median": 0.546,
+          "min": 0.448,
+          "max": 4.859,
+          "p95": 1.125,
+          "p99": 4.859,
+          "stddev": 0.634,
+          "opsPerSec": 1518
+        }
+      ],
+      "timestamp": "2026-03-04T14:44:26.008Z"
+    },
+    {
+      "name": "Reactivity",
+      "results": [
+        {
+          "name": "pulse creation (1000x)",
+          "iterations": 100,
+          "mean": 0.057,
+          "median": 0.029,
+          "min": 0.025,
+          "max": 2.107,
+          "p95": 0.09,
+          "p99": 2.107,
+          "stddev": 0.207,
+          "opsPerSec": 17431
+        },
+        {
+          "name": "pulse.get() standalone (10000x)",
+          "iterations": 100,
+          "mean": 0.024,
+          "median": 0.023,
+          "min": 0.023,
+          "max": 0.053,
+          "p95": 0.026,
+          "p99": 0.053,
+          "stddev": 0.003,
+          "opsPerSec": 41796
+        },
+        {
+          "name": "pulse.set() no subscribers (10000x)",
+          "iterations": 100,
+          "mean": 0.138,
+          "median": 0.123,
+          "min": 0.116,
+          "max": 0.567,
+          "p95": 0.237,
+          "p99": 0.567,
+          "stddev": 0.065,
+          "opsPerSec": 7255
+        },
+        {
+          "name": "pulse.set() + 1 effect (1000x)",
+          "iterations": 100,
+          "mean": 0.223,
+          "median": 0.188,
+          "min": 0.162,
+          "max": 1.11,
+          "p95": 0.445,
+          "p99": 1.11,
+          "stddev": 0.132,
+          "opsPerSec": 4482
+        },
+        {
+          "name": "pulse.set() + 10 effects (1000x)",
+          "iterations": 100,
+          "mean": 1.687,
+          "median": 1.325,
+          "min": 1.156,
+          "max": 14.948,
+          "p95": 2.608,
+          "p99": 14.948,
+          "stddev": 1.551,
+          "opsPerSec": 593
+        },
+        {
+          "name": "pulse.get() repeated in effect (100x reads)",
+          "iterations": 100,
+          "mean": 0.121,
+          "median": 0.081,
+          "min": 0.073,
+          "max": 0.186,
+          "p95": 0.18,
+          "p99": 0.186,
+          "stddev": 0.046,
+          "opsPerSec": 8293
+        },
+        {
+          "name": "computed creation (1000x)",
+          "iterations": 100,
+          "mean": 1.37,
+          "median": 0.515,
+          "min": 0.423,
+          "max": 6.917,
+          "p95": 6.759,
+          "p99": 6.917,
+          "stddev": 2.063,
+          "opsPerSec": 730
+        },
+        {
+          "name": "computed chain depth=10 (100x updates)",
+          "iterations": 100,
+          "mean": 6.719,
+          "median": 6.448,
+          "min": 5.454,
+          "max": 11.137,
+          "p95": 8.072,
+          "p99": 11.137,
+          "stddev": 0.86,
+          "opsPerSec": 149
+        },
+        {
+          "name": "batch 100 pulses",
+          "iterations": 100,
+          "mean": 0.082,
+          "median": 0.069,
+          "min": 0.045,
+          "max": 1.195,
+          "p95": 0.102,
+          "p99": 1.195,
+          "stddev": 0.113,
+          "opsPerSec": 12251
+        },
+        {
+          "name": "diamond deps (A -> B,C -> D) 100x",
+          "iterations": 100,
+          "mean": 0.144,
+          "median": 0.106,
+          "min": 0.09,
+          "max": 1.882,
+          "p95": 0.224,
+          "p99": 1.882,
+          "stddev": 0.179,
+          "opsPerSec": 6965
+        },
+        {
+          "name": "effect reads 50 pulses (100x updates)",
+          "iterations": 100,
+          "mean": 0.556,
+          "median": 0.467,
+          "min": 0.436,
+          "max": 1.662,
+          "p95": 1.175,
+          "p99": 1.662,
+          "stddev": 0.232,
+          "opsPerSec": 1799
+        },
+        {
+          "name": "watch() single pulse (1000x updates)",
+          "iterations": 100,
+          "mean": 0.227,
+          "median": 0.184,
+          "min": 0.174,
+          "max": 0.939,
+          "p95": 0.56,
+          "p99": 0.939,
+          "stddev": 0.131,
+          "opsPerSec": 4400
+        },
+        {
+          "name": "watch() 5 pulses (100x updates)",
+          "iterations": 100,
+          "mean": 0.073,
+          "median": 0.069,
+          "min": 0.062,
+          "max": 0.128,
+          "p95": 0.102,
+          "p99": 0.128,
+          "stddev": 0.012,
+          "opsPerSec": 13681
+        },
+        {
+          "name": "createState creation + access (1000x)",
+          "iterations": 100,
+          "mean": 2.461,
+          "median": 1.516,
+          "min": 1.374,
+          "max": 8.555,
+          "p95": 7.383,
+          "p99": 8.555,
+          "stddev": 1.956,
+          "opsPerSec": 406
+        },
+        {
+          "name": "createState mutations (1000x)",
+          "iterations": 100,
+          "mean": 0.087,
+          "median": 0.085,
+          "min": 0.083,
+          "max": 0.193,
+          "p95": 0.091,
+          "p99": 0.193,
+          "stddev": 0.011,
+          "opsPerSec": 11557
+        },
+        {
+          "name": "memo() cached calls (10000x)",
+          "iterations": 100,
+          "mean": 0.191,
+          "median": 0.167,
+          "min": 0.149,
+          "max": 0.802,
+          "p95": 0.409,
+          "p99": 0.802,
+          "stddev": 0.086,
+          "opsPerSec": 5229
+        },
+        {
+          "name": "memo() cache miss (1000x)",
+          "iterations": 100,
+          "mean": 0.034,
+          "median": 0.032,
+          "min": 0.02,
+          "max": 0.076,
+          "p95": 0.058,
+          "p99": 0.076,
+          "stddev": 0.012,
+          "opsPerSec": 29216
+        },
+        {
+          "name": "subscribe() + batch (100x)",
+          "iterations": 100,
+          "mean": 0.07,
+          "median": 0.027,
+          "min": 0.024,
+          "max": 0.674,
+          "p95": 0.147,
+          "p99": 0.674,
+          "stddev": 0.077,
+          "opsPerSec": 14270
+        }
+      ],
+      "timestamp": "2026-03-04T14:44:27.672Z"
+    },
+    {
+      "name": "Router",
+      "results": [
+        {
+          "name": "matchRoute() static (1000x)",
+          "iterations": 100,
+          "mean": 2.709,
+          "median": 2.661,
+          "min": 2.514,
+          "max": 3.708,
+          "p95": 3.045,
+          "p99": 3.708,
+          "stddev": 0.168,
+          "opsPerSec": 369
+        },
+        {
+          "name": "matchRoute() dynamic params (1000x)",
+          "iterations": 100,
+          "mean": 5.53,
+          "median": 5.419,
+          "min": 5.343,
+          "max": 5.994,
+          "p95": 5.903,
+          "p99": 5.994,
+          "stddev": 0.21,
+          "opsPerSec": 181
+        },
+        {
+          "name": "matchRoute() wildcard (1000x)",
+          "iterations": 100,
+          "mean": 2.222,
+          "median": 2.2,
+          "min": 1.979,
+          "max": 2.718,
+          "p95": 2.684,
+          "p99": 2.718,
+          "stddev": 0.157,
+          "opsPerSec": 450
+        },
+        {
+          "name": "matchRoute() miss (1000x)",
+          "iterations": 100,
+          "mean": 3.213,
+          "median": 3.141,
+          "min": 3.035,
+          "max": 3.799,
+          "p95": 3.613,
+          "p99": 3.799,
+          "stddev": 0.173,
+          "opsPerSec": 311
+        },
+        {
+          "name": "parseQuery() simple (1000x)",
+          "iterations": 100,
+          "mean": 0.835,
+          "median": 0.799,
+          "min": 0.771,
+          "max": 1.321,
+          "p95": 1.214,
+          "p99": 1.321,
+          "stddev": 0.119,
+          "opsPerSec": 1197
+        },
+        {
+          "name": "parseQuery() complex (1000x)",
+          "iterations": 100,
+          "mean": 4.244,
+          "median": 4.137,
+          "min": 4.087,
+          "max": 4.612,
+          "p95": 4.56,
+          "p99": 4.612,
+          "stddev": 0.187,
+          "opsPerSec": 236
+        },
+        {
+          "name": "buildQueryString() (1000x)",
+          "iterations": 100,
+          "mean": 1.147,
+          "median": 1.106,
+          "min": 1.084,
+          "max": 1.657,
+          "p95": 1.558,
+          "p99": 1.657,
+          "stddev": 0.133,
+          "opsPerSec": 872
+        },
+        {
+          "name": "createRouter() 30 routes",
+          "iterations": 50,
+          "mean": 0.171,
+          "median": 0.148,
+          "min": 0.139,
+          "max": 0.31,
+          "p95": 0.262,
+          "p99": 0.31,
+          "stddev": 0.045,
+          "opsPerSec": 5845
+        }
+      ],
+      "timestamp": "2026-03-04T14:44:29.923Z"
+    },
+    {
+      "name": "Source Map",
+      "results": [
+        {
+          "name": "encodeVLQ() (10000x)",
+          "iterations": 100,
+          "mean": 0.321,
+          "median": 0.278,
+          "min": 0.26,
+          "max": 2.003,
+          "p95": 0.595,
+          "p99": 2.003,
+          "stddev": 0.205,
+          "opsPerSec": 3120
+        },
+        {
+          "name": "encodeVLQ() large values (1000x)",
+          "iterations": 100,
+          "mean": 0.15,
+          "median": 0.142,
+          "min": 0.14,
+          "max": 0.614,
+          "p95": 0.155,
+          "p99": 0.614,
+          "stddev": 0.047,
+          "opsPerSec": 6670
+        },
+        {
+          "name": "SourceMapGenerator 50 mappings",
+          "iterations": 100,
+          "mean": 0.058,
+          "median": 0.049,
+          "min": 0.031,
+          "max": 0.629,
+          "p95": 0.078,
+          "p99": 0.629,
+          "stddev": 0.059,
+          "opsPerSec": 17308
+        },
+        {
+          "name": "SourceMapGenerator 1000 mappings",
+          "iterations": 50,
+          "mean": 0.203,
+          "median": 0.14,
+          "min": 0.133,
+          "max": 1.072,
+          "p95": 0.556,
+          "p99": 1.072,
+          "stddev": 0.193,
+          "opsPerSec": 4935
+        },
+        {
+          "name": "SourceMapConsumer lookup (1000x)",
+          "iterations": 100,
+          "mean": 0.289,
+          "median": 0.221,
+          "min": 0.189,
+          "max": 1.24,
+          "p95": 0.441,
+          "p99": 1.24,
+          "stddev": 0.145,
+          "opsPerSec": 3462
+        },
+        {
+          "name": "SourceMapGenerator toJSON() (500x)",
+          "iterations": 100,
+          "mean": 4.253,
+          "median": 4.228,
+          "min": 3.892,
+          "max": 8.25,
+          "p95": 4.352,
+          "p99": 8.25,
+          "stddev": 0.414,
+          "opsPerSec": 235
+        },
+        {
+          "name": "SourceMapGenerator toComment() (200x)",
+          "iterations": 100,
+          "mean": 1.384,
+          "median": 1.251,
+          "min": 1.213,
+          "max": 2.726,
+          "p95": 1.916,
+          "p99": 2.726,
+          "stddev": 0.275,
+          "opsPerSec": 722
+        }
+      ],
+      "timestamp": "2026-03-04T14:44:30.678Z"
+    },
+    {
+      "name": "SSR",
+      "results": [
+        {
+          "name": "renderToStringSync simple component",
+          "iterations": 100,
+          "mean": 0.008,
+          "median": 0.007,
+          "min": 0.006,
+          "max": 0.065,
+          "p95": 0.011,
+          "p99": 0.065,
+          "stddev": 0.006,
+          "opsPerSec": 129009
+        },
+        {
+          "name": "renderToStringSync with state",
+          "iterations": 100,
+          "mean": 0.011,
+          "median": 0.011,
+          "min": 0.01,
+          "max": 0.037,
+          "p95": 0.013,
+          "p99": 0.037,
+          "stddev": 0.003,
+          "opsPerSec": 90224
+        },
+        {
+          "name": "renderToStringSync list 100 items",
+          "iterations": 20,
+          "mean": 0.612,
+          "median": 0.514,
+          "min": 0.482,
+          "max": 1.179,
+          "p95": 1.179,
+          "p99": 1.179,
+          "stddev": 0.211,
+          "opsPerSec": 1635
+        },
+        {
+          "name": "serializeState (small)",
+          "iterations": 100,
+          "mean": 0.008,
+          "median": 0.007,
+          "min": 0.006,
+          "max": 0.024,
+          "p95": 0.009,
+          "p99": 0.024,
+          "stddev": 0.002,
+          "opsPerSec": 132761
+        },
+        {
+          "name": "serializeState (100 items)",
+          "iterations": 100,
+          "mean": 0.262,
+          "median": 0.225,
+          "min": 0.159,
+          "max": 0.573,
+          "p95": 0.484,
+          "p99": 0.573,
+          "stddev": 0.105,
+          "opsPerSec": 3818
+        }
+      ],
+      "timestamp": "2026-03-04T14:44:30.735Z"
+    },
+    {
+      "name": "Store",
+      "results": [
+        {
+          "name": "createStore() 10 props",
+          "iterations": 100,
+          "mean": 0.013,
+          "median": 0.006,
+          "min": 0.006,
+          "max": 0.673,
+          "p95": 0.009,
+          "p99": 0.673,
+          "stddev": 0.066,
+          "opsPerSec": 76482
+        },
+        {
+          "name": "createStore() 100 props",
+          "iterations": 50,
+          "mean": 0.108,
+          "median": 0.091,
+          "min": 0.087,
+          "max": 0.2,
+          "p95": 0.18,
+          "p99": 0.2,
+          "stddev": 0.032,
+          "opsPerSec": 9280
+        },
+        {
+          "name": "store.get() read (10000x)",
+          "iterations": 100,
+          "mean": 0.075,
+          "median": 0.073,
+          "min": 0.071,
+          "max": 0.111,
+          "p95": 0.092,
+          "p99": 0.111,
+          "stddev": 0.006,
+          "opsPerSec": 13269
+        },
+        {
+          "name": "store.set() write (1000x)",
+          "iterations": 100,
+          "mean": 0.036,
+          "median": 0.032,
+          "min": 0.031,
+          "max": 0.077,
+          "p95": 0.061,
+          "p99": 0.077,
+          "stddev": 0.009,
+          "opsPerSec": 28004
+        },
+        {
+          "name": "store.set() with effect (1000x)",
+          "iterations": 100,
+          "mean": 0.185,
+          "median": 0.172,
+          "min": 0.157,
+          "max": 0.839,
+          "p95": 0.219,
+          "p99": 0.839,
+          "stddev": 0.069,
+          "opsPerSec": 5411
+        },
+        {
+          "name": "$setState() batch 10 props",
+          "iterations": 100,
+          "mean": 0.308,
+          "median": 0.207,
+          "min": 0.198,
+          "max": 2.156,
+          "p95": 0.665,
+          "p99": 2.156,
+          "stddev": 0.306,
+          "opsPerSec": 3248
+        },
+        {
+          "name": "createActions() dispatch (1000x)",
+          "iterations": 100,
+          "mean": 0.078,
+          "median": 0.071,
+          "min": 0.064,
+          "max": 0.22,
+          "p95": 0.136,
+          "p99": 0.22,
+          "stddev": 0.025,
+          "opsPerSec": 12892
+        },
+        {
+          "name": "createGetters() access (1000x)",
+          "iterations": 100,
+          "mean": 0.061,
+          "median": 0.041,
+          "min": 0.007,
+          "max": 1.677,
+          "p95": 0.085,
+          "p99": 1.677,
+          "stddev": 0.165,
+          "opsPerSec": 16516
+        },
+        {
+          "name": "combineStores() 5 modules",
+          "iterations": 50,
+          "mean": 0.012,
+          "median": 0.011,
+          "min": 0.011,
+          "max": 0.026,
+          "p95": 0.012,
+          "p99": 0.026,
+          "stddev": 0.002,
+          "opsPerSec": 86890
+        }
+      ],
+      "timestamp": "2026-03-04T14:44:30.845Z"
+    },
+    {
+      "name": "WebSocket",
+      "results": [
+        {
+          "name": "createWebSocket() (200x)",
+          "iterations": 100,
+          "mean": 1.81,
+          "median": 0.637,
+          "min": 0.511,
+          "max": 10.524,
+          "p95": 6.731,
+          "p99": 10.524,
+          "stddev": 2.353,
+          "opsPerSec": 552
+        },
+        {
+          "name": "ws state reads (1000x)",
+          "iterations": 100,
+          "mean": 0.09,
+          "median": 0.084,
+          "min": 0.073,
+          "max": 0.234,
+          "p95": 0.106,
+          "p99": 0.234,
+          "stddev": 0.018,
+          "opsPerSec": 11119
+        },
+        {
+          "name": "WebSocketError methods (1000x)",
+          "iterations": 100,
+          "mean": 0.04,
+          "median": 0.022,
+          "min": 0.021,
+          "max": 0.141,
+          "p95": 0.092,
+          "p99": 0.141,
+          "stddev": 0.031,
+          "opsPerSec": 25099
+        },
+        {
+          "name": "ws interceptor use (500x)",
+          "iterations": 100,
+          "mean": 0.342,
+          "median": 0.195,
+          "min": 0.186,
+          "max": 5.403,
+          "p95": 0.533,
+          "p99": 5.403,
+          "stddev": 0.714,
+          "opsPerSec": 2924
+        }
+      ],
+      "timestamp": "2026-03-04T14:44:31.099Z"
+    }
+  ]
+}

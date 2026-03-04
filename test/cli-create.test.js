@@ -6,15 +6,8 @@
  * @module test/cli-create
  */
 
-import {
-  test,
-  assert,
-  assertEqual,
-  assertDeepEqual,
-  printResults,
-  exitWithCode,
-  printSection
-} from './utils.js';
+import { test, describe } from 'node:test';
+import assert from 'node:assert';
 import { existsSync, mkdirSync, readFileSync, rmSync, readdirSync } from 'fs';
 import { join } from 'path';
 import { parseArgs } from '../cli/utils/file-utils.js';
@@ -53,7 +46,7 @@ function cleanupTestDir() {
 function verifyProjectStructure(projectPath, expectedFiles) {
   for (const file of expectedFiles) {
     const filePath = join(projectPath, file);
-    assert(existsSync(filePath), `Project should have ${file}`);
+    assert.ok(existsSync(filePath), `Project should have ${file}`);
   }
 }
 
@@ -86,202 +79,201 @@ const TEMPLATES = {
 // parseArgs Tests for Create Command
 // =============================================================================
 
-printSection('parseArgs Tests for Create Command');
+describe('parseArgs Tests for Create Command', () => {
+  test('parseArgs parses project name correctly', () => {
+    const { patterns } = parseArgs(['my-app']);
 
-test('parseArgs parses project name correctly', () => {
-  const { patterns } = parseArgs(['my-app']);
+    assert.strictEqual(patterns[0], 'my-app', 'Should extract project name');
+  });
 
-  assertEqual(patterns[0], 'my-app', 'Should extract project name');
-});
+  test('parseArgs parses --typescript flag', () => {
+    const { options, patterns } = parseArgs(['my-app', '--typescript']);
 
-test('parseArgs parses --typescript flag', () => {
-  const { options, patterns } = parseArgs(['my-app', '--typescript']);
+    assert.strictEqual(patterns[0], 'my-app');
+    assert.strictEqual(options.typescript, true);
+  });
 
-  assertEqual(patterns[0], 'my-app');
-  assertEqual(options.typescript, true);
-});
+  test('parseArgs parses --ts shorthand flag', () => {
+    const { options, patterns } = parseArgs(['my-app', '--ts']);
 
-test('parseArgs parses --ts shorthand flag', () => {
-  const { options, patterns } = parseArgs(['my-app', '--ts']);
+    assert.strictEqual(patterns[0], 'my-app');
+    assert.strictEqual(options.ts, true);
+  });
 
-  assertEqual(patterns[0], 'my-app');
-  assertEqual(options.ts, true);
-});
+  test('parseArgs parses --minimal flag', () => {
+    const { options, patterns } = parseArgs(['my-app', '--minimal']);
 
-test('parseArgs parses --minimal flag', () => {
-  const { options, patterns } = parseArgs(['my-app', '--minimal']);
+    assert.strictEqual(patterns[0], 'my-app');
+    assert.strictEqual(options.minimal, true);
+  });
 
-  assertEqual(patterns[0], 'my-app');
-  assertEqual(options.minimal, true);
-});
+  test('parseArgs parses --ecommerce template flag', () => {
+    const { options, patterns } = parseArgs(['my-shop', '--ecommerce']);
 
-test('parseArgs parses --ecommerce template flag', () => {
-  const { options, patterns } = parseArgs(['my-shop', '--ecommerce']);
+    assert.strictEqual(patterns[0], 'my-shop');
+    assert.strictEqual(options.ecommerce, true);
+  });
 
-  assertEqual(patterns[0], 'my-shop');
-  assertEqual(options.ecommerce, true);
-});
+  test('parseArgs parses --todo template flag', () => {
+    const { options, patterns } = parseArgs(['my-todos', '--todo']);
 
-test('parseArgs parses --todo template flag', () => {
-  const { options, patterns } = parseArgs(['my-todos', '--todo']);
+    assert.strictEqual(patterns[0], 'my-todos');
+    assert.strictEqual(options.todo, true);
+  });
 
-  assertEqual(patterns[0], 'my-todos');
-  assertEqual(options.todo, true);
-});
+  test('parseArgs parses --blog template flag', () => {
+    const { options, patterns } = parseArgs(['my-blog', '--blog']);
 
-test('parseArgs parses --blog template flag', () => {
-  const { options, patterns } = parseArgs(['my-blog', '--blog']);
+    assert.strictEqual(patterns[0], 'my-blog');
+    assert.strictEqual(options.blog, true);
+  });
 
-  assertEqual(patterns[0], 'my-blog');
-  assertEqual(options.blog, true);
-});
+  test('parseArgs parses --chat template flag', () => {
+    const { options, patterns } = parseArgs(['my-chat', '--chat']);
 
-test('parseArgs parses --chat template flag', () => {
-  const { options, patterns } = parseArgs(['my-chat', '--chat']);
+    assert.strictEqual(patterns[0], 'my-chat');
+    assert.strictEqual(options.chat, true);
+  });
 
-  assertEqual(patterns[0], 'my-chat');
-  assertEqual(options.chat, true);
-});
+  test('parseArgs parses --dashboard template flag', () => {
+    const { options, patterns } = parseArgs(['my-dashboard', '--dashboard']);
 
-test('parseArgs parses --dashboard template flag', () => {
-  const { options, patterns } = parseArgs(['my-dashboard', '--dashboard']);
+    assert.strictEqual(patterns[0], 'my-dashboard');
+    assert.strictEqual(options.dashboard, true);
+  });
 
-  assertEqual(patterns[0], 'my-dashboard');
-  assertEqual(options.dashboard, true);
-});
+  test('parseArgs handles combined flags', () => {
+    const { options, patterns } = parseArgs(['my-app', '--typescript', '--minimal']);
 
-test('parseArgs handles combined flags', () => {
-  const { options, patterns } = parseArgs(['my-app', '--typescript', '--minimal']);
+    assert.strictEqual(patterns[0], 'my-app');
+    assert.strictEqual(options.typescript, true);
+    assert.strictEqual(options.minimal, true);
+  });
 
-  assertEqual(patterns[0], 'my-app');
-  assertEqual(options.typescript, true);
-  assertEqual(options.minimal, true);
-});
+  test('parseArgs handles project name with hyphens', () => {
+    const { patterns } = parseArgs(['my-awesome-app']);
 
-test('parseArgs handles project name with hyphens', () => {
-  const { patterns } = parseArgs(['my-awesome-app']);
+    assert.strictEqual(patterns[0], 'my-awesome-app');
+  });
 
-  assertEqual(patterns[0], 'my-awesome-app');
-});
+  test('parseArgs handles project name with underscores', () => {
+    const { patterns } = parseArgs(['my_awesome_app']);
 
-test('parseArgs handles project name with underscores', () => {
-  const { patterns } = parseArgs(['my_awesome_app']);
+    assert.strictEqual(patterns[0], 'my_awesome_app');
+  });
 
-  assertEqual(patterns[0], 'my_awesome_app');
-});
+  test('parseArgs handles flags before project name', () => {
+    const { options, patterns } = parseArgs(['--typescript', 'my-app']);
 
-test('parseArgs handles flags before project name', () => {
-  const { options, patterns } = parseArgs(['--typescript', 'my-app']);
-
-  assertEqual(options.typescript, true);
-  assertEqual(patterns[0], 'my-app');
+    assert.strictEqual(options.typescript, true);
+    assert.strictEqual(patterns[0], 'my-app');
+  });
 });
 
 // =============================================================================
 // Template Configuration Tests
 // =============================================================================
 
-printSection('Template Configuration Tests');
+describe('Template Configuration Tests', () => {
+  test('all templates have name and description', () => {
+    for (const [key, template] of Object.entries(TEMPLATES)) {
+      assert.ok(template.name, `${key} template should have name`);
+      assert.ok(template.description, `${key} template should have description`);
+      assert.ok(template.name.length > 0, `${key} template name should not be empty`);
+      assert.ok(template.description.length > 0, `${key} template description should not be empty`);
+    }
+  });
 
-test('all templates have name and description', () => {
-  for (const [key, template] of Object.entries(TEMPLATES)) {
-    assert(template.name, `${key} template should have name`);
-    assert(template.description, `${key} template should have description`);
-    assert(template.name.length > 0, `${key} template name should not be empty`);
-    assert(template.description.length > 0, `${key} template description should not be empty`);
-  }
-});
+  test('ecommerce template configuration is correct', () => {
+    assert.strictEqual(TEMPLATES.ecommerce.name, 'E-Commerce');
+    assert.ok(TEMPLATES.ecommerce.description.includes('cart'), 'Should mention cart');
+  });
 
-test('ecommerce template configuration is correct', () => {
-  assertEqual(TEMPLATES.ecommerce.name, 'E-Commerce');
-  assert(TEMPLATES.ecommerce.description.includes('cart'), 'Should mention cart');
-});
+  test('todo template configuration is correct', () => {
+    assert.strictEqual(TEMPLATES.todo.name, 'Todo App');
+    assert.ok(TEMPLATES.todo.description.includes('todo'), 'Should mention todo');
+  });
 
-test('todo template configuration is correct', () => {
-  assertEqual(TEMPLATES.todo.name, 'Todo App');
-  assert(TEMPLATES.todo.description.includes('todo'), 'Should mention todo');
-});
+  test('blog template configuration is correct', () => {
+    assert.strictEqual(TEMPLATES.blog.name, 'Blog');
+    assert.ok(TEMPLATES.blog.description.includes('post'), 'Should mention posts');
+  });
 
-test('blog template configuration is correct', () => {
-  assertEqual(TEMPLATES.blog.name, 'Blog');
-  assert(TEMPLATES.blog.description.includes('post'), 'Should mention posts');
-});
+  test('chat template configuration is correct', () => {
+    assert.strictEqual(TEMPLATES.chat.name, 'Chat');
+    assert.ok(TEMPLATES.chat.description.includes('message'), 'Should mention messages');
+  });
 
-test('chat template configuration is correct', () => {
-  assertEqual(TEMPLATES.chat.name, 'Chat');
-  assert(TEMPLATES.chat.description.includes('message'), 'Should mention messages');
-});
-
-test('dashboard template configuration is correct', () => {
-  assertEqual(TEMPLATES.dashboard.name, 'Dashboard');
-  assert(TEMPLATES.dashboard.description.includes('dashboard'), 'Should mention dashboard');
+  test('dashboard template configuration is correct', () => {
+    assert.strictEqual(TEMPLATES.dashboard.name, 'Dashboard');
+    assert.ok(TEMPLATES.dashboard.description.includes('dashboard'), 'Should mention dashboard');
+  });
 });
 
 // =============================================================================
 // Standard Project Structure Tests
 // =============================================================================
 
-printSection('Standard Project Structure Tests');
+describe('Standard Project Structure Tests', () => {
+  test('standard project has required directories', () => {
+    const expectedDirs = ['src', 'public'];
 
-test('standard project has required directories', () => {
-  const expectedDirs = ['src', 'public'];
-
-  // Verify directories would be created
-  for (const dir of expectedDirs) {
-    assert(expectedDirs.includes(dir), `Should create ${dir} directory`);
-  }
-});
-
-test('standard project has required files', () => {
-  const expectedFiles = [
-    'package.json',
-    'vite.config.js',
-    'index.html',
-    'src/main.js',
-    'src/App.pulse',
-    '.gitignore'
-  ];
-
-  // Verify files would be created
-  for (const file of expectedFiles) {
-    assert(expectedFiles.includes(file), `Should create ${file}`);
-  }
-});
-
-test('package.json has correct structure for standard project', () => {
-  const projectName = 'test-project';
-  const packageJson = {
-    name: projectName,
-    version: '0.1.0',
-    type: 'module',
-    scripts: {
-      dev: 'pulse dev',
-      build: 'pulse build',
-      preview: 'vite preview',
-      test: 'pulse test',
-      lint: 'pulse lint'
-    },
-    dependencies: {
-      'pulse-js-framework': '^1.0.0'
-    },
-    devDependencies: {
-      vite: '^5.0.0'
+    // Verify directories would be created
+    for (const dir of expectedDirs) {
+      assert.ok(expectedDirs.includes(dir), `Should create ${dir} directory`);
     }
-  };
+  });
 
-  assertEqual(packageJson.name, projectName);
-  assertEqual(packageJson.type, 'module');
-  assert('dev' in packageJson.scripts);
-  assert('build' in packageJson.scripts);
-  assert('preview' in packageJson.scripts);
-  assert('test' in packageJson.scripts);
-  assert('lint' in packageJson.scripts);
-  assert('pulse-js-framework' in packageJson.dependencies);
-  assert('vite' in packageJson.devDependencies);
-});
+  test('standard project has required files', () => {
+    const expectedFiles = [
+      'package.json',
+      'vite.config.js',
+      'index.html',
+      'src/main.js',
+      'src/App.pulse',
+      '.gitignore'
+    ];
 
-test('vite.config.js has correct content', () => {
-  const viteConfig = `import { defineConfig } from 'vite';
+    // Verify files would be created
+    for (const file of expectedFiles) {
+      assert.ok(expectedFiles.includes(file), `Should create ${file}`);
+    }
+  });
+
+  test('package.json has correct structure for standard project', () => {
+    const projectName = 'test-project';
+    const packageJson = {
+      name: projectName,
+      version: '0.1.0',
+      type: 'module',
+      scripts: {
+        dev: 'pulse dev',
+        build: 'pulse build',
+        preview: 'vite preview',
+        test: 'pulse test',
+        lint: 'pulse lint'
+      },
+      dependencies: {
+        'pulse-js-framework': '^1.0.0'
+      },
+      devDependencies: {
+        vite: '^5.0.0'
+      }
+    };
+
+    assert.strictEqual(packageJson.name, projectName);
+    assert.strictEqual(packageJson.type, 'module');
+    assert.ok('dev' in packageJson.scripts);
+    assert.ok('build' in packageJson.scripts);
+    assert.ok('preview' in packageJson.scripts);
+    assert.ok('test' in packageJson.scripts);
+    assert.ok('lint' in packageJson.scripts);
+    assert.ok('pulse-js-framework' in packageJson.dependencies);
+    assert.ok('vite' in packageJson.devDependencies);
+  });
+
+  test('vite.config.js has correct content', () => {
+    const viteConfig = `import { defineConfig } from 'vite';
 import pulse from 'pulse-js-framework/vite';
 
 export default defineConfig({
@@ -289,14 +281,14 @@ export default defineConfig({
 });
 `;
 
-  assert(viteConfig.includes('defineConfig'), 'Should import defineConfig');
-  assert(viteConfig.includes('pulse-js-framework/vite'), 'Should import pulse plugin');
-  assert(viteConfig.includes('plugins: [pulse()]'), 'Should configure pulse plugin');
-});
+    assert.ok(viteConfig.includes('defineConfig'), 'Should import defineConfig');
+    assert.ok(viteConfig.includes('pulse-js-framework/vite'), 'Should import pulse plugin');
+    assert.ok(viteConfig.includes('plugins: [pulse()]'), 'Should configure pulse plugin');
+  });
 
-test('index.html has correct structure', () => {
-  const projectName = 'test-project';
-  const indexHtml = `<!DOCTYPE html>
+  test('index.html has correct structure', () => {
+    const projectName = 'test-project';
+    const indexHtml = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -310,25 +302,25 @@ test('index.html has correct structure', () => {
 </html>
 `;
 
-  assert(indexHtml.includes('<!DOCTYPE html>'), 'Should be HTML5');
-  assert(indexHtml.includes(`<title>${projectName}</title>`), 'Should have project title');
-  assert(indexHtml.includes('id="app"'), 'Should have app container');
-  assert(indexHtml.includes('type="module"'), 'Should use ES modules');
-  assert(indexHtml.includes('/src/main.js'), 'Should reference main.js');
-});
+    assert.ok(indexHtml.includes('<!DOCTYPE html>'), 'Should be HTML5');
+    assert.ok(indexHtml.includes(`<title>${projectName}</title>`), 'Should have project title');
+    assert.ok(indexHtml.includes('id="app"'), 'Should have app container');
+    assert.ok(indexHtml.includes('type="module"'), 'Should use ES modules');
+    assert.ok(indexHtml.includes('/src/main.js'), 'Should reference main.js');
+  });
 
-test('main.js has correct content', () => {
-  const mainJs = `import App from './App.pulse';
+  test('main.js has correct content', () => {
+    const mainJs = `import App from './App.pulse';
 
 App.mount('#app');
 `;
 
-  assert(mainJs.includes("import App from './App.pulse'"), 'Should import App');
-  assert(mainJs.includes("App.mount('#app')"), 'Should mount to #app');
-});
+    assert.ok(mainJs.includes("import App from './App.pulse'"), 'Should import App');
+    assert.ok(mainJs.includes("App.mount('#app')"), 'Should mount to #app');
+  });
 
-test('App.pulse has correct structure', () => {
-  const appPulse = `@page App
+  test('App.pulse has correct structure', () => {
+    const appPulse = `@page App
 
 state {
   count: 0
@@ -347,97 +339,97 @@ style {
   }
 }`;
 
-  assert(appPulse.includes('@page App'), 'Should have page directive');
-  assert(appPulse.includes('state {'), 'Should have state block');
-  assert(appPulse.includes('count: 0'), 'Should have count state');
-  assert(appPulse.includes('view {'), 'Should have view block');
-  assert(appPulse.includes('style {'), 'Should have style block');
-});
+    assert.ok(appPulse.includes('@page App'), 'Should have page directive');
+    assert.ok(appPulse.includes('state {'), 'Should have state block');
+    assert.ok(appPulse.includes('count: 0'), 'Should have count state');
+    assert.ok(appPulse.includes('view {'), 'Should have view block');
+    assert.ok(appPulse.includes('style {'), 'Should have style block');
+  });
 
-test('.gitignore has correct content', () => {
-  const gitignore = `node_modules
+  test('.gitignore has correct content', () => {
+    const gitignore = `node_modules
 dist
 .DS_Store
 *.local
 `;
 
-  assert(gitignore.includes('node_modules'), 'Should ignore node_modules');
-  assert(gitignore.includes('dist'), 'Should ignore dist');
-  assert(gitignore.includes('.DS_Store'), 'Should ignore .DS_Store');
+    assert.ok(gitignore.includes('node_modules'), 'Should ignore node_modules');
+    assert.ok(gitignore.includes('dist'), 'Should ignore dist');
+    assert.ok(gitignore.includes('.DS_Store'), 'Should ignore .DS_Store');
+  });
 });
 
 // =============================================================================
 // TypeScript Project Tests
 // =============================================================================
 
-printSection('TypeScript Project Tests');
+describe('TypeScript Project Tests', () => {
+  test('TypeScript project has additional files', () => {
+    const typescriptFiles = [
+      'tsconfig.json',
+      'vite.config.ts',
+      'src/main.ts',
+      'src/types/index.d.ts'
+    ];
 
-test('TypeScript project has additional files', () => {
-  const typescriptFiles = [
-    'tsconfig.json',
-    'vite.config.ts',
-    'src/main.ts',
-    'src/types/index.d.ts'
-  ];
-
-  // Verify TypeScript-specific files would be created
-  for (const file of typescriptFiles) {
-    assert(typescriptFiles.includes(file), `TypeScript project should create ${file}`);
-  }
-});
-
-test('package.json has TypeScript dependencies', () => {
-  const useTypescript = true;
-  const packageJson = {
-    devDependencies: {
-      vite: '^5.0.0',
-      ...(useTypescript ? {
-        'typescript': '^5.3.0',
-        '@types/node': '^20.0.0'
-      } : {})
-    },
-    scripts: {
-      ...(useTypescript ? { typecheck: 'tsc --noEmit' } : {})
+    // Verify TypeScript-specific files would be created
+    for (const file of typescriptFiles) {
+      assert.ok(typescriptFiles.includes(file), `TypeScript project should create ${file}`);
     }
-  };
+  });
 
-  assert('typescript' in packageJson.devDependencies, 'Should have typescript dependency');
-  assert('@types/node' in packageJson.devDependencies, 'Should have @types/node');
-  assert('typecheck' in packageJson.scripts, 'Should have typecheck script');
-});
+  test('package.json has TypeScript dependencies', () => {
+    const useTypescript = true;
+    const packageJson = {
+      devDependencies: {
+        vite: '^5.0.0',
+        ...(useTypescript ? {
+          'typescript': '^5.3.0',
+          '@types/node': '^20.0.0'
+        } : {})
+      },
+      scripts: {
+        ...(useTypescript ? { typecheck: 'tsc --noEmit' } : {})
+      }
+    };
 
-test('tsconfig.json has correct structure', () => {
-  const tsConfig = {
-    compilerOptions: {
-      target: 'ES2022',
-      useDefineForClassFields: true,
-      module: 'ESNext',
-      lib: ['ES2022', 'DOM', 'DOM.Iterable'],
-      skipLibCheck: true,
-      moduleResolution: 'bundler',
-      allowImportingTsExtensions: true,
-      resolveJsonModule: true,
-      isolatedModules: true,
-      noEmit: true,
-      strict: true,
-      noUnusedLocals: true,
-      noUnusedParameters: true,
-      noFallthroughCasesInSwitch: true,
-      types: ['node']
-    },
-    include: ['src/**/*', 'vite.config.ts'],
-    exclude: ['node_modules', 'dist']
-  };
+    assert.ok('typescript' in packageJson.devDependencies, 'Should have typescript dependency');
+    assert.ok('@types/node' in packageJson.devDependencies, 'Should have @types/node');
+    assert.ok('typecheck' in packageJson.scripts, 'Should have typecheck script');
+  });
 
-  assertEqual(tsConfig.compilerOptions.target, 'ES2022');
-  assertEqual(tsConfig.compilerOptions.strict, true);
-  assertEqual(tsConfig.compilerOptions.noEmit, true);
-  assert(tsConfig.include.includes('src/**/*'));
-  assert(tsConfig.exclude.includes('node_modules'));
-});
+  test('tsconfig.json has correct structure', () => {
+    const tsConfig = {
+      compilerOptions: {
+        target: 'ES2022',
+        useDefineForClassFields: true,
+        module: 'ESNext',
+        lib: ['ES2022', 'DOM', 'DOM.Iterable'],
+        skipLibCheck: true,
+        moduleResolution: 'bundler',
+        allowImportingTsExtensions: true,
+        resolveJsonModule: true,
+        isolatedModules: true,
+        noEmit: true,
+        strict: true,
+        noUnusedLocals: true,
+        noUnusedParameters: true,
+        noFallthroughCasesInSwitch: true,
+        types: ['node']
+      },
+      include: ['src/**/*', 'vite.config.ts'],
+      exclude: ['node_modules', 'dist']
+    };
 
-test('TypeScript main.ts has HMR support', () => {
-  const mainTs = `import App from './App.pulse';
+    assert.strictEqual(tsConfig.compilerOptions.target, 'ES2022');
+    assert.strictEqual(tsConfig.compilerOptions.strict, true);
+    assert.strictEqual(tsConfig.compilerOptions.noEmit, true);
+    assert.ok(tsConfig.include.includes('src/**/*'));
+    assert.ok(tsConfig.exclude.includes('node_modules'));
+  });
+
+  test('TypeScript main.ts has HMR support', () => {
+    const mainTs = `import App from './App.pulse';
 
 // Type-safe app mounting
 App.mount('#app');
@@ -448,13 +440,13 @@ if (import.meta.hot) {
 }
 `;
 
-  assert(mainTs.includes("import App from './App.pulse'"), 'Should import App');
-  assert(mainTs.includes("App.mount('#app')"), 'Should mount to #app');
-  assert(mainTs.includes('import.meta.hot'), 'Should have HMR support');
-});
+    assert.ok(mainTs.includes("import App from './App.pulse'"), 'Should import App');
+    assert.ok(mainTs.includes("App.mount('#app')"), 'Should mount to #app');
+    assert.ok(mainTs.includes('import.meta.hot'), 'Should have HMR support');
+  });
 
-test('TypeScript types file has correct declarations', () => {
-  const typesContent = `declare module '*.pulse' {
+  test('TypeScript types file has correct declarations', () => {
+    const typesContent = `declare module '*.pulse' {
   const component: {
     mount(selector: string): void;
   };
@@ -466,349 +458,343 @@ export interface AppState {
   name: string;
 }`;
 
-  assert(typesContent.includes("declare module '*.pulse'"), 'Should declare .pulse modules');
-  assert(typesContent.includes('mount(selector: string)'), 'Should type mount method');
-  assert(typesContent.includes('AppState'), 'Should have AppState interface');
-});
+    assert.ok(typesContent.includes("declare module '*.pulse'"), 'Should declare .pulse modules');
+    assert.ok(typesContent.includes('mount(selector: string)'), 'Should type mount method');
+    assert.ok(typesContent.includes('AppState'), 'Should have AppState interface');
+  });
 
-test('TypeScript .gitignore has tsbuildinfo', () => {
-  const useTypescript = true;
-  const gitignore = `node_modules
+  test('TypeScript .gitignore has tsbuildinfo', () => {
+    const useTypescript = true;
+    const gitignore = `node_modules
 dist
 .DS_Store
 *.local
 ${useTypescript ? '*.tsbuildinfo\n' : ''}`;
 
-  assert(gitignore.includes('*.tsbuildinfo'), 'Should ignore tsbuildinfo files');
+    assert.ok(gitignore.includes('*.tsbuildinfo'), 'Should ignore tsbuildinfo files');
+  });
 });
 
 // =============================================================================
 // Template Project Tests
 // =============================================================================
 
-printSection('Template Project Tests');
+describe('Template Project Tests', () => {
+  test('template project has common files', () => {
+    const commonFiles = [
+      'package.json',
+      'vite.config.js',
+      '.gitignore'
+    ];
 
-test('template project has common files', () => {
-  const commonFiles = [
-    'package.json',
-    'vite.config.js',
-    '.gitignore'
-  ];
-
-  // Verify common files for template projects
-  for (const file of commonFiles) {
-    assert(commonFiles.includes(file), `Template project should have ${file}`);
-  }
-});
-
-test('template package.json has correct structure', () => {
-  const projectName = 'my-shop';
-  const packageJson = {
-    name: projectName,
-    version: '0.1.0',
-    type: 'module',
-    scripts: {
-      dev: 'pulse dev',
-      build: 'pulse build',
-      preview: 'vite preview',
-      test: 'pulse test',
-      lint: 'pulse lint'
-    },
-    dependencies: {
-      'pulse-js-framework': '^1.0.0'
-    },
-    devDependencies: {
-      vite: '^5.0.0'
+    // Verify common files for template projects
+    for (const file of commonFiles) {
+      assert.ok(commonFiles.includes(file), `Template project should have ${file}`);
     }
-  };
+  });
 
-  assertEqual(packageJson.name, projectName);
-  assertEqual(packageJson.type, 'module');
-  assert('dev' in packageJson.scripts);
-  assert('build' in packageJson.scripts);
+  test('template package.json has correct structure', () => {
+    const projectName = 'my-shop';
+    const packageJson = {
+      name: projectName,
+      version: '0.1.0',
+      type: 'module',
+      scripts: {
+        dev: 'pulse dev',
+        build: 'pulse build',
+        preview: 'vite preview',
+        test: 'pulse test',
+        lint: 'pulse lint'
+      },
+      dependencies: {
+        'pulse-js-framework': '^1.0.0'
+      },
+      devDependencies: {
+        vite: '^5.0.0'
+      }
+    };
+
+    assert.strictEqual(packageJson.name, projectName);
+    assert.strictEqual(packageJson.type, 'module');
+    assert.ok('dev' in packageJson.scripts);
+    assert.ok('build' in packageJson.scripts);
+  });
 });
 
 // =============================================================================
 // Error Handling Tests
 // =============================================================================
 
-printSection('Error Handling Tests');
+describe('Error Handling Tests', () => {
+  test('create command requires project name', () => {
+    const { patterns } = parseArgs([]);
 
-test('create command requires project name', () => {
-  const { patterns } = parseArgs([]);
+    assert.strictEqual(patterns.length, 0, 'Should have no project name');
+  });
 
-  assertEqual(patterns.length, 0, 'Should have no project name');
-});
+  test('create command handles empty project name', () => {
+    const { patterns } = parseArgs(['']);
 
-test('create command handles empty project name', () => {
-  const { patterns } = parseArgs(['']);
+    assert.strictEqual(patterns[0], '', 'Should be empty string');
+  });
 
-  assertEqual(patterns[0], '', 'Should be empty string');
-});
+  test('create command with only flags and no name', () => {
+    const { options, patterns } = parseArgs(['--typescript']);
 
-test('create command with only flags and no name', () => {
-  const { options, patterns } = parseArgs(['--typescript']);
+    assert.strictEqual(options.typescript, true);
+    assert.strictEqual(patterns.length, 0, 'Should have no project name when only flags provided');
+  });
 
-  assertEqual(options.typescript, true);
-  assertEqual(patterns.length, 0, 'Should have no project name when only flags provided');
-});
+  test('only one template can be selected at a time', () => {
+    const { options } = parseArgs(['my-app', '--ecommerce', '--todo']);
 
-test('only one template can be selected at a time', () => {
-  const { options } = parseArgs(['my-app', '--ecommerce', '--todo']);
-
-  // Both flags are parsed, but implementation should handle this
-  assertEqual(options.ecommerce, true);
-  assertEqual(options.todo, true);
-  // Note: The implementation picks the first matching template
+    // Both flags are parsed, but implementation should handle this
+    assert.strictEqual(options.ecommerce, true);
+    assert.strictEqual(options.todo, true);
+    // Note: The implementation picks the first matching template
+  });
 });
 
 // =============================================================================
 // Minimal Project Tests
 // =============================================================================
 
-printSection('Minimal Project Tests');
+describe('Minimal Project Tests', () => {
+  test('minimal project skips types directory for TypeScript', () => {
+    const useTypescript = true;
+    const minimal = true;
 
-test('minimal project skips types directory for TypeScript', () => {
-  const useTypescript = true;
-  const minimal = true;
+    // In minimal mode, types directory is not created even with TypeScript
+    const createTypesDir = useTypescript && !minimal;
+    assert.strictEqual(createTypesDir, false, 'Should not create types dir in minimal mode');
+  });
 
-  // In minimal mode, types directory is not created even with TypeScript
-  const createTypesDir = useTypescript && !minimal;
-  assertEqual(createTypesDir, false, 'Should not create types dir in minimal mode');
-});
+  test('minimal flag parsing works correctly', () => {
+    const { options, patterns } = parseArgs(['my-app', '--minimal', '--typescript']);
 
-test('minimal flag parsing works correctly', () => {
-  const { options, patterns } = parseArgs(['my-app', '--minimal', '--typescript']);
-
-  assertEqual(patterns[0], 'my-app');
-  assertEqual(options.minimal, true);
-  assertEqual(options.typescript, true);
+    assert.strictEqual(patterns[0], 'my-app');
+    assert.strictEqual(options.minimal, true);
+    assert.strictEqual(options.typescript, true);
+  });
 });
 
 // =============================================================================
 // Command Alias Tests
 // =============================================================================
 
-printSection('Command Alias Tests');
+describe('Command Alias Tests', () => {
+  test('create command has typo aliases', () => {
+    const commandAliases = {
+      'crate': 'create',
+      'craete': 'create'
+    };
 
-test('create command has typo aliases', () => {
-  const commandAliases = {
-    'crate': 'create',
-    'craete': 'create'
-  };
-
-  assertEqual(commandAliases['crate'], 'create');
-  assertEqual(commandAliases['craete'], 'create');
+    assert.strictEqual(commandAliases['crate'], 'create');
+    assert.strictEqual(commandAliases['craete'], 'create');
+  });
 });
 
 // =============================================================================
 // Project Name Validation Tests
 // =============================================================================
 
-printSection('Project Name Validation Tests');
+describe('Project Name Validation Tests', () => {
+  test('project name with spaces is handled', () => {
+    // Note: Shell would typically handle this, but we can test parsing
+    const { patterns } = parseArgs(['my', 'app']);
 
-test('project name with spaces is handled', () => {
-  // Note: Shell would typically handle this, but we can test parsing
-  const { patterns } = parseArgs(['my', 'app']);
+    // Without quotes, these become separate patterns
+    assert.strictEqual(patterns.length, 2);
+    assert.strictEqual(patterns[0], 'my');
+    assert.strictEqual(patterns[1], 'app');
+  });
 
-  // Without quotes, these become separate patterns
-  assertEqual(patterns.length, 2);
-  assertEqual(patterns[0], 'my');
-  assertEqual(patterns[1], 'app');
-});
+  test('project name with special characters', () => {
+    const { patterns } = parseArgs(['my-app-v2.0']);
 
-test('project name with special characters', () => {
-  const { patterns } = parseArgs(['my-app-v2.0']);
+    assert.strictEqual(patterns[0], 'my-app-v2.0');
+  });
 
-  assertEqual(patterns[0], 'my-app-v2.0');
-});
+  test('project name starting with number', () => {
+    const { patterns } = parseArgs(['123-app']);
 
-test('project name starting with number', () => {
-  const { patterns } = parseArgs(['123-app']);
+    assert.strictEqual(patterns[0], '123-app');
+  });
 
-  assertEqual(patterns[0], '123-app');
-});
+  test('project name with @ symbol (scoped package style)', () => {
+    const { patterns } = parseArgs(['@my-org/my-app']);
 
-test('project name with @ symbol (scoped package style)', () => {
-  const { patterns } = parseArgs(['@my-org/my-app']);
-
-  assertEqual(patterns[0], '@my-org/my-app');
+    assert.strictEqual(patterns[0], '@my-org/my-app');
+  });
 });
 
 // =============================================================================
 // Flag Combination Tests
 // =============================================================================
 
-printSection('Flag Combination Tests');
+describe('Flag Combination Tests', () => {
+  test('typescript with ecommerce template', () => {
+    const { options, patterns } = parseArgs(['my-shop', '--typescript', '--ecommerce']);
 
-test('typescript with ecommerce template', () => {
-  const { options, patterns } = parseArgs(['my-shop', '--typescript', '--ecommerce']);
+    assert.strictEqual(patterns[0], 'my-shop');
+    assert.strictEqual(options.typescript, true);
+    assert.strictEqual(options.ecommerce, true);
+  });
 
-  assertEqual(patterns[0], 'my-shop');
-  assertEqual(options.typescript, true);
-  assertEqual(options.ecommerce, true);
-});
+  test('minimal with todo template', () => {
+    const { options, patterns } = parseArgs(['my-todos', '--minimal', '--todo']);
 
-test('minimal with todo template', () => {
-  const { options, patterns } = parseArgs(['my-todos', '--minimal', '--todo']);
+    assert.strictEqual(patterns[0], 'my-todos');
+    assert.strictEqual(options.minimal, true);
+    assert.strictEqual(options.todo, true);
+  });
 
-  assertEqual(patterns[0], 'my-todos');
-  assertEqual(options.minimal, true);
-  assertEqual(options.todo, true);
-});
+  test('all standard options together', () => {
+    const { options, patterns } = parseArgs(['my-app', '--typescript', '--minimal']);
 
-test('all standard options together', () => {
-  const { options, patterns } = parseArgs(['my-app', '--typescript', '--minimal']);
-
-  assertEqual(patterns[0], 'my-app');
-  assertEqual(options.typescript, true);
-  assertEqual(options.minimal, true);
+    assert.strictEqual(patterns[0], 'my-app');
+    assert.strictEqual(options.typescript, true);
+    assert.strictEqual(options.minimal, true);
+  });
 });
 
 // =============================================================================
 // Help Output Tests
 // =============================================================================
 
-printSection('Help Output Tests');
+describe('Help Output Tests', () => {
+  test('create command help mentions all templates', () => {
+    const helpTemplates = ['ecommerce', 'todo', 'blog', 'chat', 'dashboard'];
 
-test('create command help mentions all templates', () => {
-  const helpTemplates = ['ecommerce', 'todo', 'blog', 'chat', 'dashboard'];
+    for (const template of helpTemplates) {
+      assert.ok(TEMPLATES[template], `Help should mention ${template} template`);
+    }
+  });
 
-  for (const template of helpTemplates) {
-    assert(TEMPLATES[template], `Help should mention ${template} template`);
-  }
-});
+  test('create command help mentions typescript option', () => {
+    const helpText = '--typescript, --ts    Create TypeScript project';
+    assert.ok(helpText.includes('--typescript'), 'Should mention --typescript');
+    assert.ok(helpText.includes('--ts'), 'Should mention --ts shorthand');
+  });
 
-test('create command help mentions typescript option', () => {
-  const helpText = '--typescript, --ts    Create TypeScript project';
-  assert(helpText.includes('--typescript'), 'Should mention --typescript');
-  assert(helpText.includes('--ts'), 'Should mention --ts shorthand');
-});
-
-test('create command help mentions minimal option', () => {
-  const helpText = '--minimal             Create minimal project';
-  assert(helpText.includes('--minimal'), 'Should mention --minimal');
+  test('create command help mentions minimal option', () => {
+    const helpText = '--minimal             Create minimal project';
+    assert.ok(helpText.includes('--minimal'), 'Should mention --minimal');
+  });
 });
 
 // =============================================================================
 // Integration-like Tests (without actual file system)
 // =============================================================================
 
-printSection('Integration-like Tests');
+describe('Integration-like Tests', () => {
+  test('standard project creation flow', () => {
+    // Simulate the createProject flow
+    const args = ['my-app'];
+    const { options, patterns } = parseArgs(args);
+    const projectName = patterns[0];
 
-test('standard project creation flow', () => {
-  // Simulate the createProject flow
-  const args = ['my-app'];
-  const { options, patterns } = parseArgs(args);
-  const projectName = patterns[0];
+    assert.strictEqual(projectName, 'my-app');
+    assert.strictEqual(options.typescript, undefined);
+    assert.strictEqual(options.minimal, undefined);
 
-  assertEqual(projectName, 'my-app');
-  assertEqual(options.typescript, undefined);
-  assertEqual(options.minimal, undefined);
-
-  // Check no template is selected
-  let selectedTemplate = null;
-  for (const templateName of Object.keys(TEMPLATES)) {
-    if (options[templateName]) {
-      selectedTemplate = templateName;
-      break;
+    // Check no template is selected
+    let selectedTemplate = null;
+    for (const templateName of Object.keys(TEMPLATES)) {
+      if (options[templateName]) {
+        selectedTemplate = templateName;
+        break;
+      }
     }
-  }
-  assertEqual(selectedTemplate, null, 'Should not have template selected');
-});
+    assert.strictEqual(selectedTemplate, null, 'Should not have template selected');
+  });
 
-test('typescript project creation flow', () => {
-  const args = ['my-ts-app', '--typescript'];
-  const { options, patterns } = parseArgs(args);
+  test('typescript project creation flow', () => {
+    const args = ['my-ts-app', '--typescript'];
+    const { options, patterns } = parseArgs(args);
 
-  const useTypescript = options.typescript || options.ts || false;
-  assertEqual(useTypescript, true);
-  assertEqual(patterns[0], 'my-ts-app');
-});
+    const useTypescript = options.typescript || options.ts || false;
+    assert.strictEqual(useTypescript, true);
+    assert.strictEqual(patterns[0], 'my-ts-app');
+  });
 
-test('template project creation flow', () => {
-  const args = ['my-shop', '--ecommerce'];
-  const { options, patterns } = parseArgs(args);
+  test('template project creation flow', () => {
+    const args = ['my-shop', '--ecommerce'];
+    const { options, patterns } = parseArgs(args);
 
-  let selectedTemplate = null;
-  for (const templateName of Object.keys(TEMPLATES)) {
-    if (options[templateName]) {
-      selectedTemplate = templateName;
-      break;
+    let selectedTemplate = null;
+    for (const templateName of Object.keys(TEMPLATES)) {
+      if (options[templateName]) {
+        selectedTemplate = templateName;
+        break;
+      }
     }
-  }
 
-  assertEqual(selectedTemplate, 'ecommerce');
-  assertEqual(patterns[0], 'my-shop');
-});
+    assert.strictEqual(selectedTemplate, 'ecommerce');
+    assert.strictEqual(patterns[0], 'my-shop');
+  });
 
-test('first template wins when multiple specified', () => {
-  const args = ['my-app', '--ecommerce', '--todo', '--blog'];
-  const { options, patterns } = parseArgs(args);
+  test('first template wins when multiple specified', () => {
+    const args = ['my-app', '--ecommerce', '--todo', '--blog'];
+    const { options, patterns } = parseArgs(args);
 
-  // Implementation picks first matching template in TEMPLATES order
-  let selectedTemplate = null;
-  for (const templateName of Object.keys(TEMPLATES)) {
-    if (options[templateName]) {
-      selectedTemplate = templateName;
-      break;
+    // Implementation picks first matching template in TEMPLATES order
+    let selectedTemplate = null;
+    for (const templateName of Object.keys(TEMPLATES)) {
+      if (options[templateName]) {
+        selectedTemplate = templateName;
+        break;
+      }
     }
-  }
 
-  // The order in TEMPLATES object determines which is "first"
-  assert(selectedTemplate !== null, 'Should select a template');
+    // The order in TEMPLATES object determines which is "first"
+    assert.ok(selectedTemplate !== null, 'Should select a template');
+  });
 });
 
 // =============================================================================
 // Edge Cases
 // =============================================================================
 
-printSection('Edge Cases');
+describe('Edge Cases', () => {
+  test('handles very long project name', () => {
+    const longName = 'a'.repeat(100);
+    const { patterns } = parseArgs([longName]);
 
-test('handles very long project name', () => {
-  const longName = 'a'.repeat(100);
-  const { patterns } = parseArgs([longName]);
+    assert.strictEqual(patterns[0], longName);
+    assert.strictEqual(patterns[0].length, 100);
+  });
 
-  assertEqual(patterns[0], longName);
-  assertEqual(patterns[0].length, 100);
+  test('handles project name that looks like a flag', () => {
+    // This edge case shows what happens with unusual names
+    const { options, patterns } = parseArgs(['--my-app']);
+
+    // --my-app is parsed as a flag, not a name
+    assert.strictEqual(options['my-app'], true);
+    assert.strictEqual(patterns.length, 0);
+  });
+
+  test('handles double dash separator', () => {
+    // Some CLIs use -- to separate flags from positional args
+    // Current parseArgs doesn't support this, but we test the behavior
+    const { options, patterns } = parseArgs(['--typescript', '--', 'my-app']);
+
+    assert.strictEqual(options.typescript, true);
+    // '--' is treated as a pattern in current implementation
+    assert.ok(patterns.includes('--') || patterns.includes('my-app'));
+  });
+
+  test('handles empty options object', () => {
+    const { options, patterns } = parseArgs(['my-app']);
+
+    assert.strictEqual(patterns[0], 'my-app');
+    assert.strictEqual(options.typescript, undefined);
+    assert.strictEqual(options.ts, undefined);
+    assert.strictEqual(options.minimal, undefined);
+    assert.strictEqual(options.ecommerce, undefined);
+    assert.strictEqual(options.todo, undefined);
+    assert.strictEqual(options.blog, undefined);
+    assert.strictEqual(options.chat, undefined);
+    assert.strictEqual(options.dashboard, undefined);
+  });
 });
-
-test('handles project name that looks like a flag', () => {
-  // This edge case shows what happens with unusual names
-  const { options, patterns } = parseArgs(['--my-app']);
-
-  // --my-app is parsed as a flag, not a name
-  assertEqual(options['my-app'], true);
-  assertEqual(patterns.length, 0);
-});
-
-test('handles double dash separator', () => {
-  // Some CLIs use -- to separate flags from positional args
-  // Current parseArgs doesn't support this, but we test the behavior
-  const { options, patterns } = parseArgs(['--typescript', '--', 'my-app']);
-
-  assertEqual(options.typescript, true);
-  // '--' is treated as a pattern in current implementation
-  assert(patterns.includes('--') || patterns.includes('my-app'));
-});
-
-test('handles empty options object', () => {
-  const { options, patterns } = parseArgs(['my-app']);
-
-  assertEqual(patterns[0], 'my-app');
-  assertEqual(options.typescript, undefined);
-  assertEqual(options.ts, undefined);
-  assertEqual(options.minimal, undefined);
-  assertEqual(options.ecommerce, undefined);
-  assertEqual(options.todo, undefined);
-  assertEqual(options.blog, undefined);
-  assertEqual(options.chat, undefined);
-  assertEqual(options.dashboard, undefined);
-});
-
-// =============================================================================
-// Run Tests
-// =============================================================================
-
-printResults();
-exitWithCode();

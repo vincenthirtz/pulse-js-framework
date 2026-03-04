@@ -28,7 +28,7 @@ import { createRouter, simpleRouter, lazy, preload, onBeforeLeave, onAfterEnter,
 import { el } from '../runtime/dom.js';
 
 // Mock requestAnimationFrame for CSS transition tests
-global.requestAnimationFrame = (fn) => setTimeout(fn, 0);
+global.requestAnimationFrame = (fn) => setTimeout(fn, 0).unref();
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 

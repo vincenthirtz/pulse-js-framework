@@ -11,7 +11,7 @@
     </template>
 
     <!-- Component with Props -->
-    <template name="component" value="@page $NAME$&#10;&#10;props {&#10;  $PROP$: $DEFAULT$&#10;}&#10;&#10;view {&#10;  .$CONTAINER$ {&#10;    $END$&#10;  }&#10;}&#10;" description="Create a new Pulse component with props" toReformat="true" toShortenFQNames="true">
+    <template name="component" value="@component $NAME$&#10;&#10;props {&#10;  $PROP$: $DEFAULT$&#10;}&#10;&#10;view {&#10;  .$CONTAINER$ {&#10;    $END$&#10;  }&#10;}&#10;" description="Create a new Pulse component with props" toReformat="true" toShortenFQNames="true">
         <variable name="NAME" expression="" defaultValue="&quot;ComponentName&quot;" alwaysStopAt="true"/>
         <variable name="PROP" expression="" defaultValue="&quot;propName&quot;" alwaysStopAt="true"/>
         <variable name="DEFAULT" expression="" defaultValue="&quot;defaultValue&quot;" alwaysStopAt="true"/>
@@ -164,6 +164,66 @@
     <!-- Form Element -->
     <template name="form" value="form @submit($HANDLER$) {&#10;  $END$&#10;  button[type=submit] &quot;Submit&quot;&#10;}" description="Create a form with submit handler" toReformat="true" toShortenFQNames="true">
         <variable name="HANDLER" expression="" defaultValue="&quot;handleSubmit&quot;" alwaysStopAt="true"/>
+        <context>
+            <option name="PULSE" value="true"/>
+        </context>
+    </template>
+
+    <!-- Each Loop -->
+    <template name="@each" value="@each($ITEMS$ as $ITEM$) {&#10;  $END$&#10;}" description="Add each loop rendering" toReformat="true" toShortenFQNames="true">
+        <variable name="ITEMS" expression="" defaultValue="&quot;items&quot;" alwaysStopAt="true"/>
+        <variable name="ITEM" expression="" defaultValue="&quot;item&quot;" alwaysStopAt="true"/>
+        <context>
+            <option name="PULSE" value="true"/>
+        </context>
+    </template>
+
+    <!-- Bind Directive -->
+    <template name="@bind" value="@bind($ATTR$, $EXPR$)" description="Add reactive attribute binding" toReformat="true" toShortenFQNames="true">
+        <variable name="ATTR" expression="" defaultValue="&quot;attribute&quot;" alwaysStopAt="true"/>
+        <variable name="EXPR" expression="" defaultValue="&quot;expression&quot;" alwaysStopAt="true"/>
+        <context>
+            <option name="PULSE" value="true"/>
+        </context>
+    </template>
+
+    <!-- On Directive -->
+    <template name="@on" value="@on($EVENT$, $HANDLER$)" description="Add generic event handler" toReformat="true" toShortenFQNames="true">
+        <variable name="EVENT" expression="" defaultValue="&quot;event&quot;" alwaysStopAt="true"/>
+        <variable name="HANDLER" expression="" defaultValue="&quot;handler&quot;" alwaysStopAt="true"/>
+        <context>
+            <option name="PULSE" value="true"/>
+        </context>
+    </template>
+
+    <!-- Model Directive -->
+    <template name="@model" value="@model($VALUE$)" description="Add two-way data binding" toReformat="true" toShortenFQNames="true">
+        <variable name="VALUE" expression="" defaultValue="&quot;value&quot;" alwaysStopAt="true"/>
+        <context>
+            <option name="PULSE" value="true"/>
+        </context>
+    </template>
+
+    <!-- A11y Directive -->
+    <template name="@a11y" value="@a11y(role=$ROLE$, label=&quot;$LABEL$&quot;)" description="Add accessibility attributes" toReformat="true" toShortenFQNames="true">
+        <variable name="ROLE" expression="" defaultValue="&quot;dialog&quot;" alwaysStopAt="true"/>
+        <variable name="LABEL" expression="" defaultValue="&quot;Description&quot;" alwaysStopAt="true"/>
+        <context>
+            <option name="PULSE" value="true"/>
+        </context>
+    </template>
+
+    <!-- Live Region -->
+    <template name="@live" value="@live($MODE$)" description="Add live region for screen reader announcements" toReformat="true" toShortenFQNames="true">
+        <variable name="MODE" expression="" defaultValue="&quot;polite&quot;" alwaysStopAt="true"/>
+        <context>
+            <option name="PULSE" value="true"/>
+        </context>
+    </template>
+
+    <!-- Getters Block -->
+    <template name="getters" value="getters {&#10;  $NAME$() {&#10;    return $END$&#10;  }&#10;}" description="Add a getters block" toReformat="true" toShortenFQNames="true">
+        <variable name="NAME" expression="" defaultValue="&quot;getterName&quot;" alwaysStopAt="true"/>
         <context>
             <option name="PULSE" value="true"/>
         </context>

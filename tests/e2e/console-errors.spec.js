@@ -243,7 +243,12 @@ test.describe('Interactive Features', () => {
 
     const consoleErrors = [];
     page.on('console', msg => {
-      if (msg.type() === 'error') consoleErrors.push(msg.text());
+      if (msg.type() === 'error') {
+        const text = msg.text();
+        // Skip 403 resource errors from Netlify preview edge functions
+        if (text.includes('the server responded with a status of 403')) return;
+        consoleErrors.push(text);
+      }
     });
 
     // Open mobile menu
@@ -267,7 +272,12 @@ test.describe('Interactive Features', () => {
 
     const consoleErrors = [];
     page.on('console', msg => {
-      if (msg.type() === 'error') consoleErrors.push(msg.text());
+      if (msg.type() === 'error') {
+        const text = msg.text();
+        // Skip 403 resource errors from Netlify preview edge functions
+        if (text.includes('the server responded with a status of 403')) return;
+        consoleErrors.push(text);
+      }
     });
 
     // Wait for playground editor to load

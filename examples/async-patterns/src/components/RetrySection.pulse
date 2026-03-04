@@ -2,8 +2,8 @@
  * RetrySection - Demonstrates error handling and retry patterns
  */
 
-import { useAsync } from '../../../../runtime/async.js'
-import { effect } from '../../../../runtime/index.js'
+import { useAsync } from 'pulse-js-framework/runtime/async'
+import { effect } from 'pulse-js-framework/runtime'
 import { mockFetch } from '../mock-api.js'
 
 @component RetrySection

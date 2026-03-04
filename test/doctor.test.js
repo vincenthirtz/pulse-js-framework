@@ -10,14 +10,15 @@ import { test, describe, beforeEach } from 'node:test';
 import assert from 'node:assert';
 import { runDiagnostics, runDoctor } from '../cli/doctor.js';
 import { createSpy } from './utils.js';
-import { existsSync, mkdirSync, writeFileSync, rmSync } from 'fs';
+import { existsSync, mkdirSync, mkdtempSync, writeFileSync, rmSync } from 'fs';
 import { join } from 'path';
+import { tmpdir } from 'node:os';
 
 // =============================================================================
 // Test Setup - Mock Project Structure
 // =============================================================================
 
-const TEST_DIR = join(process.cwd(), '.test-doctor-project');
+const TEST_DIR = mkdtempSync(join(tmpdir(), 'pulse-test-doctor-'));
 const originalCwd = process.cwd();
 
 /**

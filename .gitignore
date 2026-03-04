@@ -13,7 +13,22 @@ test-fixtures-analyze
 coverage
 .test-runner-project
 .test-dev-server
+.test-dev-coverage
+test-no-state
+test-empty-imports
 test/.tmp-ssg
+test/.tmp-mobile-test
+test/.tmp-release-test
+test/.tmp-server-utils-test
+.test-cli-temp
+.test-format-project
+.test-lint-project
+.test-output-async
+.test-output-quiet
+.test-output-sc-helpers
+.test-scaffold-project
+test/fixtures/esbuild-test/
+benchmarks/results/
 .commit-msg-*.tmp
 .release-notes-*.tmp.md
 

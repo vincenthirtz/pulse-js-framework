@@ -133,7 +133,7 @@ class MockWebSocket {
     setTimeout(() => {
       this.readyState = MockWebSocket.CLOSED;
       this.dispatchEvent({ type: 'close', code, reason, wasClean: code === 1000 });
-    }, 0);
+    }, 0).unref();
   }
 
   dispatchEvent(event) {
@@ -176,6 +176,23 @@ function mockWebSocket() {
   };
 }
 
+// Track all created clients for proper disposal
+const createdClients = [];
+
+function createTrackedClient(opts) {
+  const client = createGraphQLClient(opts);
+  createdClients.push(client);
+  return client;
+}
+
+// Dispose all clients after all tests to clear WebSocket reconnection timers
+after(() => {
+  for (const client of createdClients) {
+    try { client.dispose(); } catch {}
+  }
+  setDefaultClient(null);
+});
+
 // =============================================================================
 // Query Edge Cases
 // =============================================================================
@@ -193,7 +210,7 @@ describe('Query Edge Cases Tests', () => {
     });
 
     try {
-      const client = createGraphQLClient({ url: '/graphql' });
+      const client = createTrackedClient({ url: '/graphql' });
       setDefaultClient(client);
 
       const userId = pulse(1);
@@ -233,7 +250,7 @@ describe('Query Edge Cases Tests', () => {
     });
 
     try {
-      const client = createGraphQLClient({ url: '/graphql' });
+      const client = createTrackedClient({ url: '/graphql' });
       setDefaultClient(client);
 
       const { data, error, status } = useQuery('query Test { value }');
@@ -261,7 +278,7 @@ describe('Query Edge Cases Tests', () => {
     });
 
     try {
-      const client = createGraphQLClient({ url: '/graphql' });
+      const client = createTrackedClient({ url: '/graphql' });
       setDefaultClient(client);
 
       const { data, refetch, isStale } = useQuery(
@@ -300,7 +317,7 @@ describe('Query Edge Cases Tests', () => {
     });
 
     try {
-      const client = createGraphQLClient({ url: '/graphql' });
+      const client = createTrackedClient({ url: '/graphql' });
       setDefaultClient(client);
 
       const enabled = pulse(false);
@@ -346,7 +363,7 @@ describe('Mutation Edge Cases Tests', () => {
     });
 
     try {
-      const client = createGraphQLClient({ url: '/graphql' });
+      const client = createTrackedClient({ url: '/graphql' });
       setDefaultClient(client);
 
       const { mutate, loading } = useMutation(
@@ -379,7 +396,7 @@ describe('Mutation Edge Cases Tests', () => {
     });
 
     try {
-      const client = createGraphQLClient({ url: '/graphql' });
+      const client = createTrackedClient({ url: '/graphql' });
       setDefaultClient(client);
 
       let onMutateCalled = false;
@@ -427,7 +444,7 @@ describe('Mutation Edge Cases Tests', () => {
     });
 
     try {
-      const client = createGraphQLClient({ url: '/graphql', timeout: 50 });
+      const client = createTrackedClient({ url: '/graphql', timeout: 50 });
       setDefaultClient(client);
 
       const { mutate, error, status } = useMutation(
@@ -475,7 +492,7 @@ describe('Cache Invalidation Tests', () => {
     });
 
     try {
-      const client = createGraphQLClient({ url: '/graphql' });
+      const client = createTrackedClient({ url: '/graphql' });
       setDefaultClient(client);
 
       // Initial query
@@ -517,7 +534,7 @@ describe('Cache Invalidation Tests', () => {
     });
 
     try {
-      const client = createGraphQLClient({ url: '/graphql', cache: true });
+      const client = createTrackedClient({ url: '/graphql', cache: true });
       setDefaultClient(client);
 
       // First query
@@ -557,7 +574,7 @@ describe('Error Handling Edge Cases Tests', () => {
     });
 
     try {
-      const client = createGraphQLClient({ url: '/graphql' });
+      const client = createTrackedClient({ url: '/graphql' });
 
       try {
         await client.query('query GetUser { user { id name } }');
@@ -586,7 +603,7 @@ describe('Error Handling Edge Cases Tests', () => {
     });
 
     try {
-      const client = createGraphQLClient({ url: '/graphql' });
+      const client = createTrackedClient({ url: '/graphql' });
 
       try {
         await client.query('query Test { field1 field2 field3 }');
@@ -616,7 +633,7 @@ describe('Error Handling Edge Cases Tests', () => {
     });
 
     try {
-      const client = createGraphQLClient({
+      const client = createTrackedClient({
         url: '/graphql',
         retries: 3,
         retryDelay: 10
@@ -644,7 +661,7 @@ describe('Batched Queries Tests', () => {
     });
 
     try {
-      const client = createGraphQLClient({ url: '/graphql' });
+      const client = createTrackedClient({ url: '/graphql' });
       setDefaultClient(client);
 
       // Execute multiple queries in batch
@@ -680,7 +697,7 @@ describe('Interceptor Chain Tests', () => {
     });
 
     try {
-      const client = createGraphQLClient({ url: '/graphql' });
+      const client = createTrackedClient({ url: '/graphql' });
 
       client.interceptors.request.use((config) => {
         order.push('first');
@@ -708,7 +725,7 @@ describe('Interceptor Chain Tests', () => {
     });
 
     try {
-      const client = createGraphQLClient({ url: '/graphql' });
+      const client = createTrackedClient({ url: '/graphql' });
 
       client.interceptors.response.use(
         (result) => result,
@@ -732,7 +749,7 @@ describe('Interceptor Chain Tests', () => {
     });
 
     try {
-      const client = createGraphQLClient({ url: '/graphql' });
+      const client = createTrackedClient({ url: '/graphql' });
       let interceptorRan = false;
 
       const id = client.interceptors.request.use((config) => {
@@ -769,7 +786,7 @@ describe('Subscription Backoff Tests', () => {
     const wsMock = mockWebSocket();
 
     try {
-      const client = createGraphQLClient({ url: '/graphql', wsUrl: 'ws://test/graphql' });
+      const client = createTrackedClient({ url: '/graphql', wsUrl: 'ws://test/graphql' });
       setDefaultClient(client);
 
       const { retryCount, status, unsubscribe } = useSubscription(
@@ -800,7 +817,7 @@ describe('Subscription Backoff Tests', () => {
     const wsMock = mockWebSocket();
 
     try {
-      const client = createGraphQLClient({ url: '/graphql', wsUrl: 'ws://test/graphql' });
+      const client = createTrackedClient({ url: '/graphql', wsUrl: 'ws://test/graphql' });
       setDefaultClient(client);
 
       let errorCount = 0;
@@ -835,7 +852,7 @@ describe('Subscription Backoff Tests', () => {
     const wsMock = mockWebSocket();
 
     try {
-      const client = createGraphQLClient({ url: '/graphql', wsUrl: 'ws://test/graphql' });
+      const client = createTrackedClient({ url: '/graphql', wsUrl: 'ws://test/graphql' });
       setDefaultClient(client);
 
       const { retryCount, data, unsubscribe } = useSubscription(
@@ -883,7 +900,7 @@ describe('Subscription Backoff Tests', () => {
     const wsMock = mockWebSocket();
 
     try {
-      const client = createGraphQLClient({ url: '/graphql', wsUrl: 'ws://test/graphql' });
+      const client = createTrackedClient({ url: '/graphql', wsUrl: 'ws://test/graphql' });
       setDefaultClient(client);
 
       const statusHistory = [];
@@ -944,7 +961,7 @@ describe('Subscription Backoff Tests', () => {
     const wsMock = mockWebSocket();
 
     try {
-      const client = createGraphQLClient({ url: '/graphql', wsUrl: 'ws://test/graphql' });
+      const client = createTrackedClient({ url: '/graphql', wsUrl: 'ws://test/graphql' });
       setDefaultClient(client);
 
       let subscribeAttempts = 0;
@@ -988,8 +1005,3 @@ describe('Subscription Backoff Tests', () => {
   });
 });
 
-// Force clean exit after all tests complete (open handles from WebSocket reconnection timers)
-after(() => {
-  process.exitCode = 0;
-  setTimeout(() => process.exit(0), 500).unref();
-});

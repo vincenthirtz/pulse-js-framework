@@ -3,7 +3,7 @@
  * Demonstrates provideMany and reading multiple contexts
  */
 
-import { useContext } from '../../../../runtime/context.js'
+import { useContext } from 'pulse-js-framework/runtime/context'
 import { ThemeContext, AuthContext, LocaleContext } from '../contexts.js'
 
 @component MultiContextDemo

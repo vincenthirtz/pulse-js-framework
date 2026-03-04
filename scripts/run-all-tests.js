@@ -14,6 +14,7 @@ import { cpus } from 'os';
 const testGroups = {
   compiler: [
     'test:compiler',
+    'test:compiler-deep-coverage',
     'test:css-parsing',
     'test:lexer-coverage-boost',
     'test:parser-coverage',
@@ -27,18 +28,20 @@ const testGroups = {
   ],
   dom: [
     'test:dom',
+    'test:dom-adapter',
+    'test:dom-adapter-coverage-boost',
+    'test:dom-advanced',
+    'test:dom-binding',
+    'test:dom-conditional',
     'test:dom-element',
     'test:dom-element-coverage-boost',
-    'test:dom-list',
-    'test:dom-conditional',
-    'test:dom-lifecycle',
-    'test:dom-selector',
-    'test:dom-adapter',
-    'test:dom-advanced',
-    'test:dom-recycle',
-    'test:dom-virtual-list',
+    'test:dom-element-deep-coverage',
     'test:dom-event-delegate',
-    'test:dom-binding',
+    'test:dom-lifecycle',
+    'test:dom-list',
+    'test:dom-recycle',
+    'test:dom-selector',
+    'test:dom-virtual-list',
     'test:enhanced-mock-adapter',
   ],
   routing: [
@@ -60,41 +63,47 @@ const testGroups = {
   async: [
     'test:async',
     'test:async-coverage',
-    'test:http',
-    'test:http-edge-cases',
-    'test:websocket',
-    'test:websocket-coverage-boost',
-    'test:websocket-stress',
     'test:graphql',
     'test:graphql-coverage',
     'test:graphql-subscriptions',
     'test:graphql-subscriptions-coverage-boost',
+    'test:http',
+    'test:http-edge-cases',
+    'test:interceptor-manager-coverage-boost',
+    'test:websocket',
+    'test:websocket-coverage-boost',
+    'test:websocket-stress',
   ],
   infra: [
     'test:devtools',
     'test:error-sanitizer',
     'test:errors',
+    'test:errors-coverage-boost',
     'test:hmr',
     'test:hmr-coverage-boost',
     'test:interceptor-manager',
     'test:logger',
     'test:logger-coverage-boost',
+    'test:logger-deep-coverage',
     'test:logger-prod',
     'test:lru-cache',
     'test:memory-cleanup',
     'test:mutex',
     'test:native',
     'test:native-coverage-boost',
+    'test:path-sanitizer',
     'test:security',
     'test:security-coverage-boost',
+    'test:security-deep-coverage',
     'test:security-regression',
-    'test:path-sanitizer',
     'test:utils',
     'test:utils-coverage',
+    'test:utils-deep-coverage',
   ],
   cli: [
     'test:analyze',
     'test:build',
+    'test:build-coverage-boost',
     'test:build-extended',
     'test:cli',
     'test:cli-create',
@@ -102,6 +111,7 @@ const testGroups = {
     'test:cli-logger',
     'test:cli-mobile',
     'test:cli-release',
+    'test:cli-release-coverage',
     'test:cli-ui',
     'test:docs',
     'test:docs-nav',
@@ -113,7 +123,6 @@ const testGroups = {
     'test:test-runner',
   ],
   ssr: [
-    'test:server-utils',
     'test:server-actions',
     'test:server-actions-client',
     'test:server-actions-server-extended',
@@ -129,8 +138,11 @@ const testGroups = {
     'test:server-components-security-comprehensive',
     'test:server-components-serializer',
     'test:server-components-validation',
+    'test:server-utils',
     'test:ssg',
+    'test:ssg-coverage-boost',
     'test:ssr',
+    'test:ssr-coverage-boost',
     'test:ssr-directives',
     'test:ssr-hydrator',
     'test:ssr-mismatch',
@@ -138,13 +150,15 @@ const testGroups = {
     'test:ssr-stream',
   ],
   loaders: [
-    'test:vite-plugin',
-    'test:webpack-loader',
-    'test:rollup-plugin',
+    'test:dev-server',
+    'test:dev-server-coverage',
     'test:esbuild-plugin',
     'test:parcel-plugin',
+    'test:rollup-plugin',
     'test:swc-plugin',
-    'test:dev-server',
+    'test:vite-plugin',
+    'test:vite-plugin-server-components',
+    'test:webpack-loader',
   ],
   ecosystem: [
     'test:sse',
@@ -159,6 +173,7 @@ const testGroups = {
     'test:a11y',
     'test:a11y-enhanced',
     'test:a11y-focus-coverage-boost',
+    'test:a11y-graphql-coverage-boost',
     'test:a11y-widgets-coverage-boost',
     'test:benchmarks',
     'test:directives',
@@ -168,6 +183,8 @@ const testGroups = {
     'test:integration-advanced',
     'test:lite',
     'test:loader-shared',
+    'test:release-deep-coverage',
+    'test:small-gaps-coverage-boost',
     'test:style-coverage-boost',
     'test:testing',
     'test:view-coverage-boost',
@@ -177,6 +194,41 @@ const testGroups = {
 const TIMEOUT_MS = 60_000;
 const MAX_BUFFER = 10 * 1024 * 1024;
 const CONCURRENCY = Math.max(4, cpus().length);
+
+/**
+ * Parse shard configuration from TEST_SHARD env var or --shard CLI arg.
+ * Format: "X/Y" where X is the current shard (1-based) and Y is the total.
+ * Returns null if no sharding is configured.
+ */
+function parseShard() {
+  const raw = process.env.TEST_SHARD || process.argv.find(a => a.startsWith('--shard='))?.split('=')[1];
+  if (!raw) return null;
+
+  const match = raw.match(/^(\d+)\/(\d+)$/);
+  if (!match) {
+    console.error(`  Invalid shard format: "${raw}" (expected "X/Y", e.g. "1/2")`);
+    process.exit(1);
+  }
+
+  const current = parseInt(match[1], 10);
+  const total = parseInt(match[2], 10);
+
+  if (current < 1 || current > total || total < 1) {
+    console.error(`  Invalid shard range: ${current}/${total}`);
+    process.exit(1);
+  }
+
+  return { current, total };
+}
+
+/**
+ * Split an array of scripts into shards and return the requested shard.
+ * Uses round-robin distribution to balance across shards.
+ */
+function applySharding(scripts, shard) {
+  if (!shard) return scripts;
+  return scripts.filter((_, i) => (i % shard.total) === (shard.current - 1));
+}
 
 /**
  * Run a single test script via `npm run <script>`.
@@ -287,13 +339,20 @@ function formatDuration(ms) {
  * Main test runner.
  */
 async function runAllTests() {
+  const shard = parseShard();
   const allScripts = Object.values(testGroups).flat();
-  console.log(`\n  Running ${allScripts.length} test suites (concurrency: ${CONCURRENCY})...\n`);
+  const scripts = applySharding(allScripts, shard);
+
+  if (shard) {
+    console.log(`\n  Shard ${shard.current}/${shard.total}: running ${scripts.length}/${allScripts.length} test suites (concurrency: ${CONCURRENCY})...\n`);
+  } else {
+    console.log(`\n  Running ${allScripts.length} test suites (concurrency: ${CONCURRENCY})...\n`);
+  }
 
   const startTime = Date.now();
 
-  // Run all tests in parallel with concurrency limit
-  const allResults = await runWithConcurrency(allScripts, CONCURRENCY);
+  // Run tests in parallel with concurrency limit
+  const allResults = await runWithConcurrency(scripts, CONCURRENCY);
 
   const totalDuration = Date.now() - startTime;
 
@@ -301,8 +360,11 @@ async function runAllTests() {
   const resultMap = new Map(allResults.map((r) => [r.script, r]));
 
   // Print results grouped by domain
-  for (const [group, scripts] of Object.entries(testGroups)) {
-    const groupResults = scripts.map((s) => resultMap.get(s));
+  const scriptSet = new Set(scripts);
+  for (const [group, groupScripts] of Object.entries(testGroups)) {
+    const activeScripts = groupScripts.filter((s) => scriptSet.has(s));
+    if (activeScripts.length === 0) continue;
+    const groupResults = activeScripts.map((s) => resultMap.get(s));
     const allPassed = groupResults.every((r) => r.passed);
     const groupDuration = groupResults.reduce((sum, r) => sum + r.duration, 0);
 
@@ -327,9 +389,12 @@ async function runAllTests() {
   console.log('='.repeat(60));
   console.log('TEST SUMMARY');
   console.log('='.repeat(60));
+  if (shard) {
+    console.log(`  Shard:       ${shard.current}/${shard.total}`);
+  }
   console.log(`  Passed:      ${passed.length}`);
   console.log(`  Failed:      ${failed.length}`);
-  console.log(`  Total:       ${allScripts.length}`);
+  console.log(`  Total:       ${scripts.length}${shard ? `/${allScripts.length}` : ''}`);
   console.log(`  Wall time:   ${formatDuration(totalDuration)}`);
   console.log(`  CPU time:    ${formatDuration(allResults.reduce((s, r) => s + r.duration, 0))}`);
   console.log(`  Concurrency: ${CONCURRENCY}`);

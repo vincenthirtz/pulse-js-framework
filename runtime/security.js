@@ -34,14 +34,6 @@ export const DANGEROUS_KEYS = new Set([
   '__lookupGetter__',
   '__lookupSetter__',
 
-  // Object prototype methods that could be overwritten
-  'hasOwnProperty',
-  'isPrototypeOf',
-  'propertyIsEnumerable',
-  'toLocaleString',
-  'toString',
-  'valueOf',
-
   // Dangerous globals
   'eval',
   'Function'

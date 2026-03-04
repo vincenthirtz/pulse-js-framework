@@ -19,14 +19,15 @@ import {
   exitWithCode,
   printSection
 } from './utils.js';
-import { existsSync, mkdirSync, writeFileSync, rmSync, readFileSync } from 'fs';
+import { existsSync, mkdirSync, mkdtempSync, writeFileSync, rmSync, readFileSync } from 'fs';
 import { join } from 'path';
+import { tmpdir } from 'node:os';
 
 // =============================================================================
 // Test Setup
 // =============================================================================
 
-const TEST_DIR = join(process.cwd(), '.test-runner-project');
+const TEST_DIR = mkdtempSync(join(tmpdir(), 'pulse-test-runner-'));
 const originalCwd = process.cwd();
 
 /**

@@ -2,12 +2,12 @@
  * A11y Showcase - Shared State
  */
 
-import { pulse, computed } from '../../../runtime/index.js';
+import { pulse, computed } from 'pulse-js-framework/runtime';
 import {
   announcePolite, announceAssertive,
   createPreferences, createFocusVisibleTracker, installSkipLinks,
   getContrastRatio, meetsContrastRequirement
-} from '../../../runtime/a11y.js';
+} from 'pulse-js-framework/runtime/a11y';
 
 export const activeSection = pulse('widgets');
 export const modalOpen = pulse(false);

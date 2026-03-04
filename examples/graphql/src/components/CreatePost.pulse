@@ -2,7 +2,7 @@
  * CreatePost - Create new post form with mutation
  */
 
-import { useMutation } from '../../../../runtime/graphql.js'
+import { useMutation } from 'pulse-js-framework/runtime/graphql'
 import { currentView, client, CREATE_POST } from '../graphql-setup.js'
 
 @component CreatePost

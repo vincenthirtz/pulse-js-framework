@@ -73,6 +73,11 @@ export async function startDevServer(args) {
     }
   }
 
+  if (isNaN(port) || port < 1 || port > 65535) {
+    log.error(`Invalid port: ${args[0] || args[1]}. Must be between 1 and 65535.`);
+    process.exit(1);
+  }
+
   // Check if vite is available, use it if so
   try {
     const viteConfig = join(root, 'vite.config.js');
@@ -327,7 +332,7 @@ export async function startDevServer(args) {
   });
 
   // Watch for file changes
-  watchFiles(root);
+  const watcher = watchFiles(root);
 
   server.listen(port, () => {
     log.success(`
@@ -338,6 +343,9 @@ export async function startDevServer(args) {
   Press Ctrl+C to stop.
     `);
   });
+
+  // Return handles for cleanup (used by tests)
+  return { server, watcher };
 }
 
 /**
@@ -348,7 +356,7 @@ function watchFiles(root) {
   let debounceTimer = null;
 
   try {
-    watch(srcDir, { recursive: true }, (eventType, filename) => {
+    const watcher = watch(srcDir, { recursive: true }, (eventType, filename) => {
       if (filename && (filename.endsWith('.pulse') || filename.endsWith('.js') || filename.endsWith('.css'))) {
         // Debounce to avoid multiple reloads
         if (debounceTimer) clearTimeout(debounceTimer);
@@ -359,9 +367,11 @@ function watchFiles(root) {
       }
     });
     log.debug('Watching src/ for changes...');
+    return watcher;
   } catch (e) {
     if (e.code !== 'ENOENT') throw e;
     // No src directory, skip watching
+    return null;
   }
 }
 

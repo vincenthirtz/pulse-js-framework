@@ -4,8 +4,8 @@
  * ClientOnly/ServerOnly, and SSR-safe patterns.
  */
 
-import { renderToStringSync, serializeState, deserializeState, isSSR, ClientOnly, ServerOnly } from '../../../runtime/ssr.js'
-import { el } from '../../../runtime/index.js'
+import { renderToStringSync, serializeState, deserializeState, isSSR, ClientOnly, ServerOnly } from 'pulse-js-framework/runtime/ssr'
+import { el } from 'pulse-js-framework/runtime'
 
 @page App
 

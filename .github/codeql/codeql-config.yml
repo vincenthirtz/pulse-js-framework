@@ -14,3 +14,12 @@ query-filters:
   # but the compiler's output is inherently safe code construction from parsed input.
   - exclude:
       id: js/bad-code-sanitization
+
+  # js/insecure-temporary-file: The CLI tools (build, scaffold, docs, mobile, etc.)
+  # write files to user-specified project directories (dist/, src/, platforms/),
+  # not to OS temp directories. CodeQL flags these writeFileSync calls because
+  # process.cwd() could theoretically be a temp dir, but in practice these are
+  # always user project directories passed via CLI arguments.
+  # Test files use mkdtempSync() for actual temp dirs (fixed separately).
+  - exclude:
+      id: js/insecure-temporary-file

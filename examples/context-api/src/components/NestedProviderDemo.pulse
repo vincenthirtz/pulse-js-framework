@@ -3,7 +3,7 @@
  * Demonstrates nested Provider overriding outer context
  */
 
-import { useContext, Provider } from '../../../../runtime/context.js'
+import { useContext, Provider } from 'pulse-js-framework/runtime/context'
 import { ThemeContext, themes } from '../contexts.js'
 
 @component NestedProviderDemo

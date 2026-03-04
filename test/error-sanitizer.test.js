@@ -144,16 +144,16 @@ describe('Error Sanitizer', () => {
     });
 
     test('redacts MongoDB connection strings', () => {
-      const message = 'Failed to connect: mongodb://admin:secret@localhost:27017/mydb';
+      const message = 'Failed to connect: mongodb://admin:s3cret@localhost:27017/mydb';
       const sanitized = sanitizeErrorMessage(message);
-      assert.ok(!sanitized.includes('mongodb://admin:secret'));
+      assert.ok(!sanitized.includes('mongodb://admin:s3cret'));
       assert.ok(sanitized.includes('[REDACTED]'));
     });
 
     test('redacts MongoDB+SRV connection strings', () => {
-      const message = 'Error: mongodb+srv://user:pass@cluster.mongodb.net/db';
+      const message = 'Error: mongodb+srv://testuser:testp4ss@example-cluster.example.net/testdb';
       const sanitized = sanitizeErrorMessage(message);
-      assert.ok(!sanitized.includes('mongodb+srv://user:pass'));
+      assert.ok(!sanitized.includes('mongodb+srv://testuser:testp4ss'));
     });
 
     test('redacts file paths (Unix)', () => {

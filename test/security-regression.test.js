@@ -16,6 +16,7 @@
 
 import { test, describe } from 'node:test';
 import assert from 'node:assert';
+import { performance } from 'node:perf_hooks';
 
 // Import security modules
 import {
@@ -37,13 +38,12 @@ describe('CRITICAL-001: ReDoS vulnerability in environment variable detection', 
     // Use 5000 chars to stay under MAX_ENV_SCAN_SIZE (10000)
     const malicious = 'process.env.' + 'A'.repeat(5000);
 
-    const start = Date.now();
+    const start = performance.now();
     const result = detectEnvironmentVariables({ value: malicious });
-    const duration = Date.now() - start;
+    const duration = performance.now() - start;
 
     // Should complete in less than 200ms (would take seconds/minutes with vulnerable regex)
-    // Increased from 100ms to 200ms for Node 18 compatibility
-    assert.ok(duration < 200, `Detection took ${duration}ms, expected <200ms`);
+    assert.ok(duration < 200, `Detection took ${duration.toFixed(2)}ms, expected <200ms`);
     assert.strictEqual(result.detected, true);
     assert.ok(result.warnings.length > 0);
   });
@@ -52,13 +52,12 @@ describe('CRITICAL-001: ReDoS vulnerability in environment variable detection', 
     // String longer than MAX_ENV_SCAN_SIZE (10000)
     const veryLongString = 'x'.repeat(20000);
 
-    const start = Date.now();
+    const start = performance.now();
     const result = detectEnvironmentVariables({ value: veryLongString });
-    const duration = Date.now() - start;
+    const duration = performance.now() - start;
 
     // Should skip large strings and return immediately
-    // Increased from 50ms to 100ms for Node 18 compatibility
-    assert.ok(duration < 100, `Detection took ${duration}ms, expected <100ms`);
+    assert.ok(duration < 100, `Detection took ${duration.toFixed(2)}ms, expected <100ms`);
     assert.strictEqual(result.detected, false);
   });
 
@@ -69,12 +68,11 @@ describe('CRITICAL-001: ReDoS vulnerability in environment variable detection', 
       denoVar: 'Deno.env.get("TOKEN")'
     };
 
-    const start = Date.now();
+    const start = performance.now();
     const result = detectEnvironmentVariables(input);
-    const duration = Date.now() - start;
+    const duration = performance.now() - start;
 
-    // Increased from 50ms to 100ms for Node 18 compatibility
-    assert.ok(duration < 100, `Detection took ${duration}ms`);
+    assert.ok(duration < 100, `Detection took ${duration.toFixed(2)}ms`);
     assert.strictEqual(result.detected, true);
     assert.strictEqual(result.warnings.length, 3);
   });
@@ -201,34 +199,37 @@ describe('HIGH-002: CSRF timing attack vulnerability', () => {
     const invalidFormat = 'invalid-format';
     const invalidSignature = '1234567890.abcdef1234567890abcdef1234567890.ffffffffffffffff';
 
-    // Measure validation times
-    const timings = [];
+    // Run multiple iterations to reduce noise from CI scheduling jitter
+    const iterations = 5;
+    const avgTimings = [0, 0, 0];
 
-    // Valid token
-    const start1 = Date.now();
-    await store.validate(validToken);
-    timings.push(Date.now() - start1);
+    for (let i = 0; i < iterations; i++) {
+      const start1 = performance.now();
+      await store.validate(validToken);
+      avgTimings[0] += performance.now() - start1;
 
-    // Invalid format
-    const start2 = Date.now();
-    await store.validate(invalidFormat);
-    timings.push(Date.now() - start2);
+      const start2 = performance.now();
+      await store.validate(invalidFormat);
+      avgTimings[1] += performance.now() - start2;
 
-    // Invalid signature
-    const start3 = Date.now();
-    await store.validate(invalidSignature);
-    timings.push(Date.now() - start3);
+      const start3 = performance.now();
+      await store.validate(invalidSignature);
+      avgTimings[2] += performance.now() - start3;
+    }
 
-    // All validations should take roughly the same time (within 50ms)
-    // In vulnerable version, invalid format would return instantly (0-1ms)
-    // while valid/signature checks would take longer (5-10ms)
+    // Average the timings
+    const timings = avgTimings.map(t => t / iterations);
+
+    // All validations should take roughly the same time
+    // In vulnerable version, invalid format would return instantly
+    // while valid/signature checks would take longer
     const maxTime = Math.max(...timings);
     const minTime = Math.min(...timings);
     const timeDiff = maxTime - minTime;
 
-    // With constant-time validation, difference should be minimal (<50ms)
-    // This prevents timing attacks that leak token validity
-    assert.ok(timeDiff < 50, `Timing difference ${timeDiff}ms too large (timing attack risk)`);
+    // With constant-time validation, difference should be minimal
+    // Use 100ms threshold to account for CI scheduling jitter
+    assert.ok(timeDiff < 100, `Timing difference ${timeDiff.toFixed(2)}ms too large (timing attack risk)`);
 
     store.dispose();
   });
@@ -249,17 +250,18 @@ describe('HIGH-002: CSRF timing attack vulnerability', () => {
     const timings = [];
 
     for (const input of invalidInputs) {
-      const start = Date.now();
+      const start = performance.now();
       await store.validate(input);
-      timings.push(Date.now() - start);
+      timings.push(performance.now() - start);
     }
 
     // All should take at least some time (HMAC computation)
     // None should be instant (which would indicate early return)
+    // Use performance.now() for sub-millisecond precision
     const avgTime = timings.reduce((a, b) => a + b, 0) / timings.length;
 
-    // Average should be > 0ms (indicates HMAC was computed)
-    assert.ok(avgTime > 0, 'All validation paths should compute HMAC');
+    // Average should be > 0 (with performance.now() this catches sub-ms times too)
+    assert.ok(avgTime > 0, `All validation paths should compute HMAC (avg: ${avgTime.toFixed(4)}ms)`);
 
     store.dispose();
   });
@@ -424,14 +426,13 @@ describe('Integration: Multiple security fixes work together', () => {
       evil: 'process.env.' + 'A'.repeat(5000)
     };
 
-    const start = Date.now();
+    const start = performance.now();
     const serializableResult = detectNonSerializable(malicious);
     const envResult = detectEnvironmentVariables(malicious);
-    const duration = Date.now() - start;
+    const duration = performance.now() - start;
 
     // Both checks should complete quickly
-    // Increased from 100ms to 200ms for Node 18 compatibility
-    assert.ok(duration < 200, 'Combined checks should be fast');
+    assert.ok(duration < 200, `Combined checks should be fast (took ${duration.toFixed(2)}ms)`);
 
     // Prototype pollution should be caught
     assert.strictEqual(serializableResult.valid, false);

@@ -8,8 +8,9 @@
 
 import { minifyJS, previewBuild } from '../cli/build.js';
 import buildModule from '../cli/build.js';
-import { mkdirSync, writeFileSync, rmSync, existsSync, readFileSync } from 'fs';
+import { mkdirSync, mkdtempSync, writeFileSync, rmSync, existsSync, readFileSync } from 'fs';
 import { join } from 'path';
+import { tmpdir } from 'node:os';
 import { test, describe, after } from 'node:test';
 import assert from 'node:assert';
 
@@ -908,7 +909,7 @@ describe('JavaScript Minification - Boundary Tests', () => {
 // =============================================================================
 
 describe('previewBuild Tests', () => {
-  const BUILD_TEST_DIR = join(process.cwd(), '.test-build-preview');
+  const BUILD_TEST_DIR = mkdtempSync(join(tmpdir(), 'pulse-test-build-'));
   const originalCwd = process.cwd();
 
   function setupBuildTestDir(withDist = true) {
@@ -1044,7 +1045,7 @@ describe('previewBuild Tests', () => {
 // =============================================================================
 
 describe('buildProject Tests', () => {
-  const BUILD_TEST_DIR = join(process.cwd(), '.test-build-preview');
+  const BUILD_TEST_DIR = mkdtempSync(join(tmpdir(), 'pulse-test-build-'));
   const originalCwd = process.cwd();
 
   function setupBuildTestDir(withDist = true) {
@@ -1163,7 +1164,7 @@ export default {
 // =============================================================================
 
 describe('copyDir Tests (via buildProject)', () => {
-  const BUILD_TEST_DIR = join(process.cwd(), '.test-build-preview');
+  const BUILD_TEST_DIR = mkdtempSync(join(tmpdir(), 'pulse-test-build-'));
   const originalCwd = process.cwd();
 
   function cleanupBuildTestDir() {

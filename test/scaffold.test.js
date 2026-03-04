@@ -8,14 +8,15 @@
 
 import { test, describe, beforeEach } from 'node:test';
 import assert from 'node:assert';
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs';
 import { join } from 'path';
+import { tmpdir } from 'node:os';
 
 // =============================================================================
 // Test Setup
 // =============================================================================
 
-const TEST_DIR = join(process.cwd(), '.test-scaffold-project');
+const TEST_DIR = mkdtempSync(join(tmpdir(), 'pulse-test-scaffold-'));
 const originalCwd = process.cwd();
 
 /**

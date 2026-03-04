@@ -466,7 +466,11 @@ function copyDir(src, dest) {
  * Preview production build
  */
 export async function previewBuild(args) {
-  const port = parseInt(args[0]) || 4173;
+  let port = parseInt(args[0]) || 4173;
+  if (isNaN(port) || port < 1 || port > 65535) {
+    log.error(`Invalid port: ${args[0]}. Must be between 1 and 65535.`);
+    process.exit(1);
+  }
   const root = process.cwd();
   const distDir = join(root, 'dist');
 

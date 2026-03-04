@@ -2,8 +2,8 @@
  * ResourceSection - Demonstrates useResource (SWR Pattern)
  */
 
-import { useResource } from '../../../../runtime/async.js'
-import { effect } from '../../../../runtime/index.js'
+import { useResource } from 'pulse-js-framework/runtime/async'
+import { effect } from 'pulse-js-framework/runtime'
 import { mockFetch } from '../mock-api.js'
 
 @component ResourceSection

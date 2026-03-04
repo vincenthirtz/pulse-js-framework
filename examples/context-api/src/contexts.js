@@ -4,7 +4,7 @@
  * themes, translations, and mock user data.
  */
 
-import { createContext } from '../../../runtime/context.js';
+import { createContext } from 'pulse-js-framework/runtime/context';
 
 // Theme Context
 export const ThemeContext = createContext('light', { displayName: 'ThemeContext' });
