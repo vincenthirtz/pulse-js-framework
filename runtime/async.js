@@ -495,10 +495,8 @@ export function useAsync(asyncFn, options = {}) {
  * @property {number} [cacheTime=300000] - Time in ms to keep data in cache (5 min default)
  */
 
-// Global resource cache with bounded size to prevent unbounded memory growth
-import { LRUCache } from './lru-cache.js';
-const RESOURCE_CACHE_MAX_SIZE = 1000;
-const resourceCache = new LRUCache(RESOURCE_CACHE_MAX_SIZE);
+// Global resource cache
+const resourceCache = new Map();
 
 /**
  * Create a reactive resource with caching, auto-refresh, and stale-while-revalidate.
@@ -740,8 +738,6 @@ export function useResource(key, fetcher, options = {}) {
       clearInterval(intervalId);
       intervalId = null;
     }
-    // Abort any in-flight fetch to prevent stale updates after dispose
-    versionController.cleanup();
   };
 
   return {
@@ -908,6 +904,139 @@ export function usePolling(asyncFn, options) {
   };
 }
 
+// ============================================================================
+// useAbortable - High-Level Race-Condition-Safe Hook
+// ============================================================================
+
+/**
+ * Reactive hook for async operations that automatically prevents race conditions.
+ *
+ * Every call to `execute()` silently cancels any in-flight call from the same
+ * hook instance. This is the recommended way to handle user interactions that
+ * trigger repeated async operations (search-as-you-type, rapid navigation,
+ * re-fetching on dependency change, etc.).
+ *
+ * Built on top of `createVersionedAsync`, but presents a simpler interface:
+ * you get reactive `isExecuting`, `data`, and `error` signals without manually
+ * managing version contexts.
+ *
+ * @param {Function} asyncFn - The async function to wrap. Receives whatever
+ *   arguments are passed to `execute()`.
+ * @param {Object} [options={}]
+ * @param {any}      [options.initial=null]  - Initial value for the `data` signal.
+ * @param {Function} [options.onSuccess]     - Called with the result when execution succeeds.
+ * @param {Function} [options.onError]       - Called with the error when execution fails.
+ *   If not provided, errors are swallowed for cancelled operations but re-thrown
+ *   for the latest one.
+ * @returns {{ execute: Function, abort: Function, isExecuting: Pulse<boolean>,
+ *             data: Pulse<any>, error: Pulse<Error|null>, getVersion: Function }}
+ *
+ * @example
+ * // Search-as-you-type — only the last search result wins
+ * const search = useAbortable(async (query) => {
+ *   const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+ *   return res.json();
+ * });
+ *
+ * effect(() => {
+ *   const q = searchInput.get();
+ *   if (q) search.execute(q);
+ * });
+ *
+ * // In your view:
+ * // text(() => search.isExecuting.get() ? 'Searching…' : '')
+ * // list(search.data, item => el('.result', item.title))
+ *
+ * @example
+ * // One-shot async action with success/error callbacks
+ * const saveUser = useAbortable(
+ *   (userData) => api.put('/user', userData),
+ *   {
+ *     onSuccess: () => showToast('Saved!'),
+ *     onError: (err) => showToast(`Error: ${err.message}`, 'error'),
+ *   }
+ * );
+ *
+ * button.addEventListener('click', () => saveUser.execute(formData));
+ */
+export function useAbortable(asyncFn, options = {}) {
+  const { initial = null, onSuccess, onError } = options;
+
+  const isExecuting = pulse(false);
+  const data = pulse(initial);
+  const error = pulse(null);
+
+  const controller = createVersionedAsync({
+    onAbort: () => {
+      // Only clear isExecuting — leave data/error showing last known state
+      isExecuting.set(false);
+    },
+  });
+
+  /**
+   * Execute the wrapped async function.
+   * Any previously in-flight execution is automatically cancelled first.
+   * @param {...any} args - Arguments forwarded to asyncFn
+   * @returns {Promise<any>} Resolves with the result, or rejects if execution fails
+   *   and this call is still the latest version.
+   */
+  async function execute(...args) {
+    const ctx = controller.begin();
+
+    batch(() => {
+      isExecuting.set(true);
+      error.set(null);
+    });
+
+    try {
+      const result = await asyncFn(...args);
+
+      ctx.ifCurrent(() => {
+        batch(() => {
+          data.set(result);
+          isExecuting.set(false);
+        });
+        onSuccess?.(result);
+      });
+
+      return result;
+    } catch (err) {
+      ctx.ifCurrent(() => {
+        batch(() => {
+          error.set(err);
+          isExecuting.set(false);
+        });
+        onError?.(err);
+      });
+
+      // Only re-throw if this execution is still the current one so that
+      // callers aren't surprised by errors from stale operations.
+      if (ctx.isCurrent()) throw err;
+    }
+  }
+
+  /**
+   * Cancel any in-flight execution. The `isExecuting` signal will be cleared
+   * and the current `data`/`error` values will remain unchanged.
+   */
+  function abort() {
+    controller.abort();
+  }
+
+  // Auto-abort on effect cleanup (navigation, component unmount, etc.)
+  onCleanup(() => controller.abort());
+
+  return {
+    execute,
+    abort,
+    isExecuting,
+    data,
+    error,
+    /** @returns {number} Monotonically increasing version counter */
+    getVersion: controller.getVersion,
+  };
+}
+
 /**
  * Clear the entire resource cache
  */
@@ -928,6 +1057,7 @@ export function getResourceCacheStats() {
 
 export default {
   createVersionedAsync,
+  useAbortable,
   useAsync,
   useResource,
   usePolling,

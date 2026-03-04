@@ -185,7 +185,7 @@ avatar.dispose();          // Cleanup preview URLs (called automatically on unmo
 ### Async (runtime/async.js)
 
 ```javascript
-import { useAsync, useResource, usePolling, createVersionedAsync } from 'pulse-js-framework/runtime/async';
+import { useAsync, useResource, usePolling, createVersionedAsync, useAbortable } from 'pulse-js-framework/runtime/async';
 
 // Basic async operation
 const { data, loading, error, execute, reset, abort } = useAsync(
@@ -233,9 +233,18 @@ const { data, start, stop, isPolling } = usePolling(
 start();  // Begin polling
 stop();   // Stop polling
 
-// Race condition handling (low-level)
+// Race condition handling — high-level (recommended)
+const search = useAbortable(
+  async (query) => searchApi(query),
+  { onError: (err) => console.error(err) }
+);
+// In an effect: search.execute(query.get())
+// search.isExecuting, search.data, search.error are reactive Pulse signals
+// Each call to execute() cancels any previous in-flight call automatically
+
+// Race condition handling — low-level (advanced)
 const controller = createVersionedAsync();
-async function search(query) {
+async function searchLowLevel(query) {
   const ctx = controller.begin();  // Invalidates previous operations
   const results = await searchApi(query);
   ctx.ifCurrent(() => setResults(results));  // Only runs if still current

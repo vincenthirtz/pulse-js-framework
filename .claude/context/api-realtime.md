@@ -147,7 +147,8 @@ const ws = createWebSocket('wss://api.example.com/ws', {
 
   // Message handling
   queueWhileDisconnected: true, // Queue messages when offline (default: true)
-  maxQueueSize: 100,            // Max queued messages (default: 100)
+  maxQueueSize: 100,            // Max queued messages (default: 100, 0 = disabled)
+  queueEvictionStrategy: 'fifo', // 'fifo' (drop oldest) | 'drop-new' (keep first N) | 'drop-all' (wipe on overflow)
   autoParseJson: true           // Auto-parse JSON messages (default: true)
 });
 
